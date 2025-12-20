@@ -1,0 +1,4 @@
+﻿src/app/dashboard/hermanos/page.tsx(12,13): error TS2322: Type 'HermanoData[]' is not assignable to type 'Profile[]'.
+  Property 'created_at' is missing in type 'HermanoData' but required in type 'Profile'.
+src/components/TestNotificationButton.tsx(5,10): error TS2305: Module '"@/app/dashboard/admin/stats/actions"' has no exported member 'sendTestNotification'.
+src/hooks/usePushNotifications.ts(4,10): error TS2305: Module '"@/app/dashboard/profile/actions"' has no exported member 'subscribeUser'.

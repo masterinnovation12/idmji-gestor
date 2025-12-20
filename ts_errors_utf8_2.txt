@@ -1,0 +1,6 @@
+﻿src/app/dashboard/hermanos/page.tsx(12,13): error TS2322: Type 'HermanoData[]' is not assignable to type 'Profile[]'.
+  Type 'HermanoData' is not assignable to type 'Profile'.
+    Types of property 'rol' are incompatible.
+      Type 'string' is not assignable to type 'UserRole'.
+src/components/TestNotificationButton.tsx(16,35): error TS2339: Property 'message' does not exist on type 'ActionResponse<void>'.
+src/components/TestNotificationButton.tsx(18,33): error TS2339: Property 'message' does not exist on type 'ActionResponse<void>'.

@@ -1,0 +1,395 @@
+﻿
+> web@0.1.0 lint
+> eslint
+
+
+C:\Users\jebol\Desktop\APP IDMJI\web\inspect_types.js
+  2:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\jebol\Desktop\APP IDMJI\web\list_tables.js
+  2:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\jebol\Desktop\APP IDMJI\web\middleware.ts
+  21:58  warning  'options' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\public\sw.js
+   1:7   warning  'CACHE_NAME' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  13:33  warning  'event' is defined but never used                @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\scripts\deploy_schedules.js
+   2:26  error    A `require()` style import is forbidden        @typescript-eslint/no-require-imports
+   3:12  error    A `require()` style import is forbidden        @typescript-eslint/no-require-imports
+   4:14  error    A `require()` style import is forbidden        @typescript-eslint/no-require-imports
+   5:7   warning  'dotenv' is assigned a value but never used    @typescript-eslint/no-unused-vars
+   5:16  error    A `require()` style import is forbidden        @typescript-eslint/no-require-imports
+  31:7   warning  'supabase' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  33:16  warning  'runMigration' is defined but never used       @typescript-eslint/no-unused-vars
+  37:15  warning  'sql' is assigned a value but never used       @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\scripts\deploy_types.js
+  2:20  error    A `require()` style import is forbidden    @typescript-eslint/no-require-imports
+  3:12  error    A `require()` style import is forbidden    @typescript-eslint/no-require-imports
+  4:7   warning  'path' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  4:14  error    A `require()` style import is forbidden    @typescript-eslint/no-require-imports
+
+C:\Users\jebol\Desktop\APP IDMJI\web\scripts\process_bible.js
+   1:12  error    A `require()` style import is forbidden        @typescript-eslint/no-require-imports
+   2:14  error    A `require()` style import is forbidden        @typescript-eslint/no-require-imports
+   8:7   warning  'headers' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  34:31  warning  'totalCap' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\scripts\update_bible.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\api\seed\route.ts
+  153:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\DashboardClient.tsx
+   19:30  warning  'Music' is defined but never used         @typescript-eslint/no-unused-vars
+   32:15  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  182:60  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  198:77  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\admin\audit\AuditClient.tsx
+   4:26  warning  'getMovimientosTipos' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   5:20  warning  'Search' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  18:19  warning  'setTipos' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+  27:9   error    Error: Cannot access variable before it is declared
+
+`loadData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\admin\audit\AuditClient.tsx:27:9
+  25 |
+  26 |     useEffect(() => {
+> 27 |         loadData()
+     |         ^^^^^^^^ `loadData` accessed before it is declared
+  28 |     }, [page, tipoFilter])
+  29 |
+  30 |     async function loadData() {
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\admin\audit\AuditClient.tsx:30:5
+  28 |     }, [page, tipoFilter])
+  29 |
+> 30 |     async function loadData() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 31 |         setIsLoading(true)
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 32 |         const result = await getMovimientos(page, limit, tipoFilter || undefined)
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 33 |         if (result.success && result.data) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |             setMovimientos(result.data.data)
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 35 |             setTotal(result.data.total)
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 36 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 37 |         setIsLoading(false)
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 38 |     }
+     | ^^^^^^ `loadData` is declared here
+  39 |
+  40 |     function getTipoColor(tipo: string): string {
+  41 |         switch (tipo) {  react-hooks/immutability
+  28:8   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\admin\audit\actions.ts
+  54:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\admin\stats\StatsClient.tsx
+    5:10  warning  'Card' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+    6:10  warning  'Button' is defined but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   34:30  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  143:53  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\admin\users\UsersClient.tsx
+    4:10  warning  'getUsers' is defined but never used                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  124:53  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\cultos\[id]\CultoDetailClient.tsx
+   49:5   warning  't' is defined but never used             @typescript-eslint/no-unused-vars
+   52:11  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   54:20  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   57:8   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  109:18  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\cultos\actions.ts
+  20:11  warning  'typeMap' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\festivos\FestivosPageClient.tsx
+   21:53  warning  'AlertTriangle' is defined but never used  @typescript-eslint/no-unused-vars
+   21:68  warning  'CheckCircle2' is defined but never used   @typescript-eslint/no-unused-vars
+   32:10  warning  'Festivo' is defined but never used        @typescript-eslint/no-unused-vars
+   35:22  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  154:53  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\hermanos\HermanosClient.tsx
+   22:16  warning  'CardHeader' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+   22:28  warning  'CardTitle' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+   41:13  error    Error: Cannot access variable before it is declared
+
+`handleSearch` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\hermanos\HermanosClient.tsx:41:13
+  39 |     useEffect(() => {
+  40 |         const timer = setTimeout(() => {
+> 41 |             handleSearch()
+     |             ^^^^^^^^^^^^ `handleSearch` accessed before it is declared
+  42 |         }, 300)
+  43 |         return () => clearTimeout(timer)
+  44 |     }, [searchTerm])
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\hermanos\HermanosClient.tsx:49:5
+  47 |      * Ejecuta la b├║squeda de hermanos contra el servidor
+  48 |      */
+> 49 |     async function handleSearch() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 50 |         if (!searchTerm && hermanos.length === initialHermanos.length) return
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 51 |
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 52 |         setIsLoading(true)
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 53 |         const result = await getHermanos(searchTerm || undefined)
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |         if (result.success && result.data) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |             setHermanos(result.data as Profile[])
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 56 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 57 |         setIsLoading(false)
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |     }
+     | ^^^^^^ `handleSearch` is declared here
+  59 |
+  60 |     /**
+  61 |      * Resalta el t├®rmino buscado en los textos de la interfaz  react-hooks/immutability
+   44:8   warning  React Hook useEffect has a missing dependency: 'handleSearch'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+  172:49  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @next/next/no-img-element
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\himnario\HimnarioClient.tsx
+   23:16  warning  'CardHeader' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+   23:28  warning  'CardTitle' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   26:10  warning  'Himno' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   26:17  warning  'Coro' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+   29:20  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+   30:19  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+   36:42  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+   37:40  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+   45:13  error    Error: Cannot access variable before it is declared
+
+`loadData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\himnario\HimnarioClient.tsx:45:13
+  43 |     useEffect(() => {
+  44 |         const timer = setTimeout(() => {
+> 45 |             loadData()
+     |             ^^^^^^^^ `loadData` accessed before it is declared
+  46 |         }, 300)
+  47 |         return () => clearTimeout(timer)
+  48 |     }, [searchTerm, activeTab])
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\himnario\HimnarioClient.tsx:53:5
+  51 |      * Carga los datos filtrados bas├índose en la pesta├▒a y b├║squeda
+  52 |      */
+> 53 |     async function loadData() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |         if (!searchTerm && activeTab === 'himnos' && himnos.length === initialHimnos.length) return
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |         if (!searchTerm && activeTab === 'coros' && coros.length === initialCoros.length) return
+     ÔÇª
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 71 |         setIsLoading(false)
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 72 |     }
+     | ^^^^^^ `loadData` is declared here
+  73 |
+  74 |     /**
+  75 |      * Formatea segundos a formato MM:SS  react-hooks/immutability
+   48:8   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+  148:63  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\layout.tsx
+   33:5   warning  'X' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+   70:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\layout.tsx:70:9
+  68 |     // Cerrar men├║ m├│vil al cambiar de ruta
+  69 |     useEffect(() => {
+> 70 |         setIsMobileMenuOpen(false)
+     |         ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  71 |     }, [pathname])
+  72 |
+  73 |     // Cerrar men├║ m├│vil al redimensionar a desktop                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/set-state-in-effect
+  234:26  error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\layout.tsx:234:26
+  232 |                         className="fixed left-0 top-0 h-full w-[300px] z-[110] flex flex-col md:hidden shadow-2xl"
+  233 |                     >
+> 234 |                         <SidebarContent />
+      |                          ^^^^^^^^^^^^^^ This component is created during render
+  235 |                     </motion.aside>
+  236 |                 )}
+  237 |             </AnimatePresence>
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\layout.tsx:96:28
+   94 |      * Renderiza el contenido interno del Sidebar (reutilizado para mobile/desktop)
+   95 |      */
+>  96 |     const SidebarContent = () => (
+      |                            ^^^^^^^
+>  97 |         <div className="flex flex-col h-full bg-white/80 dark:bg-black/80 backdrop-blur-xl">
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  98 |             {/* Logo Area */}
+      ÔÇª
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 200 |         </div>
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 201 |     )
+      | ^^^^^^ The component is created during render here
+  202 |
+  203 |     return (
+  204 |         <div className="min-h-screen bg-background selection:bg-primary/20 selection:text-primary">  react-hooks/static-components
+  244:18  error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\layout.tsx:244:18
+  242 |                 className="hidden md:flex fixed left-0 top-0 h-full border-r border-border/50 flex-col z-50 shadow-sm"
+  243 |             >
+> 244 |                 <SidebarContent />
+      |                  ^^^^^^^^^^^^^^ This component is created during render
+  245 |             </motion.aside>
+  246 |
+  247 |             {/* Main Area */}
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\layout.tsx:96:28
+   94 |      * Renderiza el contenido interno del Sidebar (reutilizado para mobile/desktop)
+   95 |      */
+>  96 |     const SidebarContent = () => (
+      |                            ^^^^^^^
+>  97 |         <div className="flex flex-col h-full bg-white/80 dark:bg-black/80 backdrop-blur-xl">
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  98 |             {/* Logo Area */}
+      ÔÇª
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 200 |         </div>
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 201 |     )
+      | ^^^^^^ The component is created during render here
+  202 |
+  203 |     return (
+  204 |         <div className="min-h-screen bg-background selection:bg-primary/20 selection:text-primary">                                                  react-hooks/static-components
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\lecturas\LecturasPageClient.tsx
+  19:10  warning  'useState' is defined but never used      @typescript-eslint/no-unused-vars
+  20:20  warning  'Filter' is defined but never used        @typescript-eslint/no-unused-vars
+  45:22  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\lecturas\actions.ts
+  47:108  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\lecturas\page.tsx
+  13:29  warning  'count' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\dashboard\profile\ProfileClient.tsx
+  74:45  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\forgot-password\actions.ts
+  4:10  warning  'redirect' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\app\login\page.tsx
+  101:18  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\components\AssignmentsManager.tsx
+  11:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  12:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  13:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\components\AvatarEditor.tsx
+   7:10  warning  'Button' is defined but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  79:25  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\components\BibleReadingManager.tsx
+   20:33  warning  'CheckCircle2' is defined but never used                                                                         @typescript-eslint/no-unused-vars
+   40:46  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+   46:58  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+   56:8   warning  React Hook useEffect has a missing dependency: 'loadLecturas'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   97:18  warning  'error' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+  129:18  warning  'error' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\components\Calendar.tsx
+   3:20  warning  'useEffect' is defined but never used         @typescript-eslint/no-unused-vars
+   4:49  warning  'CalendarIcon' is defined but never used      @typescript-eslint/no-unused-vars
+  14:5   warning  'getDay' is defined but never used            @typescript-eslint/no-unused-vars
+  32:12  warning  'view' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  32:18  warning  'setView' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\components\HimnoCoroSelector.tsx
+  15:44  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  16:46  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  17:12  warning  'isSearching' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  56:36  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\components\UserSelector.tsx
+  16:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\lib\errors.ts
+  40:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\lib\helpers.ts
+  1:18  warning  'parse' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\lib\i18n\I18nProvider.tsx
+  21:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\lib\i18n\I18nProvider.tsx:21:13
+  19 |         const saved = localStorage.getItem('language') as Language
+  20 |         if (saved && (saved === 'es-ES' || saved === 'ca-ES')) {
+> 21 |             setLanguageState(saved)
+     |             ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  22 |         }
+  23 |     }, [])
+  24 |  react-hooks/set-state-in-effect
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\lib\supabase\middleware.ts
+  18:58  warning  'options' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\lib\theme\ThemeProvider.tsx
+  19:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\jebol\Desktop\APP IDMJI\web\src\lib\theme\ThemeProvider.tsx:19:9
+  17 |         const saved = localStorage.getItem('theme')
+  18 |         const prefersDark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)
+> 19 |         setIsDark(prefersDark)
+     |         ^^^^^^^^^ Avoid calling setState() directly within an effect
+  20 |
+  21 |         if (prefersDark) {
+  22 |             document.documentElement.classList.add('dark')  react-hooks/set-state-in-effect
+
+Ô£û 108 problems (52 errors, 56 warnings)
+

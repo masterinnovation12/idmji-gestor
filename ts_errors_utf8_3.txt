@@ -1,0 +1,5 @@
+﻿src/app/dashboard/hermanos/page.tsx(12,13): error TS2322: Type 'HermanoData[]' is not assignable to type 'Profile[]'.
+  Type 'HermanoData' is not assignable to type 'Profile'.
+    Types of property 'pulpito' are incompatible.
+      Type 'boolean | null' is not assignable to type 'boolean'.
+        Type 'null' is not assignable to type 'boolean'.
