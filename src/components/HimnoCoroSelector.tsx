@@ -197,46 +197,42 @@ export default function HimnoCoroSelector({
     const totalDuration = durationHimnos + durationCoros
 
     return (
-        <div className={`space-y-6 ${className}`}>
-            {/* Tipo Selector & Stats */}
-            <div className="flex flex-col xl:flex-row items-end xl:items-center justify-between gap-4">
-                <div className="flex bg-[#063b7a]/5 dark:bg-white/5 p-1.5 rounded-2xl w-full xl:w-fit border border-[#063b7a]/10 dark:border-white/10">
-                    <button
-                        onClick={() => setTipo('himno')}
-                        className={`flex-1 xl:flex-none px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${tipo === 'himno'
-                            ? 'bg-[#063b7a] dark:bg-primary text-white shadow-xl scale-[1.02]'
-                            : 'text-[#063b7a] dark:text-white/60 hover:bg-[#063b7a]/5 dark:hover:bg-white/5'
-                            }`}
-                    >
-                        Himnos ({himnosSelected.length}/{maxHimnos})
-                    </button>
-                    <button
-                        onClick={() => setTipo('coro')}
-                        className={`flex-1 xl:flex-none px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${tipo === 'coro'
-                            ? 'bg-[#063b7a] dark:bg-primary text-white shadow-xl scale-[1.02]'
-                            : 'text-[#063b7a] dark:text-white/60 hover:bg-[#063b7a]/5 dark:hover:bg-white/5'
-                            }`}
-                    >
-                        Coros ({corosSelected.length}/{maxCoros})
-                    </button>
-                </div>
+        <div className={`space-y-5 ${className} overflow-hidden`}>
+            {/* Tipo Selector */}
+            <div className="flex bg-[#063b7a]/5 dark:bg-white/5 p-1.5 rounded-2xl w-full border border-[#063b7a]/10 dark:border-white/10">
+                <button
+                    onClick={() => setTipo('himno')}
+                    className={`flex-1 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${tipo === 'himno'
+                        ? 'bg-[#063b7a] dark:bg-primary text-white shadow-xl'
+                        : 'text-[#063b7a] dark:text-white/60 hover:bg-[#063b7a]/5 dark:hover:bg-white/5'
+                        }`}
+                >
+                    Himnos ({himnosSelected.length}/{maxHimnos})
+                </button>
+                <button
+                    onClick={() => setTipo('coro')}
+                    className={`flex-1 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${tipo === 'coro'
+                        ? 'bg-[#063b7a] dark:bg-primary text-white shadow-xl'
+                        : 'text-[#063b7a] dark:text-white/60 hover:bg-[#063b7a]/5 dark:hover:bg-white/5'
+                        }`}
+                >
+                    Coros ({corosSelected.length}/{maxCoros})
+                </button>
+            </div>
 
-                {/* Total Time Badge */}
-                <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 w-full xl:w-auto text-[10px] font-black uppercase tracking-[0.2em] bg-[#063b7a]/5 dark:bg-white/5 px-5 py-3 rounded-2xl border border-[#063b7a]/10 dark:border-white/10 shadow-sm">
-                    <div className="flex items-center gap-2 text-[#063b7a] dark:text-blue-300">
-                        <span className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" />
-                        H: {formatDuration(durationHimnos)}
-                    </div>
-                    <div className="w-px h-5 bg-[#063b7a]/10 dark:bg-white/10" />
-                    <div className="flex items-center gap-2 text-[#063b7a] dark:text-accent">
-                        <span className="w-2 h-2 rounded-full bg-accent shadow-sm" />
-                        C: {formatDuration(durationCoros)}
-                    </div>
-                    <div className="w-px h-5 bg-[#063b7a]/10 dark:bg-white/10" />
-                    <div className="text-primary flex items-center gap-1.5 drop-shadow-sm">
-                        <Clock className="w-4 h-4" />
-                        Total: {formatDuration(totalDuration)}
-                    </div>
+            {/* Total Time Badge - Stacked for sidebar */}
+            <div className="grid grid-cols-3 gap-2 text-[9px] font-black uppercase tracking-widest">
+                <div className="flex flex-col items-center justify-center gap-1 bg-blue-500/10 dark:bg-blue-500/20 text-[#063b7a] dark:text-blue-300 py-3 rounded-2xl border border-blue-500/10">
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span>H: {formatDuration(durationHimnos)}</span>
+                </div>
+                <div className="flex flex-col items-center justify-center gap-1 bg-accent/10 dark:bg-accent/20 text-[#063b7a] dark:text-accent py-3 rounded-2xl border border-accent/10">
+                    <span className="w-2 h-2 rounded-full bg-accent" />
+                    <span>C: {formatDuration(durationCoros)}</span>
+                </div>
+                <div className="flex flex-col items-center justify-center gap-1 bg-primary/10 dark:bg-primary/20 text-primary py-3 rounded-2xl border border-primary/10">
+                    <Clock className="w-4 h-4" />
+                    <span>{formatDuration(totalDuration)}</span>
                 </div>
             </div>
 
