@@ -221,18 +221,18 @@ export default function HimnoCoroSelector({
             </div>
 
             {/* Total Time Badge - Stacked for sidebar */}
-            <div className="grid grid-cols-3 gap-2 text-[9px] font-black uppercase tracking-widest">
-                <div className="flex flex-col items-center justify-center gap-1 bg-blue-500/10 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 py-3 rounded-2xl border border-blue-500/20 dark:border-blue-400/20">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    <span>H: {formatDuration(durationHimnos)}</span>
+            <div className="grid grid-cols-3 gap-2 text-[8px] font-black uppercase tracking-wider">
+                <div className="flex flex-col items-center justify-center gap-1 bg-blue-500/10 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 py-2.5 px-1 rounded-2xl border border-blue-500/20 dark:border-blue-400/20">
+                    <span className="opacity-60">Himnos</span>
+                    <span className="text-sm">{formatDuration(durationHimnos)}</span>
                 </div>
-                <div className="flex flex-col items-center justify-center gap-1 bg-purple-500/10 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 py-3 rounded-2xl border border-purple-500/20 dark:border-purple-400/20">
-                    <span className="w-2 h-2 rounded-full bg-purple-500" />
-                    <span>C: {formatDuration(durationCoros)}</span>
+                <div className="flex flex-col items-center justify-center gap-1 bg-purple-500/10 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 py-2.5 px-1 rounded-2xl border border-purple-500/20 dark:border-purple-400/20">
+                    <span className="opacity-60">Coros</span>
+                    <span className="text-sm">{formatDuration(durationCoros)}</span>
                 </div>
-                <div className="flex flex-col items-center justify-center gap-1 bg-emerald-500/10 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 py-3 rounded-2xl border border-emerald-500/20 dark:border-emerald-400/20">
-                    <Clock className="w-4 h-4" />
-                    <span>{formatDuration(totalDuration)}</span>
+                <div className="flex flex-col items-center justify-center gap-1 bg-emerald-500/10 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 py-2.5 px-1 rounded-2xl border border-emerald-500/20 dark:border-emerald-400/20">
+                    <span className="opacity-60">Total</span>
+                    <span className="text-sm font-black">{formatDuration(totalDuration)}</span>
                 </div>
             </div>
 

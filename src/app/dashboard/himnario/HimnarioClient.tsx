@@ -19,7 +19,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getHimnos, getCoros } from './actions'
-import { Music, Search, Clock, ChevronLeft, Sparkles, AudioLines } from 'lucide-react'
+import { Music, Search, Clock, ChevronLeft, Sparkles, AudioLines, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
