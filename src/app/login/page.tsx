@@ -282,10 +282,10 @@ export default function LoginPage() {
                             whileTap={{ scale: 0.98 }}
                             type="submit"
                             disabled={isLoading}
-                            className="w-full h-14 relative group overflow-hidden rounded-2xl font-black text-white bg-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-primary/25 border border-white/10"
+                            className="w-full h-14 relative group overflow-hidden rounded-2xl font-black text-white bg-[#0660c6] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl shadow-blue-500/40 border border-white/20"
                         >
-                            <div className="absolute inset-0 bg-linear-to-r from-primary via-accent to-primary bg-size-[200%_100%] group-hover:bg-[100%_0] transition-all duration-700 opacity-0 group-hover:opacity-100" />
-                            <span className="relative z-10 flex items-center justify-center gap-2 tracking-widest uppercase text-xs text-white font-black">
+                            <div className="absolute inset-0 bg-linear-to-r from-[#0660c6] via-[#2563eb] to-[#0660c6] bg-size-[200%_100%] group-hover:bg-[100%_0] transition-all duration-700" />
+                            <span className="relative z-10 flex items-center justify-center gap-3 tracking-[0.15em] uppercase text-sm text-white font-black drop-shadow-sm">
                                 {isLoading ? (
                                     <>
                                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -293,7 +293,7 @@ export default function LoginPage() {
                                     </>
                                 ) : (
                                     <>
-                                        <LogIn className="w-5 h-5" />
+                                        <LogIn className="w-5 h-5" strokeWidth={3} />
                                         {t('login.submit')}
                                     </>
                                 )}
