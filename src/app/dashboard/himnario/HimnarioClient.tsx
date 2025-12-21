@@ -39,6 +39,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
     const [activeTab, setActiveTab] = useState<'himnos' | 'coros'>('himnos')
     const [searchTerm, setSearchTerm] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [isCalcModalOpen, setIsCalcModalOpen] = useState(false)
 
     // Efecto para recarga de datos con debounce
     useEffect(() => {
@@ -282,29 +283,91 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                     </Card>
                 </div>
 
-                {/* Sidebar Calculator */}
-                <div className="lg:col-span-4 space-y-6">
-                    <Card className="rounded-[2.5rem] border-none shadow-xl bg-linear-to-br from-card to-muted/20 sticky top-6">
-                        <CardContent className="p-8 space-y-6">
-                            <div className="space-y-2">
-                                <h3 className="text-xl font-black tracking-tight flex items-center gap-2">
-                                    <Clock className="w-5 h-5 text-primary" />
-                                    Calculadora de Tiempo
-                                </h3>
-                                <p className="text-sm text-muted-foreground font-medium">
-                                    Planifica la duración total añadiendo hasta 10 himnos y 10 coros.
-                                </p>
-                            </div>
+                {/* Sidebar Calculator (Desktop Only) */}
+                <div className="hidden lg:block lg:col-span-4">
+                    <div className="sticky top-6 space-y-6">
+                        <Card className="rounded-[2.5rem] border-none shadow-2xl bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 overflow-hidden">
+                            <CardContent className="p-8 space-y-6">
+                                <div className="space-y-2">
+                                    <h3 className="text-xl font-black tracking-tighter flex items-center gap-3 text-[#063b7a] dark:text-white uppercase italic">
+                                        <Clock className="w-6 h-6 text-primary" />
+                                        Calculadora
+                                    </h3>
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">
+                                        Planifica el tiempo de alabanza
+                                    </p>
+                                </div>
 
-                            <HimnoCoroSelector
-                                maxHimnos={10}
-                                maxCoros={10}
-                                className="bg-transparent"
-                            />
-                        </CardContent>
-                    </Card>
+                                <HimnoCoroSelector
+                                    maxHimnos={10}
+                                    maxCoros={10}
+                                    className="bg-transparent"
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </div>
+
+            {/* Mobile Calculator FAB */}
+            <motion.button
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setIsCalcModalOpen(true)}
+                className="lg:hidden fixed bottom-8 right-8 w-16 h-16 bg-[#063b7a] dark:bg-primary text-white rounded-2xl shadow-2xl flex items-center justify-center z-50 border border-white/20"
+            >
+                <div className="relative">
+                    <Clock className="w-8 h-8" />
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-current animate-pulse" />
+                </div>
+            </motion.button>
+
+            {/* Mobile Calculator Modal */}
+            <AnimatePresence>
+                {isCalcModalOpen && (
+                    <div className="fixed inset-0 z-[110] lg:hidden flex items-end sm:items-center justify-center">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                            onClick={() => setIsCalcModalOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ y: '100%' }}
+                            animate={{ y: 0 }}
+                            exit={{ y: '100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="relative bg-white dark:bg-[#0a0a0a] w-full sm:max-w-xl h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-[3rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-2xl overflow-hidden border-t border-white/10"
+                        >
+                            {/* Handle handle for mobile */}
+                            <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-8 sm:hidden" />
+
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="space-y-1">
+                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-[#063b7a] dark:text-white uppercase italic">Calculadora</h2>
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">Gestión de tiempos móvil</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsCalcModalOpen(false)}
+                                    className="p-3 bg-[#063b7a]/5 dark:bg-white/5 rounded-2xl text-[#063b7a] dark:text-white hover:bg-red-500 hover:text-white transition-all"
+                                >
+                                    <Plus className="w-6 h-6 rotate-45" />
+                                </button>
+                            </div>
+
+                            <div className="overflow-y-auto max-h-[calc(90vh-120px)] sm:max-h-[60vh] no-scrollbar pb-10">
+                                <HimnoCoroSelector
+                                    maxHimnos={10}
+                                    maxCoros={10}
+                                />
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }
