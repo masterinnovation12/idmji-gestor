@@ -125,12 +125,12 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 
                     <div className="relative w-full lg:w-96 group">
                         <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl group-focus-within:bg-primary/30 transition-all opacity-0 group-focus-within:opacity-100" />
-                        <div className="relative bg-white dark:bg-white/5 border border-border rounded-2xl flex items-center px-4 h-14 shadow-lg focus-within:border-primary transition-all">
-                            <Search className="w-5 h-5 text-muted-foreground mr-3" />
+                        <div className="relative bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-2xl flex items-center px-4 h-14 shadow-lg focus-within:border-blue-500 transition-all">
+                            <Search className="w-5 h-5 text-gray-400 dark:text-zinc-500 mr-3" />
                             <input
                                 type="text"
                                 placeholder={t('himnario.searchPlaceholder')}
-                                className="w-full bg-transparent border-none outline-none font-bold placeholder:text-muted-foreground text-foreground"
+                                className="w-full bg-transparent border-none outline-none font-bold placeholder:text-gray-400 dark:placeholder:text-zinc-500 text-gray-900 dark:text-white"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -139,7 +139,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 </div>
             </div>
 
-            <div className="flex p-2 bg-gray-100 dark:bg-zinc-800 rounded-3xl w-fit mx-auto sm:mx-0 shadow-inner border border-gray-200 dark:border-zinc-700">
+            <div className="flex p-1.5 bg-white dark:bg-zinc-800 rounded-2xl w-fit mx-auto sm:mx-0 shadow-lg border border-gray-200 dark:border-zinc-700">
                 {[
                     { id: 'himnos', label: t('himnario.tabsHimnos'), icon: Music, count: counts.himnos },
                     { id: 'coros', label: t('himnario.tabsCoros'), icon: AudioLines, count: counts.coros }
@@ -147,19 +147,16 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`relative flex items-center gap-3 px-8 py-4 rounded-2xl font-black transition-all group ${activeTab === tab.id ? 'text-white' : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'
+                        className={`flex items-center gap-3 px-6 py-3 rounded-xl font-black transition-all ${activeTab === tab.id
+                            ? 'bg-blue-600 text-white shadow-lg'
+                            : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
                             }`}
                     >
-                        {activeTab === tab.id && (
-                            <motion.div
-                                layoutId="activeTabBadge"
-                                className="absolute inset-0 bg-blue-600 rounded-2xl shadow-lg -z-10"
-                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            />
-                        )}
-                        <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'animate-bounce' : ''}`} />
+                        <tab.icon className="w-5 h-5" />
                         <span className="uppercase tracking-widest text-xs">{tab.label}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${activeTab === tab.id ? 'bg-white/20 border-white/30 text-white' : 'bg-gray-200 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600'
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${activeTab === tab.id
+                            ? 'bg-white/20 text-white'
+                            : 'bg-gray-200 dark:bg-zinc-600 text-gray-600 dark:text-zinc-300'
                             }`}>
                             {tab.count}
                         </span>
