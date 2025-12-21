@@ -289,11 +289,11 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                         <Card className="rounded-[2.5rem] border-none shadow-2xl bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 overflow-hidden">
                             <CardContent className="p-8 space-y-6">
                                 <div className="space-y-2">
-                                    <h3 className="text-xl font-black tracking-tighter flex items-center gap-3 text-[#063b7a] dark:text-white uppercase italic">
+                                    <h3 className="text-xl font-black tracking-tighter flex items-center gap-3 text-foreground uppercase italic">
                                         <Clock className="w-6 h-6 text-primary" />
                                         {t('himnario.calculator')}
                                     </h3>
-                                    <p className="text-[10px] text-[#063b7a]/50 dark:text-white/40 font-black uppercase tracking-widest">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
                                         {t('himnario.calculatorDesc')}
                                     </p>
                                 </div>

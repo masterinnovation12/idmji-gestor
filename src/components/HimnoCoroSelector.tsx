@@ -307,18 +307,18 @@ export default function HimnoCoroSelector({
 
             {/* Saved Lists Storage */}
             {!cultoId && savedLists.length > 0 && (
-                <div className="space-y-3 pt-4 border-t border-[#063b7a]/10 dark:border-white/10">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#063b7a]/50 dark:text-white/50 pl-1">
+                <div className="space-y-3 pt-4 border-t border-border/50">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-1">
                         Mis Listas Guardadas ({savedLists.length}/2)
                     </h3>
                     <div className="grid grid-cols-1 gap-2">
                         {savedLists.map((list) => (
-                            <div key={list.id} className="flex items-center justify-between p-3 bg-[#063b7a]/5 dark:bg-white/5 rounded-2xl border border-[#063b7a]/10 dark:border-white/10 shadow-sm group hover:bg-[#063b7a]/10 dark:hover:bg-white/10 transition-all cursor-pointer">
+                            <div key={list.id} className="flex items-center justify-between p-3 bg-muted/30 dark:bg-white/5 rounded-2xl border border-border/50 dark:border-white/10 shadow-sm group hover:bg-muted/50 dark:hover:bg-white/10 transition-all cursor-pointer">
                                 <div className="flex-1" onClick={() => loadList(list)}>
-                                    <p className="text-xs font-black uppercase tracking-tight text-[#063b7a] dark:text-white truncate">
+                                    <p className="text-xs font-black uppercase tracking-tight text-foreground truncate">
                                         {list.name}
                                     </p>
-                                    <p className="text-[9px] font-bold text-[#063b7a]/50 dark:text-white/50 uppercase">{list.items.length} elementos</p>
+                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">{list.items.length} elementos</p>
                                 </div>
                                 <button
                                     onClick={() => deleteSavedList(list.id)}
@@ -334,7 +334,7 @@ export default function HimnoCoroSelector({
 
             {/* Selected Playlist */}
             <div className="space-y-3 pt-2">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#063b7a]/40 dark:text-white/40 pl-1">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-1">
                     Elementos en la calculadora
                 </h3>
 
@@ -359,25 +359,25 @@ export default function HimnoCoroSelector({
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex items-center justify-between p-4 bg-[#063b7a]/5 dark:bg-white/5 border border-[#063b7a]/10 dark:border-white/10 rounded-[1.5rem] shadow-sm hover:shadow-md transition-all group"
+                                className="flex items-center justify-between p-4 bg-muted/30 dark:bg-white/5 border border-border/50 dark:border-white/10 rounded-[1.5rem] shadow-sm hover:shadow-md transition-all group"
                             >
                                 <div className="flex items-center gap-4 flex-1">
                                     <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner shrink-0 ${item.tipo === 'himno'
-                                        ? 'bg-blue-500/10 text-[#0660c6] dark:text-blue-400'
-                                        : 'bg-accent/10 text-accent'
+                                        ? 'bg-blue-500 text-white'
+                                        : 'bg-purple-500 text-white'
                                         }`}>
                                         {item.tipo === 'himno' ? 'H' : 'C'}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-black text-xs uppercase tracking-tight leading-snug text-[#063b7a] dark:text-white truncate">
-                                            #{data?.numero} <span className="text-[#063b7a]/20 dark:text-white/20 mx-1">|</span> {data?.titulo}
+                                        <p className="font-black text-xs uppercase tracking-tight leading-snug text-foreground truncate">
+                                            #{data?.numero} <span className="text-muted-foreground mx-1">|</span> {data?.titulo}
                                         </p>
                                         <div className="flex items-center gap-3 mt-1.5">
-                                            <span className={`text-[8px] uppercase font-black px-2 py-0.5 rounded-full tracking-tighter ${item.tipo === 'himno' ? 'bg-blue-500 text-white' : 'bg-accent text-white'
+                                            <span className={`text-[8px] uppercase font-black px-2 py-0.5 rounded-full tracking-tighter ${item.tipo === 'himno' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'
                                                 }`}>
                                                 {item.tipo}
                                             </span>
-                                            <span className="text-[9px] text-[#063b7a]/50 dark:text-white/50 font-black flex items-center gap-1.5">
+                                            <span className="text-[9px] text-muted-foreground font-black flex items-center gap-1.5">
                                                 <Clock className="w-3 h-3" />
                                                 {formatDuration(data?.duracion_segundos || 0)}
                                             </span>
