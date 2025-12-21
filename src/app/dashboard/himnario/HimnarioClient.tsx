@@ -146,19 +146,19 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`relative flex items-center gap-3 px-8 py-4 rounded-2xl font-black transition-all group ${activeTab === tab.id ? 'text-white' : 'text-muted-foreground hover:text-foreground'
+                        className={`relative flex items-center gap-3 px-8 py-4 rounded-2xl font-black transition-all group ${activeTab === tab.id ? 'text-[#063b7a] dark:text-white' : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
                         {activeTab === tab.id && (
                             <motion.div
                                 layoutId="activeTabBadge"
-                                className="absolute inset-0 bg-primary rounded-2xl shadow-lg -z-10"
+                                className="absolute inset-0 bg-white dark:bg-primary rounded-2xl shadow-lg -z-10"
                                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                             />
                         )}
                         <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'animate-bounce' : ''}`} />
                         <span className="uppercase tracking-widest text-xs">{tab.label}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${activeTab === tab.id ? 'bg-white/20 border-white/30' : 'bg-muted/50 border-border'
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${activeTab === tab.id ? 'bg-[#063b7a]/10 border-[#063b7a]/20 dark:bg-white/20 dark:border-white/30' : 'bg-muted/50 border-border'
                             }`}>
                             {tab.count}
                         </span>
@@ -175,13 +175,13 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                 <table className="w-full">
                                     <thead>
                                         <tr className="bg-muted/30 border-b border-border/50 text-left">
-                                            <th className="px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground w-24">
+                                            <th className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-[#063b7a] dark:text-muted-foreground w-24">
                                                 {t('himnario.tableNumber')}
                                             </th>
-                                            <th className="px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
+                                            <th className="px-6 sm:px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-[#063b7a] dark:text-muted-foreground">
                                                 {t('himnario.tableTitle')}
                                             </th>
-                                            <th className="px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground text-right w-32">
+                                            <th className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-[#063b7a] dark:text-muted-foreground text-right w-32">
                                                 {t('himnario.tableDuration')}
                                             </th>
                                         </tr>
@@ -227,20 +227,31 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                                         initial={{ opacity: 0, y: 10 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ delay: index * 0.02 }}
-                                                        className="group hover:bg-muted/20 transition-all cursor-pointer"
+                                                        className="group hover:bg-muted/20 transition-all cursor-pointer border-b border-border/10 last:border-0"
                                                     >
-                                                        <td className="px-8 py-6">
-                                                            <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/20 group-hover:scale-110 group-hover:rotate-6 transition-all">
+                                                        <td className="hidden sm:table-cell px-8 py-6">
+                                                            <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-[#0660c6] to-blue-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20 group-hover:scale-110 group-hover:rotate-6 transition-all">
                                                                 {item.numero}
                                                             </div>
                                                         </td>
-                                                        <td className="px-8 py-6">
-                                                            <p className="font-black text-lg tracking-tight uppercase group-hover:text-primary transition-colors">
-                                                                {highlightText(item.titulo, searchTerm)}
-                                                            </p>
+                                                        <td className="px-6 sm:px-8 py-5 sm:py-6">
+                                                            <div className="flex flex-col gap-1">
+                                                                <div className="flex items-center gap-2 sm:hidden mb-1">
+                                                                    <span className="text-[10px] font-black tracking-widest text-[#0660c6] dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full uppercase">
+                                                                        #{item.numero}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                                                        <Clock className="w-3 h-3" />
+                                                                        {formatDuration(item.duracion_segundos || 0)}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="font-black text-base sm:text-lg tracking-tight uppercase group-hover:text-[#0660c6] transition-colors leading-tight">
+                                                                    {highlightText(item.titulo, searchTerm)}
+                                                                </p>
+                                                            </div>
                                                         </td>
-                                                        <td className="px-8 py-6 text-right">
-                                                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/50 text-muted-foreground font-black text-xs group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                                                        <td className="hidden sm:table-cell px-8 py-6 text-right">
+                                                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/50 text-[#063b7a] dark:text-muted-foreground font-black text-xs group-hover:bg-blue-500/10 group-hover:text-[#0660c6] transition-colors">
                                                                 <Clock className="w-3.5 h-3.5" />
                                                                 {formatDuration(item.duracion_segundos || 0)}
                                                             </div>

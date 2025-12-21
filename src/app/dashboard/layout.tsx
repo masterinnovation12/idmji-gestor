@@ -177,10 +177,10 @@ export default function DashboardLayout({
                             <Menu size={20} />
                         </button>
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-linear-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+                            <div className="w-8 h-8 rounded-xl bg-linear-to-br from-[#0660c6] to-blue-500 flex items-center justify-center shadow-lg">
                                 <span className="text-white font-black text-sm">I</span>
                             </div>
-                            <span className="font-black italic text-sm tracking-tight">IDMJI.</span>
+                            <span className="font-black italic text-sm tracking-tighter text-[#063b7a]">IDMJI-SABADELL.</span>
                         </div>
                         <button className="p-3 bg-muted rounded-2xl">
                             <Search size={20} className="text-muted-foreground" />
@@ -239,7 +239,7 @@ function SidebarContent({
     toggleTheme
 }: SidebarContentProps) {
     return (
-        <div className="flex flex-col h-full bg-white/80 dark:bg-black/80 backdrop-blur-xl">
+        <div className="flex flex-col h-full bg-[#063b7a] dark:bg-black/95 backdrop-blur-xl border-r border-white/10">
             {/* Logo Area */}
             {/* Logo Area */}
             <div className={`py-8 flex flex-col ${isSidebarCollapsed ? 'items-center px-4' : 'px-8'} border-b border-border/10 gap-6`}>
@@ -261,10 +261,10 @@ function SidebarContent({
                             />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-xl font-black tracking-tighter uppercase italic text-foreground leading-none">
-                                IDMJI<span className="text-primary not-italic">.</span>
+                            <span className="text-xl font-black tracking-tighter uppercase italic text-white leading-none">
+                                IDMJI-SABADELL<span className="text-blue-400 not-italic">.</span>
                             </span>
-                            <span className="text-[10px] font-bold text-muted-foreground tracking-[0.2em] uppercase mt-1">
+                            <span className="text-[10px] font-bold text-white/60 tracking-[0.2em] uppercase mt-1">
                                 Gestor de Púlpito
                             </span>
                         </div>
@@ -286,22 +286,22 @@ function SidebarContent({
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setLanguage(language === 'es-ES' ? 'ca-ES' : 'es-ES')}
-                            className="flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-muted/30 hover:bg-muted/50 border border-border/30 transition-all text-xs font-black text-foreground shadow-sm"
+                            className="flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-[10px] font-black text-white shadow-sm"
                         >
-                            <Globe className="w-4 h-4 text-primary" />
-                            <span>{language === 'es-ES' ? 'ESPAÑOL' : 'CATALÀ'}</span>
+                            <Globe className="w-4 h-4 text-blue-300" />
+                            <span className="tracking-widest">{language === 'es-ES' ? 'ESPAÑOL' : 'CATALÀ'}</span>
                         </motion.button>
 
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={toggleTheme}
-                            className="flex items-center justify-center w-11 h-11 rounded-2xl bg-muted/30 hover:bg-muted/50 border border-border/30 transition-all text-foreground shadow-sm"
+                            className="flex items-center justify-center w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-white shadow-sm"
                         >
                             {isDark ? (
-                                <Sun className="w-4.5 h-4.5 text-amber-500 animate-spin-slow" />
+                                <Sun className="w-4.5 h-4.5 text-amber-400 animate-spin-slow" />
                             ) : (
-                                <Moon className="w-4.5 h-4.5 text-indigo-500 hover:rotate-12 transition-transform" />
+                                <Moon className="w-4.5 h-4.5 text-blue-200" />
                             )}
                         </motion.button>
 
@@ -321,7 +321,7 @@ function SidebarContent({
                     <div className="flex flex-col gap-4">
                         <motion.button
                             onClick={() => setIsSidebarCollapsed(false)}
-                            className="p-3 hover:bg-muted/50 rounded-xl transition-colors text-muted-foreground hover:text-primary shadow-sm"
+                            className="p-3 hover:bg-white/10 rounded-xl transition-colors text-white/70 hover:text-white shadow-sm"
                             whileHover={{ scale: 1.1 }}
                         >
                             <Menu size={20} />
@@ -344,20 +344,18 @@ function SidebarContent({
                             <Link
                                 href={item.href}
                                 className={`flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-300 group relative overflow-hidden ${isActive
-                                    ? 'text-white shadow-2xl shadow-primary/30'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                    ? 'text-black shadow-2xl shadow-black/10'
+                                    : 'text-white/60 hover:text-white'
                                     }`}
                             >
                                 {/* Active background with Glow */}
                                 {isActive && (
                                     <motion.div
                                         layoutId="activeTab"
-                                        className="absolute inset-0 bg-linear-to-r from-primary via-primary to-accent -z-10"
+                                        className="absolute inset-0 bg-white/95 backdrop-blur-md -z-10"
                                         initial={false}
                                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                                    >
-                                        <div className="absolute inset-0 bg-white/10 opacity-50 group-hover:opacity-100 transition-opacity" />
-                                    </motion.div>
+                                    />
                                 )}
 
                                 {/* Hover effect for non-active */}
@@ -367,18 +365,18 @@ function SidebarContent({
 
                                 <item.icon
                                     size={22}
-                                    className={`${isActive ? 'text-white scale-110' : 'group-hover:text-primary group-hover:scale-110 transition-all duration-300'}`}
+                                    className={`${isActive ? 'text-black scale-110' : 'group-hover:text-white group-hover:scale-110 transition-all duration-300'}`}
                                 />
 
                                 {!isSidebarCollapsed && (
-                                    <span className={`font-black text-xs tracking-widest uppercase flex-1 ${isActive ? 'text-white' : ''}`}>
+                                    <span className={`font-black text-xs tracking-widest uppercase flex-1 ${isActive ? 'text-black' : ''}`}>
                                         {item.label}
                                     </span>
                                 )}
 
                                 {isActive && !isSidebarCollapsed && (
                                     <motion.div layoutId="arrow" initial={{ x: -10 }} animate={{ x: 0 }}>
-                                        <ChevronRight size={16} className="text-white/80" />
+                                        <ChevronRight size={16} className="text-black/50" />
                                     </motion.div>
                                 )}
                             </Link>
@@ -391,7 +389,7 @@ function SidebarContent({
             <div className="p-6 border-t border-border/50">
                 <motion.button
                     onClick={handleSignOut}
-                    className={`flex items-center gap-4 px-4 py-3.5 w-full rounded-2xl text-red-500 hover:bg-red-500/5 transition-all group font-bold text-sm ${isSidebarCollapsed ? 'justify-center' : ''
+                    className={`flex items-center gap-4 px-4 py-3.5 w-full rounded-2xl text-red-300 hover:text-red-100 hover:bg-red-500/20 transition-all group font-bold text-sm ${isSidebarCollapsed ? 'justify-center' : ''
                         }`}
                     whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.98 }}
