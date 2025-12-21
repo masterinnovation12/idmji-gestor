@@ -285,16 +285,16 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 
                 {/* Sidebar Calculator (Desktop Only) */}
                 <div className="hidden lg:block lg:col-span-4">
-                    <div className="sticky top-6 space-y-6">
+                    <div className="sticky top-6 max-h-[calc(100vh-4rem)] overflow-y-auto no-scrollbar">
                         <Card className="rounded-[2.5rem] border-none shadow-2xl bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 overflow-hidden">
                             <CardContent className="p-8 space-y-6">
                                 <div className="space-y-2">
                                     <h3 className="text-xl font-black tracking-tighter flex items-center gap-3 text-[#063b7a] dark:text-white uppercase italic">
                                         <Clock className="w-6 h-6 text-primary" />
-                                        Calculadora
+                                        {t('himnario.calculator')}
                                     </h3>
-                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">
-                                        Planifica el tiempo de alabanza
+                                    <p className="text-[10px] text-[#063b7a]/50 dark:text-white/40 font-black uppercase tracking-widest">
+                                        {t('himnario.calculatorDesc')}
                                     </p>
                                 </div>
 

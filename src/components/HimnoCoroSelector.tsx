@@ -404,17 +404,17 @@ export default function HimnoCoroSelector({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                            className="absolute inset-0 bg-black/70 backdrop-blur-xl"
                             onClick={() => setIsSaveModalOpen(false)}
                         />
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative bg-white dark:bg-[#0a0a0a] w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-white/10"
+                            className="relative bg-white dark:bg-[#111111] w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-[#063b7a]/10 dark:border-white/10"
                         >
                             <h2 className="text-2xl font-black tracking-tighter text-[#063b7a] dark:text-white mb-2 uppercase italic text-center">Guardar Lista</h2>
-                            <p className="text-xs font-bold text-muted-foreground text-center mb-8 uppercase tracking-widest">Elige un nombre para tu selección</p>
+                            <p className="text-[10px] font-black text-[#063b7a]/50 dark:text-white/50 text-center mb-8 uppercase tracking-[0.2em]">Elige un nombre para tu selección</p>
 
                             <div className="relative mb-8">
                                 <input
@@ -422,7 +422,7 @@ export default function HimnoCoroSelector({
                                     value={listName}
                                     onChange={(e) => setListName(e.target.value)}
                                     placeholder="Nombre de la lista..."
-                                    className="w-full h-14 bg-[#063b7a]/5 dark:bg-white/5 rounded-2xl px-6 font-black uppercase text-xs tracking-widest border border-transparent focus:border-primary outline-none"
+                                    className="w-full h-14 bg-[#063b7a]/5 dark:bg-white/10 rounded-2xl px-6 font-black uppercase text-xs tracking-widest border border-[#063b7a]/10 dark:border-white/20 focus:border-[#063b7a] dark:focus:border-white outline-none text-[#063b7a] dark:text-white placeholder:text-[#063b7a]/30 dark:placeholder:text-white/30"
                                     autoFocus
                                 />
                             </div>
@@ -430,13 +430,13 @@ export default function HimnoCoroSelector({
                             <div className="grid grid-cols-2 gap-4">
                                 <button
                                     onClick={() => setIsSaveModalOpen(false)}
-                                    className="h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-[#063b7a]/5 dark:bg-white/5 border border-[#063b7a]/20 dark:border-white/20 text-[#063b7a] dark:text-white hover:bg-[#063b7a]/10 dark:hover:bg-white/10 transition-all"
+                                    className="h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-[#063b7a]/5 dark:bg-white/10 border border-[#063b7a]/20 dark:border-white/20 text-[#063b7a] dark:text-white hover:bg-[#063b7a]/10 dark:hover:bg-white/20 transition-all"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={confirmSaveList}
-                                    className="h-12 bg-[#063b7a] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-[#063b7a]/30 hover:shadow-[#063b7a]/50 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                    className="h-12 bg-[#063b7a] dark:bg-white text-white dark:text-[#111111] rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-[#063b7a]/30 dark:shadow-white/10 hover:scale-[1.02] active:scale-[0.98] transition-all"
                                 >
                                     Confirmar
                                 </button>
