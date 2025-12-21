@@ -411,7 +411,7 @@ export default function HimnoCoroSelector({
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative bg-card w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-border"
+                            className="relative bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-border"
                         >
                             <h2 className="text-2xl font-black tracking-tighter text-foreground mb-2 uppercase italic text-center">Guardar Lista</h2>
                             <p className="text-[10px] font-black text-muted-foreground text-center mb-8 uppercase tracking-[0.2em]">Elige un nombre para tu selección</p>
