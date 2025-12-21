@@ -306,18 +306,18 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 </div>
             </div>
 
-            {/* Mobile Calculator FAB */}
+            {/* Mobile Calculator FAB - Visible with solid blue */}
             <motion.button
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsCalcModalOpen(true)}
-                className="lg:hidden fixed bottom-8 right-8 w-16 h-16 bg-primary text-white rounded-2xl shadow-2xl flex items-center justify-center z-50 border border-white/20"
+                className="lg:hidden fixed bottom-6 right-6 w-16 h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-2xl shadow-blue-500/40 flex items-center justify-center z-50 border-2 border-white/30"
             >
                 <div className="relative">
-                    <Clock className="w-8 h-8" />
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-current animate-pulse" />
+                    <Clock className="w-7 h-7" />
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white animate-pulse" />
                 </div>
             </motion.button>
 
@@ -329,7 +329,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                            className="absolute inset-0 bg-black/70 backdrop-blur-md"
                             onClick={() => setIsCalcModalOpen(false)}
                         />
                         <motion.div
@@ -337,25 +337,25 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                             animate={{ y: 0 }}
                             exit={{ y: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="relative bg-white dark:bg-[#0a0a0a] w-full sm:max-w-xl h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-[3rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-2xl overflow-hidden border-t border-white/10"
+                            className="relative bg-white dark:bg-zinc-900 w-full sm:max-w-xl h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-[2rem] sm:rounded-[2rem] p-5 sm:p-8 shadow-2xl overflow-hidden border border-gray-200 dark:border-zinc-700"
                         >
-                            {/* Handle handle for mobile */}
-                            <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-8 sm:hidden" />
+                            {/* Drag handle for mobile */}
+                            <div className="w-10 h-1 bg-gray-300 dark:bg-zinc-600 rounded-full mx-auto mb-6 sm:hidden" />
 
-                            <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center justify-between mb-6">
                                 <div className="space-y-1">
-                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground uppercase italic">Calculadora</h2>
-                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">Gestión de tiempos móvil</p>
+                                    <h2 className="text-xl sm:text-2xl font-black tracking-tighter text-gray-900 dark:text-white uppercase italic">Calculadora</h2>
+                                    <p className="text-[10px] text-gray-500 dark:text-zinc-400 font-black uppercase tracking-widest">Gestión de tiempos</p>
                                 </div>
                                 <button
                                     onClick={() => setIsCalcModalOpen(false)}
-                                    className="p-3 bg-muted/30 dark:bg-white/5 rounded-2xl text-foreground hover:bg-red-500 hover:text-white transition-all"
+                                    className="p-2.5 bg-gray-100 dark:bg-zinc-800 rounded-xl text-gray-600 dark:text-zinc-400 hover:bg-red-500 hover:text-white transition-all"
                                 >
-                                    <Plus className="w-6 h-6 rotate-45" />
+                                    <Plus className="w-5 h-5 rotate-45" />
                                 </button>
                             </div>
 
-                            <div className="overflow-y-auto max-h-[calc(90vh-120px)] sm:max-h-[60vh] no-scrollbar pb-10">
+                            <div className="overflow-y-auto max-h-[calc(90vh-140px)] sm:max-h-[60vh] no-scrollbar pb-6">
                                 <HimnoCoroSelector
                                     maxHimnos={10}
                                     maxCoros={10}
