@@ -153,7 +153,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                         {activeTab === tab.id && (
                             <motion.div
                                 layoutId="activeTabBadge"
-                                className="absolute inset-0 bg-white dark:bg-primary rounded-2xl shadow-lg -z-10"
+                                className="absolute inset-0 bg-card rounded-2xl shadow-lg -z-10 border border-border/50"
                                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                             />
                         )}

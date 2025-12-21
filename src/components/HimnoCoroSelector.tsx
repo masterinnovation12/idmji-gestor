@@ -238,7 +238,7 @@ export default function HimnoCoroSelector({
 
             <div className="relative group">
                 <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                <div className="relative bg-white dark:bg-white/5 border border-border rounded-2xl flex items-center px-5 h-14 shadow-sm focus-within:border-primary/50 transition-all">
+                <div className="relative bg-card border border-border rounded-2xl flex items-center px-5 h-14 shadow-sm focus-within:border-primary/50 transition-all">
                     <Search className="w-5 h-5 text-muted-foreground mr-4" />
                     <input
                         type="text"
@@ -263,7 +263,7 @@ export default function HimnoCoroSelector({
                         {results.map((item) => (
                             <div
                                 key={item.id}
-                                className="flex items-center justify-between p-4 bg-white dark:bg-white/5 rounded-xl hover:bg-primary hover:text-white transition-all group cursor-pointer border border-transparent shadow-sm"
+                                className="flex items-center justify-between p-4 bg-card rounded-xl hover:bg-primary hover:text-white transition-all group cursor-pointer border border-border/50 shadow-sm"
                                 onClick={() => handleAdd(item)}
                             >
                                 <div className="flex-1">
