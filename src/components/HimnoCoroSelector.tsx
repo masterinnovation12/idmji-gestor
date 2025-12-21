@@ -199,12 +199,12 @@ export default function HimnoCoroSelector({
     return (
         <div className={`space-y-5 ${className} overflow-hidden`}>
             {/* Tipo Selector */}
-            <div className="flex bg-[#063b7a]/5 dark:bg-white/5 p-1.5 rounded-2xl w-full border border-[#063b7a]/10 dark:border-white/10">
+            <div className="flex bg-muted/30 dark:bg-white/5 p-1.5 rounded-2xl w-full border border-border/50 dark:border-white/10">
                 <button
                     onClick={() => setTipo('himno')}
                     className={`flex-1 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${tipo === 'himno'
-                        ? 'bg-[#063b7a] dark:bg-primary text-white shadow-xl'
-                        : 'text-[#063b7a] dark:text-white/60 hover:bg-[#063b7a]/5 dark:hover:bg-white/5'
+                        ? 'bg-primary text-white shadow-xl'
+                        : 'text-muted-foreground hover:bg-muted/50 dark:hover:bg-white/5'
                         }`}
                 >
                     Himnos ({himnosSelected.length}/{maxHimnos})
@@ -212,8 +212,8 @@ export default function HimnoCoroSelector({
                 <button
                     onClick={() => setTipo('coro')}
                     className={`flex-1 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${tipo === 'coro'
-                        ? 'bg-[#063b7a] dark:bg-primary text-white shadow-xl'
-                        : 'text-[#063b7a] dark:text-white/60 hover:bg-[#063b7a]/5 dark:hover:bg-white/5'
+                        ? 'bg-primary text-white shadow-xl'
+                        : 'text-muted-foreground hover:bg-muted/50 dark:hover:bg-white/5'
                         }`}
                 >
                     Coros ({corosSelected.length}/{maxCoros})
@@ -238,14 +238,14 @@ export default function HimnoCoroSelector({
 
             <div className="relative group">
                 <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                <div className="relative bg-white dark:bg-white/5 border border-[#063b7a]/20 dark:border-white/10 rounded-2xl flex items-center px-5 h-14 shadow-sm focus-within:border-primary/50 transition-all">
-                    <Search className="w-5 h-5 text-[#063b7a]/40 dark:text-white/40 mr-4" />
+                <div className="relative bg-white dark:bg-white/5 border border-border rounded-2xl flex items-center px-5 h-14 shadow-sm focus-within:border-primary/50 transition-all">
+                    <Search className="w-5 h-5 text-muted-foreground mr-4" />
                     <input
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder={`Buscar ${tipo === 'himno' ? 'por número o título' : 'en el catálogo'}...`}
-                        className="w-full bg-transparent border-none outline-none text-sm font-black uppercase tracking-widest placeholder:text-[#063b7a]/40 dark:placeholder:text-white/30 text-[#063b7a] dark:text-white"
+                        className="w-full bg-transparent border-none outline-none text-sm font-black uppercase tracking-widest placeholder:text-muted-foreground text-foreground"
                         disabled={tipo === 'himno' ? !canAddHimno : !canAddCoro}
                     />
                 </div>
@@ -258,27 +258,27 @@ export default function HimnoCoroSelector({
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="space-y-1 bg-[#063b7a]/5 dark:bg-white/5 p-2 rounded-2xl border border-[#063b7a]/10 dark:border-white/10 max-h-60 overflow-y-auto no-scrollbar"
+                        className="space-y-1 bg-muted/30 dark:bg-white/5 p-2 rounded-2xl border border-border/50 dark:border-white/10 max-h-60 overflow-y-auto no-scrollbar"
                     >
                         {results.map((item) => (
                             <div
                                 key={item.id}
-                                className="flex items-center justify-between p-4 bg-white/50 dark:bg-white/5 rounded-xl hover:bg-[#063b7a] hover:text-white transition-all group cursor-pointer border border-transparent shadow-sm"
+                                className="flex items-center justify-between p-4 bg-white dark:bg-white/5 rounded-xl hover:bg-primary hover:text-white transition-all group cursor-pointer border border-transparent shadow-sm"
                                 onClick={() => handleAdd(item)}
                             >
                                 <div className="flex-1">
-                                    <p className="font-black text-xs uppercase tracking-widest leading-none">
+                                    <p className="font-black text-xs uppercase tracking-widest leading-none text-foreground group-hover:text-white">
                                         <span className="text-primary group-hover:text-white font-black mr-3">#{item.numero}</span>
                                         {item.titulo}
                                     </p>
                                     {item.duracion_segundos && (
-                                        <div className="flex items-center gap-1.5 text-[9px] text-[#063b7a]/40 dark:text-white/40 font-black uppercase tracking-widest mt-2 group-hover:text-white/70">
+                                        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-2 group-hover:text-white/70">
                                             <Clock className="w-3 h-3" />
                                             {formatDuration(item.duracion_segundos)}
                                         </div>
                                     )}
                                 </div>
-                                <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-white group-hover:text-[#063b7a] transition-all shrink-0 ml-4">
+                                <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-white group-hover:text-primary transition-all shrink-0 ml-4">
                                     <Plus className="w-4 h-4" />
                                 </div>
                             </div>
@@ -292,7 +292,7 @@ export default function HimnoCoroSelector({
                 <div className="grid grid-cols-2 gap-3 pt-2">
                     <button
                         onClick={handleSaveList}
-                        className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-[#063b7a] text-white font-black text-[10px] uppercase tracking-widest shadow-lg hover:shadow-[#063b7a]/20 transition-all hover:-translate-y-0.5"
+                        className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-white font-black text-[10px] uppercase tracking-widest shadow-lg hover:shadow-primary/20 transition-all hover:-translate-y-0.5"
                     >
                         Guardar Lista
                     </button>
@@ -411,10 +411,10 @@ export default function HimnoCoroSelector({
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative bg-white dark:bg-[#111111] w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-[#063b7a]/10 dark:border-white/10"
+                            className="relative bg-card w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-border"
                         >
-                            <h2 className="text-2xl font-black tracking-tighter text-[#063b7a] dark:text-white mb-2 uppercase italic text-center">Guardar Lista</h2>
-                            <p className="text-[10px] font-black text-[#063b7a]/50 dark:text-white/50 text-center mb-8 uppercase tracking-[0.2em]">Elige un nombre para tu selección</p>
+                            <h2 className="text-2xl font-black tracking-tighter text-foreground mb-2 uppercase italic text-center">Guardar Lista</h2>
+                            <p className="text-[10px] font-black text-muted-foreground text-center mb-8 uppercase tracking-[0.2em]">Elige un nombre para tu selección</p>
 
                             <div className="relative mb-8">
                                 <input
@@ -422,7 +422,7 @@ export default function HimnoCoroSelector({
                                     value={listName}
                                     onChange={(e) => setListName(e.target.value)}
                                     placeholder="Nombre de la lista..."
-                                    className="w-full h-14 bg-[#063b7a]/5 dark:bg-white/10 rounded-2xl px-6 font-black uppercase text-xs tracking-widest border border-[#063b7a]/10 dark:border-white/20 focus:border-[#063b7a] dark:focus:border-white outline-none text-[#063b7a] dark:text-white placeholder:text-[#063b7a]/30 dark:placeholder:text-white/30"
+                                    className="w-full h-14 bg-muted/30 dark:bg-white/10 rounded-2xl px-6 font-black uppercase text-xs tracking-widest border border-border focus:border-primary outline-none text-foreground placeholder:text-muted-foreground"
                                     autoFocus
                                 />
                             </div>
@@ -430,13 +430,13 @@ export default function HimnoCoroSelector({
                             <div className="grid grid-cols-2 gap-4">
                                 <button
                                     onClick={() => setIsSaveModalOpen(false)}
-                                    className="h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-[#063b7a]/5 dark:bg-white/10 border border-[#063b7a]/20 dark:border-white/20 text-[#063b7a] dark:text-white hover:bg-[#063b7a]/10 dark:hover:bg-white/20 transition-all"
+                                    className="h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-muted/30 dark:bg-white/10 border border-border text-foreground hover:bg-muted/50 dark:hover:bg-white/20 transition-all"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={confirmSaveList}
-                                    className="h-12 bg-[#063b7a] dark:bg-white text-white dark:text-[#111111] rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-[#063b7a]/30 dark:shadow-white/10 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                    className="h-12 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
                                 >
                                     Confirmar
                                 </button>

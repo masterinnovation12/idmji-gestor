@@ -125,12 +125,12 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 
                     <div className="relative w-full lg:w-96 group">
                         <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl group-focus-within:bg-primary/30 transition-all opacity-0 group-focus-within:opacity-100" />
-                        <div className="relative glass border border-border/50 rounded-2xl flex items-center px-4 h-14 shadow-lg focus-within:border-primary transition-all">
+                        <div className="relative bg-white dark:bg-white/5 border border-border rounded-2xl flex items-center px-4 h-14 shadow-lg focus-within:border-primary transition-all">
                             <Search className="w-5 h-5 text-muted-foreground mr-3" />
                             <input
                                 type="text"
                                 placeholder={t('himnario.searchPlaceholder')}
-                                className="w-full bg-transparent border-none outline-none font-bold placeholder:text-muted-foreground/50 text-foreground"
+                                className="w-full bg-transparent border-none outline-none font-bold placeholder:text-muted-foreground text-foreground"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -147,7 +147,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`relative flex items-center gap-3 px-8 py-4 rounded-2xl font-black transition-all group ${activeTab === tab.id ? 'text-[#063b7a] dark:text-white' : 'text-muted-foreground hover:text-foreground'
+                        className={`relative flex items-center gap-3 px-8 py-4 rounded-2xl font-black transition-all group ${activeTab === tab.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
                         {activeTab === tab.id && (
@@ -159,7 +159,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                         )}
                         <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'animate-bounce' : ''}`} />
                         <span className="uppercase tracking-widest text-xs">{tab.label}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${activeTab === tab.id ? 'bg-[#063b7a]/10 border-[#063b7a]/20 dark:bg-white/20 dark:border-white/30' : 'bg-muted/50 border-border'
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${activeTab === tab.id ? 'bg-primary/10 border-primary/20' : 'bg-muted/50 border-border'
                             }`}>
                             {tab.count}
                         </span>
@@ -169,7 +169,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 
             <div className="grid lg:grid-cols-12 gap-8">
                 {/* List Table */}
-                <div className="lg:col-span-8">
+                <div className="lg:col-span-7">
                     <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden min-h-[500px] h-full">
                         <CardContent className="p-0">
                             <div className="overflow-x-auto no-scrollbar">
@@ -284,7 +284,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 </div>
 
                 {/* Sidebar Calculator (Desktop Only) */}
-                <div className="hidden lg:block lg:col-span-4">
+                <div className="hidden lg:block lg:col-span-5">
                     <div className="sticky top-6 max-h-[calc(100vh-4rem)] overflow-y-auto no-scrollbar">
                         <Card className="rounded-[2.5rem] border-none shadow-2xl bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 overflow-hidden">
                             <CardContent className="p-8 space-y-6">
@@ -316,7 +316,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsCalcModalOpen(true)}
-                className="lg:hidden fixed bottom-8 right-8 w-16 h-16 bg-[#063b7a] dark:bg-primary text-white rounded-2xl shadow-2xl flex items-center justify-center z-50 border border-white/20"
+                className="lg:hidden fixed bottom-8 right-8 w-16 h-16 bg-primary text-white rounded-2xl shadow-2xl flex items-center justify-center z-50 border border-white/20"
             >
                 <div className="relative">
                     <Clock className="w-8 h-8" />
@@ -347,12 +347,12 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 
                             <div className="flex items-center justify-between mb-8">
                                 <div className="space-y-1">
-                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-[#063b7a] dark:text-white uppercase italic">Calculadora</h2>
+                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground uppercase italic">Calculadora</h2>
                                     <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">Gestión de tiempos móvil</p>
                                 </div>
                                 <button
                                     onClick={() => setIsCalcModalOpen(false)}
-                                    className="p-3 bg-[#063b7a]/5 dark:bg-white/5 rounded-2xl text-[#063b7a] dark:text-white hover:bg-red-500 hover:text-white transition-all"
+                                    className="p-3 bg-muted/30 dark:bg-white/5 rounded-2xl text-foreground hover:bg-red-500 hover:text-white transition-all"
                                 >
                                     <Plus className="w-6 h-6 rotate-45" />
                                 </button>

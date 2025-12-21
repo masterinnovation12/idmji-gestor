@@ -48,7 +48,7 @@ function ResponsableCard({ label, usuario }: { label: string, usuario: Partial<P
             whileHover={{ y: -2 }}
             className="p-4 bg-muted/30 dark:bg-muted/10 rounded-2xl border border-border/10 backdrop-blur-sm transition-all hover:bg-muted/50 hover:shadow-sm group"
         >
-            <p className="text-[10px] text-[#063b7a] dark:text-muted-foreground uppercase tracking-[0.2em] font-black mb-2 opacity-80 group-hover:opacity-100 transition-opacity">{label}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-black mb-2 opacity-80 group-hover:opacity-100 transition-opacity">{label}</p>
             <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
                     <UserIcon className="w-4 h-4" />
@@ -103,7 +103,7 @@ export default function DashboardClient({ user, cultoHoy, stats }: DashboardClie
                             <CardHeader className="pt-8 px-8 pb-4">
                                 <CardTitle
                                     icon={<Calendar className="w-6 h-6 text-primary" />}
-                                    className="text-xs font-black uppercase tracking-[0.3em] text-[#063b7a] dark:text-muted-foreground"
+                                    className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground"
                                 >
                                     {t('dashboard.todayCulto')}
                                 </CardTitle>
@@ -232,7 +232,7 @@ function StatCard({ icon, label, value, bgColor }: { icon: React.ReactNode, labe
                     {icon}
                 </div>
                 <div>
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-[#063b7a] dark:text-muted-foreground mb-1">{label}</p>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">{label}</p>
                     <p className="text-3xl font-black tracking-tighter text-foreground">{value}</p>
                 </div>
             </div>
@@ -261,7 +261,7 @@ function QuickActionLink({ href, icon, title, desc }: { href: string, icon: Reac
 
                 <div className="relative z-10 space-y-2">
                     <h3 className="font-black text-xl tracking-tight group-hover:text-primary transition-colors text-foreground uppercase italic">{title}</h3>
-                    <p className="text-sm text-[#063b7a]/80 dark:text-muted-foreground font-medium leading-relaxed group-hover:opacity-100 transition-opacity">
+                    <p className="text-sm text-muted-foreground font-medium leading-relaxed group-hover:opacity-100 transition-opacity">
                         {desc}
                     </p>
                 </div>
