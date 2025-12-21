@@ -430,13 +430,13 @@ export default function HimnoCoroSelector({
                             <div className="grid grid-cols-2 gap-4">
                                 <button
                                     onClick={() => setIsSaveModalOpen(false)}
-                                    className="h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-[#063b7a]/10 dark:border-white/10 hover:bg-muted transition-all"
+                                    className="h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-[#063b7a]/5 dark:bg-white/5 border border-[#063b7a]/20 dark:border-white/20 text-[#063b7a] dark:text-white hover:bg-[#063b7a]/10 dark:hover:bg-white/10 transition-all"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={confirmSaveList}
-                                    className="h-12 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                    className="h-12 bg-[#063b7a] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-[#063b7a]/30 hover:shadow-[#063b7a]/50 hover:scale-[1.02] active:scale-[0.98] transition-all"
                                 >
                                     Confirmar
                                 </button>
