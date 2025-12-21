@@ -222,15 +222,15 @@ export default function HimnoCoroSelector({
 
             {/* Total Time Badge - Stacked for sidebar */}
             <div className="grid grid-cols-3 gap-2 text-[9px] font-black uppercase tracking-widest">
-                <div className="flex flex-col items-center justify-center gap-1 bg-blue-500/10 dark:bg-blue-500/20 text-[#063b7a] dark:text-blue-300 py-3 rounded-2xl border border-blue-500/10">
+                <div className="flex flex-col items-center justify-center gap-1 bg-blue-500/10 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 py-3 rounded-2xl border border-blue-500/20 dark:border-blue-400/20">
                     <span className="w-2 h-2 rounded-full bg-blue-500" />
                     <span>H: {formatDuration(durationHimnos)}</span>
                 </div>
-                <div className="flex flex-col items-center justify-center gap-1 bg-accent/10 dark:bg-accent/20 text-[#063b7a] dark:text-accent py-3 rounded-2xl border border-accent/10">
-                    <span className="w-2 h-2 rounded-full bg-accent" />
+                <div className="flex flex-col items-center justify-center gap-1 bg-purple-500/10 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 py-3 rounded-2xl border border-purple-500/20 dark:border-purple-400/20">
+                    <span className="w-2 h-2 rounded-full bg-purple-500" />
                     <span>C: {formatDuration(durationCoros)}</span>
                 </div>
-                <div className="flex flex-col items-center justify-center gap-1 bg-primary/10 dark:bg-primary/20 text-primary py-3 rounded-2xl border border-primary/10">
+                <div className="flex flex-col items-center justify-center gap-1 bg-emerald-500/10 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 py-3 rounded-2xl border border-emerald-500/20 dark:border-emerald-400/20">
                     <Clock className="w-4 h-4" />
                     <span>{formatDuration(totalDuration)}</span>
                 </div>
@@ -238,14 +238,14 @@ export default function HimnoCoroSelector({
 
             <div className="relative group">
                 <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                <div className="relative bg-[#063b7a]/5 dark:bg-white/5 border border-[#063b7a]/10 dark:border-white/10 rounded-2xl flex items-center px-5 h-14 shadow-inner focus-within:border-primary/50 transition-all">
-                    <Search className="w-5 h-5 text-[#063b7a]/50 dark:text-white/40 mr-4" />
+                <div className="relative bg-white dark:bg-white/5 border border-[#063b7a]/20 dark:border-white/10 rounded-2xl flex items-center px-5 h-14 shadow-sm focus-within:border-primary/50 transition-all">
+                    <Search className="w-5 h-5 text-[#063b7a]/40 dark:text-white/40 mr-4" />
                     <input
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder={`Buscar ${tipo === 'himno' ? 'por número o título' : 'en el catálogo'}...`}
-                        className="w-full bg-transparent border-none outline-none text-sm font-black uppercase tracking-widest placeholder:text-[#063b7a]/30 dark:placeholder:text-white/20 text-[#063b7a] dark:text-white"
+                        className="w-full bg-transparent border-none outline-none text-sm font-black uppercase tracking-widest placeholder:text-[#063b7a]/40 dark:placeholder:text-white/30 text-[#063b7a] dark:text-white"
                         disabled={tipo === 'himno' ? !canAddHimno : !canAddCoro}
                     />
                 </div>
@@ -308,17 +308,17 @@ export default function HimnoCoroSelector({
             {/* Saved Lists Storage */}
             {!cultoId && savedLists.length > 0 && (
                 <div className="space-y-3 pt-4 border-t border-[#063b7a]/10 dark:border-white/10">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#063b7a]/40 dark:text-white/40 pl-1">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#063b7a]/50 dark:text-white/50 pl-1">
                         Mis Listas Guardadas ({savedLists.length}/2)
                     </h3>
                     <div className="grid grid-cols-1 gap-2">
                         {savedLists.map((list) => (
-                            <div key={list.id} className="flex items-center justify-between p-3 bg-white dark:bg-white/5 rounded-2xl border border-[#063b7a]/5 dark:border-white/10 shadow-sm group">
-                                <div className="cursor-pointer flex-1" onClick={() => loadList(list)}>
+                            <div key={list.id} className="flex items-center justify-between p-3 bg-[#063b7a]/5 dark:bg-white/5 rounded-2xl border border-[#063b7a]/10 dark:border-white/10 shadow-sm group hover:bg-[#063b7a]/10 dark:hover:bg-white/10 transition-all cursor-pointer">
+                                <div className="flex-1" onClick={() => loadList(list)}>
                                     <p className="text-xs font-black uppercase tracking-tight text-[#063b7a] dark:text-white truncate">
                                         {list.name}
                                     </p>
-                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">{list.items.length} elementos</p>
+                                    <p className="text-[9px] font-bold text-[#063b7a]/50 dark:text-white/50 uppercase">{list.items.length} elementos</p>
                                 </div>
                                 <button
                                     onClick={() => deleteSavedList(list.id)}
@@ -359,7 +359,7 @@ export default function HimnoCoroSelector({
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex items-center justify-between p-4 bg-white dark:bg-[#063b7a]/10 border border-[#063b7a]/10 dark:border-white/10 rounded-[1.5rem] shadow-sm hover:shadow-md transition-all group"
+                                className="flex items-center justify-between p-4 bg-[#063b7a]/5 dark:bg-white/5 border border-[#063b7a]/10 dark:border-white/10 rounded-[1.5rem] shadow-sm hover:shadow-md transition-all group"
                             >
                                 <div className="flex items-center gap-4 flex-1">
                                     <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner shrink-0 ${item.tipo === 'himno'

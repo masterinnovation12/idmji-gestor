@@ -176,13 +176,13 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                 <table className="w-full">
                                     <thead>
                                         <tr className="bg-muted/30 border-b border-border/50 text-left">
-                                            <th className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-[#063b7a] dark:text-muted-foreground w-24">
+                                            <th className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground w-24">
                                                 {t('himnario.tableNumber')}
                                             </th>
-                                            <th className="px-6 sm:px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-[#063b7a] dark:text-muted-foreground">
+                                            <th className="px-6 sm:px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
                                                 {t('himnario.tableTitle')}
                                             </th>
-                                            <th className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-[#063b7a] dark:text-muted-foreground text-right w-32">
+                                            <th className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground text-right w-32">
                                                 {t('himnario.tableDuration')}
                                             </th>
                                         </tr>
@@ -238,7 +238,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                                         <td className="px-6 sm:px-8 py-5 sm:py-6">
                                                             <div className="flex flex-col gap-1">
                                                                 <div className="flex items-center gap-2 sm:hidden mb-1">
-                                                                    <span className="text-[10px] font-black tracking-widest text-[#0660c6] dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full uppercase">
+                                                                    <span className="text-[10px] font-black tracking-widest text-white bg-blue-500 px-2 py-0.5 rounded-full uppercase">
                                                                         #{item.numero}
                                                                     </span>
                                                                     <span className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -246,13 +246,13 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                                                         {formatDuration(item.duracion_segundos || 0)}
                                                                     </span>
                                                                 </div>
-                                                                <p className="font-black text-base sm:text-lg tracking-tight uppercase group-hover:text-[#0660c6] transition-colors leading-tight">
+                                                                <p className="font-black text-base sm:text-lg tracking-tight uppercase group-hover:text-primary transition-colors leading-tight text-foreground">
                                                                     {highlightText(item.titulo, searchTerm)}
                                                                 </p>
                                                             </div>
                                                         </td>
                                                         <td className="hidden sm:table-cell px-8 py-6 text-right">
-                                                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/50 text-[#063b7a] dark:text-muted-foreground font-black text-xs group-hover:bg-blue-500/10 group-hover:text-[#0660c6] transition-colors">
+                                                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/50 text-muted-foreground font-black text-xs group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                                                                 <Clock className="w-3.5 h-3.5" />
                                                                 {formatDuration(item.duracion_segundos || 0)}
                                                             </div>
