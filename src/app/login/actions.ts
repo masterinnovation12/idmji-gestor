@@ -34,6 +34,10 @@ export async function logout() {
 export async function getPublicConfig() {
     const supabase = await createClient()
 
+
+    type ConfigItem = { key: string; value: string | object | null }
+
+    // Explicitly type the query result or cast it to avoid 'any'
     const { data } = await supabase
         .from('app_config')
         .select('key, value')
@@ -41,8 +45,13 @@ export async function getPublicConfig() {
 
     const config: Record<string, string> = {}
 
-    data?.forEach(item => {
-        config[item.key] = typeof item.value === 'string' ? item.value : JSON.stringify(item.value).replace(/"/g, '')
+    // Cast data to ensure type safety and avoid lint errors
+    const items = data as unknown as ConfigItem[] | null
+
+    items?.forEach(item => {
+        if (item.value) {
+            config[item.key] = typeof item.value === 'string' ? item.value : JSON.stringify(item.value).replace(/"/g, '')
+        }
     })
 
     return config

@@ -98,7 +98,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center bg-background/40 backdrop-blur-xl pointer-events-none"
+                        className="fixed inset-0 z-100 flex items-center justify-center bg-background/40 backdrop-blur-xl pointer-events-none"
                     >
                         <motion.div
                             initial={{ scale: 0.5, rotate: -15, y: 50 }}
@@ -111,7 +111,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                 <motion.div
                                     animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
                                     transition={{ repeat: Infinity, duration: 2 }}
-                                    className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-xl shadow-primary/20"
+                                    className="w-24 h-24 rounded-3xl bg-linear-to-br from-primary to-accent flex items-center justify-center shadow-xl shadow-primary/20"
                                 >
                                     <Check className="w-12 h-12 text-white" strokeWidth={4} />
                                 </motion.div>
@@ -137,7 +137,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-1">
-                        <h1 className="text-4xl lg:text-5xl font-black bg-gradient-to-br from-primary via-accent to-primary bg-clip-text text-transparent tracking-tight">
+                        <h1 className="text-4xl lg:text-5xl font-black bg-linear-to-br from-primary via-accent to-primary bg-clip-text text-transparent tracking-tight">
                             {t('calendar.title')}
                         </h1>
                         <p className="text-muted-foreground font-medium flex items-center gap-2">
@@ -159,7 +159,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
 
             {/* Contenedor Principal: Calendario */}
             <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary/5 to-accent/5 rounded-[2.5rem] blur-2xl opacity-50 group-hover:opacity-100 transition duration-1000" />
+                <div className="absolute -inset-1 bg-linear-to-r from-primary/5 to-accent/5 rounded-[2.5rem] blur-2xl opacity-50 group-hover:opacity-100 transition duration-1000" />
                 <div className="relative glass rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
                     <Calendar
                         events={cultos}
@@ -171,26 +171,26 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
             {/* Grid de Estadísticas */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                    { label: t('calendar.total'), value: totalCultos, icon: CalendarIcon, color: 'primary' },
-                    { label: t('calendar.complete'), value: completeCultos, icon: CheckCircle, color: 'emerald' },
-                    { label: t('calendar.pending'), value: pendingCultos, icon: Clock, color: 'amber' }
+                    { label: t('calendar.total'), value: totalCultos, icon: CalendarIcon, color: 'text-primary', bg: 'bg-primary/10' },
+                    { label: t('calendar.complete'), value: completeCultos, icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                    { label: t('calendar.pending'), value: pendingCultos, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/10' }
                 ].map((stat, idx) => (
                     <motion.div
                         key={idx}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 + idx * 0.1 }}
-                        className="glass rounded-[2rem] p-6 border border-white/10 group hover:border-primary/20 transition-all shadow-lg"
+                        className="glass rounded-3xl p-6 border border-white/20 dark:border-white/5 group hover:border-primary/20 transition-all shadow-xl"
                     >
                         <div className="flex items-center gap-4">
-                            <div className={`p-4 bg-${stat.color}-500/10 rounded-2xl group-hover:scale-110 transition-transform`}>
-                                <stat.icon className={`w-6 h-6 text-${stat.color}-500`} />
+                            <div className={`p-4 ${stat.bg} rounded-2xl group-hover:scale-110 transition-transform shadow-inner`}>
+                                <stat.icon className={`w-6 h-6 ${stat.color}`} />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">
                                     {stat.label}
                                 </p>
-                                <p className={`text-3xl font-black tracking-tight ${idx === 1 ? 'text-emerald-500' : idx === 2 ? 'text-amber-500' : ''}`}>
+                                <p className={`text-4xl font-black tracking-tighter ${stat.color} leading-none`}>
                                     {stat.value}
                                 </p>
                             </div>

@@ -4,17 +4,21 @@
 
 @layer base {
   :root {
-    /* Colores del logo IDMJI - Azul principal */
-    --primary: 210 79% 58%;
+    /* IDMJI Primary Palette - Vibrant & Professional */
+    --primary: 212 95% 45%;
+    /* Deep Vibrant Blue */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 70% 50%;
+    --secondary: 199 89% 48%;
+    /* Azure */
     --secondary-foreground: 0 0% 100%;
 
-    --accent: 220 85% 65%;
+    --accent: 262 83% 58%;
+    /* Royal Purple/Indigo */
     --accent-foreground: 0 0% 100%;
 
-    --background: 0 0% 100%;
+    --background: 210 40% 98.5%;
+    /* Softest Blue-Grey Background */
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -24,56 +28,60 @@
     --popover-foreground: 222 47% 11%;
 
     --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted-foreground: 215 25% 40%;
+    /* Slightly darker for better light mode contrast */
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 210 79% 58%;
+    --ring: 212 95% 45%;
 
     --success: 142 76% 36%;
     --warning: 38 92% 50%;
     --error: 0 84% 60%;
-    --info: 210 79% 58%;
+    --info: 212 95% 45%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
   }
 
   .dark {
-    --primary: 210 79% 58%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 212 95% 55%;
+    /* Lighter blue for dark mode */
+    --primary-foreground: 222 47% 11%;
 
-    --secondary: 200 70% 50%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 199 80% 60%;
+    --secondary-foreground: 222 47% 11%;
 
-    --accent: 220 85% 65%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 262 83% 70%;
+    --accent-foreground: 222 47% 11%;
 
-    --background: 222 47% 11%;
+    --background: 222 65% 5%;
+    /* Deepest Indigo/Black */
     --foreground: 210 40% 98%;
 
-    --card: 222 47% 15%;
+    --card: 222 50% 10%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 47% 15%;
+    --popover: 222 50% 10%;
     --popover-foreground: 210 40% 98%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 217 33% 15%;
+    --muted-foreground: 215 30% 75%;
+    /* More legible in dark mode */
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 210 79% 58%;
+    --border: 222 40% 20%;
+    --input: 222 40% 20%;
+    --ring: 212 95% 55%;
 
-    --success: 142 76% 36%;
-    --warning: 38 92% 50%;
-    --error: 0 84% 60%;
-    --info: 210 79% 58%;
+    --success: 142 70% 50%;
+    --warning: 38 90% 60%;
+    --error: 0 84% 70%;
+    --info: 212 95% 55%;
   }
 
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

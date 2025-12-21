@@ -16,7 +16,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, Globe, Moon, Sun } from 'lucide-react'
+import { Eye, EyeOff, Globe, Moon, Sun, ChevronRight } from 'lucide-react'
 import { login, getPublicConfig } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
@@ -111,187 +111,197 @@ export default function LoginPage() {
             <div className="absolute inset-0 gradient-mesh opacity-30" />
             <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-accent/10" />
 
-            {/* Controles de idioma y tema */}
-            <div className="absolute top-4 right-4 flex gap-3 z-10">
-                {/* Selector de idioma */}
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setLanguage(language === 'es-ES' ? 'ca-ES' : 'es-ES')}
-                    className="glass p-3 rounded-xl hover:bg-white/20 transition-colors"
-                >
-                    <Globe className="w-5 h-5" />
-                    <span className="ml-2 text-sm font-medium">
-                        {language === 'es-ES' ? 'ES' : 'CA'}
-                    </span>
-                </motion.button>
+            {/* Contenedor Principal Centrado (Envuelve controles y card para que estén apilados) */}
+            <div className="flex flex-col items-center w-full max-w-md relative z-10">
 
-                {/* Toggle modo oscuro */}
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={toggleTheme}
-                    className="glass p-3 rounded-xl hover:bg-white/20 transition-colors"
-                >
-                    {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                </motion.button>
-            </div>
-
-            {/* Card de login */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="glass rounded-3xl p-6 md:p-12 w-full max-w-md relative z-10 shadow-2xl"
-            >
-                {/* Logo más grande */}
+                {/* Controles de idioma y tema (Ahora para todos los dispositivos: Arriba y Centrado) */}
                 <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.2, duration: 0.5 }}
-                    className="flex justify-center mb-8"
+                    initial={{ y: -20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="flex gap-4 mb-6 z-50 pointer-events-auto"
                 >
-                    <div className="relative w-48 h-48">
-                        <Image
-                            src="/logo-idmji.jpeg"
-                            alt="Logo IDMJI"
-                            fill
-                            className="object-contain rounded-2xl"
-                            priority
-                        />
-                    </div>
+                    <motion.button
+                        whileHover={{ scale: 1.05, translateY: -2 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setLanguage(language === 'es-ES' ? 'ca-ES' : 'es-ES')}
+                        className="glass px-4 py-2.5 rounded-2xl hover:bg-white/30 transition-all font-bold shadow-lg backdrop-blur-md border-white/20 flex items-center gap-2 group text-foreground"
+                    >
+                        <Globe className="w-5 h-5 group-hover:text-primary transition-colors" />
+                        <span className="text-sm font-black tracking-wide">
+                            {language === 'es-ES' ? 'ES' : 'CA'}
+                        </span>
+                    </motion.button>
+
+                    <motion.button
+                        whileHover={{ scale: 1.05, translateY: -2 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={toggleTheme}
+                        className="glass px-4 py-2.5 rounded-2xl hover:bg-white/30 transition-all shadow-lg backdrop-blur-md border-white/20 flex items-center gap-2 group"
+                    >
+                        {isDark ? (
+                            <Sun className="w-5 h-5 text-amber-400 group-hover:rotate-90 transition-transform duration-500" />
+                        ) : (
+                            <Moon className="w-5 h-5 text-indigo-400 group-hover:-rotate-12 transition-transform duration-500" />
+                        )}
+                    </motion.button>
                 </motion.div>
 
-
-
-
-                {/* Título configurable desde Supabase */}
+                {/* Card de login */}
                 <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-center mb-8"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="glass rounded-4xl p-8 md:p-12 w-full relative shadow-2xl border-white/20"
                 >
-                    <h1 className={`text-3xl font-bold mb-2 bg-linear-to-r ${config.colorClass} bg-clip-text text-transparent`}>
-                        {config.title}
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        {config.subtitle}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                        {config.location}
-                    </p>
-                </motion.div>
-
-                {/* Formulario */}
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Email */}
+                    {/* Logo más grande */}
                     <motion.div
-                        initial={{ x: -20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: 0.4 }}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.2, duration: 0.5 }}
+                        className="flex justify-center mb-4"
                     >
-                        <label className="block text-sm font-medium mb-2">
-                            {t('login.email')}
-                        </label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                            placeholder="ejemplo@idmji.org"
-                        />
-                    </motion.div>
-
-                    {/* Contraseña */}
-                    <motion.div
-                        initial={{ x: -20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: 0.5 }}
-                    >
-                        <label className="block text-sm font-medium mb-2">
-                            {t('login.password')}
-                        </label>
-                        <div className="relative">
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                                placeholder="••••••••"
+                        <div className="relative w-48 h-48">
+                            <Image
+                                src="/logo-idmji.jpeg"
+                                alt="Logo IDMJI"
+                                fill
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                className="object-contain rounded-2xl"
+                                priority
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-muted rounded-lg transition-colors"
-                            >
-                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                            </button>
                         </div>
                     </motion.div>
 
-                    {/* Recordar credenciales */}
-                    <motion.div
-                        initial={{ x: -20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: 0.6 }}
-                        className="flex items-center gap-2"
-                    >
-                        <input
-                            type="checkbox"
-                            id="remember"
-                            checked={rememberMe}
-                            onChange={(e) => setRememberMe(e.target.checked)}
-                            className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50"
-                        />
-                        <label htmlFor="remember" className="text-sm cursor-pointer">
-                            Recordar credenciales
-                        </label>
-                    </motion.div>
 
-                    {/* Error */}
-                    {error && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-600 text-sm"
-                        >
-                            {error}
-                        </motion.div>
-                    )}
 
-                    {/* Botón de login */}
-                    <motion.button
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.7 }}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full gradient-primary text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isLoading ? 'Iniciando sesión...' : t('login.submit')}
-                    </motion.button>
 
-                    {/* Link olvidé contraseña */}
+                    {/* Título configurable desde Supabase */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: 0.8 }}
-                        className="text-center"
+                        transition={{ delay: 0.3 }}
+                        className="text-center mb-8"
                     >
-                        <a
-                            href="/forgot-password"
-                            className="text-sm text-primary hover:underline"
-                        >
-                            He olvidado mis credenciales
-                        </a>
+                        <h1 className={`text-3xl font-bold mb-2 bg-linear-to-r ${config.colorClass} bg-clip-text text-transparent`}>
+                            {config.title}
+                        </h1>
+                        <p className="text-sm text-muted-foreground">
+                            {config.subtitle}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {config.location}
+                        </p>
                     </motion.div>
-                </form>
-            </motion.div>
+
+                    {/* Formulario */}
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Email */}
+                        <motion.div
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                        >
+                            <label className="block text-sm font-medium mb-2">
+                                {t('login.email')}
+                            </label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                placeholder="ejemplo@idmji.org"
+                            />
+                        </motion.div>
+
+                        {/* Contraseña */}
+                        <motion.div
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.5 }}
+                        >
+                            <label className="block text-sm font-medium mb-2">
+                                {t('login.password')}
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                    placeholder="••••••••"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-muted rounded-lg transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
+                            </div>
+                        </motion.div>
+
+                        {/* Recordar credenciales */}
+                        <motion.div
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.6 }}
+                            className="flex items-center gap-2"
+                        >
+                            <input
+                                type="checkbox"
+                                id="remember"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                                className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50"
+                            />
+                            <label htmlFor="remember" className="text-sm cursor-pointer">
+                                Recordar credenciales
+                            </label>
+                        </motion.div>
+
+                        {/* Error */}
+                        {error && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-600 text-sm"
+                            >
+                                {error}
+                            </motion.div>
+                        )}
+
+                        {/* Botón de login */}
+                        <motion.button
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.7 }}
+                            whileHover={{ scale: 1.02, translateY: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full h-14 relative group overflow-hidden rounded-2xl font-black text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-primary/25 border border-white/10"
+                        >
+                            <div className="absolute inset-0 bg-linear-to-r from-primary via-accent to-primary bg-size-[200%_100%] group-hover:bg-[100%_0] transition-all duration-700" />
+                            <span className="relative z-10 flex items-center justify-center gap-2 tracking-widest uppercase text-xs">
+                                {isLoading ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                        <span>{t('common.loading')}</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        {t('login.submit')}
+                                        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    </>
+                                )}
+                            </span>
+                        </motion.button>
+                    </form>
+                </motion.div>
+            </div>
         </div>
     )
 }

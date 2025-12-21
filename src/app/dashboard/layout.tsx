@@ -33,18 +33,25 @@ import {
     FileText,
     UserCog,
     ChevronRight,
-    Search
+    Search,
+    Globe,
+    Moon,
+    Sun
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/I18nProvider'
+import { useTheme } from '@/lib/theme/ThemeProvider'
+import { TranslationKey, Language } from '@/lib/i18n/translations'
+import Image from 'next/image'
 
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    const { t } = useI18n()
+    const { t, language, setLanguage } = useI18n()
+    const { isDark, toggleTheme } = useTheme()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
     const pathname = usePathname()
@@ -104,7 +111,7 @@ export default function DashboardLayout({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] md:hidden"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100 md:hidden"
                         onClick={() => setIsMobileMenuOpen(false)}
                     />
                 )}
@@ -118,7 +125,7 @@ export default function DashboardLayout({
                         animate={{ x: 0 }}
                         exit={{ x: -300 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed left-0 top-0 h-full w-[300px] z-[110] flex flex-col md:hidden shadow-2xl"
+                        className="fixed left-0 top-0 h-full w-[300px] z-110 flex flex-col md:hidden shadow-2xl"
                     >
                         <SidebarContent
                             isSidebarCollapsed={isSidebarCollapsed}
@@ -127,6 +134,10 @@ export default function DashboardLayout({
                             pathname={pathname}
                             handleSignOut={handleSignOut}
                             t={t}
+                            language={language}
+                            setLanguage={setLanguage}
+                            isDark={isDark}
+                            toggleTheme={toggleTheme}
                         />
                     </motion.aside>
                 )}
@@ -144,6 +155,10 @@ export default function DashboardLayout({
                     pathname={pathname}
                     handleSignOut={handleSignOut}
                     t={t}
+                    language={language}
+                    setLanguage={setLanguage}
+                    isDark={isDark}
+                    toggleTheme={toggleTheme}
                 />
             </motion.aside>
 
@@ -153,8 +168,8 @@ export default function DashboardLayout({
                     }`}
             >
                 {/* Mobile Floating Header (Glassmorphism) */}
-                <header className="sticky top-4 z-[90] md:hidden px-4">
-                    <div className="glass rounded-[2rem] border border-white/20 p-4 flex items-center justify-between shadow-xl">
+                <header className="sticky top-4 z-90 md:hidden px-4">
+                    <div className="glass rounded-4xl border border-white/20 p-4 flex items-center justify-between shadow-xl">
                         <button
                             onClick={() => setIsMobileMenuOpen(true)}
                             className="p-3 bg-primary/10 rounded-2xl text-primary"
@@ -162,7 +177,7 @@ export default function DashboardLayout({
                             <Menu size={20} />
                         </button>
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+                            <div className="w-8 h-8 rounded-xl bg-linear-to-br from-primary to-accent flex items-center justify-center shadow-lg">
                                 <span className="text-white font-black text-sm">I</span>
                             </div>
                             <span className="font-black italic text-sm tracking-tight">IDMJI.</span>
@@ -192,53 +207,132 @@ export default function DashboardLayout({
 /**
  * SidebarContent - Subcomponente estable para el Sidebar
  */
+interface NavItem {
+    icon: React.ElementType
+    label: string
+    href: string
+}
+
+interface SidebarContentProps {
+    isSidebarCollapsed: boolean
+    setIsSidebarCollapsed: (collapsed: boolean) => void
+    sidebarItems: NavItem[]
+    pathname: string
+    handleSignOut: () => void
+    t: (key: TranslationKey) => string
+    language: Language
+    setLanguage: (lang: Language) => void
+    isDark: boolean
+    toggleTheme: () => void
+}
+
 function SidebarContent({
     isSidebarCollapsed,
     setIsSidebarCollapsed,
     sidebarItems,
     pathname,
     handleSignOut,
-    t
-}: any) {
+    t,
+    language,
+    setLanguage,
+    isDark,
+    toggleTheme
+}: SidebarContentProps) {
     return (
         <div className="flex flex-col h-full bg-white/80 dark:bg-black/80 backdrop-blur-xl">
             {/* Logo Area */}
-            <div className={`h-24 flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} px-6 border-b border-border/50`}>
-                {!isSidebarCollapsed && (
+            {/* Logo Area */}
+            <div className={`py-8 flex flex-col ${isSidebarCollapsed ? 'items-center px-4' : 'px-8'} border-b border-border/10 gap-6`}>
+                {/* Logo Section */}
+                {!isSidebarCollapsed ? (
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center gap-3"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-4"
                     >
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-                            <span className="text-white font-black text-xl">I</span>
+                        <div className="relative w-12 h-12">
+                            <div className="absolute inset-0 bg-primary/20 blur-lg rounded-2xl animate-pulse" />
+                            <Image
+                                src="/logo.jpeg"
+                                alt="IDMJI Logo"
+                                width={48}
+                                height={48}
+                                className="relative rounded-2xl shadow-2xl border border-white/20"
+                            />
                         </div>
-                        <span className="text-xl font-black tracking-tighter uppercase italic">
-                            IDMJI<span className="text-primary not-italic">.</span>
-                        </span>
+                        <div className="flex flex-col">
+                            <span className="text-xl font-black tracking-tighter uppercase italic text-foreground leading-none">
+                                IDMJI<span className="text-primary not-italic">.</span>
+                            </span>
+                            <span className="text-[10px] font-bold text-muted-foreground tracking-[0.2em] uppercase mt-1">
+                                Gestor de Púlpito
+                            </span>
+                        </div>
                     </motion.div>
+                ) : (
+                    <Image
+                        src="/logo.jpeg"
+                        alt="IDMJI Logo"
+                        width={44}
+                        height={44}
+                        className="rounded-xl shadow-xl hover:scale-110 transition-transform cursor-pointer"
+                    />
                 )}
 
-                {isSidebarCollapsed && (
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-                        <span className="text-white font-black text-xl">I</span>
+                {/* Controls (Language & Theme) */}
+                {!isSidebarCollapsed && (
+                    <div className="flex items-center gap-2 w-full">
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setLanguage(language === 'es-ES' ? 'ca-ES' : 'es-ES')}
+                            className="flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-muted/30 hover:bg-muted/50 border border-border/30 transition-all text-xs font-black text-foreground shadow-sm"
+                        >
+                            <Globe className="w-4 h-4 text-primary" />
+                            <span>{language === 'es-ES' ? 'ESPAÑOL' : 'CATALÀ'}</span>
+                        </motion.button>
+
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={toggleTheme}
+                            className="flex items-center justify-center w-11 h-11 rounded-2xl bg-muted/30 hover:bg-muted/50 border border-border/30 transition-all text-foreground shadow-sm"
+                        >
+                            {isDark ? (
+                                <Sun className="w-4.5 h-4.5 text-amber-500 animate-spin-slow" />
+                            ) : (
+                                <Moon className="w-4.5 h-4.5 text-indigo-500 hover:rotate-12 transition-transform" />
+                            )}
+                        </motion.button>
+
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setIsSidebarCollapsed(true)}
+                            className="hidden md:flex items-center justify-center w-11 h-11 rounded-2xl hover:bg-muted/50 transition-colors text-muted-foreground hover:text-primary"
+                        >
+                            <Menu size={18} />
+                        </motion.button>
                     </div>
                 )}
 
-                {/* Desktop toggle button */}
-                <motion.button
-                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    className="hidden md:flex p-2 hover:bg-muted/50 rounded-xl transition-colors text-muted-foreground hover:text-primary"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                >
-                    <Menu size={20} />
-                </motion.button>
+                {/* Collapsed state controls */}
+                {isSidebarCollapsed && (
+                    <div className="flex flex-col gap-4">
+                        <motion.button
+                            onClick={() => setIsSidebarCollapsed(false)}
+                            className="p-3 hover:bg-muted/50 rounded-xl transition-colors text-muted-foreground hover:text-primary shadow-sm"
+                            whileHover={{ scale: 1.1 }}
+                        >
+                            <Menu size={20} />
+                        </motion.button>
+                    </div>
+                )}
             </div>
 
             {/* Navigation */}
             <nav className="flex-1 py-8 px-4 space-y-2 overflow-y-auto no-scrollbar">
-                {sidebarItems.map((item: any, index: number) => {
+                {sidebarItems.map((item: NavItem, index: number) => {
                     const isActive = pathname === item.href
                     return (
                         <motion.div
@@ -249,40 +343,42 @@ function SidebarContent({
                         >
                             <Link
                                 href={item.href}
-                                className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden ${isActive
-                                    ? 'text-white shadow-xl shadow-primary/20'
+                                className={`flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-300 group relative overflow-hidden ${isActive
+                                    ? 'text-white shadow-2xl shadow-primary/30'
                                     : 'text-muted-foreground hover:text-foreground'
                                     }`}
                             >
-                                {/* Active background */}
+                                {/* Active background with Glow */}
                                 {isActive && (
                                     <motion.div
                                         layoutId="activeTab"
-                                        className="absolute inset-0 bg-gradient-to-r from-primary to-accent -z-10"
+                                        className="absolute inset-0 bg-linear-to-r from-primary via-primary to-accent -z-10"
                                         initial={false}
                                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                                    />
+                                    >
+                                        <div className="absolute inset-0 bg-white/10 opacity-50 group-hover:opacity-100 transition-opacity" />
+                                    </motion.div>
                                 )}
 
-                                {/* Hover effect */}
+                                {/* Hover effect for non-active */}
                                 {!isActive && (
-                                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity -z-10" />
+                                    <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity -z-10 blur-xl" />
                                 )}
 
                                 <item.icon
                                     size={22}
-                                    className={`${isActive ? 'text-white' : 'group-hover:text-primary transition-colors'}`}
+                                    className={`${isActive ? 'text-white scale-110' : 'group-hover:text-primary group-hover:scale-110 transition-all duration-300'}`}
                                 />
 
                                 {!isSidebarCollapsed && (
-                                    <span className="font-bold text-sm tracking-tight flex-1">
+                                    <span className={`font-black text-xs tracking-widest uppercase flex-1 ${isActive ? 'text-white' : ''}`}>
                                         {item.label}
                                     </span>
                                 )}
 
                                 {isActive && !isSidebarCollapsed && (
-                                    <motion.div layoutId="arrow">
-                                        <ChevronRight size={14} className="text-white/70" />
+                                    <motion.div layoutId="arrow" initial={{ x: -10 }} animate={{ x: 0 }}>
+                                        <ChevronRight size={16} className="text-white/80" />
                                     </motion.div>
                                 )}
                             </Link>

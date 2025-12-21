@@ -113,7 +113,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 
                 <div className="flex flex-col lg:flex-row gap-8 justify-between items-start lg:items-center">
                     <div className="space-y-2">
-                        <h1 className="text-4xl lg:text-5xl font-black bg-gradient-to-br from-primary via-accent to-primary bg-clip-text text-transparent tracking-tight">
+                        <h1 className="text-4xl lg:text-5xl font-black bg-linear-to-br from-primary via-accent to-primary bg-clip-text text-transparent tracking-tight">
                             {t('himnario.title')}
                         </h1>
                         <p className="text-muted-foreground font-medium flex items-center gap-2">
@@ -230,7 +230,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                                         className="group hover:bg-muted/20 transition-all cursor-pointer"
                                                     >
                                                         <td className="px-8 py-6">
-                                                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/5 to-accent/5 flex items-center justify-center font-black text-primary border border-primary/10 group-hover:scale-110 group-hover:rotate-6 transition-all shadow-sm">
+                                                            <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/20 group-hover:scale-110 group-hover:rotate-6 transition-all">
                                                                 {item.numero}
                                                             </div>
                                                         </td>
@@ -273,7 +273,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 
                 {/* Sidebar Calculator */}
                 <div className="lg:col-span-4 space-y-6">
-                    <Card className="rounded-[2.5rem] border-none shadow-xl bg-gradient-to-br from-card to-muted/20 sticky top-6">
+                    <Card className="rounded-[2.5rem] border-none shadow-xl bg-linear-to-br from-card to-muted/20 sticky top-6">
                         <CardContent className="p-8 space-y-6">
                             <div className="space-y-2">
                                 <h3 className="text-xl font-black tracking-tight flex items-center gap-2">

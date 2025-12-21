@@ -10,11 +10,7 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(self.clients.claim())
 })
 
-self.addEventListener('fetch', (event) => {
-    // For now, we just pass through. 
-    // In a future update we can implement specific caching strategies.
-    // Dashboard data should usually be fresh.
-})
+
 
 self.addEventListener('push', (event) => {
     const data = event.data ? event.data.json() : {}

@@ -6,10 +6,13 @@ Aquí tienes las credenciales de los nuevos perfiles creados para que puedas gua
 
 | Nombre | Email | Rol |
 |--------|-------|-----|
-| **Jeffrey Bolaños** | `jeffrey@idmji.test` | **ADMIN** |
-| **Hugo Bolaños** | `hugo@idmji.test` | EDITOR |
-| **Rafael Quer** | `rafael@idmji.test` | EDITOR |
-| **Sebastin Villegas** | `sebastin@idmji.test` | EDITOR |
+| **Jeffrey Bolaños** | `jeffrey@idmjisabadell.org` | **ADMIN** |
+| **Carlos Sanchez** | `carlos@idmjisabadell.org` | **ADMIN** |
+| **Hugo Bolaños** | `hugo@idmjisabadell.org` | EDITOR |
+| **Alejandro Perez** | `alejandro@idmjisabadell.org` | EDITOR |
+| **Sebastian Villegas** | `sebastian@idmjisabadell.org` | EDITOR |
+| **Andres Zapata** | `andres@idmjisabadell.org` | EDITOR |
+| **Rafael Quer** | `rafael@idmjisabadell.org` | EDITOR |
 
 ### Instrucciones de Inicio de Sesión:
 1. Ve a la página de login.

@@ -207,7 +207,7 @@ export default function HimnoCoroSelector({
                             >
                                 <div className="flex-1">
                                     <p className="font-bold text-sm">
-                                        <span className="text-primary opacity-70 mr-2">#{item.numero}</span>
+                                        <span className="text-primary font-black mr-2">#{item.numero}</span>
                                         {item.titulo}
                                     </p>
                                     {item.duracion_segundos && (
@@ -217,7 +217,7 @@ export default function HimnoCoroSelector({
                                         </div>
                                     )}
                                 </div>
-                                <button className="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-white">
+                                <button className="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-white shrink-0">
                                     <Plus className="w-4 h-4" />
                                 </button>
                             </div>
@@ -289,6 +289,6 @@ export default function HimnoCoroSelector({
                     })}
                 </AnimatePresence>
             </div>
-        </div>
+        </div >
     )
 }
