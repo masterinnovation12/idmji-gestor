@@ -16,7 +16,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, Globe, Moon, Sun, ChevronRight } from 'lucide-react'
+import { Eye, EyeOff, Globe, Moon, Sun, ChevronRight, LogIn } from 'lucide-react'
 import { login, getPublicConfig } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
