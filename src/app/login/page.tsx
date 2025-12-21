@@ -282,19 +282,19 @@ export default function LoginPage() {
                             whileTap={{ scale: 0.98 }}
                             type="submit"
                             disabled={isLoading}
-                            className="w-full h-14 relative group overflow-hidden rounded-2xl font-black text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-primary/25 border border-white/10"
+                            className="w-full h-14 relative group overflow-hidden rounded-2xl font-black text-white bg-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-primary/25 border border-white/10"
                         >
-                            <div className="absolute inset-0 bg-linear-to-r from-primary via-accent to-primary bg-size-[200%_100%] group-hover:bg-[100%_0] transition-all duration-700" />
-                            <span className="relative z-10 flex items-center justify-center gap-2 tracking-widest uppercase text-xs">
+                            <div className="absolute inset-0 bg-linear-to-r from-primary via-accent to-primary bg-size-[200%_100%] group-hover:bg-[100%_0] transition-all duration-700 opacity-0 group-hover:opacity-100" />
+                            <span className="relative z-10 flex items-center justify-center gap-2 tracking-widest uppercase text-xs text-white font-black">
                                 {isLoading ? (
                                     <>
-                                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                                        <span>{t('common.loading')}</span>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        {t('common.loading')}
                                     </>
                                 ) : (
                                     <>
+                                        <LogIn className="w-5 h-5" />
                                         {t('login.submit')}
-                                        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                     </>
                                 )}
                             </span>
