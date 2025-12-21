@@ -139,7 +139,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 </div>
             </div>
 
-            <div className="flex p-2 bg-muted/30 rounded-3xl w-fit mx-auto sm:mx-0 shadow-inner">
+            <div className="flex p-2 bg-gray-100 dark:bg-zinc-800 rounded-3xl w-fit mx-auto sm:mx-0 shadow-inner border border-gray-200 dark:border-zinc-700">
                 {[
                     { id: 'himnos', label: t('himnario.tabsHimnos'), icon: Music, count: counts.himnos },
                     { id: 'coros', label: t('himnario.tabsCoros'), icon: AudioLines, count: counts.coros }
@@ -147,19 +147,19 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`relative flex items-center gap-3 px-8 py-4 rounded-2xl font-black transition-all group ${activeTab === tab.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                        className={`relative flex items-center gap-3 px-8 py-4 rounded-2xl font-black transition-all group ${activeTab === tab.id ? 'text-white' : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'
                             }`}
                     >
                         {activeTab === tab.id && (
                             <motion.div
                                 layoutId="activeTabBadge"
-                                className="absolute inset-0 bg-card rounded-2xl shadow-lg -z-10 border border-border/50"
+                                className="absolute inset-0 bg-blue-600 rounded-2xl shadow-lg -z-10"
                                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                             />
                         )}
                         <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'animate-bounce' : ''}`} />
                         <span className="uppercase tracking-widest text-xs">{tab.label}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${activeTab === tab.id ? 'bg-primary/10 border-primary/20' : 'bg-muted/50 border-border'
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${activeTab === tab.id ? 'bg-white/20 border-white/30 text-white' : 'bg-gray-200 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600'
                             }`}>
                             {tab.count}
                         </span>

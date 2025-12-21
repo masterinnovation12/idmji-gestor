@@ -199,12 +199,12 @@ export default function HimnoCoroSelector({
     return (
         <div className={`space-y-5 ${className} overflow-hidden`}>
             {/* Tipo Selector */}
-            <div className="flex bg-muted/30 dark:bg-white/5 p-1.5 rounded-2xl w-full border border-border/50 dark:border-white/10">
+            <div className="flex bg-gray-100 dark:bg-zinc-800 p-1.5 rounded-2xl w-full border border-gray-200 dark:border-zinc-700">
                 <button
                     onClick={() => setTipo('himno')}
                     className={`flex-1 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${tipo === 'himno'
-                        ? 'bg-primary text-white shadow-xl'
-                        : 'text-muted-foreground hover:bg-muted/50 dark:hover:bg-white/5'
+                        ? 'bg-blue-600 text-white shadow-xl'
+                        : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700'
                         }`}
                 >
                     Himnos ({himnosSelected.length}/{maxHimnos})
@@ -212,8 +212,8 @@ export default function HimnoCoroSelector({
                 <button
                     onClick={() => setTipo('coro')}
                     className={`flex-1 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${tipo === 'coro'
-                        ? 'bg-primary text-white shadow-xl'
-                        : 'text-muted-foreground hover:bg-muted/50 dark:hover:bg-white/5'
+                        ? 'bg-blue-600 text-white shadow-xl'
+                        : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700'
                         }`}
                 >
                     Coros ({corosSelected.length}/{maxCoros})
@@ -292,7 +292,7 @@ export default function HimnoCoroSelector({
                 <div className="grid grid-cols-2 gap-3 pt-2">
                     <button
                         onClick={handleSaveList}
-                        className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-white font-black text-[10px] uppercase tracking-widest shadow-lg hover:shadow-primary/20 transition-all hover:-translate-y-0.5"
+                        className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5"
                     >
                         Guardar Lista
                     </button>
