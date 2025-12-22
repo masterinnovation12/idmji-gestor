@@ -54,9 +54,37 @@ export default function DashboardLayout({
     const { isDark, toggleTheme } = useTheme()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+    const [userProfile, setUserProfile] = useState<{
+        nombre: string | null
+        apellidos: string | null
+        avatar_url: string | null
+        email: string | null
+    } | null>(null)
     const pathname = usePathname()
     const router = useRouter()
     const supabase = createClient()
+
+    // Fetch user profile on mount
+    useEffect(() => {
+        async function fetchUserProfile() {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('nombre, apellidos, avatar_url')
+                    .eq('id', user.id)
+                    .single()
+
+                setUserProfile({
+                    nombre: profile?.nombre || null,
+                    apellidos: profile?.apellidos || null,
+                    avatar_url: profile?.avatar_url || null,
+                    email: user.email || null
+                })
+            }
+        }
+        fetchUserProfile()
+    }, [supabase])
 
     // Configuración dinámica de items del sidebar con i18n
     const sidebarItems = [
@@ -138,6 +166,7 @@ export default function DashboardLayout({
                             setLanguage={setLanguage}
                             isDark={isDark}
                             toggleTheme={toggleTheme}
+                            userProfile={userProfile}
                         />
                     </motion.aside>
                 )}
@@ -159,6 +188,7 @@ export default function DashboardLayout({
                     setLanguage={setLanguage}
                     isDark={isDark}
                     toggleTheme={toggleTheme}
+                    userProfile={userProfile}
                 />
             </motion.aside>
 
@@ -224,6 +254,12 @@ interface SidebarContentProps {
     setLanguage: (lang: Language) => void
     isDark: boolean
     toggleTheme: () => void
+    userProfile: {
+        nombre: string | null
+        apellidos: string | null
+        avatar_url: string | null
+        email: string | null
+    } | null
 }
 
 function SidebarContent({
@@ -236,7 +272,8 @@ function SidebarContent({
     language,
     setLanguage,
     isDark,
-    toggleTheme
+    toggleTheme,
+    userProfile
 }: SidebarContentProps) {
     return (
         <div className="flex flex-col h-full bg-[#063b7a] dark:bg-black/95 backdrop-blur-xl border-r border-white/10">
@@ -386,15 +423,45 @@ function SidebarContent({
             </nav>
 
             {/* Footer / User Profile Area */}
-            <div className="p-6 border-t border-border/50">
+            <div className="p-4 border-t border-white/10 space-y-3">
+                {/* User Profile */}
+                {userProfile && (
+                    <Link
+                        href="/dashboard/profile"
+                        className={`flex items-center gap-3 p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-all ${isSidebarCollapsed ? 'justify-center' : ''}`}
+                    >
+                        {userProfile.avatar_url ? (
+                            <img
+                                src={userProfile.avatar_url}
+                                alt=""
+                                className="w-10 h-10 rounded-xl object-cover border-2 border-white/20"
+                            />
+                        ) : (
+                            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold text-sm border-2 border-white/20">
+                                {userProfile.nombre?.[0]}{userProfile.apellidos?.[0]}
+                            </div>
+                        )}
+                        {!isSidebarCollapsed && (
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-white truncate">
+                                    {userProfile.nombre} {userProfile.apellidos}
+                                </p>
+                                <p className="text-[10px] text-white/50 truncate">
+                                    {userProfile.email}
+                                </p>
+                            </div>
+                        )}
+                    </Link>
+                )}
+
+                {/* Logout button */}
                 <motion.button
                     onClick={handleSignOut}
-                    className={`flex items-center gap-4 px-4 py-3.5 w-full rounded-2xl text-red-300 hover:text-red-100 hover:bg-red-500/20 transition-all group font-bold text-sm ${isSidebarCollapsed ? 'justify-center' : ''
-                        }`}
-                    whileHover={{ x: 5 }}
+                    className={`flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-red-300 hover:text-red-100 hover:bg-red-500/20 transition-all group font-bold text-sm ${isSidebarCollapsed ? 'justify-center' : ''}`}
+                    whileHover={{ x: isSidebarCollapsed ? 0 : 5 }}
                     whileTap={{ scale: 0.98 }}
                 >
-                    <LogOut size={22} className="group-hover:rotate-12 transition-transform" />
+                    <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
                     {!isSidebarCollapsed && <span>{t('nav.logout')}</span>}
                 </motion.button>
             </div>
