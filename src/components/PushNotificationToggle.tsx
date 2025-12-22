@@ -102,11 +102,20 @@ export function PushNotificationToggle() {
             })
 
             // Send to server
+            const p256dh = sub.getKey('p256dh')
+            const auth = sub.getKey('auth')
+
+            if (!p256dh || !auth) {
+                setErrorMessage('Error al obtener claves de encriptación')
+                setStatus('error')
+                return
+            }
+
             const subscriptionData = {
                 endpoint: sub.endpoint,
                 keys: {
-                    p256dh: arrayBufferToBase64(sub.getKey('p256dh')!),
-                    auth: arrayBufferToBase64(sub.getKey('auth')!)
+                    p256dh: arrayBufferToBase64(p256dh),
+                    auth: arrayBufferToBase64(auth)
                 }
             }
 
@@ -322,7 +331,8 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     return outputArray
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
+function arrayBufferToBase64(buffer: ArrayBuffer | null): string {
+    if (!buffer) return ''
     const bytes = new Uint8Array(buffer)
     let binary = ''
     for (let i = 0; i < bytes.byteLength; i++) {
