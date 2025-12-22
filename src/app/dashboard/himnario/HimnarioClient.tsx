@@ -169,14 +169,14 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 <div className="lg:col-span-7">
                     <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden min-h-[500px] h-full">
                         <CardContent className="p-0">
-                            <div className="overflow-x-auto no-scrollbar">
-                                <table className="w-full">
+                            <div className="overflow-x-hidden overflow-y-auto no-scrollbar max-w-full">
+                                <table className="w-full table-fixed">
                                     <thead>
                                         <tr className="bg-muted/30 border-b border-border/50 text-left">
                                             <th className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground w-24">
                                                 {t('himnario.tableNumber')}
                                             </th>
-                                            <th className="px-6 sm:px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
+                                            <th className="px-6 sm:px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground w-full">
                                                 {t('himnario.tableTitle')}
                                             </th>
                                             <th className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground text-right w-32">
@@ -232,8 +232,8 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                                                 {item.numero}
                                                             </div>
                                                         </td>
-                                                        <td className="px-6 sm:px-8 py-5 sm:py-6">
-                                                            <div className="flex flex-col gap-1">
+                                                        <td className="px-6 sm:px-8 py-5 sm:py-6 break-words">
+                                                            <div className="flex flex-col gap-1 max-w-full">
                                                                 <div className="flex items-center gap-2 sm:hidden mb-1">
                                                                     <span className="text-[10px] font-black tracking-widest text-white bg-blue-500 px-2 py-0.5 rounded-full uppercase">
                                                                         #{item.numero}
