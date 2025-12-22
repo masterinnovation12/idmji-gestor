@@ -135,7 +135,7 @@ export const translations = {
 
         // Himnario Page
         'himnario.title': 'Himnario y Coros',
-        'himnario.desc': 'Catálogo completo para la alabanza',
+        'himnario.desc': 'HIMNARIO',
         'himnario.searchPlaceholder': 'Buscar por número o título...',
         'himnario.tabsHimnos': 'Himnos',
         'himnario.tabsCoros': 'Coros',
@@ -337,7 +337,7 @@ export const translations = {
 
         // Himnario Page
         'himnario.title': 'Himnari i Coros',
-        'himnario.desc': 'Catàleg complet per a la lloança',
+        'himnario.desc': 'HIMNARIO',
         'himnario.searchPlaceholder': 'Cercar per número o títol...',
         'himnario.tabsHimnos': 'Himnes',
         'himnario.tabsCoros': 'Coros',

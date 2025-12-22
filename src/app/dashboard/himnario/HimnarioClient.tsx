@@ -40,6 +40,8 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
     const [searchTerm, setSearchTerm] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [isCalcModalOpen, setIsCalcModalOpen] = useState(false)
+    const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null)
+    const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null)
 
     // Efecto para recarga de datos con debounce
     useEffect(() => {
@@ -72,6 +74,46 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
         }, 300)
         return () => clearTimeout(timer)
     }, [searchTerm, activeTab, himnos.length, coros.length, initialHimnos.length, initialCoros.length])
+
+    // Bloquear scroll del body cuando modal de calculadora está abierto
+    useEffect(() => {
+        if (isCalcModalOpen && window.innerWidth < 1024) {
+            const originalOverflow = document.body.style.overflow
+            document.body.style.overflow = 'hidden'
+            return () => {
+                document.body.style.overflow = originalOverflow
+            }
+        }
+    }, [isCalcModalOpen])
+
+    // Gestos táctiles para cerrar modal (swipe down)
+    const minSwipeDistance = 50
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null)
+        setTouchStart({
+            x: e.targetTouches[0].clientX,
+            y: e.targetTouches[0].clientY
+        })
+    }
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd({
+            x: e.targetTouches[0].clientX,
+            y: e.targetTouches[0].clientY
+        })
+    }
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return
+
+        const distanceY = touchEnd.y - touchStart.y
+        const isDownSwipe = distanceY > minSwipeDistance // Positivo cuando se arrastra hacia abajo
+
+        if (isDownSwipe && isCalcModalOpen) {
+            setIsCalcModalOpen(false)
+        }
+    }
 
     /**
      * Formatea segundos a formato MM:SS
@@ -338,9 +380,17 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                             exit={{ y: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                             className="relative bg-white dark:bg-zinc-900 w-full sm:max-w-xl h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-[2rem] sm:rounded-[2rem] p-5 sm:p-8 shadow-2xl overflow-hidden border border-gray-200 dark:border-zinc-700"
+                            onTouchStart={onTouchStart}
+                            onTouchMove={onTouchMove}
+                            onTouchEnd={onTouchEnd}
                         >
                             {/* Drag handle for mobile */}
-                            <div className="w-10 h-1 bg-gray-300 dark:bg-zinc-600 rounded-full mx-auto mb-6 sm:hidden" />
+                            <div 
+                                className="w-10 h-1 bg-gray-300 dark:bg-zinc-600 rounded-full mx-auto mb-6 sm:hidden cursor-grab active:cursor-grabbing"
+                                onTouchStart={onTouchStart}
+                                onTouchMove={onTouchMove}
+                                onTouchEnd={onTouchEnd}
+                            />
 
                             <div className="flex items-center justify-between mb-6">
                                 <div className="space-y-1">
