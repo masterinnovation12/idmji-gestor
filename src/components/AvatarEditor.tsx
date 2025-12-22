@@ -1,130 +1,108 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Camera, X, Check } from 'lucide-react'
-import { uploadAvatar } from '@/app/dashboard/profile/actions'
-import { toast } from 'sonner'
+import React, { useState, useCallback } from 'react'
+import Cropper from 'react-easy-crop'
+import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/Button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog'
+import { ZoomIn, ZoomOut, RotateCw, Check, X } from 'lucide-react'
+import { getCroppedImg } from '@/lib/utils/canvasUtils'
 
 interface AvatarEditorProps {
-    currentAvatar?: string | null
-    userName: string
-    onUpdate?: (newUrl: string) => void
+    imageSrc: string
+    isOpen: boolean
+    onClose: () => void
+    onSave: (file: Blob) => void
 }
 
-export function AvatarEditor({ currentAvatar, userName, onUpdate }: AvatarEditorProps) {
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-    const [selectedFile, setSelectedFile] = useState<File | null>(null)
-    const [isUploading, setIsUploading] = useState(false)
-    const fileInputRef = useRef<HTMLInputElement>(null)
+export default function AvatarEditor({ imageSrc, isOpen, onClose, onSave }: AvatarEditorProps) {
+    const [crop, setCrop] = useState({ x: 0, y: 0 })
+    const [zoom, setZoom] = useState(1)
+    const [rotation, setRotation] = useState(0)
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
 
-    const initials = userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+    const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+        setCroppedAreaPixels(croppedAreaPixels)
+    }, [])
 
-    function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-        const file = e.target.files?.[0]
-        if (!file) return
-
-        if (!file.type.startsWith('image/')) {
-            toast.error('Por favor selecciona una imagen')
-            return
-        }
-
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error('La imagen no puede superar 5MB')
-            return
-        }
-
-        setSelectedFile(file)
-        setPreviewUrl(URL.createObjectURL(file))
-    }
-
-    async function handleUpload() {
-        if (!selectedFile) return
-
-        setIsUploading(true)
-
-        const formData = new FormData()
-        formData.append('avatar', selectedFile)
-
-        const result = await uploadAvatar(formData)
-
-        if (result.success && result.data) {
-            toast.success('Avatar actualizado')
-            onUpdate?.(result.data)
-            setPreviewUrl(null)
-            setSelectedFile(null)
-        } else {
-            toast.error(result.error || 'Error al subir avatar')
-        }
-
-        setIsUploading(false)
-    }
-
-    function handleCancel() {
-        setPreviewUrl(null)
-        setSelectedFile(null)
-        if (fileInputRef.current) {
-            fileInputRef.current.value = ''
+    const handleSave = async () => {
+        try {
+            const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels, rotation)
+            if (croppedImage) {
+                onSave(croppedImage)
+                onClose()
+            }
+        } catch (e) {
+            console.error(e)
         }
     }
-
-    const displayUrl = previewUrl || currentAvatar
 
     return (
-        <div className="relative w-32 h-32 mx-auto group">
-            {/* Avatar Display */}
-            <div className="w-full h-full rounded-full bg-gradient-to-br from-primary to-accent p-1">
-                <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
-                    {displayUrl ? (
-                        <img src={displayUrl} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                        <span className="text-3xl font-bold text-muted-foreground">{initials}</span>
-                    )}
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-xl bg-zinc-950 border-zinc-800 text-white">
+                <DialogHeader>
+                    <DialogTitle>Editar Foto de Perfil</DialogTitle>
+                </DialogHeader>
+
+                <div className="relative w-full h-[400px] bg-black rounded-xl overflow-hidden mt-4">
+                    <Cropper
+                        image={imageSrc}
+                        crop={crop}
+                        zoom={zoom}
+                        rotation={rotation}
+                        aspect={1}
+                        onCropChange={setCrop}
+                        onCropComplete={onCropComplete}
+                        onZoomChange={setZoom}
+                        onRotationChange={setRotation}
+                        cropShape="round"
+                        showGrid={false}
+                    />
                 </div>
-            </div>
 
-            {/* Upload Button */}
-            {!previewUrl && (
-                <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-colors"
-                >
-                    <Camera className="w-5 h-5" />
-                </button>
-            )}
+                <div className="space-y-6 mt-6">
+                    {/* Controles de Zoom */}
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-xs text-zinc-400">
+                            <span className="flex items-center gap-1"><ZoomOut size={14} /> Zoom</span>
+                            <span className="flex items-center gap-1"><ZoomIn size={14} /></span>
+                        </div>
+                        <Slider
+                            value={[zoom]}
+                            min={1}
+                            max={3}
+                            step={0.1}
+                            onValueChange={(value) => setZoom(value[0])}
+                            className="w-full"
+                        />
+                    </div>
 
-            {/* Confirm/Cancel Buttons */}
-            {previewUrl && (
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
-                    <button
-                        onClick={handleCancel}
-                        disabled={isUploading}
-                        className="p-2 bg-destructive text-destructive-foreground rounded-full shadow-lg hover:bg-destructive/90 transition-colors"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={handleUpload}
-                        disabled={isUploading}
-                        className="p-2 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors"
-                    >
-                        {isUploading ? (
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                            <Check className="w-4 h-4" />
-                        )}
-                    </button>
+                    {/* Controles de Rotación */}
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-xs text-zinc-400">
+                            <span className="flex items-center gap-1"><RotateCw size={14} /> Rotación</span>
+                            <span>{rotation}°</span>
+                        </div>
+                        <Slider
+                            value={[rotation]}
+                            min={0}
+                            max={360}
+                            step={90}
+                            onValueChange={(value) => setRotation(value[0])}
+                            className="w-full"
+                        />
+                    </div>
                 </div>
-            )}
 
-            {/* Hidden File Input */}
-            <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-            />
-        </div>
+                <DialogFooter className="mt-6 flex gap-2">
+                    <Button variant="outline" onClick={onClose} className="flex-1 gap-2">
+                        <X size={16} /> Cancelar
+                    </Button>
+                    <Button onClick={handleSave} className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700">
+                        <Check size={16} /> Guardar Cambios
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     )
 }

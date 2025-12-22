@@ -1,0 +1,107 @@
+-- ===============================================================
+-- SCRIPT DE REPARACIÓN DE INTEGRIDAD DE BASE DE DATOS SUPABASE
+-- ===============================================================
+-- Copia y pega todo este contenido en el SQL Editor de Supabase:
+-- https://supabase.com/dashboard/project/_/sql/new
+-- ===============================================================
+
+BEGIN;
+
+-- 1. Tabla: PUBLIC.PROFILES
+-- =========================
+-- Permitir que al borrar un usuario de Auth, se borre su perfil automáticamente.
+ALTER TABLE public.profiles
+DROP CONSTRAINT IF EXISTS profiles_id_fkey;
+
+ALTER TABLE public.profiles
+ADD CONSTRAINT profiles_id_fkey
+    FOREIGN KEY (id)
+    REFERENCES auth.users(id)
+    ON DELETE CASCADE;
+
+-- 2. Tabla: PUBLIC.USER_SUBSCRIPTIONS (Notificaciones Push)
+-- ==========================================================
+-- Si existe, permitir borrado en cascada.
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_subscriptions') THEN
+        ALTER TABLE public.user_subscriptions
+        DROP CONSTRAINT IF EXISTS user_subscriptions_user_id_fkey;
+        
+        ALTER TABLE public.user_subscriptions
+        ADD CONSTRAINT user_subscriptions_user_id_fkey
+            FOREIGN KEY (user_id)
+            REFERENCES auth.users(id)
+            ON DELETE CASCADE;
+    END IF;
+END $$;
+
+-- 3. Tabla: PUBLIC.LECTURAS (Si aplica)
+-- =====================================
+-- Verificar si 'lecturas' tiene referencia a usuarios (lector_id o similar)
+-- Asumimos que si existe lector_id, apunta a profiles o users.
+DO $$
+BEGIN
+    -- Intentar detectar FK en lecturas.lector_id
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'lecturas' AND column_name = 'lector_id'
+    ) THEN
+        -- Borrar constraints viejas si existen (nombres comunes)
+        ALTER TABLE public.lecturas DROP CONSTRAINT IF EXISTS lecturas_lector_id_fkey;
+        
+        -- Añadir nueva con SET NULL (para que no borre la lectura, solo quite el lector)
+        -- O CASCADE si prefieres borrar la lectura. Usualmente SET NULL es mejor para historial.
+        ALTER TABLE public.lecturas
+        ADD CONSTRAINT lecturas_lector_id_fkey
+            FOREIGN KEY (lector_id)
+            REFERENCES public.profiles(id) -- O auth.users
+            ON DELETE SET NULL;
+    END IF;
+END $$;
+
+
+-- 4. REPARACIÓN DE USUARIOS FANTASMA (Ghost Users)
+-- ================================================
+-- Inserta un perfil para cada usuario de Auth que no lo tenga.
+INSERT INTO public.profiles (id, nombre, apellidos, email, rol)
+SELECT 
+    au.id, 
+    COALESCE(au.raw_user_meta_data->>'nombre', 'Usuario'),
+    COALESCE(au.raw_user_meta_data->>'apellidos', 'Sin Perfil'),
+    au.email,
+    'MIEMBRO'
+FROM auth.users au
+LEFT JOIN public.profiles p ON au.id = p.id
+WHERE p.id IS NULL;
+
+
+-- 5. TRIGGER DE CREACIÓN ROBUSTO
+-- ==============================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, nombre, apellidos, email, rol)
+  VALUES (
+    new.id,
+    COALESCE(new.raw_user_meta_data->>'nombre', 'Nuevo'),
+    COALESCE(new.raw_user_meta_data->>'apellidos', 'Usuario'),
+    new.email,
+    'MIEMBRO'
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET email = EXCLUDED.email;
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+COMMIT;
+
+-- ===============================================================
+-- FIN DEL SCRIPT
+-- ===============================================================
