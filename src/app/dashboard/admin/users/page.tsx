@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getUsers, getUserCounts } from './actions'
+import { getUsers, getUserCounts, getRoles } from './actions'
 import UsersClient from './UsersClient'
 
 export default async function UsersPage() {
@@ -17,15 +17,17 @@ export default async function UsersPage() {
 
     if (profile?.rol !== 'ADMIN') redirect('/dashboard')
 
-    const [usersResult, countsResult] = await Promise.all([
+    const [usersResult, countsResult, rolesResult] = await Promise.all([
         getUsers(),
-        getUserCounts()
+        getUserCounts(),
+        getRoles()
     ])
 
     return (
         <UsersClient
             initialUsers={usersResult.data || []}
             counts={countsResult.data || { total: 0, pulpito: 0, admins: 0 }}
+            availableRoles={rolesResult.data || []}
         />
     )
 }

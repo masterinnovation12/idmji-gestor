@@ -17,11 +17,13 @@ import { useI18n } from '@/lib/i18n/I18nProvider'
 interface UsersClientProps {
     initialUsers: UserData[]
     counts: { total: number, pulpito: number, admins: number }
+    availableRoles: string[]
 }
 
-export default function UsersClient({ initialUsers, counts }: UsersClientProps) {
+export default function UsersClient({ initialUsers, counts, availableRoles }: UsersClientProps) {
     const { t } = useI18n()
     const [users, setUsers] = useState<UserData[]>(initialUsers)
+    const defaultRole = availableRoles[0] || 'MIEMBRO'
     const [searchTerm, setSearchTerm] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -36,7 +38,7 @@ export default function UsersClient({ initialUsers, counts }: UsersClientProps) 
         apellidos: '',
         email: '',
         password: '',
-        rol: 'MIEMBRO',
+        rol: defaultRole,
         pulpito: false
     })
     const [avatarFile, setAvatarFile] = useState<Blob | null>(null)
@@ -61,7 +63,7 @@ export default function UsersClient({ initialUsers, counts }: UsersClientProps) 
             apellidos: '',
             email: '',
             password: '',
-            rol: 'MIEMBRO',
+            rol: defaultRole,
             pulpito: false
         })
         setAvatarFile(null)
@@ -394,9 +396,12 @@ export default function UsersClient({ initialUsers, counts }: UsersClientProps) 
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent className="bg-white border-zinc-200 text-zinc-900 shadow-xl">
-                                                    <SelectItem value="MIEMBRO">MIEMBRO</SelectItem>
-                                                    <SelectItem value="EDITOR">EDITOR</SelectItem>
-                                                    <SelectItem value="ADMIN">ADMIN</SelectItem>
+                                                    {availableRoles.length === 0 && (
+                                                        <SelectItem value={defaultRole}>{defaultRole}</SelectItem>
+                                                    )}
+                                                    {availableRoles.map((role) => (
+                                                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>

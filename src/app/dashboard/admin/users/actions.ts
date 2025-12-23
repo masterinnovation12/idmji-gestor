@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { z } from 'zod'
 import { ActionResponse } from '@/types/database'
 import { revalidatePath } from 'next/cache'
 
@@ -38,6 +39,57 @@ export interface UserData {
 }
 
 const VALID_DOMAIN = '@idmjisabadell.org'
+const FALLBACK_ROLES = ['ADMIN', 'EDITOR', 'MIEMBRO'] as const
+
+const createSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(6),
+    nombre: z.string().min(1),
+    apellidos: z.string().min(1),
+    rol: z.string().min(1),
+    pulpito: z.boolean().optional().default(false)
+})
+
+const updateSchema = z.object({
+    id: z.string().uuid(),
+    nombre: z.string().min(1),
+    apellidos: z.string().min(1),
+    rol: z.string().min(1),
+    pulpito: z.boolean().optional().default(false),
+    currentAvatarUrl: z.string().optional()
+})
+
+export async function getRoles(): Promise<ActionResponse<string[]>> {
+    try {
+        if (!await isAdmin()) return { success: false, error: 'No autorizado' }
+
+        const { data, error } = await getSupabaseAdmin()
+            .from('profiles')
+            .select('rol', { count: 'exact', head: false })
+            .not('rol', 'is', null)
+
+        if (error) throw error
+
+        const distinct = Array.from(new Set((data || []).map((r: any) => r.rol).filter(Boolean)))
+        const roles = distinct.length > 0 ? distinct : [...FALLBACK_ROLES]
+
+        return { success: true, data: roles }
+    } catch (error) {
+        console.error('Error fetching roles:', error)
+        return { success: false, error: 'Error al cargar roles' }
+    }
+}
+
+async function ensureRoleAllowed(rol: string) {
+    const rolesResult = await getRoles()
+    const allowedRoles = rolesResult.success && rolesResult.data && rolesResult.data.length > 0
+        ? rolesResult.data
+        : [...FALLBACK_ROLES]
+
+    if (!allowedRoles.includes(rol)) {
+        throw new Error('Rol inválido')
+    }
+}
 
 // Verificar si el usuario actual es ADMIN
 async function isAdmin(): Promise<boolean> {
@@ -62,32 +114,28 @@ export async function getUsers(): Promise<ActionResponse<UserData[]>> {
 
         const supabase = await createClient()
 
-        // 1. Obtener todos los usuarios de Auth (Source of Truth)
-        const { data: { users: authUsers }, error: authError } = await getSupabaseAdmin().auth.admin.listUsers()
-        if (authError) throw authError
-
-        // 2. Obtener perfiles existentes
+        // Obtener perfiles existentes (incluyen email de la tabla profiles)
         const { data: profiles, error: profileError } = await supabase
             .from('profiles')
             .select('*')
+            .order('created_at', { ascending: false })
 
-        if (profileError) throw profileError
+        if (profileError) {
+            console.error('Profile error:', profileError)
+            throw new Error(`Error al obtener perfiles: ${profileError.message}`)
+        }
 
-        // 3. Combinar datos
-        const enrichedUsers: UserData[] = authUsers.map(authUser => {
-            const profile = profiles?.find(p => p.id === authUser.id)
-
-            return {
-                id: authUser.id,
-                email: authUser.email || null,
-                nombre: profile?.nombre || 'Sin nombre',
-                apellidos: profile?.apellidos || 'Sin apellidos',
-                rol: profile?.rol || 'MIEMBRO',
-                pulpito: profile?.pulpito || false,
-                avatar_url: profile?.avatar_url || null,
-                created_at: authUser.created_at
-            }
-        })
+        // Mapear perfiles a UserData
+        const enrichedUsers: UserData[] = (profiles || []).map(profile => ({
+            id: profile.id,
+            email: profile.email || null,
+            nombre: profile.nombre || 'Sin nombre',
+            apellidos: profile.apellidos || 'Sin apellidos',
+            rol: profile.rol || 'MIEMBRO',
+            pulpito: profile.pulpito || false,
+            avatar_url: profile.avatar_url || null,
+            created_at: profile.created_at || new Date().toISOString()
+        }))
 
         // Ordenar por nombre (o email si no nombre)
         enrichedUsers.sort((a, b) => {
@@ -97,9 +145,10 @@ export async function getUsers(): Promise<ActionResponse<UserData[]>> {
         })
 
         return { success: true, data: enrichedUsers }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching users:', error)
-        return { success: false, error: 'Error al cargar usuarios' }
+        const errorMessage = error?.message || 'Error al cargar usuarios'
+        return { success: false, error: errorMessage }
     }
 }
 
@@ -107,17 +156,27 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
     try {
         if (!await isAdmin()) return { success: false, error: 'No autorizado' }
 
-        const email = formData.get('email') as string
-        const password = formData.get('password') as string
-        const nombre = formData.get('nombre') as string
-        const apellidos = formData.get('apellidos') as string
-        const rol = formData.get('rol') as string
-        const pulpito = formData.get('pulpito') === 'true'
+        const parsed = createSchema.safeParse({
+            email: formData.get('email'),
+            password: formData.get('password'),
+            nombre: formData.get('nombre'),
+            apellidos: formData.get('apellidos'),
+            rol: formData.get('rol'),
+            pulpito: formData.get('pulpito') === 'true'
+        })
+
+        if (!parsed.success) {
+            return { success: false, error: 'Datos inválidos' }
+        }
+
+        const { email, password, nombre, apellidos, rol, pulpito } = parsed.data
         const avatarFile = formData.get('avatar') as File | null
 
         if (!email.endsWith(VALID_DOMAIN)) {
             return { success: false, error: `El email debe terminar en ${VALID_DOMAIN}` }
         }
+
+        await ensureRoleAllowed(rol)
 
         // 1. Crear usuario en Auth
         const { data: authUser, error: createError } = await getSupabaseAdmin().auth.admin.createUser({
@@ -215,13 +274,23 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
     try {
         if (!await isAdmin()) return { success: false, error: 'No autorizado' }
 
-        const userId = formData.get('id') as string
-        const nombre = formData.get('nombre') as string
-        const apellidos = formData.get('apellidos') as string
-        const rol = formData.get('rol') as string
-        const pulpito = formData.get('pulpito') === 'true'
+        const parsed = updateSchema.safeParse({
+            id: formData.get('id'),
+            nombre: formData.get('nombre'),
+            apellidos: formData.get('apellidos'),
+            rol: formData.get('rol'),
+            pulpito: formData.get('pulpito') === 'true',
+            currentAvatarUrl: formData.get('currentAvatarUrl') as string | undefined
+        })
+
+        if (!parsed.success) {
+            return { success: false, error: 'Datos inválidos' }
+        }
+
+        const { id: userId, nombre, apellidos, rol, pulpito, currentAvatarUrl } = parsed.data
         const avatarFile = formData.get('avatar') as File | null
-        const currentAvatarUrl = formData.get('currentAvatarUrl') as string
+
+        await ensureRoleAllowed(rol)
 
         let newAvatarUrl = currentAvatarUrl
 
