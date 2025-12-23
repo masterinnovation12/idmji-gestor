@@ -44,9 +44,8 @@ interface RepetitionData {
     versFin: number
     originalId: string
     existingReading: {
-        id: string
         fecha: string
-        [key: string]: unknown
+        [key: string]: any
     }
 }
 

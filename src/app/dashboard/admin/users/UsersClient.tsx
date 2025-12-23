@@ -140,10 +140,9 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
             } else {
                 toast.error(result.error)
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('handleSubmit error', err)
-            const message = err instanceof Error ? err.message : t('users.error.unexpectedSave')
-            toast.error(message)
+            toast.error(err?.message || t('users.error.unexpectedSave'))
         } finally {
             setIsLoading(false)
         }
@@ -172,10 +171,9 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                 console.error('deleteUser failed:', result.error)
                 toast.error(result.error || t('users.error.deleteFailed'))
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Exception in handleDelete:', error)
-            const message = error instanceof Error ? error.message : t('users.error.unexpectedDelete')
-            toast.error(message)
+            toast.error(error?.message || t('users.error.unexpectedDelete'))
         } finally {
             setIsLoading(false)
         }

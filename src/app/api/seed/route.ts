@@ -150,7 +150,7 @@ export async function GET() {
                         const randomUser = () => pulpitoIds[Math.floor(Math.random() * pulpitoIds.length)]
 
                         // Determinamos columnas a actualizar según tipo
-                        const updates: Record<string, string | null> = {}
+                        const updates: any = {}
 
                         // Intro y Final (común en Estudio y Alabanza)
                         if (tipoNombre === 'Estudio Bíblico' || tipoNombre === 'Alabanza') {
@@ -180,8 +180,7 @@ export async function GET() {
 
         return NextResponse.json({ success: true, results: seedResults })
 
-    } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        return NextResponse.json({ error: message }, { status: 500 })
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

@@ -17,13 +17,15 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Search, Users, ChevronLeft, ShieldCheck, Mail, Sparkles, Award, CheckCircle2, X } from 'lucide-react'
+import { getHermanos } from './actions'
+import { Search, Users, User, ChevronLeft, ShieldCheck, Mail, Sparkles, Filter, Award, CheckCircle2, XCircle, X } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/Card'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
-import { Profile, UserRole } from '@/types/database'
+import { Profile } from '@/types/database'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { Dialog, DialogContent } from '@/components/ui/Dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/Dialog'
 
 interface HermanosClientProps {
     initialHermanos: Profile[]
@@ -96,7 +98,8 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
     const { t } = useI18n()
     const [hermanos, setHermanos] = useState<Profile[]>(initialHermanos)
     const [searchTerm, setSearchTerm] = useState('')
-    const [filterRole, setFilterRole] = useState<'ALL' | UserRole>('ALL')
+    const [isLoading, setIsLoading] = useState(false)
+    const [filterRole, setFilterRole] = useState<'ALL' | 'ADMIN' | 'EDITOR' | 'VIEWER'>('ALL')
     const [selectedHermano, setSelectedHermano] = useState<Profile | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -219,10 +222,10 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                     </h2>
                     
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar w-full sm:w-auto -mx-2 sm:mx-0 px-2 sm:px-0">
-                        {(['ALL', 'ADMIN', 'EDITOR'] as const).map((role) => (
+                        {['ALL', 'ADMIN', 'EDITOR'].map((role) => (
                             <button
                                 key={role}
-                                onClick={() => setFilterRole(role)}
+                                onClick={() => setFilterRole(role as any)}
                                 className={cn(
                                     "px-5 py-3 sm:px-4 sm:py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 whitespace-nowrap min-w-[80px] sm:min-w-0 flex items-center justify-center",
                                     filterRole === role

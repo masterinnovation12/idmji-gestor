@@ -3,8 +3,6 @@ import { notFound } from 'next/navigation'
 import CultoDetailClient from './CultoDetailClient'
 import { createClient } from '@/lib/supabase/server'
 
-export const dynamic = 'force-dynamic'
-
 interface PageProps {
     params: Promise<{ id: string }>
 }

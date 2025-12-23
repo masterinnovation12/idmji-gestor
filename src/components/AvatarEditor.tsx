@@ -15,20 +15,13 @@ interface AvatarEditorProps {
     onSave: (file: Blob) => void
 }
 
-interface Area {
-    width: number
-    height: number
-    x: number
-    y: number
-}
-
 export default function AvatarEditor({ imageSrc, isOpen, onClose, onSave }: AvatarEditorProps) {
     const [crop, setCrop] = useState({ x: 0, y: 0 })
     const [zoom, setZoom] = useState(1)
     const [rotation, setRotation] = useState(0)
-    const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
 
-    const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
+    const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
         setCroppedAreaPixels(croppedAreaPixels)
     }, [])
 

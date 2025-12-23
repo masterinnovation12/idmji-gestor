@@ -37,7 +37,7 @@ export class NotFoundError extends AppError {
 /**
  * Maneja errores de Supabase y los convierte en errores de aplicación
  */
-export function handleSupabaseError(error: { code?: string; message?: string }): AppError {
+export function handleSupabaseError(error: any): AppError {
     if (error.code === 'PGRST116') {
         return new NotFoundError()
     }

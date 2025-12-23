@@ -154,15 +154,12 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
     // Resetear drag cuando el modal se cierra
     useEffect(() => {
         if (!isCalcModalOpen) {
-            const timer = setTimeout(() => {
-                if (isDragging) setIsDragging(false)
-                setDragY(0)
-                setTouchStart(null)
-                setTouchEnd(null)
-            }, 0)
-            return () => clearTimeout(timer)
+            setIsDragging(false)
+            setDragY(0)
+            setTouchStart(null)
+            setTouchEnd(null)
         }
-    }, [isCalcModalOpen, isDragging])
+    }, [isCalcModalOpen])
 
     /**
      * Formatea segundos a formato MM:SS
@@ -237,7 +234,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 ].map((tab) => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id as 'himnos' | 'coros')}
+                        onClick={() => setActiveTab(tab.id as any)}
                         className={`flex items-center gap-3 px-6 py-3 rounded-xl font-black transition-all ${activeTab === tab.id
                             ? 'bg-blue-600 text-white shadow-lg'
                             : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'

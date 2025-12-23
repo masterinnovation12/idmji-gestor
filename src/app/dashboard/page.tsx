@@ -3,8 +3,6 @@ import DashboardClient from './DashboardClient'
 import { redirect } from 'next/navigation'
 import { format } from 'date-fns'
 
-export const dynamic = 'force-dynamic'
-
 export default async function DashboardPage() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

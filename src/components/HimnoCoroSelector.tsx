@@ -113,9 +113,8 @@ export default function HimnoCoroSelector({
             }
         } else {
             // Modo Calculadora: Estado Local
-            const tempId = `temp-${Date.now()}-${Math.floor(Math.random() * 1000)}`
             const newItem: PlanHimnoCoro = {
-                id: tempId,
+                id: Math.random().toString(), // Temp ID
                 culto_id: 'temp',
                 tipo,
                 item_id: item.id,

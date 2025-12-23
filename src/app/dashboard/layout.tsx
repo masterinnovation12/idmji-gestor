@@ -117,11 +117,8 @@ export default function DashboardLayout({
 
     // Cerrar menú móvil al cambiar de ruta
     useEffect(() => {
-        if (isMobileMenuOpen) {
-            const timer = setTimeout(() => setIsMobileMenuOpen(false), 0)
-            return () => clearTimeout(timer)
-        }
-    }, [pathname, isMobileMenuOpen])
+        setIsMobileMenuOpen(false)
+    }, [pathname])
 
     // Cerrar menú móvil al redimensionar a desktop
     useEffect(() => {

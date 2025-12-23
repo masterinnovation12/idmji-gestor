@@ -45,14 +45,16 @@ function AssignmentSection({
     selectedUserId,
     usuarioActual,
     onSelect,
-    disabled
+    disabled,
+    t
 }: {
     label: string,
-    icon: React.ReactNode,
+    icon: any,
     selectedUserId: string | null,
-    usuarioActual: { nombre: string; apellidos: string } | null,
+    usuarioActual: any,
     onSelect: (id: string | null) => void,
-    disabled: boolean
+    disabled: boolean,
+    t: any
 }) {
     return (
         <Card className="border-t-2 border-primary/20">
@@ -173,6 +175,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                 usuarioActual={culto.usuario_intro}
                                 onSelect={(id) => handleAssignment('introduccion', id)}
                                 disabled={isUpdating}
+                                t={t}
                             />
                         )}
 
@@ -184,6 +187,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                 usuarioActual={culto.usuario_finalizacion}
                                 onSelect={(id) => handleAssignment('finalizacion', id)}
                                 disabled={isUpdating}
+                                t={t}
                             />
                         )}
 
@@ -195,6 +199,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                 usuarioActual={culto.usuario_ensenanza}
                                 onSelect={(id) => handleAssignment('ensenanza', id)}
                                 disabled={isUpdating}
+                                t={t}
                             />
                         )}
 
@@ -206,6 +211,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                 usuarioActual={culto.usuario_testimonios}
                                 onSelect={(id) => handleAssignment('testimonios', id)}
                                 disabled={isUpdating}
+                                t={t}
                             />
                         )}
                     </div>
