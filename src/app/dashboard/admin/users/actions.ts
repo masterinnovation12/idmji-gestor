@@ -187,41 +187,48 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
             return { success: false, error: 'Datos inválidos' }
         }
 
-        const { email, password, nombre, apellidos, rol, pulpito, email_contacto, telefono } = parsed.data
+        const { email: validatedEmail, password, nombre, apellidos, rol, pulpito, email_contacto, telefono } = parsed.data
+        console.log('DEBUG: Parsed data successfully', validatedEmail)
+        
         const avatarFile = formData.get('avatar') as File | null
 
-        if (!email.endsWith(VALID_DOMAIN)) {
+        if (!validatedEmail.endsWith(VALID_DOMAIN)) {
+            console.error('DEBUG: Invalid domain', validatedEmail)
             return { success: false, error: `El email debe terminar en ${VALID_DOMAIN}` }
         }
 
         await ensureRoleAllowed(rol)
+        console.log('DEBUG: Role allowed', rol)
 
         // Verificar si el email ya existe en profiles
         const { data: existingProfile } = await getSupabaseAdmin()
             .from('profiles')
             .select('id, email')
-            .eq('email', email)
+            .eq('email', validatedEmail)
             .maybeSingle()
 
         if (existingProfile) {
+            console.error('DEBUG: Profile exists', validatedEmail)
             return { success: false, error: 'Este email ya está registrado. No se pueden duplicar emails.' }
         }
 
         // Verificar también en auth.users usando listUsers
         const { data: { users: existingUsers } } = await getSupabaseAdmin().auth.admin.listUsers()
-        const emailExists = existingUsers?.some(u => u.email === email)
+        const emailExists = existingUsers?.some(u => u.email === validatedEmail)
         
         if (emailExists) {
+            console.error('DEBUG: Auth user exists', validatedEmail)
             return { success: false, error: 'Este email ya está registrado. No se pueden duplicar emails.' }
         }
 
+        console.log('DEBUG: Proceeding to create auth user...')
         // Crear display_name con nombre y apellidos
         const displayName = `${nombre} ${apellidos}`.trim()
         const fullName = displayName // Para compatibilidad
 
         // 1. Crear usuario en Auth
         const { data: authUser, error: createError } = await getSupabaseAdmin().auth.admin.createUser({
-            email,
+            email: validatedEmail,
             password,
             email_confirm: true,
             user_metadata: { 
@@ -239,6 +246,7 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
         if (!authUser.user) throw new Error('No se pudo crear el usuario')
 
         const userId = authUser.user.id
+        console.log('DEBUG: Auth user created successfully', userId)
         let avatarUrl = null
 
         // Actualizar user_metadata para asegurar que display_name y full_name estén correctos
@@ -280,7 +288,7 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
             .from('profiles')
             .upsert({
                 id: userId,
-                email,
+                email: validatedEmail,
                 nombre,
                 apellidos,
                 rol,
@@ -296,6 +304,7 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
         }
 
         revalidatePath('/dashboard/admin/users')
+        revalidatePath('/dashboard/hermanos')
         return { success: true }
     } catch (error: any) {
         console.error('Error creating user:', error)
@@ -377,6 +386,7 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
         })
 
         revalidatePath('/dashboard/admin/users')
+        revalidatePath('/dashboard/hermanos')
         return { success: true }
     } catch (error) {
         console.error('Error updating user:', error)
@@ -451,6 +461,7 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
                 if (!remainingProfile) {
                     console.log('User and profile already deleted')
                     revalidatePath('/dashboard/admin/users')
+                    revalidatePath('/dashboard/hermanos')
                     return { success: true }
                 }
             }
@@ -486,6 +497,7 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
                         console.warn('Profile deleted but auth user deletion failed:', retryAuthError.message)
                         // Considerar éxito parcial - el perfil se eliminó
                         revalidatePath('/dashboard/admin/users')
+                        revalidatePath('/dashboard/hermanos')
                         return { success: true, error: `Perfil eliminado pero error al eliminar de Auth: ${retryAuthError.message}` }
                     }
                     
@@ -523,6 +535,7 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
 
         console.log('User deleted successfully from both Auth and Profiles:', userId)
         revalidatePath('/dashboard/admin/users')
+        revalidatePath('/dashboard/hermanos')
         return { success: true }
     } catch (error: any) {
         console.error('Error in deleteUser action:', error)

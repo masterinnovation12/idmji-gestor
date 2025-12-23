@@ -8,6 +8,8 @@ export interface HermanoData {
     nombre: string | null
     apellidos: string | null
     email: string
+    email_contacto: string | null
+    telefono: string | null
     avatar_url: string | null
     rol: UserRole
     pulpito: boolean
@@ -22,7 +24,7 @@ export async function getHermanos(search?: string, role?: string): Promise<{ suc
 
     let query = supabase
         .from('profiles')
-        .select('id, nombre, apellidos, email, avatar_url, rol, pulpito, created_at')
+        .select('id, nombre, apellidos, email, email_contacto, telefono, avatar_url, rol, pulpito, created_at')
         .order('nombre', { ascending: true })
 
     // Por defecto, en el directorio de hermanos solemos ver a los que tienen acceso al púlpito

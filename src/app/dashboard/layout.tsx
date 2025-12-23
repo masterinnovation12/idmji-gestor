@@ -142,40 +142,59 @@ export default function DashboardLayout({
         }
     }, [isMobileMenuOpen])
 
-    // Gestos táctiles para cerrar sidebar móvil (swipe down)
-    const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null)
-    const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null)
+    // Gestos táctiles para abrir/cerrar sidebar móvil
+    const [touchStartX, setTouchStartX] = useState<number | null>(null)
+    const [touchCurrentX, setTouchCurrentX] = useState<number | null>(null)
+    const [isSwiping, setIsSwiping] = useState(false)
 
     const minSwipeDistance = 50
+    const edgeThreshold = 30 // Umbral para detectar swipe desde el borde izquierdo
 
-    const onTouchStart = (e: React.TouchEvent) => {
-        setTouchEnd(null)
-        setTouchStart({
-            x: e.targetTouches[0].clientX,
-            y: e.targetTouches[0].clientY
-        })
-    }
-
-    const onTouchMove = (e: React.TouchEvent) => {
-        setTouchEnd({
-            x: e.targetTouches[0].clientX,
-            y: e.targetTouches[0].clientY
-        })
-    }
-
-    const onTouchEnd = () => {
-        if (!touchStart || !touchEnd) return
-
-        const distanceX = touchStart.x - touchEnd.x
-        const distanceY = touchStart.y - touchEnd.y
-        const isLeftSwipe = distanceX > minSwipeDistance
-        const isDownSwipe = distanceY > minSwipeDistance
-
-        // Cerrar si se hace swipe hacia la izquierda o hacia abajo
-        if ((isLeftSwipe || isDownSwipe) && isMobileMenuOpen) {
-            setIsMobileMenuOpen(false)
+    const handleTouchStart = (e: React.TouchEvent) => {
+        const clientX = e.targetTouches[0].clientX
+        setTouchStartX(clientX)
+        setTouchCurrentX(clientX)
+        
+        // Si tocamos cerca del borde izquierdo y el menú está cerrado, activamos el modo swiping
+        if (clientX < edgeThreshold && !isMobileMenuOpen) {
+            setIsSwiping(true)
+        } else if (isMobileMenuOpen) {
+            // Si el menú ya está abierto, permitimos el swiping para cerrarlo
+            setIsSwiping(true)
         }
     }
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        setTouchCurrentX(e.targetTouches[0].clientX)
+    }
+
+    const handleTouchEnd = () => {
+        if (!touchStartX || !touchCurrentX) {
+            setIsSwiping(false)
+            return
+        }
+
+        const distanceX = touchCurrentX - touchStartX
+        
+        // Lógica para abrir (swipe de izquierda a derecha)
+        if (!isMobileMenuOpen && distanceX > minSwipeDistance && touchStartX < edgeThreshold) {
+            setIsMobileMenuOpen(true)
+        }
+        
+        // Lógica para cerrar (swipe de derecha a izquierda)
+        if (isMobileMenuOpen && distanceX < -minSwipeDistance) {
+            setIsMobileMenuOpen(false)
+        }
+
+        setIsSwiping(false)
+        setTouchStartX(null)
+        setTouchCurrentX(null)
+    }
+
+    // Calcular el desplazamiento dinámico para el efecto elegante
+    const dragOffset = isSwiping && touchStartX !== null && touchCurrentX !== null
+        ? Math.max(-300, Math.min(0, (isMobileMenuOpen ? 0 : -300) + (touchCurrentX - touchStartX)))
+        : isMobileMenuOpen ? 0 : -300
 
     /**
      * Maneja el cierre de sesión de forma segura
@@ -187,7 +206,15 @@ export default function DashboardLayout({
     }
 
     return (
-        <div className="min-h-screen bg-background selection:bg-primary/20 selection:text-primary">
+        <div 
+            className="min-h-screen bg-background selection:bg-primary/20 selection:text-primary overflow-x-hidden"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+        >
+            {/* Area de detección de gestos en el borde izquierdo (Trigger Zone) */}
+            <div className="fixed left-0 top-0 w-6 h-full z-[120] md:hidden pointer-events-none" />
+
             {/* Mesh Gradient Background */}
             <div className="fixed inset-0 overflow-hidden -z-10 pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
@@ -196,7 +223,7 @@ export default function DashboardLayout({
 
             {/* Mobile Overlay */}
             <AnimatePresence>
-                {isMobileMenuOpen && (
+                {(isMobileMenuOpen || (isSwiping && touchStartX !== null && touchStartX < edgeThreshold)) && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -209,16 +236,13 @@ export default function DashboardLayout({
 
             {/* Sidebars (Mobile & Desktop) */}
             <AnimatePresence>
-                {isMobileMenuOpen && (
+                {(isMobileMenuOpen || isSwiping) && (
                     <motion.aside
                         initial={{ x: -300 }}
-                        animate={{ x: 0 }}
+                        animate={{ x: dragOffset }}
                         exit={{ x: -300 }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                        transition={isSwiping ? { type: 'tween', duration: 0.1 } : { type: 'spring', damping: 25, stiffness: 200 }}
                         className="fixed left-0 top-0 h-full w-[300px] z-110 flex flex-col md:hidden shadow-2xl"
-                        onTouchStart={onTouchStart}
-                        onTouchMove={onTouchMove}
-                        onTouchEnd={onTouchEnd}
                     >
                         <SidebarContent
                             isSidebarCollapsed={isSidebarCollapsed}
