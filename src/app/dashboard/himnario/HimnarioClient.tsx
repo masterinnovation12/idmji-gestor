@@ -42,6 +42,8 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
     const [isCalcModalOpen, setIsCalcModalOpen] = useState(false)
     const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null)
     const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null)
+    const [dragY, setDragY] = useState(0)
+    const [isDragging, setIsDragging] = useState(false)
 
     // Efecto para recarga de datos con debounce
     useEffect(() => {
@@ -86,34 +88,78 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
         }
     }, [isCalcModalOpen])
 
-    // Gestos táctiles para cerrar modal (swipe down)
-    const minSwipeDistance = 50
+    // Gestos táctiles mejorados para cerrar modal (swipe down con arrastre visual)
+    const minSwipeDistance = 80 // Aumentado para mejor control
+    const closeThreshold = 150 // Distancia para cerrar automáticamente
 
-    const onTouchStart = (e: React.TouchEvent) => {
-        setTouchEnd(null)
-        setTouchStart({
-            x: e.targetTouches[0].clientX,
-            y: e.targetTouches[0].clientY
-        })
+    const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
+        if ('touches' in e) {
+            setTouchStart({
+                x: e.touches[0].clientX,
+                y: e.touches[0].clientY
+            })
+        } else {
+            setTouchStart({
+                x: e.clientX,
+                y: e.clientY
+            })
+        }
+        setIsDragging(true)
+        setDragY(0)
     }
 
-    const onTouchMove = (e: React.TouchEvent) => {
-        setTouchEnd({
-            x: e.targetTouches[0].clientX,
-            y: e.targetTouches[0].clientY
-        })
-    }
+    const handleDragMove = (e: React.TouchEvent | React.MouseEvent) => {
+        if (!touchStart) return
 
-    const onTouchEnd = () => {
-        if (!touchStart || !touchEnd) return
+        let currentY: number
+        if ('touches' in e) {
+            currentY = e.touches[0].clientY
+        } else {
+            currentY = e.clientY
+        }
 
-        const distanceY = touchEnd.y - touchStart.y
-        const isDownSwipe = distanceY > minSwipeDistance // Positivo cuando se arrastra hacia abajo
+        const deltaY = currentY - touchStart.y
 
-        if (isDownSwipe && isCalcModalOpen) {
-            setIsCalcModalOpen(false)
+        // Solo permitir arrastre hacia abajo
+        if (deltaY > 0) {
+            setDragY(deltaY)
+            setTouchEnd({
+                x: touchStart.x,
+                y: currentY
+            })
         }
     }
+
+    const handleDragEnd = () => {
+        if (!touchStart || !touchEnd) {
+            setIsDragging(false)
+            setDragY(0)
+            return
+        }
+
+        const distanceY = touchEnd.y - touchStart.y
+
+        // Cerrar si se arrastra más del umbral o más del mínimo
+        if (distanceY > closeThreshold || (distanceY > minSwipeDistance && isDragging)) {
+            setIsCalcModalOpen(false)
+        }
+
+        // Resetear estados
+        setIsDragging(false)
+        setDragY(0)
+        setTouchStart(null)
+        setTouchEnd(null)
+    }
+
+    // Resetear drag cuando el modal se cierra
+    useEffect(() => {
+        if (!isCalcModalOpen) {
+            setIsDragging(false)
+            setDragY(0)
+            setTouchStart(null)
+            setTouchEnd(null)
+        }
+    }, [isCalcModalOpen])
 
     /**
      * Formatea segundos a formato MM:SS
@@ -376,21 +422,68 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                         />
                         <motion.div
                             initial={{ y: '100%' }}
-                            animate={{ y: 0 }}
+                            animate={{ 
+                                y: isDragging ? dragY : 0,
+                                opacity: isDragging ? 1 - (dragY / 400) : 1
+                            }}
                             exit={{ y: '100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            transition={{ 
+                                type: isDragging ? 'tween' : 'spring', 
+                                damping: 25, 
+                                stiffness: 200,
+                                duration: isDragging ? 0 : undefined
+                            }}
+                            style={{ 
+                                transform: isDragging ? `translateY(${dragY}px)` : undefined 
+                            }}
                             className="relative bg-white dark:bg-zinc-900 w-full sm:max-w-xl h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-[2rem] sm:rounded-[2rem] p-5 sm:p-8 shadow-2xl overflow-hidden border border-gray-200 dark:border-zinc-700"
-                            onTouchStart={onTouchStart}
-                            onTouchMove={onTouchMove}
-                            onTouchEnd={onTouchEnd}
+                            onTouchStart={handleDragStart}
+                            onTouchMove={handleDragMove}
+                            onTouchEnd={handleDragEnd}
                         >
-                            {/* Drag handle for mobile */}
+                            {/* Área de arrastre mejorada - toda la parte superior es arrastrable */}
                             <div 
-                                className="w-10 h-1 bg-gray-300 dark:bg-zinc-600 rounded-full mx-auto mb-6 sm:hidden cursor-grab active:cursor-grabbing"
-                                onTouchStart={onTouchStart}
-                                onTouchMove={onTouchMove}
-                                onTouchEnd={onTouchEnd}
-                            />
+                                className="relative sm:hidden"
+                                onTouchStart={handleDragStart}
+                                onTouchMove={handleDragMove}
+                                onTouchEnd={handleDragEnd}
+                            >
+                                {/* Drag handle mejorado con feedback visual */}
+                                <div 
+                                    className={`mx-auto mb-4 transition-all duration-200 ${
+                                        isDragging ? 'scale-110' : 'scale-100'
+                                    }`}
+                                >
+                                    <div 
+                                        className={`w-12 h-1.5 rounded-full mx-auto cursor-grab active:cursor-grabbing transition-all duration-200 ${
+                                            isDragging 
+                                                ? dragY > closeThreshold 
+                                                    ? 'bg-red-500 w-16 shadow-lg shadow-red-500/50' 
+                                                    : 'bg-blue-500 w-14 shadow-lg shadow-blue-500/50'
+                                                : 'bg-gray-300 dark:bg-zinc-600'
+                                        }`}
+                                    />
+                                </div>
+                                
+                                {/* Indicador visual de arrastre */}
+                                {isDragging && dragY > 20 && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="absolute -top-10 left-1/2 transform -translate-x-1/2 text-xs font-black text-center whitespace-nowrap z-10"
+                                    >
+                                        {dragY > closeThreshold ? (
+                                            <span className="text-red-500 bg-white dark:bg-zinc-900 px-3 py-1 rounded-full shadow-lg">
+                                                Suelta para cerrar
+                                            </span>
+                                        ) : (
+                                            <span className="text-blue-500 bg-white dark:bg-zinc-900 px-3 py-1 rounded-full shadow-lg">
+                                                Sigue arrastrando...
+                                            </span>
+                                        )}
+                                    </motion.div>
+                                )}
+                            </div>
 
                             <div className="flex items-center justify-between mb-6">
                                 <div className="space-y-1">

@@ -256,8 +256,14 @@ export default function DashboardLayout({
                             <Menu size={20} />
                         </button>
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-linear-to-br from-[#0660c6] to-blue-500 flex items-center justify-center shadow-lg">
-                                <span className="text-white font-black text-sm">I</span>
+                            <div className="relative w-8 h-8 rounded-xl overflow-hidden shadow-lg border border-white/20">
+                                <Image
+                                    src="/logo.jpeg"
+                                    alt="IDMJI Logo"
+                                    width={32}
+                                    height={32}
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
                             <span className="font-black italic text-sm tracking-tighter text-[#063b7a]">IDMJI-SABADELL.</span>
                         </div>
