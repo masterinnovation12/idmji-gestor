@@ -255,9 +255,9 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
             <div className="grid lg:grid-cols-12 gap-8">
                 {/* List Table */}
                 <div className="lg:col-span-7">
-                    <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden min-h-[500px] h-full">
-                        <CardContent className="p-0">
-                            <div className="overflow-x-hidden overflow-y-auto no-scrollbar max-w-full">
+                    <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden min-h-[500px] h-full flex flex-col">
+                        <CardContent className="p-0 flex flex-col flex-1 overflow-hidden">
+                            <div className="overflow-x-hidden overflow-y-auto no-scrollbar max-w-full flex-1">
                                 <table className="w-full table-fixed">
                                     <thead>
                                         <tr className="bg-muted/30 border-b border-border/50 text-left">
@@ -440,6 +440,9 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                             onTouchStart={handleDragStart}
                             onTouchMove={handleDragMove}
                             onTouchEnd={handleDragEnd}
+                            onMouseDown={handleDragStart}
+                            onMouseMove={handleDragMove}
+                            onMouseUp={handleDragEnd}
                         >
                             {/* Área de arrastre mejorada - toda la parte superior es arrastrable */}
                             <div 
@@ -447,6 +450,9 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                 onTouchStart={handleDragStart}
                                 onTouchMove={handleDragMove}
                                 onTouchEnd={handleDragEnd}
+                                onMouseDown={handleDragStart}
+                                onMouseMove={handleDragMove}
+                                onMouseUp={handleDragEnd}
                             >
                                 {/* Drag handle mejorado con feedback visual */}
                                 <div 
