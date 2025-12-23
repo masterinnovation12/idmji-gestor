@@ -16,17 +16,82 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { getHermanos } from './actions'
-import { Search, Users, User, ChevronLeft, ShieldCheck, Mail, Sparkles } from 'lucide-react'
+import { Search, Users, User, ChevronLeft, ShieldCheck, Mail, Sparkles, Filter, Award, CheckCircle2, XCircle, X } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
 import { Profile } from '@/types/database'
+import { motion, AnimatePresence } from 'framer-motion'
+import { cn } from '@/lib/utils'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/Dialog'
 
 interface HermanosClientProps {
     initialHermanos: Profile[]
     stats: { pulpito: number; total: number }
+}
+
+/**
+ * Componente para mostrar el avatar con iniciales y degradado dinámico
+ */
+function HermanoAvatar({ hermano, size = "md" }: { hermano: Profile, size?: "sm" | "md" | "lg" }) {
+    const initials = `${hermano.nombre?.[0] || ''}${hermano.apellidos?.[0] || ''}`.toUpperCase() || '?'
+    
+    // Generar un degradado basado en el nombre para que siempre sea el mismo para el mismo hermano
+    const getGradient = (name: string) => {
+        const colors = [
+            'from-blue-500 to-cyan-400',
+            'from-purple-500 to-pink-400',
+            'from-emerald-500 to-teal-400',
+            'from-orange-500 to-amber-400',
+            'from-indigo-500 to-purple-400',
+            'from-rose-500 to-orange-400'
+        ]
+        let hash = 0
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash)
+        }
+        return colors[Math.abs(hash) % colors.length]
+    }
+
+    const gradientClass = getGradient(hermano.nombre || 'Desconocido')
+
+    const sizeClasses = {
+        sm: "w-12 h-12 rounded-xl",
+        md: "w-16 h-16 rounded-2xl",
+        lg: "w-24 h-24 rounded-3xl"
+    }
+
+    return (
+        <div className="relative group/avatar">
+            <div className={cn(
+                "absolute inset-0 blur-md opacity-0 group-hover/avatar:opacity-40 transition-opacity",
+                sizeClasses[size],
+                hermano.avatar_url ? "bg-primary" : "bg-gradient-to-br " + gradientClass
+            )} />
+            <div className={cn(
+                "relative border border-white/20 overflow-hidden flex items-center justify-center shadow-lg transition-transform duration-300 group-hover/avatar:scale-105",
+                sizeClasses[size],
+                !hermano.avatar_url && "bg-gradient-to-br " + gradientClass
+            )}>
+                {hermano.avatar_url ? (
+                    <img
+                        src={hermano.avatar_url}
+                        alt={hermano.nombre || 'Avatar'}
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <span className={cn(
+                        "font-black text-white tracking-tighter drop-shadow-sm",
+                        size === "sm" ? "text-lg" : size === "md" ? "text-xl" : "text-3xl"
+                    )}>
+                        {initials}
+                    </span>
+                )}
+            </div>
+        </div>
+    )
 }
 
 export default function HermanosClient({ initialHermanos, stats }: HermanosClientProps) {
@@ -34,189 +99,363 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
     const [hermanos, setHermanos] = useState<Profile[]>(initialHermanos)
     const [searchTerm, setSearchTerm] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [filterRole, setFilterRole] = useState<'ALL' | 'ADMIN' | 'EDITOR' | 'VIEWER'>('ALL')
+    const [onlyPulpito, setOnlyPulpito] = useState(true)
+    const [selectedHermano, setSelectedHermano] = useState<Profile | null>(null)
+    const [isModalOpen, setIsModalOpen] = useState(false)
 
-    // Efecto para búsqueda con debounce
+    const openDetails = (hermano: Profile) => {
+        setSelectedHermano(hermano)
+        setIsModalOpen(true)
+    }
+
+    // Filtrado local para máxima velocidad
+    const filteredHermanos = useMemo(() => {
+        return hermanos.filter(h => {
+            const fullName = `${h.nombre || ''} ${h.apellidos || ''}`.toLowerCase()
+            const email = (h.email || '').toLowerCase()
+            const search = searchTerm.toLowerCase()
+
+            const matchesSearch = !searchTerm || 
+                fullName.includes(search) ||
+                email.includes(search)
+            
+            const matchesRole = filterRole === 'ALL' || h.rol === filterRole
+            const matchesPulpito = !onlyPulpito || h.pulpito
+
+            return matchesSearch && matchesRole && matchesPulpito
+        })
+    }, [hermanos, searchTerm, filterRole, onlyPulpito])
+
+    // Efecto para sincronizar con el servidor si es necesario (ej. si initialHermanos cambia)
     useEffect(() => {
-        async function handleSearch() {
-            if (!searchTerm && hermanos.length === initialHermanos.length) return
-
-            setIsLoading(true)
-            const result = await getHermanos(searchTerm || undefined)
-            if (result.success && result.data) {
-                setHermanos(result.data as Profile[])
-            }
-            setIsLoading(false)
-        }
-
-        const timer = setTimeout(() => {
-            handleSearch()
-        }, 300)
-        return () => clearTimeout(timer)
-    }, [searchTerm, hermanos.length, initialHermanos.length])
+        setHermanos(initialHermanos)
+    }, [initialHermanos])
 
     /**
-     * Resalta el término buscado en los textos de la interfaz
+     * Resalta el término buscado
      */
     function highlightText(text: string | null, search: string) {
         if (!text || !search.trim()) return text || ''
-
         const regex = new RegExp(`(${search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
         const parts = text.split(regex)
-
         return parts.map((part, index) =>
             regex.test(part)
-                ? <strong key={index} className="text-primary font-black bg-primary/10 px-0.5 rounded shadow-sm">{part}</strong>
+                ? <strong key={index} className="text-primary font-black bg-primary/10 px-0.5 rounded">{part}</strong>
                 : part
         )
     }
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 pb-12 px-4">
-            {/* Breadcrumb */}
-            <div className="px-2">
+        <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4 md:px-6">
+            {/* Breadcrumb Mejorado */}
+            <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center justify-between"
+            >
                 <Link
                     href="/dashboard"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors font-bold group"
+                    className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-primary transition-all group px-4 py-2 rounded-xl hover:bg-primary/5"
                 >
                     <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                     {t('dashboard.title')}
                 </Link>
-            </div>
 
-            {/* Header y Buscador */}
-            <div className="flex flex-col lg:flex-row gap-8 justify-between items-start lg:items-center">
-                <div className="space-y-2">
-                    <h1 className="text-4xl lg:text-5xl font-black bg-gradient-to-br from-primary via-accent to-primary bg-clip-text text-transparent tracking-tight">
-                        {t('hermanos.title')}
-                    </h1>
-                    <p className="text-muted-foreground font-medium flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-accent" />
+                <div className="hidden sm:flex items-center gap-2 text-xs font-black text-muted-foreground/40 uppercase tracking-[0.2em]">
+                    <Sparkles className="w-3 h-3 text-primary" />
+                    IDMJI Sabadell
+                </div>
+            </motion.div>
+
+            {/* Header Modernizado */}
+            <div className="flex flex-col xl:flex-row gap-8 justify-between items-start xl:items-end">
+                <div className="space-y-4 max-w-2xl">
+                    <motion.h1 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-5xl md:text-7xl font-black tracking-tight leading-none"
+                    >
+                        {t('hermanos.title').split(' ')[0]}
+                        <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary animate-gradient-x">
+                            {t('hermanos.title').split(' ').slice(1).join(' ')}
+                        </span>
+                    </motion.h1>
+                    <motion.p 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="text-lg md:text-xl text-muted-foreground font-medium flex items-center gap-3"
+                    >
+                        <span className="w-10 h-[2px] bg-primary/30 hidden sm:block" />
                         {t('hermanos.desc')}
-                    </p>
+                    </motion.p>
                 </div>
 
-                <div className="relative w-full lg:w-96 group">
-                    <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl group-focus-within:bg-primary/30 transition-all opacity-0 group-focus-within:opacity-100" />
-                    <div className="relative glass border border-border/50 rounded-2xl flex items-center px-4 h-14 shadow-lg focus-within:border-primary transition-all">
-                        <Search className="w-5 h-5 text-muted-foreground mr-3" />
-                        <input
-                            type="text"
-                            placeholder={t('hermanos.searchPlaceholder')}
-                            className="w-full bg-transparent border-none outline-none font-bold placeholder:text-muted-foreground/50 text-foreground"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="glass rounded-[2rem] p-8 border border-primary/10 flex items-center justify-between group hover:border-primary/30 transition-all cursor-default overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:scale-125 transition-transform">
-                        <Users className="w-32 h-32" />
-                    </div>
-                    <div className="relative">
-                        <p className="text-sm font-black uppercase tracking-[0.2em] text-primary mb-2">
-                            {t('hermanos.statsPulpito')}
-                        </p>
-                        <p className="text-5xl font-black">{stats.pulpito}</p>
-                    </div>
-                    <Users className="w-12 h-12 text-primary opacity-20" />
-                </div>
-
-                <div className="glass rounded-[2rem] p-8 border border-accent/10 flex items-center justify-between group hover:border-accent/30 transition-all cursor-default overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:scale-125 transition-transform">
-                        <ShieldCheck className="w-32 h-32" />
-                    </div>
-                    <div className="relative">
-                        <p className="text-sm font-black uppercase tracking-[0.2em] text-accent mb-2">
-                            {t('hermanos.statsTotal')}
-                        </p>
-                        <p className="text-5xl font-black">{stats.total}</p>
-                    </div>
-                    <ShieldCheck className="w-12 h-12 text-accent opacity-20" />
-                </div>
-            </div>
-
-            {/* List Table/Grid */}
-            <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden min-h-[400px]">
-                <CardContent className="p-4 sm:p-8">
-                    {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-32 space-y-4">
-                            <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-                            <p className="text-muted-foreground font-bold animate-pulse">{t('common.loading')}</p>
+                {/* Filtros y Buscador */}
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="w-full xl:w-auto flex flex-col sm:flex-row gap-4"
+                >
+                    <div className="relative flex-1 sm:w-80 group">
+                        <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl group-focus-within:bg-primary/30 transition-all opacity-0 group-focus-within:opacity-100" />
+                        <div className="relative glass border border-white/10 rounded-2xl flex items-center px-5 h-16 shadow-2xl focus-within:border-primary transition-all">
+                            <Search className="w-5 h-5 text-primary/50 mr-3 group-focus-within:text-primary transition-colors" />
+                            <input
+                                type="text"
+                                placeholder={t('hermanos.searchPlaceholder')}
+                                className="w-full bg-transparent border-none outline-none font-bold placeholder:text-muted-foreground/30 text-foreground text-lg"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                         </div>
-                    ) : hermanos.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-32 space-y-4">
-                            <Search className="w-16 h-16 text-muted-foreground/20" />
-                            <p className="text-muted-foreground font-black text-xl tracking-tight">
+                    </div>
+
+                    <button
+                        onClick={() => setOnlyPulpito(!onlyPulpito)}
+                        className={cn(
+                            "h-16 px-6 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-3 shadow-xl",
+                            onlyPulpito 
+                                ? "bg-primary text-white scale-105 shadow-primary/20" 
+                                : "glass border border-white/10 text-muted-foreground hover:bg-white/5"
+                        )}
+                    >
+                        <Award className={cn("w-5 h-5", onlyPulpito ? "animate-pulse" : "opacity-40")} />
+                        {t('hermanos.filterPulpito')}
+                    </button>
+                </motion.div>
+            </div>
+
+            {/* Listado con Animación Stagger */}
+            <div className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                    <h2 className="text-sm font-black uppercase tracking-[0.3em] text-muted-foreground/60 flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        {t('hermanos.showing')
+                            .replace('{count}', filteredHermanos.length.toString())
+                            .replace('{plural}', filteredHermanos.length !== 1 ? 's' : '')}
+                    </h2>
+                    
+                    <div className="flex gap-2">
+                        {['ALL', 'ADMIN', 'EDITOR'].map((role) => (
+                            <button
+                                key={role}
+                                onClick={() => setFilterRole(role as any)}
+                                className={cn(
+                                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                                    filterRole === role
+                                        ? "bg-foreground text-background border-foreground shadow-lg"
+                                        : "glass border-white/10 text-muted-foreground hover:bg-white/5"
+                                )}
+                            >
+                                {role === 'ALL' ? t('hermanos.filterAll') : role}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <AnimatePresence mode="popLayout">
+                    {filteredHermanos.length === 0 ? (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="flex flex-col items-center justify-center py-40 glass rounded-[3rem] border-dashed border-2 border-white/5"
+                        >
+                            <div className="relative">
+                                <Search className="w-24 h-24 text-primary/10" />
+                                <motion.div 
+                                    animate={{ rotate: 360 }} 
+                                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                                    className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center"
+                                >
+                                    <Sparkles className="w-4 h-4 text-accent" />
+                                </motion.div>
+                            </div>
+                            <p className="mt-6 text-2xl font-black tracking-tight text-muted-foreground/40 uppercase">
                                 {t('hermanos.noResults')}
                             </p>
-                        </div>
+                        </motion.div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                            {hermanos.map((hermano) => (
-                                <div
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
+                            {filteredHermanos.map((hermano, index) => (
+                                <motion.div
+                                    layout
                                     key={hermano.id}
-                                    className="group flex items-center gap-5 p-6 bg-muted/20 border border-border/50 rounded-3xl hover:bg-white dark:hover:bg-muted/40 transition-all hover:shadow-xl hover:-translate-y-1"
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    transition={{ delay: index * 0.03, duration: 0.4 }}
+                                    className="group relative cursor-pointer"
+                                    onClick={() => openDetails(hermano)}
                                 >
-                                    {/* Avatar Visual */}
-                                    <div className="relative flex-shrink-0">
-                                        <div className="absolute inset-0 bg-primary/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 p-0.5 border border-white/20 overflow-hidden flex items-center justify-center shadow-lg">
-                                            {hermano.avatar_url ? (
-                                                <img
-                                                    src={hermano.avatar_url}
-                                                    alt={hermano.nombre || 'Avatar'}
-                                                    className="w-full h-full object-cover rounded-[14px]"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full bg-primary/5 flex items-center justify-center rounded-[14px]">
-                                                    <User className="w-8 h-8 text-primary" />
-                                                </div>
-                                            )}
+                                    {/* Fondo de tarjeta con hover glow */}
+                                    <div className={cn(
+                                        "absolute inset-0 rounded-[2rem] blur-xl transition-all opacity-0 group-hover:opacity-10",
+                                        hermano.rol === 'ADMIN' ? 'bg-red-500' : 'bg-primary'
+                                    )} />
+
+                                    <div className="relative h-full glass border border-white/10 rounded-[2rem] p-5 hover:bg-white/5 dark:hover:bg-muted/30 transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 flex flex-col items-center text-center overflow-hidden">
+                                        
+                                        {/* Decoración superior */}
+                                        <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
+                                            {hermano.rol === 'ADMIN' ? <ShieldCheck className="w-12 h-12" /> : <Award className="w-12 h-12" />}
+                                        </div>
+
+                                        {/* Avatar Component Compacto */}
+                                        <HermanoAvatar hermano={hermano} size="sm" />
+
+                                        {/* Info Hermano Compacta */}
+                                        <div className="mt-4 space-y-1 w-full">
+                                            <h3 className="text-sm font-black tracking-tight uppercase leading-tight truncate">
+                                                {highlightText(hermano.nombre, searchTerm)}
+                                            </h3>
+                                            <p className="text-[10px] font-bold text-primary/80 uppercase truncate">
+                                                {highlightText(hermano.apellidos, searchTerm)}
+                                            </p>
+                                            
+                                            <div className="pt-2 flex flex-wrap justify-center gap-1">
+                                                <span className={cn(
+                                                    "px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-full border shadow-sm",
+                                                    hermano.rol === 'ADMIN' 
+                                                        ? 'bg-red-500/10 text-red-500 border-red-500/20' 
+                                                        : 'bg-primary/10 text-primary border-primary/20'
+                                                )}>
+                                                    {hermano.rol}
+                                                </span>
+
+                                                {hermano.pulpito && (
+                                                    <div className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-[8px] font-black uppercase tracking-widest">
+                                                        <CheckCircle2 className="w-2 h-2" />
+                                                        Púlpito
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-
-                                    {/* Info Detallada */}
-                                    <div className="flex-1 min-w-0 space-y-1">
-                                        <p className="font-black text-lg tracking-tight truncate uppercase">
-                                            {highlightText(hermano.nombre, searchTerm)}{' '}
-                                            {highlightText(hermano.apellidos, searchTerm)}
-                                        </p>
-
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium truncate">
-                                            <Mail className="w-3 h-3 flex-shrink-0" />
-                                            <span className="truncate">{hermano.email}</span>
-                                        </div>
-
-                                        <div className="pt-2">
-                                            <span className={`inline-flex items-center px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full shadow-sm border ${hermano.rol === 'ADMIN'
-                                                ? 'bg-red-500/10 text-red-600 border-red-100 dark:border-red-900/30'
-                                                : hermano.rol === 'EDITOR'
-                                                    ? 'bg-blue-500/10 text-blue-600 border-blue-100 dark:border-blue-900/30'
-                                                    : 'bg-muted/50 text-muted-foreground border-border'
-                                                }`}>
-                                                {hermano.rol}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
+                                </motion.div>
                             ))}
                         </div>
                     )}
-                </CardContent>
+                </AnimatePresence>
+            </div>
 
-                {/* Footer del Listado */}
-                {!isLoading && hermanos.length > 0 && (
-                    <div className="px-8 py-6 bg-muted/20 border-t border-border/50 text-sm font-bold text-muted-foreground uppercase tracking-widest text-center sm:text-left">
-                        {t('hermanos.showing')
-                            .replace('{count}', hermanos.length.toString())
-                            .replace('{plural}', hermanos.length !== 1 ? 's' : '')}
+            {/* Modal de Detalles */}
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent className="max-w-md p-0 overflow-visible bg-background border-none shadow-none">
+                    {selectedHermano && (
+                        <div className="relative glass border border-white/10 rounded-[3rem] p-8 md:p-10 shadow-[0_30px_100px_rgba(0,0,0,0.5)] overflow-hidden">
+                            {/* Glow de fondo */}
+                            <div className={cn(
+                                "absolute -top-24 -right-24 w-64 h-64 blur-[100px] opacity-20 rounded-full",
+                                selectedHermano.rol === 'ADMIN' ? 'bg-red-500' : 'bg-primary'
+                            )} />
+                            
+                            <button 
+                                onClick={() => setIsModalOpen(false)}
+                                className="absolute top-6 right-6 w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all hover:scale-110 z-10"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            <div className="flex flex-col items-center text-center space-y-6">
+                                <HermanoAvatar hermano={selectedHermano} size="lg" />
+                                
+                                <div className="space-y-2">
+                                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter uppercase leading-none">
+                                        {selectedHermano.nombre}
+                                        <span className="block text-primary">
+                                            {selectedHermano.apellidos}
+                                        </span>
+                                    </h2>
+                                    <div className="flex items-center justify-center gap-2 pt-2">
+                                        <span className={cn(
+                                            "px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border shadow-sm",
+                                            selectedHermano.rol === 'ADMIN' 
+                                                ? 'bg-red-500/10 text-red-500 border-red-500/20' 
+                                                : 'bg-primary/10 text-primary border-primary/20'
+                                        )}>
+                                            {selectedHermano.rol}
+                                        </span>
+                                        {selectedHermano.pulpito && (
+                                            <div className="flex items-center gap-1.5 px-4 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                                <CheckCircle2 className="w-3 h-3" />
+                                                Acceso Púlpito
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="w-full space-y-4 pt-6">
+                                    <div className="glass border border-white/5 rounded-2xl p-4 flex items-center gap-4 group hover:bg-white/5 transition-all">
+                                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                            <Mail className="w-5 h-5" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">Correo Electrónico</p>
+                                            <p className="font-bold truncate max-w-[200px] sm:max-w-[250px]">{selectedHermano.email}</p>
+                                        </div>
+                                        <a 
+                                            href={`mailto:${selectedHermano.email}`}
+                                            className="ml-auto w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-primary/20"
+                                        >
+                                            <Mail className="w-4 h-4" />
+                                        </a>
+                                    </div>
+
+                                    {/* Información adicional simulada o real */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="glass border border-white/5 rounded-2xl p-4 text-center">
+                                            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Miembro desde</p>
+                                            <p className="font-bold text-sm">
+                                                {new Date(selectedHermano.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}
+                                            </p>
+                                        </div>
+                                        <div className="glass border border-white/5 rounded-2xl p-4 text-center">
+                                            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">ID Usuario</p>
+                                            <p className="font-mono text-[10px] font-bold opacity-40 truncate">
+                                                {selectedHermano.id.split('-')[0]}...
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Stats Flotantes Mejoradas */}
+            <motion.div 
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-8 py-5 glass border border-white/20 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-12 backdrop-blur-2xl"
+            >
+                <div className="flex items-center gap-4 group cursor-default">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                        <Award className="w-6 h-6" />
                     </div>
-                )}
-            </Card>
+                    <div>
+                        <p className="text-2xl font-black leading-none">{stats.pulpito}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t('hermanos.statsPulpito')}</p>
+                    </div>
+                </div>
+                
+                <div className="w-[1px] h-10 bg-white/10" />
+
+                <div className="flex items-center gap-4 group cursor-default">
+                    <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
+                        <Users className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <p className="text-2xl font-black leading-none">{stats.total}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t('hermanos.statsTotal')}</p>
+                    </div>
+                </div>
+            </motion.div>
         </div>
     )
 }

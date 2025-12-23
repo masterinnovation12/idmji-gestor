@@ -463,12 +463,17 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-200 bg-zinc-50 min-h-[44px] mt-[26px] overflow-hidden">
-                                        <Label className="cursor-pointer text-zinc-700" htmlFor="pulpito-switch">{t('users.form.pulpit')}</Label>
+                                    <div className={`flex items-center justify-between p-3 rounded-xl border min-h-[44px] mt-[26px] overflow-hidden transition-colors ${
+                                        formData.pulpito 
+                                            ? 'border-blue-500/50 bg-blue-50' 
+                                            : 'border-zinc-200 bg-zinc-50'
+                                    }`}>
+                                        <Label className={`cursor-pointer ${formData.pulpito ? 'text-blue-700 font-semibold' : 'text-zinc-700'}`} htmlFor="pulpito-switch">{t('users.form.pulpit')}</Label>
                                         <Switch
                                             id="pulpito-switch"
                                             checked={formData.pulpito}
                                             onCheckedChange={(checked) => setFormData({ ...formData, pulpito: checked })}
+                                            className="pulpito-blue"
                                         />
                                     </div>
                                 </div>

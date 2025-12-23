@@ -110,6 +110,11 @@ export const translations = {
         'hermanos.statsTotal': 'Total Usuarios',
         'hermanos.noResults': 'No se encontraron hermanos con ese nombre.',
         'hermanos.showing': 'Mostrando {count} hermano{plural}',
+        'hermanos.filterAll': 'Todos',
+        'hermanos.filterPulpito': 'Solo Púlpito',
+        'hermanos.contactInfo': 'Información de Contacto',
+        'hermanos.pulpitoAccess': 'Con Acceso al Púlpito',
+        'hermanos.noPulpitoAccess': 'Sin Acceso al Púlpito',
 
         // Cultos Calendar Page
         'calendar.title': 'Calendario de Cultos',
@@ -324,6 +329,11 @@ export const translations = {
         'hermanos.statsTotal': 'Total Usuaris',
         'hermanos.noResults': 'No s\'han trobat germans amb aquest nom.',
         'hermanos.showing': 'Mostrant {count} germà{plural}',
+        'hermanos.filterAll': 'Tots',
+        'hermanos.filterPulpito': 'Només Púlpit',
+        'hermanos.contactInfo': 'Informació de Contacte',
+        'hermanos.pulpitoAccess': 'Amb Accés al Púlpit',
+        'hermanos.noPulpitoAccess': 'Sense Accés al Púlpit',
 
         // Cultos Calendar Page
         'calendar.title': 'Calendari de Cultes',

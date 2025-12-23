@@ -17,22 +17,30 @@ export interface HermanoData {
 /**
  * Obtener todos los hermanos (usuarios con pulpito activo)
  */
-export async function getHermanos(search?: string): Promise<{ success: boolean; data?: HermanoData[]; error?: string }> {
+export async function getHermanos(search?: string, role?: string): Promise<{ success: boolean; data?: HermanoData[]; error?: string }> {
     const supabase = await createClient()
 
     let query = supabase
         .from('profiles')
         .select('id, nombre, apellidos, email, avatar_url, rol, pulpito, created_at')
-        .eq('pulpito', true)
         .order('nombre', { ascending: true })
 
+    // Por defecto, en el directorio de hermanos solemos ver a los que tienen acceso al púlpito
+    // pero permitimos filtrar si se desea en el futuro.
+    if (!role || role === 'ALL') {
+        // No aplicamos filtro de rol
+    } else {
+        query = query.eq('rol', role)
+    }
+
     if (search) {
-        query = query.or(`nombre.ilike.%${search}%,apellidos.ilike.%${search}%`)
+        query = query.or(`nombre.ilike.%${search}%,apellidos.ilike.%${search}%,email.ilike.%${search}%`)
     }
 
     const { data, error } = await query
 
     if (error) {
+        console.error('Error fetching hermanos:', error)
         return { success: false, error: error.message }
     }
 
