@@ -5,17 +5,26 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { ActionResponse } from '@/types/database'
 import { revalidatePath } from 'next/cache'
 
-// Inicializar cliente ADMIN para operaciones privilegiadas
-const supabaseAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
+// Función para obtener cliente ADMIN (lazy initialization)
+function getSupabaseAdmin() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    if (!supabaseUrl || !serviceRoleKey) {
+        throw new Error('Supabase configuration is missing. Please check environment variables.')
     }
-)
+    
+    return createAdminClient(
+        supabaseUrl,
+        serviceRoleKey,
+        {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false
+            }
+        }
+    )
+}
 
 export interface UserData {
     id: string
@@ -54,7 +63,7 @@ export async function getUsers(): Promise<ActionResponse<UserData[]>> {
         const supabase = await createClient()
 
         // 1. Obtener todos los usuarios de Auth (Source of Truth)
-        const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers()
+        const { data: { users: authUsers }, error: authError } = await getSupabaseAdmin().auth.admin.listUsers()
         if (authError) throw authError
 
         // 2. Obtener perfiles existentes
@@ -111,7 +120,7 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
         }
 
         // 1. Crear usuario en Auth
-        const { data: authUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        const { data: authUser, error: createError } = await getSupabaseAdmin().auth.admin.createUser({
             email,
             password,
             email_confirm: true,
@@ -129,14 +138,14 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
             const fileExt = avatarFile.name.split('.').pop()
             const fileName = `${userId}-${Date.now()}.${fileExt}`
 
-            const { error: uploadError } = await supabaseAdmin.storage
+            const { error: uploadError } = await getSupabaseAdmin().storage
                 .from('avatars')
                 .upload(fileName, avatarFile, { contentType: avatarFile.type })
 
             if (uploadError) {
                 console.error('Error uploading avatar:', uploadError)
             } else {
-                const { data: publicUrl } = supabaseAdmin.storage
+                const { data: publicUrl } = getSupabaseAdmin().storage
                     .from('avatars')
                     .getPublicUrl(fileName)
                 avatarUrl = publicUrl.publicUrl
@@ -144,7 +153,7 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
         }
 
         // 3. Actualizar perfil (Trigger lo crea, pero actualizamos datos extra)
-        const { error: profileError } = await supabaseAdmin
+        const { error: profileError } = await getSupabaseAdmin()
             .from('profiles')
             .update({
                 nombre,
@@ -169,7 +178,7 @@ export async function cleanupNonDomainUsers(): Promise<ActionResponse<number>> {
     try {
         if (!await isAdmin()) return { success: false, error: 'No autorizado' }
 
-        const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers()
+        const { data: { users }, error } = await getSupabaseAdmin().auth.admin.listUsers()
         if (error) throw error
 
         const invalidUsers = users.filter(u => !u.email?.endsWith(VALID_DOMAIN))
@@ -177,7 +186,7 @@ export async function cleanupNonDomainUsers(): Promise<ActionResponse<number>> {
 
         for (const user of invalidUsers) {
             // Eliminar avatar si tiene
-            const { data: profile } = await supabaseAdmin
+            const { data: profile } = await getSupabaseAdmin()
                 .from('profiles')
                 .select('avatar_url')
                 .eq('id', user.id)
@@ -186,11 +195,11 @@ export async function cleanupNonDomainUsers(): Promise<ActionResponse<number>> {
             if (profile?.avatar_url) {
                 const parts = profile.avatar_url.split('/')
                 const fileName = parts[parts.length - 1]
-                await supabaseAdmin.storage.from('avatars').remove([fileName])
+                await getSupabaseAdmin().storage.from('avatars').remove([fileName])
             }
 
             // Eliminar usuario
-            await supabaseAdmin.auth.admin.deleteUser(user.id)
+            await getSupabaseAdmin().auth.admin.deleteUser(user.id)
             deletedCount++
         }
 
@@ -222,20 +231,20 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
             if (currentAvatarUrl) {
                 const parts = currentAvatarUrl.split('/')
                 const fileName = parts[parts.length - 1]
-                await supabaseAdmin.storage.from('avatars').remove([fileName])
+                await getSupabaseAdmin().storage.from('avatars').remove([fileName])
             }
 
             // 2. Subir nuevo
             const fileExt = avatarFile.name.split('.').pop()
             const fileName = `${userId}-${Date.now()}.${fileExt}`
 
-            const { error: uploadError } = await supabaseAdmin.storage
+            const { error: uploadError } = await getSupabaseAdmin().storage
                 .from('avatars')
                 .upload(fileName, avatarFile, { contentType: avatarFile.type, upsert: true })
 
             if (uploadError) throw uploadError
 
-            const { data: publicUrl } = supabaseAdmin.storage
+            const { data: publicUrl } = getSupabaseAdmin().storage
                 .from('avatars')
                 .getPublicUrl(fileName)
 
@@ -243,7 +252,7 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
         }
 
         // Actualizar tabla Profiles
-        const { error: updateError } = await supabaseAdmin
+        const { error: updateError } = await getSupabaseAdmin()
             .from('profiles')
             .update({
                 nombre,
@@ -257,7 +266,7 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
         if (updateError) throw updateError
 
         // Actualizar metadatos de usuario (opcional pero recomendado)
-        await supabaseAdmin.auth.admin.updateUserById(userId, {
+        await getSupabaseAdmin().auth.admin.updateUserById(userId, {
             user_metadata: { nombre, apellidos }
         })
 
@@ -274,7 +283,7 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
         if (!await isAdmin()) return { success: false, error: 'No autorizado' }
 
         // 1. Obtener info de avatar para borrarlo
-        const { data: profile } = await supabaseAdmin
+        const { data: profile } = await getSupabaseAdmin()
             .from('profiles')
             .select('avatar_url')
             .eq('id', userId)
@@ -284,11 +293,11 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
         if (profile?.avatar_url) {
             const parts = profile.avatar_url.split('/')
             const fileName = parts[parts.length - 1]
-            await supabaseAdmin.storage.from('avatars').remove([fileName])
+            await getSupabaseAdmin().storage.from('avatars').remove([fileName])
         }
 
         // 3. Borrar usuario (Auth + Cascad profile)
-        const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
+        const { error } = await getSupabaseAdmin().auth.admin.deleteUser(userId)
         if (error) throw error
 
         revalidatePath('/dashboard/admin/users')
@@ -303,9 +312,9 @@ export async function getUserCounts(): Promise<ActionResponse<{ total: number, p
     try {
         if (!await isAdmin()) return { success: false, error: 'No autorizado' }
 
-        const { count: total } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true })
-        const { count: pulpito } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).eq('pulpito', true)
-        const { count: admins } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).eq('rol', 'ADMIN')
+        const { count: total } = await getSupabaseAdmin().from('profiles').select('*', { count: 'exact', head: true })
+        const { count: pulpito } = await getSupabaseAdmin().from('profiles').select('*', { count: 'exact', head: true }).eq('pulpito', true)
+        const { count: admins } = await getSupabaseAdmin().from('profiles').select('*', { count: 'exact', head: true }).eq('rol', 'ADMIN')
 
         return {
             success: true,

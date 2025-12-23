@@ -115,6 +115,52 @@ export default function DashboardLayout({
         return () => window.removeEventListener('resize', handleResize)
     }, [])
 
+    // Bloquear scroll del body cuando sidebar móvil está abierto
+    useEffect(() => {
+        if (isMobileMenuOpen && window.innerWidth < 768) {
+            const originalOverflow = document.body.style.overflow
+            document.body.style.overflow = 'hidden'
+            return () => {
+                document.body.style.overflow = originalOverflow
+            }
+        }
+    }, [isMobileMenuOpen])
+
+    // Gestos táctiles para cerrar sidebar móvil (swipe down)
+    const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null)
+    const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null)
+
+    const minSwipeDistance = 50
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null)
+        setTouchStart({
+            x: e.targetTouches[0].clientX,
+            y: e.targetTouches[0].clientY
+        })
+    }
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd({
+            x: e.targetTouches[0].clientX,
+            y: e.targetTouches[0].clientY
+        })
+    }
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return
+
+        const distanceX = touchStart.x - touchEnd.x
+        const distanceY = touchStart.y - touchEnd.y
+        const isLeftSwipe = distanceX > minSwipeDistance
+        const isDownSwipe = distanceY > minSwipeDistance
+
+        // Cerrar si se hace swipe hacia la izquierda o hacia abajo
+        if ((isLeftSwipe || isDownSwipe) && isMobileMenuOpen) {
+            setIsMobileMenuOpen(false)
+        }
+    }
+
     /**
      * Maneja el cierre de sesión de forma segura
      */
@@ -154,6 +200,9 @@ export default function DashboardLayout({
                         exit={{ x: -300 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                         className="fixed left-0 top-0 h-full w-[300px] z-110 flex flex-col md:hidden shadow-2xl"
+                        onTouchStart={onTouchStart}
+                        onTouchMove={onTouchMove}
+                        onTouchEnd={onTouchEnd}
                     >
                         <SidebarContent
                             isSidebarCollapsed={isSidebarCollapsed}
@@ -207,8 +256,14 @@ export default function DashboardLayout({
                             <Menu size={20} />
                         </button>
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-linear-to-br from-[#0660c6] to-blue-500 flex items-center justify-center shadow-lg">
-                                <span className="text-white font-black text-sm">I</span>
+                            <div className="relative w-8 h-8 rounded-xl overflow-hidden shadow-lg border border-white/20">
+                                <Image
+                                    src="/logo.jpeg"
+                                    alt="IDMJI Logo"
+                                    width={32}
+                                    height={32}
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
                             <span className="font-black italic text-sm tracking-tighter text-[#063b7a]">IDMJI-SABADELL.</span>
                         </div>
