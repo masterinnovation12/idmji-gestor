@@ -1,6 +1,7 @@
 import { getAllLecturas } from './actions'
 import LecturasPageClient from './LecturasPageClient'
 
+export const dynamic = 'force-dynamic'
 
 interface Props {
     searchParams: { [key: string]: string | string[] | undefined }

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { getHimnos, getCoros, getHimnaryCounts } from './actions'
 import HimnarioClient from './HimnarioClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function HimnarioPage() {
     const supabase = await createClient()
 
