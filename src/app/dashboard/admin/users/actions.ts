@@ -166,6 +166,7 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
         })
 
         if (!parsed.success) {
+            console.error('Validation error createUser:', parsed.error.flatten().fieldErrors)
             return { success: false, error: 'Datos inválidos' }
         }
 
@@ -186,7 +187,10 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
             user_metadata: { nombre, apellidos }
         })
 
-        if (createError) throw createError
+        if (createError) {
+            console.error('Supabase auth.admin.createUser error:', createError)
+            throw new Error(createError.message || 'No se pudo crear el usuario (Auth)')
+        }
         if (!authUser.user) throw new Error('No se pudo crear el usuario')
 
         const userId = authUser.user.id
@@ -211,19 +215,23 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
             }
         }
 
-        // 3. Actualizar perfil (Trigger lo crea, pero actualizamos datos extra)
+        // 3. Insertar/actualizar perfil (garantizar existencia)
         const { error: profileError } = await getSupabaseAdmin()
             .from('profiles')
-            .update({
+            .upsert({
+                id: userId,
+                email,
                 nombre,
                 apellidos,
                 rol,
                 pulpito,
-                avatar_url: avatarUrl // Actualizar URL si se subió foto
-            })
-            .eq('id', userId)
+                avatar_url: avatarUrl
+            }, { onConflict: 'id' })
 
-        if (profileError) throw profileError
+        if (profileError) {
+            console.error('Supabase upsert profile error:', profileError)
+            throw new Error(profileError.message || 'Error al guardar perfil')
+        }
 
         revalidatePath('/dashboard/admin/users')
         return { success: true }

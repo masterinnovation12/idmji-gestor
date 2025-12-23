@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { getUsers, createUser, updateUserFull, deleteUser, cleanupNonDomainUsers, UserData } from './actions'
-import { Users, Search, Shield, UserCheck, Trash2, Edit2, Plus, Camera, RotateCw, AlertTriangle, AlertCircle } from 'lucide-react'
+import { Users, Search, Shield, UserCheck, Trash2, Edit2, Plus, Camera, RotateCw, AlertTriangle, AlertCircle, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/Dialog'
@@ -47,6 +47,21 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
     const [tempImageSrc, setTempImageSrc] = useState<string | null>(null)
 
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const isAnyModalOpen = isCreateOpen || isEditOpen || isDeleteOpen || isCleanupOpen || isCropOpen
+
+    // Bloquear scroll del body cuando hay algún modal abierto
+    useEffect(() => {
+        if (isAnyModalOpen) {
+            const originalOverflow = document.body.style.overflow
+            const originalTouchAction = document.body.style.touchAction
+            document.body.style.overflow = 'hidden'
+            document.body.style.touchAction = 'none'
+            return () => {
+                document.body.style.overflow = originalOverflow
+                document.body.style.touchAction = originalTouchAction
+            }
+        }
+    }, [isAnyModalOpen])
 
     // Filter Users
     const filteredUsers = users.filter(u => {
@@ -89,41 +104,50 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
         setIsCropOpen(false)
     }
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         setIsLoading(true)
 
-        const data = new FormData()
-        data.append('nombre', formData.nombre)
-        data.append('apellidos', formData.apellidos)
-        data.append('rol', formData.rol)
-        data.append('pulpito', String(formData.pulpito))
-        if (avatarFile) data.append('avatar', avatarFile, 'avatar.jpg')
+        const formDataFromDom = new FormData(e.currentTarget)
 
-        let result
-        if (selectedUser) {
-            // Edit Mode
-            data.append('id', selectedUser.id)
-            data.append('currentAvatarUrl', selectedUser.avatar_url || '')
-            result = await updateUserFull(data)
-        } else {
-            // Create Mode
-            data.append('email', formData.email)
-            data.append('password', formData.password)
-            result = await createUser(data)
-        }
+        try {
+            const data = new FormData()
+            // Usar valores del DOM preferiblemente, o fallback al estado
+            data.append('nombre', (formDataFromDom.get('nombre') as string) || formData.nombre)
+            data.append('apellidos', (formDataFromDom.get('apellidos') as string) || formData.apellidos)
+            data.append('rol', (formDataFromDom.get('rol') as string) || formData.rol)
+            data.append('pulpito', String(formData.pulpito))
+            if (avatarFile) data.append('avatar', avatarFile, 'avatar.jpg')
 
-        if (result.success) {
-            toast.success(selectedUser ? t('users.toast.updated') : t('users.toast.created'))
-            resetForm()
-            setIsCreateOpen(false)
-            setIsEditOpen(false)
-            const refresh = await getUsers()
-            if (refresh.success && refresh.data) setUsers(refresh.data)
-        } else {
-            toast.error(result.error)
+            let result
+            if (selectedUser) {
+                // Edit Mode
+                data.append('id', selectedUser.id)
+                data.append('currentAvatarUrl', selectedUser.avatar_url || '')
+                result = await updateUserFull(data)
+            } else {
+                // Create Mode
+                data.append('email', (formDataFromDom.get('email') as string) || formData.email)
+                data.append('password', (formDataFromDom.get('password') as string) || formData.password)
+                result = await createUser(data)
+            }
+
+            if (result.success) {
+                toast.success(selectedUser ? t('users.toast.updated') : t('users.toast.created'))
+                resetForm()
+                setIsCreateOpen(false)
+                setIsEditOpen(false)
+                const refresh = await getUsers()
+                if (refresh.success && refresh.data) setUsers(refresh.data)
+            } else {
+                toast.error(result.error)
+            }
+        } catch (err: any) {
+            console.error('handleSubmit error', err)
+            toast.error(err?.message || 'Error inesperado al guardar')
+        } finally {
+            setIsLoading(false)
         }
-        setIsLoading(false)
     }
 
     const handleDelete = async () => {
@@ -286,12 +310,21 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
 
             {/* Create/Edit Modal - LIGHT THEME */}
             <Dialog open={isCreateOpen || isEditOpen} onOpenChange={(open) => { if (!open) { setIsCreateOpen(false); setIsEditOpen(false); } }}>
-                <DialogContent className="max-w-2xl bg-white border-zinc-200 p-0 overflow-hidden gap-0 rounded-3xl shadow-2xl text-zinc-900">
+                <DialogContent className="max-w-2xl bg-white border-zinc-200 p-0 overflow-hidden gap-0 rounded-3xl shadow-2xl text-zinc-900 max-h-[90vh] no-scrollbar" style={{ overflowY: 'auto' }}>
                     <div className="bg-zinc-50 p-6 border-b border-zinc-200">
-                        <DialogTitle className="text-2xl font-black flex items-center gap-3 text-zinc-900">
-                            {isEditOpen ? <Edit2 className="w-6 h-6 text-blue-600" /> : <Plus className="w-6 h-6 text-blue-600" />}
-                            {isEditOpen ? t('users.edit.title') : t('users.create.title')}
-                        </DialogTitle>
+                        <div className="flex items-center justify-between gap-3">
+                            <DialogTitle className="text-2xl font-black flex items-center gap-3 text-zinc-900">
+                                {isEditOpen ? <Edit2 className="w-6 h-6 text-blue-600" /> : <Plus className="w-6 h-6 text-blue-600" />}
+                                {isEditOpen ? t('users.edit.title') : t('users.create.title')}
+                            </DialogTitle>
+                            <button
+                                onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); resetForm(); }}
+                                className="text-zinc-500 hover:text-zinc-800 transition-colors p-1 rounded-lg hover:bg-zinc-100"
+                                aria-label={t('common.close') || 'Cerrar'}
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
                         <DialogDescription className="text-zinc-500 mt-1">
                             {isEditOpen ? t('users.edit.desc') : t('users.create.desc')}
                         </DialogDescription>
@@ -335,6 +368,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                         <Label htmlFor="nombre" className="text-zinc-700">{t('users.form.name')}</Label>
                                         <Input
                                             id="nombre"
+                                            name="nombre"
                                             value={formData.nombre}
                                             onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                                             required
@@ -345,6 +379,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                         <Label htmlFor="apellidos" className="text-zinc-700">{t('users.form.lastName')}</Label>
                                         <Input
                                             id="apellidos"
+                                            name="apellidos"
                                             value={formData.apellidos}
                                             onChange={(e) => setFormData({ ...formData, apellidos: e.target.value })}
                                             required
@@ -357,6 +392,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                     <Label htmlFor="email" className="text-zinc-700">{t('users.form.email')} <span className="text-zinc-400 text-xs">(@idmjisabadell.org)</span></Label>
                                     <Input
                                         id="email"
+                                        name="email"
                                         type="email"
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -377,6 +413,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                         <Label htmlFor="password" className="text-zinc-700">{t('users.form.password')}</Label>
                                         <Input
                                             id="password"
+                                            name="password"
                                             type="password"
                                             value={formData.password}
                                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -392,10 +429,14 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                         <Label className="text-zinc-700">{t('users.form.role')}</Label>
                                         <div className="[&>button]:bg-white [&>button]:border-zinc-300 [&>button]:text-zinc-900 [&>button]:h-10 [&>button]:rounded-xl">
                                             <Select value={formData.rol} onValueChange={(val) => setFormData({ ...formData, rol: val })}>
-                                                <SelectTrigger>
-                                                    <SelectValue />
+                                                <SelectTrigger className="h-11 rounded-xl bg-white border-zinc-300 text-zinc-900 focus:ring-blue-500 focus:border-blue-500">
+                                                    <SelectValue placeholder={t('users.form.selectRole')} />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-white border-zinc-200 text-zinc-900 shadow-xl">
+                                                <SelectContent
+                                                    position="popper"
+                                                    sideOffset={8}
+                                                    className="bg-white border-zinc-200 text-zinc-900 shadow-xl rounded-xl max-h-64 overflow-auto z-[130]"
+                                                >
                                                     {availableRoles.length === 0 && (
                                                         <SelectItem value={defaultRole}>{defaultRole}</SelectItem>
                                                     )}
