@@ -52,12 +52,17 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
     // Bloquear scroll del body cuando hay algún modal abierto
     useEffect(() => {
         if (isAnyModalOpen) {
-            const originalOverflow = document.body.style.overflow
+            const originalBodyOverflow = document.body.style.overflow
+            const originalHtmlOverflow = document.documentElement.style.overflow
             const originalTouchAction = document.body.style.touchAction
+            
             document.body.style.overflow = 'hidden'
+            document.documentElement.style.overflow = 'hidden'
             document.body.style.touchAction = 'none'
+            
             return () => {
-                document.body.style.overflow = originalOverflow
+                document.body.style.overflow = originalBodyOverflow
+                document.documentElement.style.overflow = originalHtmlOverflow
                 document.body.style.touchAction = originalTouchAction
             }
         }
@@ -310,8 +315,8 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
 
             {/* Create/Edit Modal - LIGHT THEME */}
             <Dialog open={isCreateOpen || isEditOpen} onOpenChange={(open) => { if (!open) { setIsCreateOpen(false); setIsEditOpen(false); } }}>
-                <DialogContent className="max-w-2xl bg-white border-zinc-200 p-0 overflow-hidden gap-0 rounded-3xl shadow-2xl text-zinc-900 max-h-[90vh] no-scrollbar" style={{ overflowY: 'auto' }}>
-                    <div className="bg-zinc-50 p-6 border-b border-zinc-200">
+                <DialogContent className="max-w-2xl bg-white border-zinc-200 p-0 gap-0 rounded-3xl shadow-2xl text-zinc-900 max-h-[90vh] overflow-y-auto">
+                    <div className="bg-zinc-50 p-6 border-b border-zinc-200 sticky top-0 z-10">
                         <div className="flex items-center justify-between gap-3">
                             <DialogTitle className="text-2xl font-black flex items-center gap-3 text-zinc-900">
                                 {isEditOpen ? <Edit2 className="w-6 h-6 text-blue-600" /> : <Plus className="w-6 h-6 text-blue-600" />}
@@ -432,11 +437,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                                 <SelectTrigger className="h-11 rounded-xl bg-white border-zinc-300 text-zinc-900 focus:ring-blue-500 focus:border-blue-500">
                                                     <SelectValue placeholder={t('users.form.selectRole')} />
                                                 </SelectTrigger>
-                                                <SelectContent
-                                                    position="popper"
-                                                    sideOffset={8}
-                                                    className="bg-white border-zinc-200 text-zinc-900 shadow-xl rounded-xl max-h-64 overflow-auto z-[130]"
-                                                >
+                                                <SelectContent className="min-w-[200px]">
                                                     {availableRoles.length === 0 && (
                                                         <SelectItem value={defaultRole}>{defaultRole}</SelectItem>
                                                     )}
