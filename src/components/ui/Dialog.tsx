@@ -17,16 +17,20 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
 
     React.useEffect(() => {
         setMounted(true)
+    }, [])
+
+    React.useEffect(() => {
         if (open) {
             const originalOverflow = document.body.style.overflow
-            const originalHtmlOverflow = document.documentElement.style.overflow
             
+            if (originalOverflow !== 'hidden') {
             document.body.style.overflow = 'hidden'
-            document.documentElement.style.overflow = 'hidden'
+        }
             
-            return () => {
-                document.body.style.overflow = originalOverflow
-                document.documentElement.style.overflow = originalHtmlOverflow
+        return () => {
+                if (originalOverflow !== 'hidden') {
+                    document.body.style.overflow = originalOverflow
+                }
             }
         }
     }, [open])

@@ -179,12 +179,40 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
 
         await ensureRoleAllowed(rol)
 
+        // Verificar si el email ya existe en profiles
+        const { data: existingProfile } = await getSupabaseAdmin()
+            .from('profiles')
+            .select('id, email')
+            .eq('email', email)
+            .maybeSingle()
+
+        if (existingProfile) {
+            return { success: false, error: 'Este email ya está registrado. No se pueden duplicar emails.' }
+        }
+
+        // Verificar también en auth.users usando listUsers
+        const { data: { users: existingUsers } } = await getSupabaseAdmin().auth.admin.listUsers()
+        const emailExists = existingUsers?.some(u => u.email === email)
+        
+        if (emailExists) {
+            return { success: false, error: 'Este email ya está registrado. No se pueden duplicar emails.' }
+        }
+
+        // Crear display_name con nombre y apellidos
+        const displayName = `${nombre} ${apellidos}`.trim()
+        const fullName = displayName // Para compatibilidad
+
         // 1. Crear usuario en Auth
         const { data: authUser, error: createError } = await getSupabaseAdmin().auth.admin.createUser({
             email,
             password,
             email_confirm: true,
-            user_metadata: { nombre, apellidos }
+            user_metadata: { 
+                nombre, 
+                apellidos,
+                full_name: fullName,
+                display_name: displayName
+            }
         })
 
         if (createError) {
@@ -195,6 +223,21 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
 
         const userId = authUser.user.id
         let avatarUrl = null
+
+        // Actualizar user_metadata para asegurar que display_name y full_name estén correctos
+        try {
+            await getSupabaseAdmin().auth.admin.updateUserById(userId, {
+                user_metadata: {
+                    nombre,
+                    apellidos,
+                    full_name: fullName,
+                    display_name: displayName
+                }
+            })
+            console.log('Display name actualizado correctamente:', displayName)
+        } catch (updateError) {
+            console.warn('No se pudo actualizar display_name, continuando...', updateError)
+        }
 
         // 2. Subir avatar si existe
         if (avatarFile && avatarFile.size > 0) {
@@ -238,43 +281,6 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
     } catch (error: any) {
         console.error('Error creating user:', error)
         return { success: false, error: error.message || 'Error al crear usuario' }
-    }
-}
-
-export async function cleanupNonDomainUsers(): Promise<ActionResponse<number>> {
-    try {
-        if (!await isAdmin()) return { success: false, error: 'No autorizado' }
-
-        const { data: { users }, error } = await getSupabaseAdmin().auth.admin.listUsers()
-        if (error) throw error
-
-        const invalidUsers = users.filter(u => !u.email?.endsWith(VALID_DOMAIN))
-        let deletedCount = 0
-
-        for (const user of invalidUsers) {
-            // Eliminar avatar si tiene
-            const { data: profile } = await getSupabaseAdmin()
-                .from('profiles')
-                .select('avatar_url')
-                .eq('id', user.id)
-                .single()
-
-            if (profile?.avatar_url) {
-                const parts = profile.avatar_url.split('/')
-                const fileName = parts[parts.length - 1]
-                await getSupabaseAdmin().storage.from('avatars').remove([fileName])
-            }
-
-            // Eliminar usuario
-            await getSupabaseAdmin().auth.admin.deleteUser(user.id)
-            deletedCount++
-        }
-
-        revalidatePath('/dashboard/admin/users')
-        return { success: true, data: deletedCount }
-    } catch (error) {
-        console.error('Error cleaning users:', error)
-        return { success: false, error: 'Error al limpiar usuarios' }
     }
 }
 
@@ -357,31 +363,148 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
 
 export async function deleteUser(userId: string): Promise<ActionResponse<void>> {
     try {
-        if (!await isAdmin()) return { success: false, error: 'No autorizado' }
-
-        // 1. Obtener info de avatar para borrarlo
-        const { data: profile } = await getSupabaseAdmin()
-            .from('profiles')
-            .select('avatar_url')
-            .eq('id', userId)
-            .single()
-
-        // 2. Borrar avatar de storage
-        if (profile?.avatar_url) {
-            const parts = profile.avatar_url.split('/')
-            const fileName = parts[parts.length - 1]
-            await getSupabaseAdmin().storage.from('avatars').remove([fileName])
+        console.log('deleteUser started for ID:', userId)
+        if (!await isAdmin()) {
+            console.error('User is not admin')
+            return { success: false, error: 'No autorizado' }
         }
 
-        // 3. Borrar usuario (Auth + Cascad profile)
-        const { error } = await getSupabaseAdmin().auth.admin.deleteUser(userId)
-        if (error) throw error
+        const supabaseAdmin = getSupabaseAdmin()
+        if (!supabaseAdmin) {
+            console.error('Supabase admin client not initialized')
+            return { success: false, error: 'Error interno: cliente Supabase no inicializado' }
+        }
 
+        // 1. Obtener info de avatar ANTES de eliminar cualquier cosa
+        let avatarUrl: string | null = null
+        try {
+            const { data: profile, error: profileFetchError } = await supabaseAdmin
+                .from('profiles')
+                .select('avatar_url')
+                .eq('id', userId)
+                .single()
+
+            if (profileFetchError && profileFetchError.code !== 'PGRST116') {
+                console.warn('Error fetching profile for avatar cleanup (continuing anyway):', profileFetchError.message)
+            } else if (profile?.avatar_url) {
+                avatarUrl = profile.avatar_url
+            }
+        } catch (err) {
+            console.warn('Failed to fetch profile for avatar cleanup (continuing anyway):', err)
+        }
+
+        // 2. Eliminar avatar de storage ANTES de eliminar el usuario/perfil
+        if (avatarUrl) {
+            try {
+                const parts = avatarUrl.split('/')
+                const fileName = parts[parts.length - 1]
+                const { error: storageError } = await supabaseAdmin.storage.from('avatars').remove([fileName])
+                
+                if (storageError) {
+                    console.warn('Failed to delete avatar from storage (non-critical):', storageError.message)
+                } else {
+                    console.log('Avatar deleted successfully for user:', userId)
+                }
+            } catch (err) {
+                console.warn('Exception deleting avatar (non-critical):', err)
+            }
+        }
+
+        // 3. Eliminar usuario de Auth PRIMERO (el perfil se eliminará automáticamente por CASCADE)
+        console.log('Deleting auth user first for:', userId)
+        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+        
+        if (authError) {
+            console.error('Supabase auth.admin.deleteUser error:', authError)
+            
+            // Si el error indica que el usuario no existe, verificar si el perfil también se eliminó
+            if (authError.message?.includes('not found') || authError.message?.includes('does not exist')) {
+                const { data: remainingProfile } = await supabaseAdmin
+                    .from('profiles')
+                    .select('id')
+                    .eq('id', userId)
+                    .single()
+                
+                if (!remainingProfile) {
+                    console.log('User and profile already deleted')
+                    revalidatePath('/dashboard/admin/users')
+                    return { success: true }
+                }
+            }
+            
+            // Si hay un error de base de datos, puede ser por claves foráneas
+            // Intentar eliminar el perfil manualmente primero y luego Auth
+            if (authError.message?.includes('Database error')) {
+                console.log('Database error detected, trying to delete profile first, then auth')
+                
+                const { error: profileDeleteError } = await supabaseAdmin
+                    .from('profiles')
+                    .delete()
+                    .eq('id', userId)
+                
+                if (profileDeleteError && profileDeleteError.code !== 'PGRST116') {
+                    console.error('Error deleting profile:', profileDeleteError)
+                } else {
+                    console.log('Profile deleted manually, retrying auth delete')
+                }
+                
+                // Reintentar eliminar de Auth después de eliminar el perfil
+                const { error: retryAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+                
+                if (retryAuthError) {
+                    // Verificar si el perfil se eliminó al menos
+                    const { data: remainingProfile } = await supabaseAdmin
+                        .from('profiles')
+                        .select('id')
+                        .eq('id', userId)
+                        .single()
+                    
+                    if (!remainingProfile) {
+                        console.warn('Profile deleted but auth user deletion failed:', retryAuthError.message)
+                        // Considerar éxito parcial - el perfil se eliminó
+                        revalidatePath('/dashboard/admin/users')
+                        return { success: true, error: `Perfil eliminado pero error al eliminar de Auth: ${retryAuthError.message}` }
+                    }
+                    
+                    throw new Error(`Error al eliminar usuario de Auth: ${retryAuthError.message}`)
+                } else {
+                    console.log('Auth user deleted successfully on retry')
+                }
+            } else {
+                // Otro tipo de error
+                throw new Error(`Error al eliminar usuario de Auth: ${authError.message}`)
+            }
+        }
+
+        // 4. Verificar que el perfil se eliminó automáticamente (debería por CASCADE)
+        console.log('Verifying profile was deleted by CASCADE')
+        const { data: remainingProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('id', userId)
+            .single()
+        
+        if (remainingProfile) {
+            // Si el perfil aún existe, eliminarlo manualmente
+            console.log('Profile still exists, deleting manually')
+            const { error: profileDeleteError } = await supabaseAdmin
+                .from('profiles')
+                .delete()
+                .eq('id', userId)
+            
+            if (profileDeleteError && profileDeleteError.code !== 'PGRST116') {
+                console.error('Error deleting remaining profile:', profileDeleteError)
+                throw new Error(`Usuario eliminado de Auth pero error al eliminar perfil: ${profileDeleteError.message}`)
+            }
+        }
+
+        console.log('User deleted successfully from both Auth and Profiles:', userId)
         revalidatePath('/dashboard/admin/users')
         return { success: true }
-    } catch (error) {
-        console.error('Error deleting user:', error)
-        return { success: false, error: 'Error al eliminar usuario' }
+    } catch (error: any) {
+        console.error('Error in deleteUser action:', error)
+        const errorMessage = error?.message || 'Error desconocido al eliminar usuario'
+        return { success: false, error: errorMessage }
     }
 }
 

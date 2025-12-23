@@ -244,7 +244,7 @@ export default function DashboardLayout({
             {/* Main Area */}
             <main
                 className={`min-h-screen transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'md:ml-24' : 'md:ml-[280px]'
-                    }`}
+                    } ${pathname?.includes('/admin/users') ? 'no-scrollbar' : ''}`}
             >
                 {/* Mobile Floating Header (Glassmorphism) */}
                 <header className="sticky top-4 z-90 md:hidden px-4">
@@ -274,7 +274,7 @@ export default function DashboardLayout({
                 </header>
 
                 {/* Page Content with Entrance Animation */}
-                <div className="p-6 md:p-10 lg:p-12 max-w-7xl mx-auto">
+                <div className={`p-6 md:p-10 lg:p-12 max-w-7xl mx-auto ${pathname?.includes('/admin/users') ? 'no-scrollbar' : ''}`}>
                     <motion.div
                         key={pathname}
                         initial={{ opacity: 0, y: 10 }}

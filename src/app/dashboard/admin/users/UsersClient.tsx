@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { getUsers, createUser, updateUserFull, deleteUser, cleanupNonDomainUsers, UserData } from './actions'
-import { Users, Search, Shield, UserCheck, Trash2, Edit2, Plus, Camera, RotateCw, AlertTriangle, AlertCircle, X } from 'lucide-react'
+import { getUsers, createUser, updateUserFull, deleteUser, UserData } from './actions'
+import { Users, Search, Shield, UserCheck, Trash2, Edit2, Plus, Camera, RotateCw, AlertTriangle, AlertCircle, X, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/Dialog'
@@ -29,7 +29,6 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-    const [isCleanupOpen, setIsCleanupOpen] = useState(false)
     const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
 
     // Form States
@@ -45,26 +44,17 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
     const [isCropOpen, setIsCropOpen] = useState(false)
     const [tempImageSrc, setTempImageSrc] = useState<string | null>(null)
+    const [showPassword, setShowPassword] = useState(false)
 
     const fileInputRef = useRef<HTMLInputElement>(null)
-    const isAnyModalOpen = isCreateOpen || isEditOpen || isDeleteOpen || isCleanupOpen || isCropOpen
+    const isAnyModalOpen = isCreateOpen || isEditOpen || isDeleteOpen || isCropOpen
 
-    // Bloquear scroll del body cuando hay algún modal abierto
+    // Asegurar que el scroll esté habilitado cuando no hay modales abiertos
     useEffect(() => {
-        if (isAnyModalOpen) {
-            const originalBodyOverflow = document.body.style.overflow
-            const originalHtmlOverflow = document.documentElement.style.overflow
-            const originalTouchAction = document.body.style.touchAction
-            
-            document.body.style.overflow = 'hidden'
-            document.documentElement.style.overflow = 'hidden'
-            document.body.style.touchAction = 'none'
-            
-            return () => {
-                document.body.style.overflow = originalBodyOverflow
-                document.documentElement.style.overflow = originalHtmlOverflow
-                document.body.style.touchAction = originalTouchAction
-            }
+        if (!isAnyModalOpen) {
+            document.body.style.overflow = ''
+            document.documentElement.style.overflow = ''
+            document.body.style.touchAction = ''
         }
     }, [isAnyModalOpen])
 
@@ -89,6 +79,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
         setAvatarFile(null)
         setAvatarPreview(null)
         setTempImageSrc(null)
+        setShowPassword(false)
         if (fileInputRef.current) fileInputRef.current.value = ''
     }
 
@@ -131,8 +122,10 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                 data.append('currentAvatarUrl', selectedUser.avatar_url || '')
                 result = await updateUserFull(data)
             } else {
-                // Create Mode
-                data.append('email', (formDataFromDom.get('email') as string) || formData.email)
+                // Create Mode - Añadir el dominio al email si no lo tiene
+                const emailInput = (formDataFromDom.get('email') as string) || formData.email
+                const fullEmail = emailInput.includes('@') ? emailInput : `${emailInput}@idmjisabadell.org`
+                data.append('email', fullEmail)
                 data.append('password', (formDataFromDom.get('password') as string) || formData.password)
                 result = await createUser(data)
             }
@@ -149,45 +142,48 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
             }
         } catch (err: any) {
             console.error('handleSubmit error', err)
-            toast.error(err?.message || 'Error inesperado al guardar')
+            toast.error(err?.message || t('users.error.unexpectedSave'))
         } finally {
             setIsLoading(false)
         }
     }
 
     const handleDelete = async () => {
-        if (!selectedUser) return
-        setIsLoading(true)
-        const result = await deleteUser(selectedUser.id)
-        if (result.success) {
-            toast.success(t('users.toast.deleted'))
-            setUsers(users.filter(u => u.id !== selectedUser.id))
-            setIsDeleteOpen(false)
-        } else {
-            toast.error(result.error)
+        if (!selectedUser) {
+            console.error('No user selected for deletion')
+            return
         }
-        setIsLoading(false)
-    }
-
-    const handleCleanup = async () => {
+        
+        console.log('handleDelete called for user:', selectedUser.id, selectedUser.email)
         setIsLoading(true)
-        const result = await cleanupNonDomainUsers()
-        if (result.success) {
-            toast.success(`${t('users.toast.cleaned')}: ${result.data}`)
-            const refresh = await getUsers()
-            if (refresh.success && refresh.data) setUsers(refresh.data)
-            setIsCleanupOpen(false)
-        } else {
-            toast.error(result.error)
+        
+        try {
+            const result = await deleteUser(selectedUser.id)
+            console.log('deleteUser result:', result)
+            
+            if (result.success) {
+                console.log('User deleted successfully, updating UI')
+                toast.success(t('users.toast.deleted'))
+                setUsers(users.filter(u => u.id !== selectedUser.id))
+                setIsDeleteOpen(false)
+                setSelectedUser(null)
+            } else {
+                console.error('deleteUser failed:', result.error)
+                toast.error(result.error || t('users.error.deleteFailed'))
+            }
+        } catch (error: any) {
+            console.error('Exception in handleDelete:', error)
+            toast.error(error?.message || t('users.error.unexpectedDelete'))
+        } finally {
+            setIsLoading(false)
         }
-        setIsLoading(false)
     }
 
     const openEdit = (user: UserData) => {
         setSelectedUser(user)
         setFormData({
-            nombre: user.nombre === 'Sin nombre' ? '' : user.nombre,
-            apellidos: user.apellidos === 'Sin apellidos' ? '' : user.apellidos,
+            nombre: user.nombre === t('users.defaults.noName') ? '' : user.nombre,
+            apellidos: user.apellidos === t('users.defaults.noLastName') ? '' : user.apellidos,
             email: user.email || '',
             password: '',
             rol: user.rol,
@@ -198,7 +194,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8 animate-in fade-in duration-500 no-scrollbar" data-page="users">
             {/* Header Actions */}
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-card/50 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-xl">
                 <div>
@@ -210,14 +206,6 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                 </div>
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
-                    <Button
-                        variant="destructive"
-                        onClick={() => setIsCleanupOpen(true)}
-                        className="gap-2 rounded-xl font-bold"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                        {t('users.clean')}
-                    </Button>
                     <Button
                         onClick={() => { resetForm(); setIsCreateOpen(true) }}
                         className="gap-2 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20"
@@ -315,7 +303,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
 
             {/* Create/Edit Modal - LIGHT THEME */}
             <Dialog open={isCreateOpen || isEditOpen} onOpenChange={(open) => { if (!open) { setIsCreateOpen(false); setIsEditOpen(false); } }}>
-                <DialogContent className="max-w-2xl bg-white border-zinc-200 p-0 gap-0 rounded-3xl shadow-2xl text-zinc-900 max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-2xl bg-white border-zinc-200 p-0 gap-0 rounded-3xl shadow-2xl text-zinc-900 max-h-[90vh] overflow-y-auto no-scrollbar">
                     <div className="bg-zinc-50 p-6 border-b border-zinc-200 sticky top-0 z-10">
                         <div className="flex items-center justify-between gap-3">
                             <DialogTitle className="text-2xl font-black flex items-center gap-3 text-zinc-900">
@@ -394,38 +382,64 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="email" className="text-zinc-700">{t('users.form.email')} <span className="text-zinc-400 text-xs">(@idmjisabadell.org)</span></Label>
-                                    <Input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        required
-                                        disabled={isEditOpen}
-                                        className="bg-white border-zinc-300 text-zinc-900 rounded-xl focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-zinc-100 placeholder:text-zinc-400"
-                                    />
-                                    {isCreateOpen && !formData.email.endsWith('@idmjisabadell.org') && formData.email.length > 5 && (
-                                        <p className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                                            <AlertTriangle className="w-3 h-3" />
-                                            Debe terminar en @idmjisabadell.org
-                                        </p>
+                                    <Label htmlFor="email" className="text-zinc-700">{t('users.form.email')}</Label>
+                                    {isCreateOpen ? (
+                                        <div className="flex items-center">
+                                            <Input
+                                                id="email"
+                                                name="email"
+                                                type="text"
+                                                value={formData.email}
+                                                onChange={(e) => {
+                                                    // Solo permitir cambiar la parte antes del @
+                                                    const value = e.target.value.replace('@idmjisabadell.org', '')
+                                                    setFormData({ ...formData, email: value })
+                                                }}
+                                                required
+                                                placeholder={t('users.form.emailPlaceholder')}
+                                                className="bg-white border-zinc-300 text-zinc-900 rounded-xl rounded-r-none focus:ring-blue-500 focus:border-blue-500 placeholder:text-zinc-400"
+                                            />
+                                            <div className="bg-zinc-100 border border-l-0 border-zinc-300 rounded-r-xl px-4 py-2 text-zinc-600 font-medium flex items-center">
+                                                {t('users.form.emailDomain')}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <Input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            required
+                                            disabled={true}
+                                            className="bg-white border-zinc-300 text-zinc-900 rounded-xl focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-zinc-100 placeholder:text-zinc-400"
+                                        />
                                     )}
                                 </div>
 
                                 {isCreateOpen && (
                                     <div className="space-y-2">
                                         <Label htmlFor="password" className="text-zinc-700">{t('users.form.password')}</Label>
-                                        <Input
-                                            id="password"
-                                            name="password"
-                                            type="password"
-                                            value={formData.password}
-                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                            required
-                                            minLength={6}
-                                            className="bg-white border-zinc-300 text-zinc-900 rounded-xl focus:ring-blue-500 focus:border-blue-500 placeholder:text-zinc-400"
-                                        />
+                                        <div className="relative">
+                                            <Input
+                                                id="password"
+                                                name="password"
+                                                type={showPassword ? 'text' : 'password'}
+                                                value={formData.password}
+                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                required
+                                                minLength={6}
+                                                className="bg-white border-zinc-300 text-zinc-900 rounded-xl pr-12 focus:ring-blue-500 focus:border-blue-500 placeholder:text-zinc-400"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-500 hover:text-zinc-700"
+                                                aria-label={showPassword ? t('users.form.hidePassword') : t('users.form.showPassword')}
+                                            >
+                                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
 
@@ -435,7 +449,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                         <div className="[&>button]:bg-white [&>button]:border-zinc-300 [&>button]:text-zinc-900 [&>button]:h-10 [&>button]:rounded-xl">
                                             <Select value={formData.rol} onValueChange={(val) => setFormData({ ...formData, rol: val })}>
                                                 <SelectTrigger className="h-11 rounded-xl bg-white border-zinc-300 text-zinc-900 focus:ring-blue-500 focus:border-blue-500">
-                                                    <SelectValue placeholder={t('users.form.selectRole')} />
+                                                    <SelectValue placeholder={t('users.form.selectRole') || 'Seleccionar rol'} />
                                                 </SelectTrigger>
                                                 <SelectContent className="min-w-[200px]">
                                                     {availableRoles.length === 0 && (
@@ -449,7 +463,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-200 bg-zinc-50 h-[42px] mt-[26px]">
+                                    <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-200 bg-zinc-50 min-h-[44px] mt-[26px] overflow-hidden">
                                         <Label className="cursor-pointer text-zinc-700" htmlFor="pulpito-switch">{t('users.form.pulpit')}</Label>
                                         <Switch
                                             id="pulpito-switch"
@@ -475,7 +489,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
 
             {/* Confirm Delete Modal - LIGHT THEME */}
             <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                <DialogContent className="max-w-md bg-white border-zinc-200 rounded-3xl shadow-2xl text-zinc-900">
+                <DialogContent className="max-w-md bg-white border-zinc-200 rounded-3xl shadow-2xl text-zinc-900 overflow-hidden [&>*]:no-scrollbar">
                     <DialogHeader>
                         <DialogTitle className="text-red-600 flex items-center gap-2">
                             <AlertCircle className="w-5 h-5" />
@@ -484,36 +498,13 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                         <DialogDescription className="text-zinc-500">
                             {t('users.delete.desc')} <strong>{selectedUser?.nombre} {selectedUser?.apellidos}</strong>.
                             <br /><br />
-                            Esta acción no se puede deshacer.
+                            {t('users.delete.irreversible')}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setIsDeleteOpen(false)} className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100">{t('common.cancel')}</Button>
                         <Button variant="destructive" onClick={handleDelete} disabled={isLoading} className="font-bold rounded-xl bg-red-600 text-white hover:bg-red-700">
                             {isLoading ? t('common.loading') : t('users.delete.confirm')}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Confirm Cleanup Modal - LIGHT THEME */}
-            <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}>
-                <DialogContent className="max-w-md bg-white border-zinc-200 rounded-3xl shadow-2xl text-zinc-900">
-                    <DialogHeader>
-                        <DialogTitle className="text-amber-600 flex items-center gap-2">
-                            <AlertTriangle className="w-5 h-5" />
-                            {t('users.clean.title')}
-                        </DialogTitle>
-                        <DialogDescription className="text-zinc-500">
-                            {t('users.clean.desc')} (<code>@idmjisabadell.org</code>).
-                            <br /><br />
-                            Usa esto con precaución.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsCleanupOpen(false)} className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100">{t('common.cancel')}</Button>
-                        <Button onClick={handleCleanup} disabled={isLoading} className="bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl">
-                            {isLoading ? t('common.loading') : t('users.clean.confirm')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

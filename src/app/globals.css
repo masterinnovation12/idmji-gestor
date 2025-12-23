@@ -836,6 +836,25 @@ html, body {
   background: hsl(var(--primary));
 }
 
+/* Ocultar scrollbar específicamente en la página de usuarios */
+body:has([data-page="users"]) main::-webkit-scrollbar,
+body:has([data-page="users"]) main *::-webkit-scrollbar,
+[data-page="users"]::-webkit-scrollbar,
+[data-page="users"] *::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+
+body:has([data-page="users"]) main,
+body:has([data-page="users"]) main *,
+[data-page="users"],
+[data-page="users"] * {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 @media print {
 
   .glass,
