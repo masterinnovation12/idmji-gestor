@@ -128,9 +128,13 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                 data.append('currentAvatarUrl', selectedUser.avatar_url || '')
                 result = await updateUserFull(data)
             } else {
-                // Create Mode - Añadir el dominio al email si no lo tiene
-                const emailInput = (formDataFromDom.get('email') as string) || formData.email
-                const fullEmail = emailInput.includes('@') ? emailInput : `${emailInput}@idmjisabadell.org`
+                // Create Mode - Asegurar el dominio correcto
+                // Generar el email a partir del nombre para evitar problemas de sincronización de estado
+                const nombreDom = (formDataFromDom.get('nombre') as string) || formData.nombre
+                const emailPrefix = nombreDom.toLowerCase().trim().replace(/\s+/g, '.')
+                const fullEmail = `${emailPrefix}@idmjisabadell.org`
+                
+                console.log('Creating user with email:', fullEmail)
                 data.append('email', fullEmail)
                 data.append('password', (formDataFromDom.get('password') as string) || formData.password)
                 result = await createUser(data)

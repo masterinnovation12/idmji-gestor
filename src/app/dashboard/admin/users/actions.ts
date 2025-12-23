@@ -164,8 +164,15 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
     try {
         if (!await isAdmin()) return { success: false, error: 'No autorizado' }
 
+        let email = formData.get('email') as string
+        if (email && !email.includes('@')) {
+            email = `${email}${VALID_DOMAIN}`
+        }
+        console.log('--- DEBUG CREATE USER ---')
+        console.log('Final email for validation:', email)
+        
         const parsed = createSchema.safeParse({
-            email: formData.get('email'),
+            email,
             password: formData.get('password'),
             nombre: formData.get('nombre'),
             apellidos: formData.get('apellidos'),
