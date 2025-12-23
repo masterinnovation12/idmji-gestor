@@ -32,6 +32,8 @@ export interface UserData {
     nombre: string
     apellidos: string
     email: string | null
+    email_contacto: string | null
+    telefono: string | null
     rol: string
     pulpito: boolean
     avatar_url: string | null
@@ -47,7 +49,9 @@ const createSchema = z.object({
     nombre: z.string().min(1),
     apellidos: z.string().min(1),
     rol: z.string().min(1),
-    pulpito: z.boolean().optional().default(false)
+    pulpito: z.boolean().optional().default(false),
+    email_contacto: z.string().email().optional().or(z.literal('')),
+    telefono: z.string().optional().or(z.literal(''))
 })
 
 const updateSchema = z.object({
@@ -56,7 +60,9 @@ const updateSchema = z.object({
     apellidos: z.string().min(1),
     rol: z.string().min(1),
     pulpito: z.boolean().optional().default(false),
-    currentAvatarUrl: z.string().optional()
+    currentAvatarUrl: z.string().optional(),
+    email_contacto: z.string().email().optional().or(z.literal('')),
+    telefono: z.string().optional().or(z.literal(''))
 })
 
 export async function getRoles(): Promise<ActionResponse<string[]>> {
@@ -129,6 +135,8 @@ export async function getUsers(): Promise<ActionResponse<UserData[]>> {
         const enrichedUsers: UserData[] = (profiles || []).map(profile => ({
             id: profile.id,
             email: profile.email || null,
+            email_contacto: profile.email_contacto || null,
+            telefono: profile.telefono || null,
             nombre: profile.nombre || 'Sin nombre',
             apellidos: profile.apellidos || 'Sin apellidos',
             rol: profile.rol || 'MIEMBRO',
@@ -162,7 +170,9 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
             nombre: formData.get('nombre'),
             apellidos: formData.get('apellidos'),
             rol: formData.get('rol'),
-            pulpito: formData.get('pulpito') === 'true'
+            pulpito: formData.get('pulpito') === 'true',
+            email_contacto: formData.get('email_contacto'),
+            telefono: formData.get('telefono')
         })
 
         if (!parsed.success) {
@@ -170,7 +180,7 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
             return { success: false, error: 'Datos inválidos' }
         }
 
-        const { email, password, nombre, apellidos, rol, pulpito } = parsed.data
+        const { email, password, nombre, apellidos, rol, pulpito, email_contacto, telefono } = parsed.data
         const avatarFile = formData.get('avatar') as File | null
 
         if (!email.endsWith(VALID_DOMAIN)) {
@@ -268,7 +278,9 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
                 apellidos,
                 rol,
                 pulpito,
-                avatar_url: avatarUrl
+                avatar_url: avatarUrl,
+                email_contacto: email_contacto || null,
+                telefono: telefono || null
             }, { onConflict: 'id' })
 
         if (profileError) {
@@ -294,14 +306,16 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
             apellidos: formData.get('apellidos'),
             rol: formData.get('rol'),
             pulpito: formData.get('pulpito') === 'true',
-            currentAvatarUrl: formData.get('currentAvatarUrl') as string | undefined
+            currentAvatarUrl: formData.get('currentAvatarUrl') as string | undefined,
+            email_contacto: formData.get('email_contacto'),
+            telefono: formData.get('telefono')
         })
 
         if (!parsed.success) {
             return { success: false, error: 'Datos inválidos' }
         }
 
-        const { id: userId, nombre, apellidos, rol, pulpito, currentAvatarUrl } = parsed.data
+        const { id: userId, nombre, apellidos, rol, pulpito, currentAvatarUrl, email_contacto, telefono } = parsed.data
         const avatarFile = formData.get('avatar') as File | null
 
         await ensureRoleAllowed(rol)
@@ -342,7 +356,9 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
                 apellidos,
                 rol,
                 pulpito,
-                avatar_url: newAvatarUrl
+                avatar_url: newAvatarUrl,
+                email_contacto: email_contacto || null,
+                telefono: telefono || null
             })
             .eq('id', userId)
 

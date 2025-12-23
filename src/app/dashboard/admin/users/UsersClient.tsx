@@ -36,6 +36,8 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
         nombre: '',
         apellidos: '',
         email: '',
+        email_contacto: '',
+        telefono: '',
         password: '',
         rol: defaultRole,
         pulpito: false
@@ -72,6 +74,8 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
             nombre: '',
             apellidos: '',
             email: '',
+            email_contacto: '',
+            telefono: '',
             password: '',
             rol: defaultRole,
             pulpito: false
@@ -113,6 +117,8 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
             data.append('apellidos', (formDataFromDom.get('apellidos') as string) || formData.apellidos)
             data.append('rol', (formDataFromDom.get('rol') as string) || formData.rol)
             data.append('pulpito', String(formData.pulpito))
+            data.append('email_contacto', (formDataFromDom.get('email_contacto') as string) || formData.email_contacto)
+            data.append('telefono', (formDataFromDom.get('telefono') as string) || formData.telefono)
             if (avatarFile) data.append('avatar', avatarFile, 'avatar.jpg')
 
             let result
@@ -185,6 +191,8 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
             nombre: user.nombre === t('users.defaults.noName') ? '' : user.nombre,
             apellidos: user.apellidos === t('users.defaults.noLastName') ? '' : user.apellidos,
             email: user.email || '',
+            email_contacto: user.email_contacto || '',
+            telefono: user.telefono || '',
             password: '',
             rol: user.rol,
             pulpito: user.pulpito
@@ -363,7 +371,15 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                             id="nombre"
                                             name="nombre"
                                             value={formData.nombre}
-                                            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                                            onChange={(e) => {
+                                                const newName = e.target.value
+                                                const emailPrefix = newName.toLowerCase().trim().replace(/\s+/g, '.')
+                                                setFormData({ 
+                                                    ...formData, 
+                                                    nombre: newName,
+                                                    email: isCreateOpen ? emailPrefix : formData.email
+                                                })
+                                            }}
                                             required
                                             className="bg-white border-zinc-300 text-zinc-900 rounded-xl focus:ring-blue-500 focus:border-blue-500 placeholder:text-zinc-400"
                                         />
@@ -390,16 +406,12 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                                 name="email"
                                                 type="text"
                                                 value={formData.email}
-                                                onChange={(e) => {
-                                                    // Solo permitir cambiar la parte antes del @
-                                                    const value = e.target.value.replace('@idmjisabadell.org', '')
-                                                    setFormData({ ...formData, email: value })
-                                                }}
+                                                readOnly
                                                 required
                                                 placeholder={t('users.form.emailPlaceholder')}
-                                                className="bg-white border-zinc-300 text-zinc-900 rounded-xl rounded-r-none focus:ring-blue-500 focus:border-blue-500 placeholder:text-zinc-400"
+                                                className="bg-zinc-50 border-zinc-300 text-zinc-500 rounded-xl rounded-r-none cursor-not-allowed focus:ring-0 focus:border-zinc-300 placeholder:text-zinc-400"
                                             />
-                                            <div className="bg-zinc-100 border border-l-0 border-zinc-300 rounded-r-xl px-4 py-2 text-zinc-600 font-medium flex items-center">
+                                            <div className="bg-zinc-100 border border-l-0 border-zinc-300 rounded-r-xl px-4 py-2 text-zinc-600 font-medium flex items-center h-11">
                                                 {t('users.form.emailDomain')}
                                             </div>
                                         </div>
@@ -442,6 +454,41 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Sección de Contacto */}
+                                <div className="pt-2 space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-px flex-1 bg-zinc-100" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{t('users.form.contact')}</span>
+                                        <div className="h-px flex-1 bg-zinc-100" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="email_contacto" className="text-zinc-700">{t('users.form.contactEmail')}</Label>
+                                            <Input
+                                                id="email_contacto"
+                                                name="email_contacto"
+                                                type="email"
+                                                value={formData.email_contacto}
+                                                onChange={(e) => setFormData({ ...formData, email_contacto: e.target.value })}
+                                                placeholder="email@ejemplo.com"
+                                                className="bg-white border-zinc-300 text-zinc-900 rounded-xl focus:ring-blue-500 focus:border-blue-500 placeholder:text-zinc-400"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="telefono" className="text-zinc-700">{t('users.form.phone')}</Label>
+                                            <Input
+                                                id="telefono"
+                                                name="telefono"
+                                                type="tel"
+                                                value={formData.telefono}
+                                                onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                                                placeholder="+34 000 000 000"
+                                                className="bg-white border-zinc-300 text-zinc-900 rounded-xl focus:ring-blue-500 focus:border-blue-500 placeholder:text-zinc-400"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <div className="grid grid-cols-2 gap-4 pt-2">
                                     <div className="space-y-2">

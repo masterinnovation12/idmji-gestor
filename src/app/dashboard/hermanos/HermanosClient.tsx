@@ -35,7 +35,7 @@ interface HermanosClientProps {
 /**
  * Componente para mostrar el avatar con iniciales y degradado dinámico
  */
-function HermanoAvatar({ hermano, size = "md" }: { hermano: Profile, size?: "sm" | "md" | "lg" }) {
+function HermanoAvatar({ hermano, size = "md" }: { hermano: Profile, size?: "sm" | "md" | "lg" | "xl" }) {
     const initials = `${hermano.nombre?.[0] || ''}${hermano.apellidos?.[0] || ''}`.toUpperCase() || '?'
     
     // Generar un degradado basado en el nombre para que siempre sea el mismo para el mismo hermano
@@ -60,7 +60,8 @@ function HermanoAvatar({ hermano, size = "md" }: { hermano: Profile, size?: "sm"
     const sizeClasses = {
         sm: "w-12 h-12 rounded-xl",
         md: "w-16 h-16 rounded-2xl",
-        lg: "w-24 h-24 rounded-3xl"
+        lg: "w-24 h-24 rounded-3xl",
+        xl: "w-40 h-40 rounded-[2.5rem]"
     }
 
     return (
@@ -71,7 +72,7 @@ function HermanoAvatar({ hermano, size = "md" }: { hermano: Profile, size?: "sm"
                 hermano.avatar_url ? "bg-primary" : "bg-gradient-to-br " + gradientClass
             )} />
             <div className={cn(
-                "relative border border-white/20 overflow-hidden flex items-center justify-center shadow-lg transition-transform duration-300 group-hover/avatar:scale-105",
+                "relative border-2 border-white/20 overflow-hidden flex items-center justify-center shadow-lg transition-transform duration-300 group-hover/avatar:scale-105",
                 sizeClasses[size],
                 !hermano.avatar_url && "bg-gradient-to-br " + gradientClass
             )}>
@@ -84,7 +85,7 @@ function HermanoAvatar({ hermano, size = "md" }: { hermano: Profile, size?: "sm"
                 ) : (
                     <span className={cn(
                         "font-black text-white tracking-tighter drop-shadow-sm",
-                        size === "sm" ? "text-lg" : size === "md" ? "text-xl" : "text-3xl"
+                        size === "sm" ? "text-lg" : size === "md" ? "text-xl" : size === "lg" ? "text-3xl" : "text-5xl"
                     )}>
                         {initials}
                     </span>
@@ -344,7 +345,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                             </button>
 
                             <div className="flex flex-col items-center text-center space-y-6">
-                                <HermanoAvatar hermano={selectedHermano} size="lg" />
+                                <HermanoAvatar hermano={selectedHermano} size="xl" />
                                 
                                 <div className="space-y-2">
                                     <h2 className="text-3xl md:text-4xl font-black tracking-tighter uppercase leading-none">
@@ -372,34 +373,81 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                 </div>
 
                                 <div className="w-full space-y-4 pt-6">
-                                    <div className="glass border border-white/5 rounded-2xl p-4 flex items-center gap-4 group hover:bg-white/5 transition-all">
-                                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                            <Mail className="w-5 h-5" />
+                                    {/* Sección de Contacto */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 px-2">
+                                            <div className="h-px flex-1 bg-white/5" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">{t('hermanos.contactInfo')}</span>
+                                            <div className="h-px flex-1 bg-white/5" />
                                         </div>
-                                        <div className="text-left">
-                                            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">Correo Electrónico</p>
-                                            <p className="font-bold truncate max-w-[200px] sm:max-w-[250px]">{selectedHermano.email}</p>
+
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {/* Teléfono */}
+                                            {selectedHermano.telefono ? (
+                                                <a 
+                                                    href={`tel:${selectedHermano.telefono}`}
+                                                    className="glass border border-white/5 rounded-2xl p-4 flex items-center gap-4 group hover:bg-primary/10 hover:border-primary/20 transition-all"
+                                                >
+                                                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+                                                        <CheckCircle2 className="w-5 h-5" /> {/* Reemplazar con Phone si estuviera disponible, o usar Lucide Phone */}
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">{t('users.form.phone')}</p>
+                                                        <p className="font-bold text-lg">{selectedHermano.telefono}</p>
+                                                    </div>
+                                                </a>
+                                            ) : (
+                                                <div className="glass border border-white/5 rounded-2xl p-4 opacity-40 flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-xl bg-zinc-500/10 flex items-center justify-center text-zinc-500">
+                                                        <XCircle className="w-5 h-5" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">{t('users.form.phone')}</p>
+                                                        <p className="font-bold">N/A</p>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Email de Contacto */}
+                                            {selectedHermano.email_contacto ? (
+                                                <a 
+                                                    href={`mailto:${selectedHermano.email_contacto}`}
+                                                    className="glass border border-white/5 rounded-2xl p-4 flex items-center gap-4 group hover:bg-primary/10 hover:border-primary/20 transition-all"
+                                                >
+                                                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                                        <Mail className="w-5 h-5" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">{t('users.form.contactEmail')}</p>
+                                                        <p className="font-bold truncate max-w-[200px]">{selectedHermano.email_contacto}</p>
+                                                    </div>
+                                                </a>
+                                            ) : (
+                                                <div className="glass border border-white/5 rounded-2xl p-4 opacity-40 flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-xl bg-zinc-500/10 flex items-center justify-center text-zinc-500">
+                                                        <Mail className="w-5 h-5" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">{t('users.form.contactEmail')}</p>
+                                                        <p className="font-bold">N/A</p>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                        <a 
-                                            href={`mailto:${selectedHermano.email}`}
-                                            className="ml-auto w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-primary/20"
-                                        >
-                                            <Mail className="w-4 h-4" />
-                                        </a>
                                     </div>
 
-                                    {/* Información adicional simulada o real */}
-                                    <div className="grid grid-cols-2 gap-4">
+                                    {/* Información de Sistema */}
+                                    <div className="grid grid-cols-2 gap-4 pt-4">
                                         <div className="glass border border-white/5 rounded-2xl p-4 text-center">
-                                            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Miembro desde</p>
+                                            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">{t('hermanos.registeredSince')}</p>
                                             <p className="font-bold text-sm">
                                                 {new Date(selectedHermano.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}
                                             </p>
                                         </div>
                                         <div className="glass border border-white/5 rounded-2xl p-4 text-center">
-                                            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">ID Usuario</p>
-                                            <p className="font-mono text-[10px] font-bold opacity-40 truncate">
-                                                {selectedHermano.id.split('-')[0]}...
+                                            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Email Acceso</p>
+                                            <p className="font-bold text-[10px] truncate opacity-60">
+                                                {selectedHermano.email}
                                             </p>
                                         </div>
                                     </div>

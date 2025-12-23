@@ -217,6 +217,13 @@ export const translations = {
         'users.error.deleteFailed': 'Error al eliminar usuario',
         'users.defaults.noName': 'Sin nombre',
         'users.defaults.noLastName': 'Sin apellidos',
+        'users.form.contact': 'Información de Contacto',
+        'users.form.contactEmail': 'Email de contacto',
+        'users.form.phone': 'Teléfono',
+        'hermanos.detailsModalTitle': 'Detalles del Hermano',
+        'hermanos.registeredSince': 'Miembro desde',
+        'hermanos.lastLogin': 'Último acceso',
+        'hermanos.noLoginInfo': 'Sin información de acceso',
     },
     'ca-ES': {
         // Login
@@ -436,7 +443,13 @@ export const translations = {
         'users.error.deleteFailed': 'Error en eliminar usuari',
         'users.defaults.noName': 'Sense nom',
         'users.defaults.noLastName': 'Sense cognoms',
-
+        'users.form.contact': 'Informació de Contacte',
+        'users.form.contactEmail': 'Email de contacte',
+        'users.form.phone': 'Telèfon',
+        'hermanos.detailsModalTitle': 'Detalls del Germà',
+        'hermanos.registeredSince': 'Membre des de',
+        'hermanos.lastLogin': 'Últim accés',
+        'hermanos.noLoginInfo': 'Sense informació d\'accés',
     },
 } as const
 

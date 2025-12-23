@@ -15,6 +15,8 @@ export interface Profile {
     nombre: string | null
     apellidos: string | null
     email: string | null
+    email_contacto: string | null
+    telefono: string | null
     rol: UserRole
     avatar_url: string | null
     pulpito: boolean
