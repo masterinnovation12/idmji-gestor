@@ -64,6 +64,22 @@ export default function DashboardLayout({
     const router = useRouter()
     const supabase = createClient()
 
+    // Ocultar scrollbar en páginas específicas
+    useEffect(() => {
+        const shouldHideScrollbar = pathname?.includes('/admin/users') || pathname?.includes('/hermanos')
+        if (shouldHideScrollbar) {
+            document.documentElement.classList.add('no-scrollbar')
+            document.body.classList.add('no-scrollbar')
+        } else {
+            document.documentElement.classList.remove('no-scrollbar')
+            document.body.classList.remove('no-scrollbar')
+        }
+        return () => {
+            document.documentElement.classList.remove('no-scrollbar')
+            document.body.classList.remove('no-scrollbar')
+        }
+    }, [pathname])
+
     // Fetch user profile on mount
     useEffect(() => {
         async function fetchUserProfile() {
@@ -101,8 +117,11 @@ export default function DashboardLayout({
 
     // Cerrar menú móvil al cambiar de ruta
     useEffect(() => {
-        setIsMobileMenuOpen(false)
-    }, [pathname])
+        if (isMobileMenuOpen) {
+            const timer = setTimeout(() => setIsMobileMenuOpen(false), 0)
+            return () => clearTimeout(timer)
+        }
+    }, [pathname, isMobileMenuOpen])
 
     // Cerrar menú móvil al redimensionar a desktop
     useEffect(() => {
@@ -244,7 +263,7 @@ export default function DashboardLayout({
             {/* Main Area */}
             <main
                 className={`min-h-screen transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'md:ml-24' : 'md:ml-[280px]'
-                    } ${pathname?.includes('/admin/users') ? 'no-scrollbar' : ''}`}
+                    } ${pathname?.includes('/admin/users') || pathname?.includes('/hermanos') ? 'no-scrollbar' : ''}`}
             >
                 {/* Mobile Floating Header (Glassmorphism) */}
                 <header className="sticky top-4 z-90 md:hidden px-4">
@@ -274,7 +293,7 @@ export default function DashboardLayout({
                 </header>
 
                 {/* Page Content with Entrance Animation */}
-                <div className={`p-6 md:p-10 lg:p-12 max-w-7xl mx-auto ${pathname?.includes('/admin/users') ? 'no-scrollbar' : ''}`}>
+                <div className={`p-6 md:p-10 lg:p-12 max-w-7xl mx-auto ${pathname?.includes('/admin/users') || pathname?.includes('/hermanos') ? 'no-scrollbar' : ''}`}>
                     <motion.div
                         key={pathname}
                         initial={{ opacity: 0, y: 10 }}

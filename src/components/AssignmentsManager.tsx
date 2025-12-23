@@ -5,12 +5,18 @@ import { updateAssignment } from '@/app/dashboard/cultos/[id]/actions'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+interface AssignmentUser {
+    id: string
+    nombre: string
+    apellidos: string
+}
+
 interface AssignmentsManagerProps {
     cultoId: string
     assignments: {
-        intro: any
-        ensenanza: any
-        finalizacion: any
+        intro: AssignmentUser | null
+        ensenanza: AssignmentUser | null
+        finalizacion: AssignmentUser | null
     }
 }
 

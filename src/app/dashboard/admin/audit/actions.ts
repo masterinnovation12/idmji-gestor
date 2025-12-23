@@ -51,21 +51,33 @@ export async function getMovimientos(
 
         if (error) throw error
 
-        const formattedData: MovimientoData[] = (data || []).map((m: any) => ({
-            id: m.id,
-            fecha_hora: m.fecha_hora,
-            id_usuario: m.id_usuario,
-            tipo: m.tipo,
-            descripcion: m.descripcion,
-            culto_id: m.culto_id,
-            usuario: m.profiles ? {
-                nombre: m.profiles.nombre,
-                apellidos: m.profiles.apellidos
-            } : undefined,
-            culto: m.cultos ? {
-                fecha: m.cultos.fecha
-            } : undefined
-        }))
+        const formattedData: MovimientoData[] = (data || []).map((m) => {
+            const row = m as unknown as {
+                id: string;
+                fecha_hora: string;
+                id_usuario: string | null;
+                tipo: string;
+                descripcion: string | null;
+                culto_id: string | null;
+                profiles: { nombre: string; apellidos: string } | null;
+                cultos: { fecha: string } | null;
+            };
+            return {
+                id: row.id,
+                fecha_hora: row.fecha_hora,
+                id_usuario: row.id_usuario,
+                tipo: row.tipo,
+                descripcion: row.descripcion,
+                culto_id: row.culto_id,
+                usuario: row.profiles ? {
+                    nombre: row.profiles.nombre,
+                    apellidos: row.profiles.apellidos
+                } : undefined,
+                culto: row.cultos ? {
+                    fecha: row.cultos.fecha
+                } : undefined
+            };
+        })
 
         return {
             success: true,

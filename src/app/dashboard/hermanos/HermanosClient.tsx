@@ -17,15 +17,13 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { getHermanos } from './actions'
-import { Search, Users, User, ChevronLeft, ShieldCheck, Mail, Sparkles, Filter, Award, CheckCircle2, XCircle, X } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/Card'
+import { Search, Users, ChevronLeft, ShieldCheck, Mail, Sparkles, Award, CheckCircle2, X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
-import { Profile } from '@/types/database'
+import { Profile, UserRole } from '@/types/database'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/Dialog'
+import { Dialog, DialogContent } from '@/components/ui/Dialog'
 
 interface HermanosClientProps {
     initialHermanos: Profile[]
@@ -98,9 +96,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
     const { t } = useI18n()
     const [hermanos, setHermanos] = useState<Profile[]>(initialHermanos)
     const [searchTerm, setSearchTerm] = useState('')
-    const [isLoading, setIsLoading] = useState(false)
-    const [filterRole, setFilterRole] = useState<'ALL' | 'ADMIN' | 'EDITOR' | 'VIEWER'>('ALL')
-    const [onlyPulpito, setOnlyPulpito] = useState(true)
+    const [filterRole, setFilterRole] = useState<'ALL' | UserRole>('ALL')
     const [selectedHermano, setSelectedHermano] = useState<Profile | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -121,11 +117,10 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                 email.includes(search)
             
             const matchesRole = filterRole === 'ALL' || h.rol === filterRole
-            const matchesPulpito = !onlyPulpito || h.pulpito
 
-            return matchesSearch && matchesRole && matchesPulpito
+            return matchesSearch && matchesRole
         })
-    }, [hermanos, searchTerm, filterRole, onlyPulpito])
+    }, [hermanos, searchTerm, filterRole])
 
     // Efecto para sincronizar con el servidor si es necesario (ej. si initialHermanos cambia)
     useEffect(() => {
@@ -147,7 +142,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
     }
 
     return (
-        <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4 md:px-6">
+        <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4 md:px-6 no-scrollbar" data-page="hermanos">
             {/* Breadcrumb Mejorado */}
             <motion.div 
                 initial={{ opacity: 0, x: -20 }}
@@ -192,45 +187,30 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                     </motion.p>
                 </div>
 
-                {/* Filtros y Buscador */}
+                {/* Buscador */}
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="w-full xl:w-auto flex flex-col sm:flex-row gap-4"
+                    className="w-full xl:w-96 group"
                 >
-                    <div className="relative flex-1 sm:w-80 group">
-                        <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl group-focus-within:bg-primary/30 transition-all opacity-0 group-focus-within:opacity-100" />
-                        <div className="relative glass border border-white/10 rounded-2xl flex items-center px-5 h-16 shadow-2xl focus-within:border-primary transition-all">
-                            <Search className="w-5 h-5 text-primary/50 mr-3 group-focus-within:text-primary transition-colors" />
-                            <input
-                                type="text"
-                                placeholder={t('hermanos.searchPlaceholder')}
-                                className="w-full bg-transparent border-none outline-none font-bold placeholder:text-muted-foreground/30 text-foreground text-lg"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
+                    <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl group-focus-within:bg-primary/30 transition-all opacity-0 group-focus-within:opacity-100" />
+                    <div className="relative glass border border-white/10 rounded-2xl flex items-center px-5 h-16 shadow-2xl focus-within:border-primary transition-all">
+                        <Search className="w-5 h-5 text-primary/50 mr-3 group-focus-within:text-primary transition-colors" />
+                        <input
+                            type="text"
+                            placeholder={t('hermanos.searchPlaceholder')}
+                            className="w-full bg-transparent border-none outline-none font-bold placeholder:text-muted-foreground/30 text-foreground text-lg"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
-
-                    <button
-                        onClick={() => setOnlyPulpito(!onlyPulpito)}
-                        className={cn(
-                            "h-16 px-6 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-3 shadow-xl",
-                            onlyPulpito 
-                                ? "bg-primary text-white scale-105 shadow-primary/20" 
-                                : "glass border border-white/10 text-muted-foreground hover:bg-white/5"
-                        )}
-                    >
-                        <Award className={cn("w-5 h-5", onlyPulpito ? "animate-pulse" : "opacity-40")} />
-                        {t('hermanos.filterPulpito')}
-                    </button>
                 </motion.div>
             </div>
 
             {/* Listado con Animación Stagger */}
             <div className="space-y-6">
-                <div className="flex items-center justify-between px-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-2">
                     <h2 className="text-sm font-black uppercase tracking-[0.3em] text-muted-foreground/60 flex items-center gap-2">
                         <Users className="w-4 h-4" />
                         {t('hermanos.showing')
@@ -238,16 +218,16 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                             .replace('{plural}', filteredHermanos.length !== 1 ? 's' : '')}
                     </h2>
                     
-                    <div className="flex gap-2">
-                        {['ALL', 'ADMIN', 'EDITOR'].map((role) => (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar w-full sm:w-auto -mx-2 sm:mx-0 px-2 sm:px-0">
+                        {(['ALL', 'ADMIN', 'EDITOR'] as const).map((role) => (
                             <button
                                 key={role}
-                                onClick={() => setFilterRole(role as any)}
+                                onClick={() => setFilterRole(role)}
                                 className={cn(
-                                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                                    "px-5 py-3 sm:px-4 sm:py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 whitespace-nowrap min-w-[80px] sm:min-w-0 flex items-center justify-center",
                                     filterRole === role
                                         ? "bg-foreground text-background border-foreground shadow-lg"
-                                        : "glass border-white/10 text-muted-foreground hover:bg-white/5"
+                                        : "bg-white/60 dark:bg-white/5 border-zinc-300 dark:border-white/10 text-zinc-700 dark:text-muted-foreground hover:bg-white/80 dark:hover:bg-white/10 backdrop-blur-md"
                                 )}
                             >
                                 {role === 'ALL' ? t('hermanos.filterAll') : role}

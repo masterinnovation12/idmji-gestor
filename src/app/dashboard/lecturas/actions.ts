@@ -44,7 +44,9 @@ export async function saveLectura(
             requiresConfirmation: true,
             existingReading: {
                 id: existente.id,
-                fecha: Array.isArray(existente.cultos) ? existente.cultos[0]?.fecha : (existente.cultos as any)?.fecha,
+                fecha: Array.isArray(existente.cultos) 
+                    ? (existente.cultos[0] as unknown as { fecha: string }).fecha 
+                    : (existente.cultos as unknown as { fecha: string }).fecha,
                 lector: existente.id_usuario_lector,
             }
         }
@@ -211,7 +213,14 @@ export async function getBibliaLibros() {
     }
 
     // 2. Aggregate into BibleBook[] structure
-    const booksMap = new Map<string, any>()
+    interface BibleBook {
+        id: number
+        nombre: string
+        testamento: string
+        abreviatura: string
+        capitulos: { n: number, v: number }[]
+    }
+    const booksMap = new Map<string, BibleBook>()
 
     rows.forEach((row) => {
         if (!booksMap.has(row.libro)) {
@@ -223,7 +232,7 @@ export async function getBibliaLibros() {
                 capitulos: []
             })
         }
-        booksMap.get(row.libro).capitulos.push({
+        booksMap.get(row.libro)?.capitulos.push({
             n: row.capitulo,
             v: row.num_versiculos
         })
