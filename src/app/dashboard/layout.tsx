@@ -27,7 +27,6 @@ import {
     Music,
     Users,
     BarChart,
-    Settings,
     LogOut,
     Menu,
     FileText,
@@ -116,7 +115,9 @@ export default function DashboardLayout({
 
     // Cerrar menú móvil al cambiar de ruta
     useEffect(() => {
-        setIsMobileMenuOpen(false)
+        if (isMobileMenuOpen) {
+            setIsMobileMenuOpen(false)
+        }
     }, [pathname])
 
     // Cerrar menú móvil al redimensionar a desktop

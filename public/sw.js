@@ -12,6 +12,15 @@ self.addEventListener('activate', (event) => {
 
 
 
+self.addEventListener('fetch', (event) => {
+    // Necesario para que sea instalable
+    event.respondWith(
+        fetch(event.request).catch(() => {
+            return caches.match(event.request)
+        })
+    )
+})
+
 self.addEventListener('push', (event) => {
     const data = event.data ? event.data.json() : {}
 

@@ -17,11 +17,11 @@
 
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef } from 'react'
+import { motion } from 'framer-motion'
 import { 
     User, Mail, Phone, Shield, Moon, Globe, Sun, 
-    Camera, Check, Loader2, Sparkles, UserCircle, 
+    Camera, Loader2, Sparkles, UserCircle, 
     Calendar, Save, AlertCircle, Trash2
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -134,9 +134,9 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
             } else {
                 toast.error(result.error || 'Error al actualizar perfil')
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error)
-            toast.error(error?.message || 'Error inesperado')
+            toast.error(error instanceof Error ? error.message : 'Error inesperado')
         } finally {
             setIsSaving(false)
         }

@@ -5,6 +5,7 @@ import { I18nProvider } from "@/lib/i18n/I18nProvider";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { PWARegister } from "@/components/PWARegister";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -25,8 +26,11 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "IDMJI Gestor",
+  },
+  formatDetection: {
+    telephone: false,
   },
 };
 
@@ -38,7 +42,9 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <link rel="apple-touch-icon" href="/web-app-manifest-192x192.png" />
+        <link rel="apple-touch-icon" href="/logo.jpeg" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className={`${inter.variable} font-sans antialiased no-scrollbar`}>
         <ThemeProvider>
@@ -46,6 +52,7 @@ export default function RootLayout({
             <div className="gradient-mesh fixed inset-0 -z-10" />
             <Toaster position="top-center" closeButton />
             <PWARegister />
+            <InstallPrompt />
             {children}
           </I18nProvider>
         </ThemeProvider>
