@@ -66,7 +66,7 @@ export default function DashboardLayout({
 
     // Ocultar scrollbar en páginas específicas
     useEffect(() => {
-        const shouldHideScrollbar = pathname?.includes('/admin/users') || pathname?.includes('/hermanos')
+        const shouldHideScrollbar = pathname?.includes('/admin/users') || pathname?.includes('/hermanos') || pathname?.includes('/profile')
         if (shouldHideScrollbar) {
             document.documentElement.classList.add('no-scrollbar')
             document.body.classList.add('no-scrollbar')
@@ -112,7 +112,6 @@ export default function DashboardLayout({
         { icon: BarChart, label: t('nav.stats'), href: '/dashboard/admin/stats' },
         { icon: UserCog, label: t('nav.users'), href: '/dashboard/admin/users' },
         { icon: FileText, label: t('nav.audit'), href: '/dashboard/admin/audit' },
-        { icon: Settings, label: t('nav.settings'), href: '/dashboard/settings' },
     ]
 
     // Cerrar menú móvil al cambiar de ruta
@@ -207,7 +206,7 @@ export default function DashboardLayout({
 
     return (
         <div 
-            className="min-h-screen bg-background selection:bg-primary/20 selection:text-primary overflow-x-hidden"
+            className="min-h-screen bg-background selection:bg-primary/20 selection:text-primary overflow-x-hidden no-scrollbar"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -284,7 +283,7 @@ export default function DashboardLayout({
             {/* Main Area */}
             <main
                 className={`min-h-screen transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'md:ml-24' : 'md:ml-[280px]'
-                    } ${pathname?.includes('/admin/users') || pathname?.includes('/hermanos') ? 'no-scrollbar' : ''}`}
+                    } ${pathname?.includes('/admin/users') || pathname?.includes('/hermanos') || pathname?.includes('/profile') ? 'no-scrollbar' : ''}`}
             >
                 {/* Mobile Floating Header (Glassmorphism) */}
                 <header className="sticky top-4 z-90 md:hidden px-4">

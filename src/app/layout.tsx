@@ -40,7 +40,7 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/web-app-manifest-192x192.png" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased no-scrollbar`}>
         <ThemeProvider>
           <I18nProvider>
             <div className="gradient-mesh fixed inset-0 -z-10" />

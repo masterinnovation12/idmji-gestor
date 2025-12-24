@@ -1,5 +1,31 @@
 @import "tailwindcss";
 
+/* Forzar ocultar scrollbar en html y body desde el inicio */
+html {
+  overflow-y: auto;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+html::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+body {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+body::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
 /* Theme colors as CSS custom properties for Tailwind */
 
 @layer base {
@@ -103,6 +129,32 @@ html, body, .no-scrollbar {
 }
 
 html::-webkit-scrollbar, body::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* Ocultar scrollbar en todas las páginas del dashboard */
+body::-webkit-scrollbar,
+html::-webkit-scrollbar,
+main::-webkit-scrollbar,
+[class*="dashboard"]::-webkit-scrollbar,
+div::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* Forzar ocultar scrollbar en todos los elementos */
+* {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+*::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
@@ -815,22 +867,29 @@ html, body {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+/* Ocultar TODOS los scrollbars - Sobrescribe cualquier estilo anterior */
+::-webkit-scrollbar,
+*::-webkit-scrollbar,
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+main::-webkit-scrollbar,
+div::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  -webkit-appearance: none !important;
 }
 
-::-webkit-scrollbar-track {
-  background-color: hsl(var(--muted) / 0.5);
+/* Ocultar scrollbar en Firefox y otros navegadores */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary));
+html, body {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 /* Ocultar scrollbar específicamente en la página de usuarios y hermanos */
