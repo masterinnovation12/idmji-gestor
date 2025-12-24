@@ -58,6 +58,7 @@ export default function DashboardLayout({
         apellidos: string | null
         avatar_url: string | null
         email: string | null
+        rol: string | null
     } | null>(null)
     const pathname = usePathname()
     const router = useRouter()
@@ -86,7 +87,7 @@ export default function DashboardLayout({
             if (user) {
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('nombre, apellidos, avatar_url')
+                    .select('nombre, apellidos, avatar_url, rol')
                     .eq('id', user.id)
                     .single()
 
@@ -94,7 +95,8 @@ export default function DashboardLayout({
                     nombre: profile?.nombre || null,
                     apellidos: profile?.apellidos || null,
                     avatar_url: profile?.avatar_url || null,
-                    email: user.email || null
+                    email: user.email || null,
+                    rol: profile?.rol || null
                 })
             }
         }
@@ -108,9 +110,12 @@ export default function DashboardLayout({
         { icon: BookOpen, label: t('nav.lecturas'), href: '/dashboard/lecturas' },
         { icon: Music, label: t('nav.himnario'), href: '/dashboard/himnario' },
         { icon: Users, label: t('nav.hermanos'), href: '/dashboard/hermanos' },
-        { icon: BarChart, label: t('nav.stats'), href: '/dashboard/admin/stats' },
-        { icon: UserCog, label: t('nav.users'), href: '/dashboard/admin/users' },
-        { icon: FileText, label: t('nav.audit'), href: '/dashboard/admin/audit' },
+        // Items de administración (solo para ADMIN)
+        ...(userProfile?.rol === 'ADMIN' ? [
+            { icon: BarChart, label: t('nav.stats'), href: '/dashboard/admin/stats' },
+            { icon: UserCog, label: t('nav.users'), href: '/dashboard/admin/users' },
+            { icon: FileText, label: t('nav.audit'), href: '/dashboard/admin/audit' },
+        ] : [])
     ]
 
     // Cerrar menú móvil al cambiar de ruta
@@ -354,6 +359,7 @@ interface SidebarContentProps {
         apellidos: string | null
         avatar_url: string | null
         email: string | null
+        rol: string | null
     } | null
 }
 

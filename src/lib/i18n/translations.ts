@@ -235,6 +235,26 @@ export const translations = {
         'hermanos.registeredSince': 'Miembro desde',
         'hermanos.lastLogin': 'Último acceso',
         'hermanos.noLoginInfo': 'Sin información de acceso',
+
+        // Audit Page
+        'audit.title': 'Auditoría',
+        'audit.desc': 'Historial de cambios y movimientos del sistema',
+        'audit.totalRecords': 'Total de registros',
+        'audit.filterType': 'Todos los tipos',
+        'audit.searchPlaceholder': 'Buscar por descripción o usuario...',
+        'audit.tableDate': 'Fecha/Hora',
+        'audit.tableUser': 'Usuario',
+        'audit.tableType': 'Tipo',
+        'audit.tableDescription': 'Descripción',
+        'audit.tableCulto': 'Culto',
+        'audit.system': 'Sistema',
+        'audit.noResults': 'No hay registros de auditoría',
+        'audit.export': 'Exportar Excel',
+        'audit.type.assignment': 'Asignación',
+        'audit.type.reading': 'Lectura',
+        'audit.type.hymn': 'Himno',
+        'audit.type.chorus': 'Coro',
+        'audit.type.culto': 'Culto',
     },
     'ca-ES': {
         // Login
@@ -472,6 +492,26 @@ export const translations = {
         'hermanos.registeredSince': 'Membre des de',
         'hermanos.lastLogin': 'Últim accés',
         'hermanos.noLoginInfo': 'Sense informació d\'accés',
+
+        // Audit Page
+        'audit.title': 'Auditoria',
+        'audit.desc': 'Historial de canvis i moviments del sistema',
+        'audit.totalRecords': 'Total de registres',
+        'audit.filterType': 'Tots els tipus',
+        'audit.searchPlaceholder': 'Cercar per descripció o usuari...',
+        'audit.tableDate': 'Data/Hora',
+        'audit.tableUser': 'Usuari',
+        'audit.tableType': 'Tipus',
+        'audit.tableDescription': 'Descripció',
+        'audit.tableCulto': 'Culte',
+        'audit.system': 'Sistema',
+        'audit.noResults': 'No hi ha registres d\'auditoria',
+        'audit.export': 'Exportar Excel',
+        'audit.type.assignment': 'Assignació',
+        'audit.type.reading': 'Lectura',
+        'audit.type.hymn': 'Himne',
+        'audit.type.chorus': 'Coro',
+        'audit.type.culto': 'Culte',
     },
 } as const
 

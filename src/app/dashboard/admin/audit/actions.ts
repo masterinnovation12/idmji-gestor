@@ -22,7 +22,8 @@ export interface MovimientoData {
 export async function getMovimientos(
     page: number = 1,
     limit: number = 20,
-    tipo?: string
+    tipo?: string,
+    search?: string
 ): Promise<ActionResponse<{ data: MovimientoData[], total: number }>> {
     try {
         const supabase = await createClient()
@@ -40,14 +41,18 @@ export async function getMovimientos(
                 profiles!movimientos_id_usuario_fkey(nombre, apellidos),
                 cultos!movimientos_culto_id_fkey(fecha)
             `, { count: 'exact' })
-            .order('fecha_hora', { ascending: false })
-            .range(offset, offset + limit - 1)
 
         if (tipo) {
             query = query.eq('tipo', tipo)
         }
 
+        if (search) {
+            query = query.ilike('descripcion', `%${search}%`)
+        }
+
         const { data, error, count } = await query
+            .order('fecha_hora', { ascending: false })
+            .range(offset, offset + limit - 1)
 
         if (error) throw error
 
