@@ -11,7 +11,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Search, X, User, Check, Loader2 } from 'lucide-react'
+import { Search, X, User, Check, Loader2, ChevronDown } from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
 import { searchProfiles } from '@/app/dashboard/cultos/[id]/actions'
 import { Profile } from '@/types/database'
@@ -143,16 +143,22 @@ export default function UserSelector({
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute z-50 w-full mt-3 bg-white dark:bg-zinc-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-gray-100 dark:border-white/5 max-h-72 overflow-hidden flex flex-col"
+                        className="absolute z-50 w-full top-full mt-3 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] border border-gray-200 dark:border-white/10 max-h-[450px] overflow-hidden flex flex-col"
                     >
+                        <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                                {query ? 'Resultados de búsqueda' : 'Hermanos sugeridos'}
+                            </p>
+                            <button 
+                                onClick={() => setShowResults(false)}
+                                className="p-1.5 hover:bg-muted rounded-full transition-colors text-muted-foreground"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
                         <div className="overflow-y-auto no-scrollbar p-2">
                             {results.length > 0 ? (
-                                <div className="space-y-1">
-                                    <div className="px-4 py-2 mb-1 border-b border-gray-50 dark:border-white/5">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                                            {query ? 'Resultados de búsqueda' : 'Sugerencias (Suben al Púlpito)'}
-                                        </p>
-                                    </div>
+                                <div className="grid grid-cols-1 gap-1">
                                     {results.map((user) => {
                                         const isSelected = selectedUserId === user.id
                                         return (
@@ -160,50 +166,59 @@ export default function UserSelector({
                                                 key={user.id}
                                                 onClick={() => handleSelect(user)}
                                                 className={`
-                                                    w-full px-4 py-3 text-left transition-all rounded-2xl flex items-center gap-3 group/item
+                                                    w-full px-4 py-3.5 text-left transition-all rounded-[1.5rem] flex items-center justify-between group/item relative overflow-hidden
                                                     ${isSelected ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-primary/5 text-foreground'}
                                                 `}
                                             >
-                                                {/* Avatar o Iniciales */}
-                                                <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center font-black text-xs border shadow-sm ${
-                                                    isSelected ? 'bg-white/20 border-white/20' : 'bg-primary/5 border-primary/10 text-primary'
-                                                }`}>
-                                                    {user.avatar_url ? (
-                                                        <img src={user.avatar_url} alt="" className="w-full h-full object-cover rounded-xl" />
-                                                    ) : (
-                                                        <span>{user.nombre?.[0]}{user.apellidos?.[0]}</span>
-                                                    )}
+                                                <div className="flex items-center gap-4 relative z-10">
+                                                    {/* Avatar o Iniciales */}
+                                                    <div className={`w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover/item:scale-105 group-hover/item:rotate-3 ${
+                                                        isSelected ? 'bg-white/20 border-white/20' : 'bg-primary/5 border-primary/10 text-primary'
+                                                    }`}>
+                                                        {user.avatar_url ? (
+                                                            <img src={user.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
+                                                        ) : (
+                                                            <span className="uppercase">{user.nombre?.[0]}{user.apellidos?.[0]}</span>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-black text-sm md:text-base truncate uppercase tracking-tight">
+                                                            {user.nombre} {user.apellidos}
+                                                        </p>
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <p className={`text-[10px] uppercase font-black tracking-widest ${isSelected ? 'text-white/60' : 'text-emerald-500'}`}>
+                                                                {isSelected ? 'Seleccionado' : 'Disponible para el púlpito'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
                                                 </div>
 
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-bold text-sm truncate uppercase tracking-tight">
-                                                        {user.nombre} {user.apellidos}
-                                                    </p>
-                                                    <p className={`text-[10px] uppercase font-black tracking-widest ${isSelected ? 'text-white/60' : 'text-emerald-500'}`}>
-                                                        {isSelected ? 'Seleccionado' : 'Disponible'}
-                                                    </p>
+                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all relative z-10 ${isSelected ? 'bg-white/20' : 'bg-primary/0 group-hover/item:bg-primary/10'}`}>
+                                                    {isSelected ? <Check className="w-4 h-4 text-white" strokeWidth={3} /> : <ChevronDown className="w-4 h-4 text-muted-foreground/30 -rotate-90 group-hover/item:text-primary group-hover/item:translate-x-0.5 transition-all" />}
                                                 </div>
-
-                                                {isSelected && <Check className="w-4 h-4" strokeWidth={3} />}
                                             </button>
                                         )
                                     })}
                                 </div>
                             ) : (
                                 !isSearching && (
-                                    <div className="p-10 text-center">
+                                    <div className="p-12 text-center">
                                         <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <User className="w-8 h-8 text-muted-foreground/30" />
                                         </div>
-                                        <p className="text-sm font-bold text-foreground uppercase tracking-widest mb-1">
+                                        <p className="text-sm font-black text-foreground uppercase tracking-widest mb-1">
                                             Sin resultados
                                         </p>
-                                        <p className="text-xs text-muted-foreground font-medium">
+                                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                                             No se encontró ningún hermano con "{query}"
                                         </p>
                                     </div>
                                 )
                             )}
+                        </div>
+                        <div className="p-3 bg-muted/20 border-t border-border/50 text-center">
+                            <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Selecciona un hermano para asignar</p>
                         </div>
                     </motion.div>
                 )}

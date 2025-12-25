@@ -32,8 +32,30 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
     const [versiculoFin, setVersiculoFin] = useState<number | ''>('')
     const [showDropdown, setShowDropdown] = useState(false)
     const [isMobileSearchActive, setIsMobileSearchActive] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
+    const dropdownRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768)
+        }
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && 
+                inputRef.current && !inputRef.current.contains(event.target as Node)) {
+                setShowDropdown(false)
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [])
 
     useEffect(() => {
         async function loadLibros() {
@@ -149,7 +171,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
     return (
         <div className="space-y-6">
             {/* Libro */}
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 relative">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Libro de la Biblia</label>
                 <div className="relative group">
                     <div className="absolute inset-0 bg-primary/10 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
@@ -159,55 +181,105 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                             type="text"
                             ref={inputRef}
                             value={searchQuery}
-                            readOnly // On mobile we use the custom search overlay
-                            onClick={() => setIsMobileSearchActive(true)}
-                            onFocus={() => {
-                                if (window.innerWidth < 768) {
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value)
+                                if (!isMobile) setShowDropdown(true)
+                            }}
+                            onClick={() => {
+                                if (isMobile) {
                                     setIsMobileSearchActive(true)
-                                    inputRef.current?.blur()
                                 } else {
                                     setShowDropdown(true)
                                 }
                             }}
-                            placeholder="Selecciona un libro..."
+                            onFocus={() => {
+                                if (!isMobile) setShowDropdown(true)
+                            }}
+                            placeholder="Buscar libro..."
                             disabled={disabled}
-                            className="w-full bg-muted/30 border border-border/50 rounded-2xl pl-12 pr-4 py-4 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all text-sm md:text-base font-bold placeholder:text-muted-foreground/40 shadow-sm cursor-pointer"
+                            className="w-full bg-muted/30 border border-border/50 rounded-2xl pl-12 pr-4 py-4 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all text-sm md:text-base font-bold placeholder:text-muted-foreground/40 shadow-sm cursor-text md:cursor-pointer"
                         />
                     </div>
 
-                    {/* Desktop Dropdown (hidden on mobile search) */}
-                    {!isMobileSearchActive && showDropdown && filteredLibros.length > 0 && (
-                        <div className="absolute z-[100] w-full mt-3 bg-white dark:bg-zinc-900 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-[400px] overflow-hidden border border-gray-200 dark:border-white/10 animate-in fade-in zoom-in-95 duration-200 flex flex-col">
-                            <div className="overflow-y-auto p-3 no-scrollbar">
-                                {filteredLibros.map((libro) => (
-                                    <button
-                                        key={libro.id}
-                                        onClick={() => handleSelectLibro(libro)}
-                                        className="w-full px-5 py-4 text-left hover:bg-primary/10 transition-all flex items-center justify-between group rounded-2xl mb-1 last:mb-0"
+                    {/* Desktop Search Results - More integrated and premium */}
+                    <AnimatePresence>
+                        {!isMobile && showDropdown && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                ref={dropdownRef}
+                                className="absolute z-[100] w-full top-full mt-3 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden border border-gray-200 dark:border-white/10 flex flex-col min-h-[100px] max-h-[450px]"
+                            >
+                                <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Resultados de búsqueda</p>
+                                    <button 
+                                        onClick={() => setShowDropdown(false)}
+                                        className="p-1.5 hover:bg-muted rounded-full transition-colors"
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${libro.testamento === 'AT' ? 'bg-amber-500/10 text-amber-600' : 'bg-blue-500/10 text-blue-600'}`}>
-                                                {libro.abreviatura.slice(0, 2)}
-                                            </div>
-                                            <div>
-                                                <p className="font-black text-sm md:text-base group-hover:text-primary transition-colors uppercase tracking-tight">{libro.nombre}</p>
-                                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                                                    {libro.testamento === 'AT' ? 'Antiguo Testamento' : 'Nuevo Testamento'} • {libro.capitulos.length} Capítulos
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <ChevronDown className="w-4 h-4 text-muted-foreground/30 -rotate-90" />
+                                        <X className="w-4 h-4 text-muted-foreground" />
                                     </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                                </div>
+                                <div className="overflow-y-auto p-2 no-scrollbar">
+                                    {filteredLibros.length > 0 ? (
+                                        <div className="grid grid-cols-1 gap-1">
+                                            {filteredLibros.map((libro) => (
+                                                <button
+                                                    key={libro.id}
+                                                    onClick={() => handleSelectLibro(libro)}
+                                                    className="w-full px-4 py-3.5 text-left hover:bg-primary/5 dark:hover:bg-primary/10 transition-all flex items-center justify-between group rounded-[1.5rem] relative overflow-hidden"
+                                                >
+                                                    <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors" />
+                                                    <div className="flex items-center gap-4 relative z-10">
+                                                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover:scale-105 group-hover:rotate-3 ${
+                                                            libro.testamento === 'AT' 
+                                                                ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' 
+                                                                : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
+                                                        }`}>
+                                                            {libro.abreviatura.slice(0, 2)}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-black text-sm md:text-base group-hover:text-primary transition-colors uppercase tracking-tight">{libro.nombre}</p>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border ${
+                                                                    libro.testamento === 'AT' 
+                                                                        ? 'bg-amber-500/5 border-amber-500/20 text-amber-600' 
+                                                                        : 'bg-blue-500/5 border-blue-500/20 text-blue-600'
+                                                                }`}>
+                                                                    {libro.testamento === 'AT' ? 'Antiguo Testamento' : 'Nuevo Testamento'}
+                                                                </span>
+                                                                <span className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-widest">•</span>
+                                                                <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest italic">
+                                                                    {libro.capitulos.length} Capítulos
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="w-8 h-8 rounded-xl bg-primary/0 group-hover:bg-primary/10 flex items-center justify-center transition-all relative z-10">
+                                                        <ChevronDown className="w-4 h-4 text-muted-foreground/30 -rotate-90 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="p-10 text-center">
+                                            <BookOpen className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
+                                            <p className="text-xs font-black text-muted-foreground/40 uppercase tracking-widest">No hay resultados para "{searchQuery}"</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-3 bg-muted/20 border-t border-border/50 text-center">
+                                    <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Sugerencia: Escribe para filtrar la lista</p>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
 
             {/* Mobile Search Overlay */}
             <AnimatePresence>
-                {isMobileSearchActive && (
+                {isMobile && isMobileSearchActive && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
