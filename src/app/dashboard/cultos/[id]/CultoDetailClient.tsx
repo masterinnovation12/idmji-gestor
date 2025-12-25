@@ -75,13 +75,13 @@ function AssignmentSection({
                     {selectedUserId && !isEditing && (
                         <button
                             onClick={() => setIsEditing(true)}
-                            className="px-2 py-1 md:px-2.5 md:py-1.5 text-[8px] md:text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm shrink-0 mt-0.5"
+                            className="px-2 py-1 md:px-3 md:py-1.5 text-[8px] md:text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm shrink-0 mt-0.5"
                         >
                             Modificar
                         </button>
                     )}
                 </CardHeader>
-                <CardContent className="p-3 md:p-4 flex-1 flex flex-col min-h-0">
+                <CardContent className="p-2 md:p-3 flex-1 flex flex-col min-h-0">
                     <div className="space-y-3 md:space-y-4 flex-1 flex flex-col min-h-0">
                         <div className="shrink-0">
                             <UserSelector
@@ -103,7 +103,7 @@ function AssignmentSection({
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
-                                    className={`flex items-center gap-3 p-3 md:p-4 rounded-[1.5rem] border shadow-inner relative overflow-hidden group/assigned transition-all flex-1 min-h-0 ${
+                                    className={`flex items-center gap-3.5 p-3.5 md:p-4.5 rounded-[1.75rem] border shadow-inner relative overflow-hidden group/assigned transition-all flex-1 min-h-0 ${
                                         isEditing 
                                             ? 'bg-muted/50 border-border opacity-60' 
                                             : 'bg-primary/5 border-primary/10'
@@ -111,27 +111,27 @@ function AssignmentSection({
                                 >
                                     <div className="absolute inset-0 bg-linear-to-r from-primary/5 to-transparent opacity-0 group-hover/assigned:opacity-100 transition-opacity" />
                                     
-                                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center font-black text-xs md:text-sm border-2 shadow-lg relative z-10 shrink-0 ${
+                                    <div className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-black text-xs md:text-sm lg:text-base border-2 shadow-lg relative z-10 shrink-0 ${
                                         isEditing ? 'bg-muted border-border text-muted-foreground' : 'bg-primary/20 border-white/20 text-primary'
                                     }`}>
                                         {usuarioActual.avatar_url ? (
                                             <img src={usuarioActual.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
                                         ) : (
-                                            <span className="uppercase">{usuarioActual.nombre?.[0]}{usuarioActual.apellidos?.[0]}</span>
+                                            <span className="uppercase tracking-tighter">{usuarioActual.nombre?.[0]}{usuarioActual.apellidos?.[0]}</span>
                                         )}
                                     </div>
                                     <div className="relative z-10 min-w-0 flex-1">
-                                        <p className={`text-[11px] md:text-xs lg:text-sm font-black uppercase tracking-tight leading-tight whitespace-normal break-words ${isEditing ? 'text-muted-foreground' : 'text-foreground'}`}>
+                                        <p className={`text-[11px] md:text-sm lg:text-base xl:text-lg font-black uppercase tracking-tight leading-none whitespace-nowrap ${isEditing ? 'text-muted-foreground' : 'text-foreground'}`}>
                                             {usuarioActual.nombre} {usuarioActual.apellidos}
                                         </p>
-                                        <div className="flex items-center gap-1.5 mt-1">
-                                            <div className={`w-1 h-1 rounded-full animate-pulse shrink-0 ${isEditing ? 'bg-muted-foreground' : 'bg-emerald-500'}`} />
-                                            <p className="text-[7px] md:text-[8px] lg:text-[9px] text-muted-foreground font-black uppercase tracking-widest">
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <div className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${isEditing ? 'bg-muted-foreground' : 'bg-emerald-500'}`} />
+                                            <p className="text-[8px] md:text-[10px] lg:text-[11px] text-muted-foreground font-black uppercase tracking-widest leading-none">
                                                 {isEditing ? 'Modificando...' : 'Asignado'}
                                             </p>
                                         </div>
                                     </div>
-                                    {!isEditing && <CheckCircle className="ml-auto w-4 h-4 md:w-5 md:h-5 text-emerald-500/40 group-hover/assigned:text-emerald-500 transition-colors shrink-0" />}
+                                    {!isEditing && <CheckCircle className="ml-auto w-5 h-5 md:w-6 md:h-6 text-emerald-500/40 group-hover/assigned:text-emerald-500 transition-colors shrink-0" />}
                                 </motion.div>
                             ) : !isEditing ? (
                                 <motion.div
@@ -182,7 +182,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
     const config = culto.tipo_culto || {}
 
     return (
-        <div className="max-w-7xl mx-auto space-y-4 md:space-y-6 lg:space-y-8 pb-20 px-4 md:px-8 no-scrollbar w-full">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto space-y-4 md:space-y-6 lg:space-y-8 pb-20 px-4 md:px-8 no-scrollbar w-full">
             {/* Header / Breadcrumb */}
             <div className="space-y-4 md:space-y-6 w-full">
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
@@ -247,54 +247,62 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
 
             {/* Cuadrícula de Contenido Responsiva */}
             <div className="space-y-6 md:space-y-8 w-full">
-                {/* Fila 1: Responsables (En una sola línea en Desktop) */}
-                <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 w-full">
+                {/* Fila 1: Responsables (Diseño Inteligente: Se expanden para ocupar el espacio) */}
+                <div className="flex flex-wrap gap-4 md:gap-6 w-full">
                     {config.tiene_lectura_introduccion && (
-                        <AssignmentSection
-                            label={t('culto.introduccion')}
-                            icon={<User className="w-5 h-5" />}
-                            selectedUserId={culto.id_usuario_intro}
-                            usuarioActual={culto.usuario_intro}
-                            onSelect={(id) => handleAssignment('introduccion', id)}
-                            disabled={isUpdating}
-                            t={t}
-                        />
+                        <div className="flex-1 min-w-[280px] lg:min-w-[340px] max-w-full">
+                            <AssignmentSection
+                                label={t('culto.introduccion')}
+                                icon={<User className="w-5 h-5" />}
+                                selectedUserId={culto.id_usuario_intro}
+                                usuarioActual={culto.usuario_intro}
+                                onSelect={(id) => handleAssignment('introduccion', id)}
+                                disabled={isUpdating}
+                                t={t}
+                            />
+                        </div>
                     )}
 
                     {config.tiene_ensenanza && (
-                        <AssignmentSection
-                            label={t('culto.ensenanza')}
-                            icon={<BookOpen className="w-5 h-5" />}
-                            selectedUserId={culto.id_usuario_ensenanza}
-                            usuarioActual={culto.usuario_ensenanza}
-                            onSelect={(id) => handleAssignment('ensenanza', id)}
-                            disabled={isUpdating}
-                            t={t}
-                        />
+                        <div className="flex-1 min-w-[280px] lg:min-w-[340px] max-w-full">
+                            <AssignmentSection
+                                label={t('culto.ensenanza')}
+                                icon={<BookOpen className="w-5 h-5" />}
+                                selectedUserId={culto.id_usuario_ensenanza}
+                                usuarioActual={culto.usuario_ensenanza}
+                                onSelect={(id) => handleAssignment('ensenanza', id)}
+                                disabled={isUpdating}
+                                t={t}
+                            />
+                        </div>
                     )}
 
                     {config.tiene_testimonios && (
-                        <AssignmentSection
-                            label={t('culto.testimonios')}
-                            icon={<User className="w-5 h-5" />}
-                            selectedUserId={culto.id_usuario_testimonios}
-                            usuarioActual={culto.usuario_testimonios}
-                            onSelect={(id) => handleAssignment('testimonios', id)}
-                            disabled={isUpdating}
-                            t={t}
-                        />
+                        <div className="flex-1 min-w-[280px] lg:min-w-[340px] max-w-full">
+                            <AssignmentSection
+                                label={t('culto.testimonios')}
+                                icon={<User className="w-5 h-5" />}
+                                selectedUserId={culto.id_usuario_testimonios}
+                                usuarioActual={culto.usuario_testimonios}
+                                onSelect={(id) => handleAssignment('testimonios', id)}
+                                disabled={isUpdating}
+                                t={t}
+                            />
+                        </div>
                     )}
 
                     {config.tiene_lectura_finalizacion && (
-                        <AssignmentSection
-                            label={t('culto.finalizacion')}
-                            icon={<User className="w-5 h-5" />}
-                            selectedUserId={culto.id_usuario_finalizacion}
-                            usuarioActual={culto.usuario_finalizacion}
-                            onSelect={(id) => handleAssignment('finalizacion', id)}
-                            disabled={isUpdating}
-                            t={t}
-                        />
+                        <div className="flex-1 min-w-[280px] lg:min-w-[340px] max-w-full">
+                            <AssignmentSection
+                                label={t('culto.finalizacion')}
+                                icon={<User className="w-5 h-5" />}
+                                selectedUserId={culto.id_usuario_finalizacion}
+                                usuarioActual={culto.usuario_finalizacion}
+                                onSelect={(id) => handleAssignment('finalizacion', id)}
+                                disabled={isUpdating}
+                                t={t}
+                            />
+                        </div>
                     )}
                 </div>
 
