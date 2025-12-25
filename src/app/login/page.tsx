@@ -163,7 +163,7 @@ export default function LoginPage() {
                     >
                         <div className="relative w-48 h-48">
                             <Image
-                                src="/logo-idmji.jpeg"
+                                src="/logo.jpg"
                                 alt="Logo IDMJI"
                                 fill
                                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

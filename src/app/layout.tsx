@@ -17,17 +17,17 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#4A90E2",
+  themeColor: "#1e293b",
 };
 
 export const metadata: Metadata = {
-  title: "IDMJI Gestor de Púlpito",
+  title: "IDMJI Sabadell",
   description: "Gestión de cultos y púlpito para IDMJI Sabadell",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "IDMJI Gestor",
+    title: "IDMJI Sabadell",
   },
   formatDetection: {
     telephone: false,
@@ -42,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <link rel="apple-touch-icon" href="/logo.jpeg" />
+        <link rel="apple-touch-icon" href="/logo.jpg" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>

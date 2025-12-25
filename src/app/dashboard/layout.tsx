@@ -303,14 +303,14 @@ export default function DashboardLayout({
                         <div className="flex items-center gap-2">
                             <div className="relative w-8 h-8 rounded-xl overflow-hidden shadow-lg border border-white/20">
                                 <Image
-                                    src="/logo.jpeg"
+                                    src="/logo.jpg"
                                     alt="IDMJI Logo"
                                     width={32}
                                     height={32}
                                     className="w-full h-full object-cover"
                                 />
                             </div>
-                            <span className="font-black italic text-sm tracking-tighter text-[#063b7a]">IDMJI-SABADELL.</span>
+                            <span className="font-black italic text-sm tracking-tighter text-[#063b7a]">IDMJI Sabadell.</span>
                         </div>
                         <button className="p-3 bg-muted rounded-2xl">
                             <Search size={20} className="text-muted-foreground" />
@@ -391,7 +391,7 @@ function SidebarContent({
                         <div className="relative w-12 h-12">
                             <div className="absolute inset-0 bg-primary/20 blur-lg rounded-2xl animate-pulse" />
                             <Image
-                                src="/logo.jpeg"
+                                src="/logo.jpg"
                                 alt="IDMJI Logo"
                                 width={48}
                                 height={48}
@@ -400,7 +400,7 @@ function SidebarContent({
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xl font-black tracking-tighter uppercase italic text-white leading-none">
-                                IDMJI-SABADELL<span className="text-blue-400 not-italic">.</span>
+                                IDMJI Sabadell<span className="text-blue-400 not-italic">.</span>
                             </span>
                             <span className="text-[10px] font-bold text-white/60 tracking-[0.2em] uppercase mt-1">
                                 Gestor de Púlpito
@@ -409,7 +409,7 @@ function SidebarContent({
                     </motion.div>
                 ) : (
                     <Image
-                        src="/logo.jpeg"
+                        src="/logo.jpg"
                         alt="IDMJI Logo"
                         width={44}
                         height={44}
@@ -565,6 +565,15 @@ function SidebarContent({
                     <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
                     {!isSidebarCollapsed && <span>{t('nav.logout')}</span>}
                 </motion.button>
+
+                {/* Versión de la Aplicación */}
+                {!isSidebarCollapsed && (
+                    <div className="pt-2 mt-2 border-t border-white/5">
+                        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 text-center">
+                            v1.0 • IDMJI Sabadell
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     )
