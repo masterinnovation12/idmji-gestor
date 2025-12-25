@@ -68,21 +68,21 @@ function AssignmentSection({
             <Card className="h-full w-full min-w-0 border-t-4 border-primary/40 glass group hover:border-primary transition-all duration-500 shadow-xl overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
                 
-                <CardHeader className="flex flex-row items-center justify-between pb-2 md:pb-3 lg:pb-4">
-                    <CardTitle icon={icon} className="text-primary font-black uppercase tracking-widest text-[10px] md:text-xs">
+                <CardHeader className="flex flex-row items-center justify-between pb-2 md:pb-3">
+                    <CardTitle icon={icon} className="text-primary font-black uppercase tracking-widest text-[9px] md:text-[10px]">
                         {label}
                     </CardTitle>
                     {selectedUserId && !isEditing && (
                         <button
                             onClick={() => setIsEditing(true)}
-                            className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-all shadow-sm"
+                            className="px-2 py-1 text-[8px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-all shadow-sm"
                         >
                             Modificar
                         </button>
                     )}
                 </CardHeader>
-                <CardContent>
-                    <div className="space-y-3 md:space-y-4 lg:space-y-5">
+                <CardContent className="p-2.5 md:p-3.5">
+                    <div className="space-y-2.5 md:space-y-3.5">
                         <UserSelector
                             selectedUserId={selectedUserId}
                             onSelect={(id) => {
@@ -101,7 +101,7 @@ function AssignmentSection({
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
-                                    className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-[1.5rem] border shadow-inner relative overflow-hidden group/assigned transition-all ${
+                                    className={`flex items-center gap-2.5 p-2 md:p-3 rounded-[1.25rem] border shadow-inner relative overflow-hidden group/assigned transition-all ${
                                         isEditing 
                                             ? 'bg-muted/50 border-border opacity-60' 
                                             : 'bg-primary/5 border-primary/10'
@@ -109,27 +109,27 @@ function AssignmentSection({
                                 >
                                     <div className="absolute inset-0 bg-linear-to-r from-primary/5 to-transparent opacity-0 group-hover/assigned:opacity-100 transition-opacity" />
                                     
-                                    <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-black text-sm md:text-base lg:text-lg border-2 shadow-lg relative z-10 shrink-0 ${
+                                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center font-black text-[10px] md:text-xs border-2 shadow-lg relative z-10 shrink-0 ${
                                         isEditing ? 'bg-muted border-border text-muted-foreground' : 'bg-primary/20 border-white/20 text-primary'
                                     }`}>
                                         {usuarioActual.avatar_url ? (
-                                            <img src={usuarioActual.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
+                                            <img src={usuarioActual.avatar_url} alt="" className="w-full h-full object-cover rounded-xl" />
                                         ) : (
-                                            <span>{usuarioActual.nombre?.[0]}{usuarioActual.apellidos?.[0]}</span>
+                                            <span className="uppercase">{usuarioActual.nombre?.[0]}{usuarioActual.apellidos?.[0]}</span>
                                         )}
                                     </div>
                                     <div className="relative z-10 min-w-0 flex-1">
-                                        <p className={`text-sm md:text-base font-black uppercase tracking-tight truncate ${isEditing ? 'text-muted-foreground' : 'text-foreground'}`}>
+                                        <p className={`text-[10px] md:text-xs lg:text-sm font-black uppercase tracking-tight leading-tight whitespace-normal ${isEditing ? 'text-muted-foreground' : 'text-foreground'}`}>
                                             {usuarioActual.nombre} {usuarioActual.apellidos}
                                         </p>
-                                        <div className="flex items-center gap-1.5 mt-0.5">
-                                            <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isEditing ? 'bg-muted-foreground' : 'bg-emerald-500'}`} />
-                                            <p className="text-[9px] md:text-[10px] text-muted-foreground font-black uppercase tracking-widest">
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                            <div className={`w-1 h-1 rounded-full animate-pulse shrink-0 ${isEditing ? 'bg-muted-foreground' : 'bg-emerald-500'}`} />
+                                            <p className="text-[7px] md:text-[8px] text-muted-foreground font-black uppercase tracking-widest">
                                                 {isEditing ? 'Modificando...' : 'Asignado'}
                                             </p>
                                         </div>
                                     </div>
-                                    {!isEditing && <CheckCircle size={24} className="ml-auto text-emerald-500/40 group-hover/assigned:text-emerald-500 transition-colors shrink-0" />}
+                                    {!isEditing && <CheckCircle size={18} className="ml-auto text-emerald-500/40 group-hover/assigned:text-emerald-500 transition-colors shrink-0" />}
                                 </motion.div>
                             ) : !isEditing ? (
                                 <motion.div
@@ -246,7 +246,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
             {/* Cuadrícula de Contenido Responsiva */}
             <div className="space-y-6 md:space-y-8 w-full">
                 {/* Fila 1: Responsables (En una sola línea en Desktop) */}
-                <div className="grid gap-3 md:gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
+                <div className="grid gap-2.5 md:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 w-full">
                     {config.tiene_lectura_introduccion && (
                         <AssignmentSection
                             label={t('culto.introduccion')}
