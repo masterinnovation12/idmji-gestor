@@ -124,14 +124,24 @@ function AssignmentSection({
                                         <p className={`text-[11px] md:text-sm lg:text-base xl:text-lg font-black uppercase tracking-tight leading-none whitespace-nowrap ${isEditing ? 'text-muted-foreground' : 'text-foreground'}`}>
                                             {usuarioActual.nombre} {usuarioActual.apellidos}
                                         </p>
-                                        <div className="flex items-center gap-2 mt-2">
-                                            <div className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${isEditing ? 'bg-muted-foreground' : 'bg-emerald-500'}`} />
-                                            <p className="text-[8px] md:text-[10px] lg:text-[11px] text-muted-foreground font-black uppercase tracking-widest leading-none">
-                                                {isEditing ? 'Modificando...' : 'Asignado'}
-                                            </p>
+                                        <div className="flex items-center gap-2.5 mt-2">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${isEditing ? 'bg-muted-foreground' : 'bg-emerald-500'}`} />
+                                                <p className="text-[8px] md:text-[10px] lg:text-[11px] text-muted-foreground font-black uppercase tracking-widest leading-none">
+                                                    {isEditing ? 'Modificando...' : 'Asignado'}
+                                                </p>
+                                            </div>
+                                            {!isEditing && (
+                                                <motion.div
+                                                    initial={{ scale: 0 }}
+                                                    animate={{ scale: 1 }}
+                                                    className="bg-emerald-500/20 p-0.5 rounded-full shadow-sm shadow-emerald-500/20"
+                                                >
+                                                    <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-500" />
+                                                </motion.div>
+                                            )}
                                         </div>
                                     </div>
-                                    {!isEditing && <CheckCircle className="ml-auto w-5 h-5 md:w-6 md:h-6 text-emerald-500/40 group-hover/assigned:text-emerald-500 transition-colors shrink-0" />}
                                 </motion.div>
                             ) : !isEditing ? (
                                 <motion.div
