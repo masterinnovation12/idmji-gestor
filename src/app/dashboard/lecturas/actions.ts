@@ -197,37 +197,74 @@ export async function getAllLecturas(
  * Obtener lista de libros de la Biblia
  */
 export async function getBibliaLibros() {
-    const supabase = await createClient()
+    try {
+        const supabase = await createClient()
+        let allRows: any[] = []
+        let hasMore = true
+        let from = 0
+        const step = 400 // Paso pequeño para asegurar bypass de límites
+        
+        while (hasMore) {
+            const to = from + step - 1
+            const { data, error } = await supabase
+                .from('biblia')
+                .select('*')
+                .order('orden', { ascending: true })
+                .order('capitulo', { ascending: true })
+                .range(from, to)
 
-    // 1. Fetch all chapters ordered
-    const { data: rows, error } = await supabase
-        .from('biblia')
-        .select('*')
-        .order('orden')
-        .order('capitulo')
+            if (error) {
+                console.error(`Error en rango ${from}-${to}:`, error)
+                return { error: error.message }
+            }
 
-    if (error) {
-        return { error: error.message }
-    }
-
-    // 2. Aggregate into BibleBook[] structure
-    const booksMap = new Map<string, any>()
-
-    rows.forEach((row) => {
-        if (!booksMap.has(row.libro)) {
-            booksMap.set(row.libro, {
-                id: booksMap.size + 1, // Simulated ID for frontend
-                nombre: row.libro,
-                testamento: row.testamento,
-                abreviatura: row.abreviatura,
-                capitulos: []
-            })
+            if (data && data.length > 0) {
+                allRows = [...allRows, ...data]
+                if (data.length < step) {
+                    hasMore = false
+                } else {
+                    from += step
+                }
+            } else {
+                hasMore = false
+            }
+            
+            // Límite de seguridad
+            if (allRows.length > 3000) hasMore = false
         }
-        booksMap.get(row.libro).capitulos.push({
-            n: row.capitulo,
-            v: row.num_versiculos
-        })
-    })
 
-    return { data: Array.from(booksMap.values()) }
+        if (allRows.length === 0) {
+            return { data: [] }
+        }
+
+        // Agregamos por libro de forma robusta
+        const booksMap = new Map<string, any>()
+
+        allRows.forEach((row) => {
+            const libroNombre = row.libro.trim()
+            if (!booksMap.has(libroNombre)) {
+                booksMap.set(libroNombre, {
+                    id: row.orden,
+                    nombre: libroNombre,
+                    testamento: row.testamento,
+                    abreviatura: row.abreviatura,
+                    capitulos: []
+                })
+            }
+            
+            const book = booksMap.get(libroNombre)
+            if (!book.capitulos.some((c: any) => c.n === row.capitulo)) {
+                book.capitulos.push({
+                    n: row.capitulo,
+                    v: row.num_versiculos
+                })
+            }
+        })
+
+        const finalData = Array.from(booksMap.values()).sort((a, b) => a.id - b.id)
+        return { data: finalData }
+    } catch (err) {
+        console.error('Excepción en getBibliaLibros:', err)
+        return { error: 'Error interno del servidor' }
+    }
 }

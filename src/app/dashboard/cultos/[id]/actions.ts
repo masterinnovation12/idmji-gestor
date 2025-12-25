@@ -53,15 +53,20 @@ export async function updateAssignment(
 /**
  * Buscar hermanos con pulpito = true para asignaciones
  */
-export async function searchProfiles(query: string) {
+export async function searchProfiles(query: string = '') {
     const supabase = await createClient()
 
-    const { data, error } = await supabase
+    let dbQuery = supabase
         .from('profiles')
         .select('id, nombre, apellidos, avatar_url, pulpito')
         .eq('pulpito', true)
-        .or(`nombre.ilike.%${query}%,apellidos.ilike.%${query}%`)
-        .limit(10)
+        .order('nombre', { ascending: true })
+
+    if (query) {
+        dbQuery = dbQuery.or(`nombre.ilike.%${query}%,apellidos.ilike.%${query}%`)
+    }
+
+    const { data, error } = await dbQuery.limit(20)
 
     if (error) {
         return { error: error.message }
