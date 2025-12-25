@@ -310,7 +310,7 @@ export default function DashboardLayout({
                                     className="w-full h-full object-cover"
                                 />
                             </div>
-                            <span className="font-black italic text-sm tracking-tighter text-[#063b7a]">IDMJI Sabadell.</span>
+                            <span className="font-black italic text-sm tracking-tighter text-[#063b7a]">IDMJI Sabadell</span>
                         </div>
                         <button className="p-3 bg-muted rounded-2xl">
                             <Search size={20} className="text-muted-foreground" />
@@ -400,7 +400,7 @@ function SidebarContent({
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xl font-black tracking-tighter uppercase italic text-white leading-none">
-                                IDMJI Sabadell<span className="text-blue-400 not-italic">.</span>
+                                IDMJI Sabadell
                             </span>
                             <span className="text-[10px] font-bold text-white/60 tracking-[0.2em] uppercase mt-1">
                                 Gestor de Púlpito

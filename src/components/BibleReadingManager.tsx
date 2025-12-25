@@ -20,6 +20,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { BookOpen, AlertCircle, CheckCircle2, History } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Modal } from '@/components/ui/Modal'
 import { LecturaBiblica } from '@/types/database'
@@ -196,24 +197,28 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
             </div>
 
             {/* Botones para añadir */}
-            <div className="flex flex-wrap gap-2 pt-2">
+            <div className="flex flex-wrap gap-4 pt-6">
                 {config.tiene_lectura_introduccion && !lecturas.some(l => l.tipo_lectura === 'introduccion') && (
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => { setActiveTipo('introduccion'); setIsModalOpen(true); }}
-                        className="flex-1 min-w-[150px] flex items-center justify-center gap-2 py-3 bg-primary/10 text-primary rounded-xl font-bold hover:bg-primary/20 transition-all border border-primary/20"
+                        className="flex-1 min-w-[200px] flex items-center justify-center gap-3 h-16 bg-white dark:bg-slate-800 text-black dark:text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-gray-50 dark:hover:bg-slate-700 transition-all shadow-[0_10px_30px_rgba(0,0,0,0.1)] dark:shadow-none border-2 border-gray-100 dark:border-slate-700"
                     >
-                        <PlusIcon className="w-4 h-4" />
-                        Añadir Intro
-                    </button>
+                        <PlusIcon className="w-5 h-5 text-primary" />
+                        Añadir Lectura
+                    </motion.button>
                 )}
                 {config.tiene_lectura_finalizacion && !lecturas.some(l => l.tipo_lectura === 'finalizacion') && (
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => { setActiveTipo('finalizacion'); setIsModalOpen(true); }}
-                        className="flex-1 min-w-[150px] flex items-center justify-center gap-2 py-3 bg-primary/10 text-primary rounded-xl font-bold hover:bg-primary/20 transition-all border border-primary/20"
+                        className="flex-1 min-w-[200px] flex items-center justify-center gap-3 h-16 bg-white dark:bg-slate-800 text-black dark:text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-gray-50 dark:hover:bg-slate-700 transition-all shadow-[0_10px_30px_rgba(0,0,0,0.1)] dark:shadow-none border-2 border-gray-100 dark:border-slate-700"
                     >
-                        <PlusIcon className="w-4 h-4" />
-                        Añadir Final
-                    </button>
+                        <PlusIcon className="w-5 h-5 text-blue-500" />
+                        Añadir Lectura Final
+                    </motion.button>
                 )}
             </div>
 

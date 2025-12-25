@@ -1,18 +1,175 @@
+/**
+ * HimnoCoroSelector - IDMJI Gestor de Púlpito
+ * 
+ * Componente para seleccionar y organizar himnos y coros en cultos o calculadora de tiempo.
+ * 
+ * Características:
+ * - Búsqueda en tiempo real de himnos y coros
+ * - Ordenamiento automático: primero himnos, luego coros
+ * - Reorganización con botones de flechas (arriba/abajo)
+ * - Drag-and-drop premium para reorganización visual
+ * - Modo calculadora (sin cultoId) y modo culto (con cultoId)
+ * - Guardado de listas en localStorage (calculadora)
+ * 
+ * @author Antigravity AI
+ * @date 2024-12-25
+ */
+
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Search, Plus, Trash2, Music, Clock } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Search, Plus, Trash2, Music, Clock, ChevronUp, ChevronDown, GripVertical } from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
-import { searchHimnos, searchCoros, addHimnoCoro, removeHimnoCoro, getHimnosCorosByCulto } from '@/app/dashboard/himnos/actions'
+import { searchHimnos, searchCoros, addHimnoCoro, removeHimnoCoro, getHimnosCorosByCulto, updateHimnosCorosOrder } from '@/app/dashboard/himnos/actions'
 import { Himno, Coro, PlanHimnoCoro } from '@/types/database'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from '@dnd-kit/core'
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 interface HimnoCoroSelectorProps {
     cultoId?: string // Now optional for calculator mode
     maxHimnos?: number
     maxCoros?: number
     className?: string
+}
+
+/**
+ * Componente sortable individual para cada item
+ */
+function SortableItem({ item, onRemove, onMoveUp, onMoveDown, isFirst, isLast }: {
+    item: PlanHimnoCoro
+    onRemove: (id: string) => void
+    onMoveUp: (id: string) => void
+    onMoveDown: (id: string) => void
+    isFirst: boolean
+    isLast: boolean
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: item.id })
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        scale: isDragging ? 1.05 : 1,
+    }
+
+    const data = item.tipo === 'himno' ? item.himno : item.coro
+
+    const formatDuration = (seconds: number) => {
+        const mins = Math.floor(seconds / 60)
+        const secs = seconds % 60
+        return `${mins}:${secs.toString().padStart(2, '0')}`
+    }
+
+    return (
+        <motion.div
+            ref={setNodeRef}
+            style={style}
+            layout
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: isDragging ? 0.5 : 1, scale: isDragging ? 1.05 : 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className={`flex items-center justify-between p-4 bg-muted/30 dark:bg-white/5 border border-border/50 dark:border-white/10 rounded-[1.5rem] shadow-sm hover:shadow-md transition-all group ${
+                isDragging ? 'ring-2 ring-primary ring-offset-2 z-50' : ''
+            }`}
+        >
+            <div className="flex items-center gap-4 flex-1">
+                {/* Drag Handle */}
+                <div
+                    {...attributes}
+                    {...listeners}
+                    className="cursor-grab active:cursor-grabbing p-2 hover:bg-primary/10 rounded-xl transition-colors shrink-0"
+                >
+                    <GripVertical className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner shrink-0 ${item.tipo === 'himno'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-purple-500 text-white'
+                    }`}>
+                    {item.tipo === 'himno' ? 'H' : 'C'}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-black text-xs uppercase tracking-tight leading-snug text-foreground truncate">
+                        #{data?.numero} <span className="text-muted-foreground mx-1">|</span> {data?.titulo}
+                    </p>
+                    <div className="flex items-center gap-3 mt-1.5">
+                        <span className={`text-[8px] uppercase font-black px-2 py-0.5 rounded-full tracking-tighter ${item.tipo === 'himno' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'
+                            }`}>
+                            {item.tipo}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground font-black flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" />
+                            {formatDuration(data?.duracion_segundos || 0)}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Control Buttons */}
+            <div className="flex items-center gap-1 shrink-0 ml-2">
+                {/* Move Up Button */}
+                <button
+                    onClick={() => onMoveUp(item.id)}
+                    disabled={isFirst}
+                    className={`p-2 rounded-xl transition-all ${
+                        isFirst
+                            ? 'opacity-30 cursor-not-allowed'
+                            : 'text-primary hover:bg-primary/10 hover:scale-110 active:scale-95'
+                    }`}
+                    title="Mover arriba"
+                >
+                    <ChevronUp className="w-4 h-4" />
+                </button>
+
+                {/* Move Down Button */}
+                <button
+                    onClick={() => onMoveDown(item.id)}
+                    disabled={isLast}
+                    className={`p-2 rounded-xl transition-all ${
+                        isLast
+                            ? 'opacity-30 cursor-not-allowed'
+                            : 'text-primary hover:bg-primary/10 hover:scale-110 active:scale-95'
+                    }`}
+                    title="Mover abajo"
+                >
+                    <ChevronDown className="w-4 h-4" />
+                </button>
+
+                {/* Remove Button */}
+                <button
+                    onClick={() => onRemove(item.id)}
+                    className="p-2.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all sm:opacity-0 group-hover:opacity-100"
+                    title="Eliminar"
+                >
+                    <Trash2 className="w-4.5 h-4.5" />
+                </button>
+            </div>
+        </motion.div>
+    )
 }
 
 export default function HimnoCoroSelector({
@@ -32,12 +189,32 @@ export default function HimnoCoroSelector({
 
     const debouncedQuery = useDebounce(query, 300)
 
+    // Configurar sensores para drag-and-drop
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    )
+
+    // Ordenar selected: primero himnos, luego coros, manteniendo el orden dentro de cada tipo
+    const sortedSelected = useMemo(() => {
+        const himnos = selected.filter(s => s.tipo === 'himno').sort((a, b) => a.orden - b.orden)
+        const coros = selected.filter(s => s.tipo === 'coro').sort((a, b) => a.orden - b.orden)
+        return [...himnos, ...coros]
+    }, [selected])
+
     // Cargar himnos/coros ya seleccionados si hay cultoId o de localStorage para calculadora
     useEffect(() => {
         async function loadData() {
             if (cultoId) {
                 const { data } = await getHimnosCorosByCulto(cultoId)
-                if (data) setSelected(data)
+                if (data) {
+                    // Asegurar que el orden esté correcto: primero himnos, luego coros
+                    const himnos = data.filter(s => s.tipo === 'himno').sort((a, b) => a.orden - b.orden)
+                    const coros = data.filter(s => s.tipo === 'coro').sort((a, b) => a.orden - b.orden)
+                    setSelected([...himnos, ...coros])
+                }
             } else {
                 // Cargar listas guardadas de localStorage
                 const saved = localStorage.getItem('idmji_saved_lists')
@@ -45,7 +222,13 @@ export default function HimnoCoroSelector({
 
                 // Cargar sesión actual de calculadora
                 const current = localStorage.getItem('idmji_calc_session')
-                if (current) setSelected(JSON.parse(current))
+                if (current) {
+                    const parsed = JSON.parse(current)
+                    // Asegurar ordenamiento
+                    const himnos = parsed.filter((s: PlanHimnoCoro) => s.tipo === 'himno').sort((a: PlanHimnoCoro, b: PlanHimnoCoro) => a.orden - b.orden)
+                    const coros = parsed.filter((s: PlanHimnoCoro) => s.tipo === 'coro').sort((a: PlanHimnoCoro, b: PlanHimnoCoro) => a.orden - b.orden)
+                    setSelected([...himnos, ...coros])
+                }
             }
         }
         loadData()
@@ -54,9 +237,9 @@ export default function HimnoCoroSelector({
     // Guardar sesión actual en cada cambio (modo calculadora)
     useEffect(() => {
         if (!cultoId) {
-            localStorage.setItem('idmji_calc_session', JSON.stringify(selected))
+            localStorage.setItem('idmji_calc_session', JSON.stringify(sortedSelected))
         }
-    }, [selected, cultoId])
+    }, [sortedSelected, cultoId])
 
     // Buscar himnos/coros
     useEffect(() => {
@@ -75,15 +258,15 @@ export default function HimnoCoroSelector({
         search()
     }, [debouncedQuery, tipo])
 
-    const himnosSelected = selected.filter(s => s.tipo === 'himno')
-    const corosSelected = selected.filter(s => s.tipo === 'coro')
+    const himnosSelected = sortedSelected.filter(s => s.tipo === 'himno')
+    const corosSelected = sortedSelected.filter(s => s.tipo === 'coro')
 
     const canAddHimno = himnosSelected.length < maxHimnos
     const canAddCoro = corosSelected.length < maxCoros
 
     const handleAdd = async (item: Himno | Coro) => {
         // Validación de duplicados
-        if (selected.some(s => s.item_id === item.id && s.tipo === tipo)) {
+        if (sortedSelected.some(s => s.item_id === item.id && s.tipo === tipo)) {
             toast.error(`Este ${tipo} ya está en la lista`)
             return
         }
@@ -99,7 +282,10 @@ export default function HimnoCoroSelector({
 
         if (cultoId) {
             // Modo Real: Guardar en DB
-            const orden = selected.filter(s => s.tipo === tipo).length + 1
+            // Calcular el orden: si es himno, va después del último himno; si es coro, va después del último coro
+            const lastOfType = sortedSelected.filter(s => s.tipo === tipo)
+            const orden = lastOfType.length > 0 ? Math.max(...lastOfType.map(s => s.orden)) + 1 : 1
+
             const result = await addHimnoCoro(cultoId, tipo, item.id, orden)
 
             if (result.error) {
@@ -107,21 +293,28 @@ export default function HimnoCoroSelector({
             } else {
                 toast.success(`${tipo === 'himno' ? 'Himno' : 'Coro'} añadido`)
                 const { data } = await getHimnosCorosByCulto(cultoId)
-                if (data) setSelected(data)
+                if (data) {
+                    const himnos = data.filter(s => s.tipo === 'himno').sort((a, b) => a.orden - b.orden)
+                    const coros = data.filter(s => s.tipo === 'coro').sort((a, b) => a.orden - b.orden)
+                    setSelected([...himnos, ...coros])
+                }
                 setQuery('')
                 setResults([])
             }
         } else {
             // Modo Calculadora: Estado Local
+            const lastOfType = sortedSelected.filter(s => s.tipo === tipo)
+            const orden = lastOfType.length > 0 ? Math.max(...lastOfType.map(s => s.orden)) + 1 : 1
+
             const newItem: PlanHimnoCoro = {
                 id: Math.random().toString(), // Temp ID
                 culto_id: 'temp',
                 tipo,
                 item_id: item.id,
-                orden: selected.filter(s => s.tipo === tipo).length + 1,
+                orden,
                 [tipo === 'himno' ? 'himno' : 'coro']: item
             }
-            setSelected([...selected, newItem])
+            setSelected([...sortedSelected, newItem])
             setQuery('')
             setResults([])
             toast.success('Añadido a la lista temporal')
@@ -132,15 +325,82 @@ export default function HimnoCoroSelector({
         if (cultoId) {
             await removeHimnoCoro(planId, cultoId)
             const { data } = await getHimnosCorosByCulto(cultoId)
-            if (data) setSelected(data)
+            if (data) {
+                const himnos = data.filter(s => s.tipo === 'himno').sort((a, b) => a.orden - b.orden)
+                const coros = data.filter(s => s.tipo === 'coro').sort((a, b) => a.orden - b.orden)
+                setSelected([...himnos, ...coros])
+            }
         } else {
-            setSelected(selected.filter(s => s.id !== planId))
+            setSelected(sortedSelected.filter(s => s.id !== planId))
         }
         toast.success(cultoId ? 'Eliminado del culto' : 'Eliminado de la lista')
     }
 
+    const handleMoveUp = async (id: string) => {
+        const index = sortedSelected.findIndex(item => item.id === id)
+        if (index <= 0) return
+
+        const newSelected = arrayMove(sortedSelected, index, index - 1)
+        await updateOrder(newSelected)
+    }
+
+    const handleMoveDown = async (id: string) => {
+        const index = sortedSelected.findIndex(item => item.id === id)
+        if (index < 0 || index >= sortedSelected.length - 1) return
+
+        const newSelected = arrayMove(sortedSelected, index, index + 1)
+        await updateOrder(newSelected)
+    }
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event
+
+        if (over && active.id !== over.id) {
+            const oldIndex = sortedSelected.findIndex(item => item.id === active.id)
+            const newIndex = sortedSelected.findIndex(item => item.id === over.id)
+
+            const newSelected = arrayMove(sortedSelected, oldIndex, newIndex)
+            await updateOrder(newSelected)
+        }
+    }
+
+    const updateOrder = async (newOrder: PlanHimnoCoro[]) => {
+        // Actualizar los valores de orden
+        const updated = newOrder.map((item, index) => ({
+            ...item,
+            orden: index + 1
+        }))
+
+        setSelected(updated)
+
+        if (cultoId) {
+            // Actualizar en la base de datos
+            const updates = updated.map(item => ({
+                id: item.id,
+                orden: item.orden
+            }))
+
+            const result = await updateHimnosCorosOrder(cultoId, updates)
+            if (result.error) {
+                toast.error('Error al actualizar el orden')
+                // Recargar desde la base de datos
+                const { data } = await getHimnosCorosByCulto(cultoId)
+                if (data) {
+                    const himnos = data.filter(s => s.tipo === 'himno').sort((a, b) => a.orden - b.orden)
+                    const coros = data.filter(s => s.tipo === 'coro').sort((a, b) => a.orden - b.orden)
+                    setSelected([...himnos, ...coros])
+                }
+            } else {
+                toast.success('Orden actualizado')
+            }
+        } else {
+            // Guardar en localStorage
+            localStorage.setItem('idmji_calc_session', JSON.stringify(updated))
+        }
+    }
+
     const handleSaveList = () => {
-        if (selected.length === 0) {
+        if (sortedSelected.length === 0) {
             toast.error('La lista está vacía')
             return
         }
@@ -159,7 +419,7 @@ export default function HimnoCoroSelector({
         const newList = {
             id: Date.now().toString(),
             name: listName,
-            items: [...selected]
+            items: [...sortedSelected]
         }
         const updated = [...savedLists, newList]
         setSavedLists(updated)
@@ -170,7 +430,9 @@ export default function HimnoCoroSelector({
     }
 
     const loadList = (list: typeof savedLists[0]) => {
-        setSelected(list.items)
+        const himnos = list.items.filter(s => s.tipo === 'himno').sort((a, b) => a.orden - b.orden)
+        const coros = list.items.filter(s => s.tipo === 'coro').sort((a, b) => a.orden - b.orden)
+        setSelected([...himnos, ...coros])
         toast.success(`Lista "${list.name}" cargada`)
     }
 
@@ -197,7 +459,7 @@ export default function HimnoCoroSelector({
     const totalDuration = durationHimnos + durationCoros
 
     return (
-        <div className={`space-y-5 ${className} overflow-hidden`}>
+        <div className={`space-y-3 md:space-y-5 ${className} overflow-hidden w-full`}>
             {/* Tipo Selector */}
             <div className="flex bg-gray-100 dark:bg-zinc-800 p-1.5 rounded-2xl w-full border border-gray-200 dark:border-zinc-700">
                 <button
@@ -263,22 +525,22 @@ export default function HimnoCoroSelector({
                         {results.map((item) => (
                             <div
                                 key={item.id}
-                                className="flex items-center justify-between p-4 bg-card rounded-xl hover:bg-primary hover:text-white transition-all group cursor-pointer border border-border/50 shadow-sm"
+                                className="flex items-center justify-between p-4 bg-card rounded-xl hover:bg-blue-500/10 transition-all group cursor-pointer border border-border/50 shadow-sm"
                                 onClick={() => handleAdd(item)}
                             >
                                 <div className="flex-1">
-                                    <p className="font-black text-xs uppercase tracking-widest leading-none text-foreground group-hover:text-white">
-                                        <span className="text-primary group-hover:text-white font-black mr-3">#{item.numero}</span>
+                                    <p className="font-black text-xs uppercase tracking-widest leading-none text-foreground group-hover:text-[#4A90E2] transition-colors">
+                                        <span className="text-primary font-black mr-3 transition-colors group-hover:text-[#4A90E2]">#{item.numero}</span>
                                         {item.titulo}
                                     </p>
                                     {item.duracion_segundos && (
-                                        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-2 group-hover:text-white/70">
+                                        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-2 group-hover:text-[#4A90E2]/80 transition-colors">
                                             <Clock className="w-3 h-3" />
                                             {formatDuration(item.duracion_segundos)}
                                         </div>
                                     )}
                                 </div>
-                                <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white group-hover:bg-white group-hover:text-blue-600 transition-all shrink-0 ml-4 shadow-md">
+                                <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white group-hover:scale-110 transition-all shrink-0 ml-4 shadow-md">
                                     <Plus className="w-4 h-4" />
                                 </div>
                             </div>
@@ -335,11 +597,11 @@ export default function HimnoCoroSelector({
             {/* Selected Playlist */}
             <div className="space-y-3 pt-2">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-1">
-                    Elementos en la calculadora
+                    {cultoId ? 'Himnos y Coros del Culto' : 'Elementos en la calculadora'}
                 </h3>
 
                 <AnimatePresence mode='popLayout'>
-                    {selected.length === 0 && (
+                    {sortedSelected.length === 0 && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -350,49 +612,30 @@ export default function HimnoCoroSelector({
                         </motion.div>
                     )}
 
-                    {selected.map((item) => {
-                        const data = item.tipo === 'himno' ? item.himno : item.coro
-                        return (
-                            <motion.div
-                                key={item.id}
-                                layout
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex items-center justify-between p-4 bg-muted/30 dark:bg-white/5 border border-border/50 dark:border-white/10 rounded-[1.5rem] shadow-sm hover:shadow-md transition-all group"
-                            >
-                                <div className="flex items-center gap-4 flex-1">
-                                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner shrink-0 ${item.tipo === 'himno'
-                                        ? 'bg-blue-500 text-white'
-                                        : 'bg-purple-500 text-white'
-                                        }`}>
-                                        {item.tipo === 'himno' ? 'H' : 'C'}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-black text-xs uppercase tracking-tight leading-snug text-foreground truncate">
-                                            #{data?.numero} <span className="text-muted-foreground mx-1">|</span> {data?.titulo}
-                                        </p>
-                                        <div className="flex items-center gap-3 mt-1.5">
-                                            <span className={`text-[8px] uppercase font-black px-2 py-0.5 rounded-full tracking-tighter ${item.tipo === 'himno' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'
-                                                }`}>
-                                                {item.tipo}
-                                            </span>
-                                            <span className="text-[9px] text-muted-foreground font-black flex items-center gap-1.5">
-                                                <Clock className="w-3 h-3" />
-                                                {formatDuration(data?.duracion_segundos || 0)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => handleRemove(item.id)}
-                                    className="p-2.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all sm:opacity-0 group-hover:opacity-100 shrink-0 ml-2"
-                                >
-                                    <Trash2 className="w-4.5 h-4.5" />
-                                </button>
-                            </motion.div>
-                        )
-                    })}
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <SortableContext
+                            items={sortedSelected.map(item => item.id)}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            <div className="space-y-2">
+                                {sortedSelected.map((item, index) => (
+                                    <SortableItem
+                                        key={item.id}
+                                        item={item}
+                                        onRemove={handleRemove}
+                                        onMoveUp={handleMoveUp}
+                                        onMoveDown={handleMoveDown}
+                                        isFirst={index === 0}
+                                        isLast={index === sortedSelected.length - 1}
+                                    />
+                                ))}
+                            </div>
+                        </SortableContext>
+                    </DndContext>
                 </AnimatePresence>
             </div>
 

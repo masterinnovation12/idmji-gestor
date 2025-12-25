@@ -5,20 +5,20 @@
  * Permite asignar hermanos a diferentes labores y gestionar lecturas/música.
  * 
  * Características:
- * - Asignación de responsables con búsqueda en tiempo real
+ * - Asignación de responsables con búsqueda en tiempo real (Filtro Púlpito)
  * - Gestión de lecturas bíblicas con detección de repeticiones
  * - Planificación de himnos y coros
- * - Diseño glassmorphism responsivo
+ * - Diseño Glassmorphism premium responsivo
  * - Multiidioma (ES/CA)
  * 
  * @author Antigravity AI
- * @date 2024-12-18
+ * @date 2024-12-25
  */
 
 'use client'
 
 import { useState } from 'react'
-import { Calendar, Clock, User, BookOpen, Music, ChevronLeft } from 'lucide-react'
+import { Calendar, Clock, User, BookOpen, Music, ChevronLeft, AlertCircle, CheckCircle, Sparkles } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -29,6 +29,7 @@ import { updateAssignment } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Culto } from '@/types/database'
 
 interface CultoDetailClientProps {
@@ -37,7 +38,7 @@ interface CultoDetailClientProps {
 }
 
 /**
- * Componente interno para tarjetas de asignación reutilizables
+ * Componente interno para tarjetas de asignación reutilizables con diseño premium
  */
 function AssignmentSection({
     label,
@@ -46,7 +47,8 @@ function AssignmentSection({
     usuarioActual,
     onSelect,
     disabled,
-    t
+    t,
+    isDark
 }: {
     label: string,
     icon: any,
@@ -54,38 +56,76 @@ function AssignmentSection({
     usuarioActual: any,
     onSelect: (id: string | null) => void,
     disabled: boolean,
-    t: any
+    t: any,
+    isDark?: boolean
 }) {
     return (
-        <Card className="border-t-2 border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle icon={icon} className="text-primary">
-                    {label}
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    <UserSelector
-                        selectedUserId={selectedUserId}
-                        onSelect={onSelect}
-                        disabled={disabled}
-                    />
-                    {usuarioActual && (
-                        <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-2xl animate-in fade-in slide-in-from-left-2">
-                            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary font-bold">
-                                {usuarioActual.nombre?.[0]}
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold">
-                                    {usuarioActual.nombre} {usuarioActual.apellidos}
-                                </p>
-                                <p className="text-xs text-muted-foreground uppercase tracking-wider">Asignado</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </CardContent>
-        </Card>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="h-full w-full min-w-0"
+        >
+            <Card className="h-full w-full min-w-0 border-t-4 border-primary/40 glass group hover:border-primary transition-all duration-500 shadow-xl overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
+                
+                <CardHeader className="flex flex-row items-center justify-between pb-2 md:pb-3 lg:pb-4">
+                    <CardTitle icon={icon} className="text-primary font-black uppercase tracking-widest text-[10px] md:text-xs">
+                        {label}
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-3 md:space-y-4 lg:space-y-5">
+                        <UserSelector
+                            selectedUserId={selectedUserId}
+                            onSelect={onSelect}
+                            disabled={disabled}
+                        />
+                        
+                        <AnimatePresence mode="wait">
+                            {usuarioActual ? (
+                                <motion.div 
+                                    key={usuarioActual.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 10 }}
+                                    className="flex items-center gap-2 md:gap-3 lg:gap-4 p-2 md:p-3 lg:p-4 bg-primary/5 rounded-[1.5rem] border border-primary/10 shadow-inner relative overflow-hidden group/assigned"
+                                >
+                                    <div className="absolute inset-0 bg-linear-to-r from-primary/5 to-transparent opacity-0 group-hover/assigned:opacity-100 transition-opacity" />
+                                    
+                                    <div className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary font-black text-sm md:text-base lg:text-lg border-2 border-white/20 shadow-lg relative z-10 shrink-0">
+                                        {usuarioActual.avatar_url ? (
+                                            <img src={usuarioActual.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
+                                        ) : (
+                                            <span>{usuarioActual.nombre?.[0]}{usuarioActual.apellidos?.[0]}</span>
+                                        )}
+                                    </div>
+                                    <div className="relative z-10 min-w-0 flex-1">
+                                        <p className="text-xs md:text-sm font-black uppercase tracking-tight truncate">
+                                            {usuarioActual.nombre} {usuarioActual.apellidos}
+                                        </p>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            <p className="text-[8px] md:text-[9px] text-muted-foreground font-black uppercase tracking-widest">Asignado</p>
+                                        </div>
+                                    </div>
+                                    <CheckCircle size={20} className="ml-auto text-emerald-500/40 group-hover/assigned:text-emerald-500 transition-colors shrink-0" />
+                                </motion.div>
+                            ) : (
+                                <motion.div
+                                    key="unassigned"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="p-3 md:p-4 border-2 border-dashed border-muted-foreground/10 rounded-[1.5rem] flex flex-col items-center justify-center gap-2 opacity-50"
+                                >
+                                    <User className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground/30" />
+                                    <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 text-center">Pendiente de asignar</p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </CardContent>
+            </Card>
+        </motion.div>
     )
 }
 
@@ -102,12 +142,14 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
         try {
             const result = await updateAssignment(culto.id, tipo, selectedUserId)
             if (result.success) {
-                toast.success(t('common.success'))
+                toast.success(t('common.success'), {
+                    icon: <CheckCircle className="w-5 h-5 text-emerald-500" />
+                })
             } else {
                 toast.error(result.error || t('common.error'))
             }
         } catch (error) {
-            toast.error('Error de red')
+            toast.error('Error de conexión')
         } finally {
             setIsUpdating(false)
         }
@@ -117,56 +159,75 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
     const config = culto.tipo_culto || {}
 
     return (
-        <div className="max-w-7xl mx-auto space-y-6 pb-12">
+        <div className="max-w-7xl mx-auto space-y-4 md:space-y-6 lg:space-y-8 pb-20 px-4 md:px-8 no-scrollbar w-full">
             {/* Header / Breadcrumb */}
-            <div className="px-2">
-                <Link
-                    href="/dashboard/cultos"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-4"
+            <div className="space-y-4 md:space-y-6 w-full">
+                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+                    <Link
+                        href="/dashboard/cultos"
+                        className="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-muted/50 text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all font-black uppercase tracking-widest group border border-border/50 shadow-sm"
+                    >
+                        <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                        {t('dashboard.calendar')}
+                    </Link>
+                </motion.div>
+
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass rounded-[2.5rem] md:rounded-[3rem] p-3 md:p-4 lg:p-6 xl:p-8 shadow-2xl relative overflow-hidden border border-white/20 dark:border-white/5 w-full"
                 >
-                    <ChevronLeft className="w-4 h-4" />
-                    {t('dashboard.calendar')}
-                </Link>
-
-                <div className="glass rounded-3xl p-8 shadow-sm relative overflow-hidden">
-                    {/* Decoración de fondo */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-20 -mt-20 blur-3xl" />
-
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl animate-pulse" />
+                    
                     <div className="relative z-10">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div
-                                className="w-5 h-5 rounded-full shadow-lg"
-                                style={{ backgroundColor: config.color || '#4A90E2' }}
-                            />
-                            <h1 className="text-4xl font-extrabold tracking-tight">{tipoCulto}</h1>
-                        </div>
-
-                        <div className="flex flex-wrap gap-6 text-base text-muted-foreground font-medium">
-                            <div className="flex items-center gap-2 bg-muted/50 px-4 py-2 rounded-full">
-                                <Calendar className="w-5 h-5 text-primary" />
-                                {format(new Date(culto.fecha), 'PPPP', { locale })}
-                            </div>
-                            <div className="flex items-center gap-2 bg-muted/50 px-4 py-2 rounded-full">
-                                <Clock className="w-5 h-5 text-primary" />
-                                {culto.hora_inicio} - {culto.hora_fin}
-                            </div>
-                            {culto.es_laborable_festivo && (
-                                <div className="flex items-center gap-2 bg-yellow-500/10 text-yellow-600 px-4 py-2 rounded-full font-bold">
-                                    <AlertCircleIcon className="w-5 h-5" />
-                                    Festivo
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-4">
+                                    <div
+                                        className="w-8 h-8 rounded-2xl shadow-2xl animate-bounce"
+                                        style={{ backgroundColor: config.color || '#4A90E2', boxShadow: `0 10px 25px -5px ${config.color || '#4A90E2'}40` }}
+                                    />
+                                    <h1 className="text-5xl md:text-6xl font-black tracking-tighter uppercase italic leading-none">
+                                        {tipoCulto}
+                                    </h1>
                                 </div>
-                            )}
+
+                                <div className="flex flex-wrap gap-4">
+                                    <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 shadow-sm">
+                                        <Calendar className="w-5 h-5 text-primary" />
+                                        <span className="text-sm font-black uppercase tracking-tight">
+                                            {format(new Date(culto.fecha), 'PPPP', { locale })}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 shadow-sm font-black">
+                                        <Clock className="w-5 h-5 text-primary" />
+                                        <span className="text-sm uppercase tracking-widest">
+                                            {culto.hora_inicio.slice(0, 5)}
+                                        </span>
+                                    </div>
+                                    {culto.es_laborable_festivo && (
+                                        <div className="flex items-center gap-3 bg-amber-500/10 text-amber-600 px-6 py-3 rounded-2xl border border-amber-500/20 shadow-lg shadow-amber-500/10 font-black animate-pulse">
+                                            <AlertCircle className="w-5 h-5" />
+                                            <span className="text-xs uppercase tracking-widest">Festivo</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="hidden lg:block p-8 bg-primary/5 rounded-[2.5rem] border border-primary/10 shadow-inner">
+                                <Sparkles className="w-12 h-12 text-primary opacity-20" />
+                            </div>
                         </div>
                     </div>
-                </div>
+                </motion.div>
             </div>
 
-            {/* Cuadrícula de Contenido */}
-            <div className="grid gap-6 lg:grid-cols-12 px-2">
+            {/* Cuadrícula de Contenido Responsiva */}
+            <div className="grid gap-3 md:gap-4 lg:gap-8 lg:grid-cols-12 w-full">
                 {/* Columna Izquierda: Asignaciones y Biblia */}
-                <div className="lg:col-span-8 space-y-6">
+                <div className="lg:col-span-8 space-y-4 md:space-y-6 lg:space-y-8 w-full">
                     {/* Responsables */}
-                    <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="grid gap-3 md:gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2 w-full">
                         {config.tiene_lectura_introduccion && (
                             <AssignmentSection
                                 label={t('culto.introduccion')}
@@ -216,55 +277,69 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                         )}
                     </div>
 
-                    {/* Lecturas Bíblicas */}
+                    {/* Lecturas Bíblicas - Diseño Card Premium */}
                     {(config.tiene_lectura_introduccion || config.tiene_lectura_finalizacion) && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle icon={<BookOpen className="w-5 h-5 text-primary" />}>
-                                    {t('dashboard.lecturas')}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <BibleReadingManager
-                                    cultoId={culto.id}
-                                    userId={userId}
-                                    config={{
-                                        tiene_lectura_introduccion: !!config.tiene_lectura_introduccion,
-                                        tiene_lectura_finalizacion: !!config.tiene_lectura_finalizacion
-                                    }}
-                                />
-                            </CardContent>
-                        </Card>
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="w-full">
+                            <Card className="glass rounded-[2.5rem] border border-white/20 shadow-2xl overflow-hidden w-full">
+                                <CardHeader className="p-4 md:p-6 lg:p-8 border-b border-white/10 bg-primary/5">
+                                    <CardTitle icon={<BookOpen className="w-6 h-6 text-primary" />} className="text-xl font-black uppercase tracking-tighter">
+                                        {t('dashboard.lecturas')}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-4 md:p-6 lg:p-8">
+                                    <BibleReadingManager
+                                        cultoId={culto.id}
+                                        userId={userId}
+                                        config={{
+                                            tiene_lectura_introduccion: !!config.tiene_lectura_introduccion,
+                                            tiene_lectura_finalizacion: !!config.tiene_lectura_finalizacion
+                                        }}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </motion.div>
                     )}
                 </div>
 
                 {/* Columna Derecha: Música */}
-                <div className="lg:col-span-4">
+                <div className="lg:col-span-4 w-full space-y-4 md:space-y-6 lg:space-y-8">
                     {config.tiene_himnos_y_coros && (
-                        <Card className="sticky top-6">
-                            <CardHeader>
-                                <CardTitle icon={<Music className="w-5 h-5 text-primary" />}>
-                                    {t('dashboard.hymns')}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground mb-4 font-medium italic">
-                                    * Máximo 3 himnos y 3 coros.
-                                </p>
-                                <HimnoCoroSelector cultoId={culto.id} />
-                            </CardContent>
-                        </Card>
+                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="w-full">
+                            <Card className="lg:sticky lg:top-8 glass rounded-[2.5rem] border border-white/20 shadow-2xl overflow-hidden w-full">
+                                <CardHeader className="p-4 md:p-6 lg:p-8 border-b border-white/10 bg-accent/5">
+                                    <CardTitle icon={<Music className="w-6 h-6 text-primary" />} className="text-xl font-black uppercase tracking-tighter">
+                                        {t('dashboard.hymns')}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-4 md:p-6 lg:p-8">
+                                    <div className="bg-primary/5 p-3 md:p-4 rounded-2xl border border-primary/10 mb-4 md:mb-6">
+                                        <p className="text-[10px] text-primary font-black uppercase tracking-widest leading-relaxed">
+                                            * Máximo 3 himnos y 3 coros para optimizar el tiempo del culto.
+                                        </p>
+                                    </div>
+                                    <HimnoCoroSelector cultoId={culto.id} />
+                                </CardContent>
+                            </Card>
+                        </motion.div>
                     )}
                 </div>
             </div>
-        </div>
-    )
-}
 
-function AlertCircleIcon({ className }: { className?: string }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-        </svg>
+            {/* Botón Finalizar Edición */}
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="flex justify-center pt-8"
+            >
+                <Link
+                    href="/dashboard/cultos"
+                    className="h-16 px-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-2xl shadow-blue-500/30 flex items-center justify-center gap-3 transition-all hover:scale-[1.05] active:scale-[0.95] border-b-4 border-blue-800"
+                >
+                    <CheckCircle className="w-5 h-5" />
+                    Finalizar y Guardar
+                </Link>
+            </motion.div>
+        </div>
     )
 }

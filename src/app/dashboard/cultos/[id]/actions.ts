@@ -58,7 +58,7 @@ export async function searchProfiles(query: string) {
 
     const { data, error } = await supabase
         .from('profiles')
-        .select('id, nombre, apellidos, avatar_url')
+        .select('id, nombre, apellidos, avatar_url, pulpito')
         .eq('pulpito', true)
         .or(`nombre.ilike.%${query}%,apellidos.ilike.%${query}%`)
         .limit(10)

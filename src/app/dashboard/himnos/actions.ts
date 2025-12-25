@@ -93,7 +93,8 @@ export async function addHimnoCoro(
         .insert({
             culto_id: cultoId,
             tipo,
-            item_id: itemId,
+            himno_id: tipo === 'himno' ? itemId : null,
+            coro_id: tipo === 'coro' ? itemId : null,
             orden,
         })
 
@@ -144,10 +145,13 @@ export async function getHimnosCorosByCulto(cultoId: string): Promise<ActionResp
     const { data, error } = await supabase
         .from('plan_himnos_coros')
         .select(`
-      *,
-      himno:himnos(numero, titulo, duracion_segundos),
-      coro:coros(numero, titulo, duracion_segundos)
-    `)
+            id,
+            culto_id,
+            tipo,
+            orden,
+            himno:himnos(id, numero, titulo, duracion_segundos),
+            coro:coros(id, numero, titulo, duracion_segundos)
+        `)
         .eq('culto_id', cultoId)
         .order('orden', { ascending: true })
 
@@ -155,7 +159,48 @@ export async function getHimnosCorosByCulto(cultoId: string): Promise<ActionResp
         return { error: error.message }
     }
 
-    // Cast data because nested relations might not match strict Partial<Himno> perfectly without recursion
-    // but PlanHimnoCoro has optional himno/coro matching this structure.
-    return { data: data as PlanHimnoCoro[] }
+    // Mapear para mantener compatibilidad con la interfaz item_id
+    const mappedData = (data as any[])?.map(item => ({
+        ...item,
+        item_id: item.tipo === 'himno' ? item.himno?.id : item.coro?.id
+    }))
+
+    return { data: mappedData as PlanHimnoCoro[] }
+}
+
+/**
+ * Actualizar el orden de los himnos y coros de un culto
+ */
+export async function updateHimnosCorosOrder(
+    cultoId: string,
+    items: { id: string; orden: number }[]
+): Promise<ActionResponse> {
+    const supabase = await createClient()
+
+    // Actualizar cada item con su nuevo orden
+    for (const item of items) {
+        const { error } = await supabase
+            .from('plan_himnos_coros')
+            .update({ orden: item.orden })
+            .eq('id', item.id)
+            .eq('culto_id', cultoId)
+
+        if (error) {
+            return { error: error.message }
+        }
+    }
+
+    // Registrar en movimientos
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+        await supabase.from('movimientos').insert({
+            id_usuario: user.id,
+            tipo: 'cambio_himnos_coros',
+            descripcion: 'Reordenado himnos y coros',
+            culto_id: cultoId,
+        })
+    }
+
+    revalidatePath(`/dashboard/cultos/${cultoId}`)
+    return { success: true }
 }

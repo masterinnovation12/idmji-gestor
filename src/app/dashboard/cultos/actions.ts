@@ -1,12 +1,24 @@
+/**
+ * Cultos Server Actions - IDMJI Gestor de Púlpito
+ * 
+ * Acciones para la gestión de cultos: generación mensual, creación manual
+ * y obtención de datos con filtros.
+ * 
+ * @author Antigravity AI
+ * @date 2024-12-25
+ */
+
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { eachDayOfInterval, endOfMonth, getDay, startOfMonth, format } from 'date-fns'
+import { eachDayOfInterval, endOfMonth, getDay, startOfMonth, format, isWithinInterval } from 'date-fns'
 
 /**
- * Generar cultos para un mes según MVP
- * Considera festivos laborables para ajustar horarios
+ * Genera automáticamente los cultos de un mes basándose en el calendario semanal
+ * y las reglas de festivos laborables.
+ * 
+ * @param date Fecha del mes a generar
  */
 export async function generateCultosForMonth(date: Date) {
     const supabase = await createClient()
@@ -15,53 +27,56 @@ export async function generateCultosForMonth(date: Date) {
     const end = endOfMonth(date)
     const days = eachDayOfInterval({ start, end })
 
-    // Obtener tipos de culto
-    const { data: types } = await supabase.from('culto_types').select('id, nombre')
-    const typeMap = new Map(types?.map(t => [t.nombre, t.id]))
+    // 1. Verificar si ya existen cultos generados para este mes para evitar duplicados
+    const { data: existingCultos } = await supabase
+        .from('cultos')
+        .select('id')
+        .gte('fecha', format(start, 'yyyy-MM-dd'))
+        .lte('fecha', format(end, 'yyyy-MM-dd'))
+        .limit(1)
 
-    // Obtener festivos del mes
+    if (existingCultos && existingCultos.length > 0) {
+        return { success: false, error: 'Ya existen cultos generados para este mes.' }
+    }
+
+    // 2. Obtener configuraciones base
+    const { data: schedules } = await supabase.from('culto_schedules').select('*')
+    const scheduleMap = new Map(schedules?.map(s => [s.day_of_week, s]))
+
+    // 3. Obtener festivos del mes para aplicar regla de horario (1h antes)
     const { data: festivos } = await supabase
         .from('festivos')
         .select('fecha, tipo')
         .gte('fecha', format(start, 'yyyy-MM-dd'))
         .lte('fecha', format(end, 'yyyy-MM-dd'))
+        .eq('tipo', 'laborable_festivo')
 
-    const festivosMap = new Map(festivos?.map(f => [f.fecha, f.tipo]))
-
-    // Obtener reglas de horarios desde BD
-    const { data: schedules } = await supabase
-        .from('culto_schedules')
-        .select('*')
-
-    const scheduleMap = new Map(schedules?.map(s => [s.day_of_week, s]))
+    const laborablesFestivos = new Set(festivos?.map(f => f.fecha))
 
     const cultosToInsert = []
 
     for (const day of days) {
-        const dayOfWeek = getDay(day) // 0 = Domingo, 1 = Lunes, ...
+        const dayOfWeek = getDay(day) // 0=Dom, 1=Lun...
         const fechaStr = format(day, 'yyyy-MM-dd')
-        const festivoTipo = festivosMap.get(fechaStr)
-        const schedule = scheduleMap.get(dayOfWeek)
+        const schedule = scheduleMap.get(dayOfWeek as any)
 
         if (schedule) {
-            let hora = schedule.default_time.slice(0, 5) // HH:mm
+            let horaInicio = schedule.default_time.slice(0, 5) // HH:mm
             let esLaborableFestivo = false
 
-            // Aplicar regla de laborable festivo (ahora controlada por DB)
-            if (schedule.affected_by_laborable_festivo && festivoTipo === 'laborable_festivo') {
-                // Restar 1 hora simple: 19:00 -> 18:00
-                const [h, m] = hora.split(':').map(Number)
-                hora = `${h - 1}:${m.toString().padStart(2, '0')}`
+            // Regla MVP 5.2: Solo de lunes a viernes si es laborable_festivo, restar 1 hora
+            if (dayOfWeek >= 1 && dayOfWeek <= 5 && laborablesFestivos.has(fechaStr) && schedule.affected_by_laborable_festivo) {
+                const [h, m] = horaInicio.split(':').map(Number)
+                horaInicio = `${String(h - 1).padStart(2, '0')}:${String(m).padStart(2, '0')}`
                 esLaborableFestivo = true
             }
 
             cultosToInsert.push({
                 fecha: fechaStr,
-                hora_inicio: hora,
+                hora_inicio: horaInicio,
                 tipo_culto_id: schedule.tipo_culto_id,
                 estado: 'planeado',
-                es_festivo: festivoTipo !== undefined,
-                es_laborable_festivo: esLaborableFestivo,
+                es_laborable_festivo: esLaborableFestivo
             })
         }
     }
@@ -69,8 +84,8 @@ export async function generateCultosForMonth(date: Date) {
     if (cultosToInsert.length > 0) {
         const { error } = await supabase.from('cultos').insert(cultosToInsert)
         if (error) {
-            console.error('Error generating cultos:', error)
-            return { error: error.message }
+            console.error('Error al insertar cultos:', error)
+            return { success: false, error: 'Error al guardar los cultos en la base de datos.' }
         }
     }
 
@@ -78,6 +93,9 @@ export async function generateCultosForMonth(date: Date) {
     return { success: true, count: cultosToInsert.length }
 }
 
+/**
+ * Crea un culto de forma manual (excepción)
+ */
 export async function createCulto(formData: FormData) {
     const supabase = await createClient()
 
@@ -99,29 +117,30 @@ export async function createCulto(formData: FormData) {
 }
 
 /**
- * Obtener cultos de un mes con detalles
+ * Obtiene los cultos de un mes con toda la información de asignaciones relacionada
  */
 export async function getCultosForMonth(year: number, month: number) {
     const supabase = await createClient()
 
-    const start = new Date(year, month, 1)
-    const end = endOfMonth(start)
+    const start = format(new Date(year, month, 1), 'yyyy-MM-dd')
+    const end = format(endOfMonth(new Date(year, month, 1)), 'yyyy-MM-dd')
 
     const { data, error } = await supabase
         .from('cultos')
         .select(`
-      *,
-      tipo_culto:culto_types(nombre, color, tiene_ensenanza, tiene_testimonios, tiene_lectura_introduccion, tiene_lectura_finalizacion, tiene_himnos_y_coros),
-      usuario_intro:profiles!id_usuario_intro(nombre, apellidos),
-      usuario_finalizacion:profiles!id_usuario_finalizacion(nombre, apellidos),
-      usuario_ensenanza:profiles!id_usuario_ensenanza(nombre, apellidos),
-      usuario_testimonios:profiles!id_usuario_testimonios(nombre, apellidos)
-    `)
-        .gte('fecha', format(start, 'yyyy-MM-dd'))
-        .lte('fecha', format(end, 'yyyy-MM-dd'))
+            *,
+            tipo_culto:culto_types(*),
+            usuario_intro:profiles!id_usuario_intro(nombre, apellidos),
+            usuario_finalizacion:profiles!id_usuario_finalizacion(nombre, apellidos),
+            usuario_ensenanza:profiles!id_usuario_ensenanza(nombre, apellidos),
+            usuario_testimonios:profiles!id_usuario_testimonios(nombre, apellidos)
+        `)
+        .gte('fecha', start)
+        .lte('fecha', end)
         .order('fecha', { ascending: true })
 
     if (error) {
+        console.error('Error fetching cultos:', error)
         return { error: error.message }
     }
 

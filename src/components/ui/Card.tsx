@@ -15,7 +15,7 @@ export function Card({ children, className, variant = 'glass', style }: CardProp
     }
 
     return (
-        <div className={cn('rounded-2xl p-6', variants[variant], className)} style={style}>
+        <div className={cn('rounded-2xl p-3 md:p-4 lg:p-6', variants[variant], className)} style={style}>
             {children}
         </div>
     )

@@ -140,12 +140,22 @@ export default function DashboardClient({ user, cultoHoy, stats }: DashboardClie
                                 </div>
 
                                 {/* Asignaciones de Responsables */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border/50">
-                                    <ResponsableCard label={t('cultos.intro')} usuario={cultoHoy.usuario_intro} />
-                                    <ResponsableCard label={t('cultos.finalizacion')} usuario={cultoHoy.usuario_finalizacion} />
-                                    <ResponsableCard label={t('cultos.ensenanza')} usuario={cultoHoy.usuario_ensenanza} />
-                                    <ResponsableCard label={t('cultos.testimonios')} usuario={cultoHoy.usuario_testimonios} />
-                                </div>
+                                {cultoHoy.tipo_culto && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border/50">
+                                        {cultoHoy.tipo_culto.tiene_lectura_introduccion && (
+                                            <ResponsableCard label={t('culto.introduccion')} usuario={cultoHoy.usuario_intro} />
+                                        )}
+                                        {cultoHoy.tipo_culto.tiene_lectura_finalizacion && (
+                                            <ResponsableCard label={t('culto.finalizacion')} usuario={cultoHoy.usuario_finalizacion} />
+                                        )}
+                                        {cultoHoy.tipo_culto.tiene_ensenanza && (
+                                            <ResponsableCard label={t('culto.ensenanza')} usuario={cultoHoy.usuario_ensenanza} />
+                                        )}
+                                        {cultoHoy.tipo_culto.tiene_testimonios && (
+                                            <ResponsableCard label={t('culto.testimonios')} usuario={cultoHoy.usuario_testimonios} />
+                                        )}
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </motion.div>
