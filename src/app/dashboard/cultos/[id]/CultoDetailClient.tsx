@@ -244,70 +244,75 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
             </div>
 
             {/* Cuadrícula de Contenido Responsiva */}
-            <div className="grid gap-3 md:gap-4 lg:gap-8 lg:grid-cols-12 w-full">
-                {/* Columna Izquierda: Asignaciones y Biblia */}
-                <div className="lg:col-span-8 space-y-4 md:space-y-6 lg:space-y-8 w-full">
-                    {/* Responsables */}
-                    <div className="grid gap-3 md:gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2 w-full">
-                        {config.tiene_lectura_introduccion && (
-                            <AssignmentSection
-                                label={t('culto.introduccion')}
-                                icon={<User className="w-5 h-5" />}
-                                selectedUserId={culto.id_usuario_intro}
-                                usuarioActual={culto.usuario_intro}
-                                onSelect={(id) => handleAssignment('introduccion', id)}
-                                disabled={isUpdating}
-                                t={t}
-                            />
-                        )}
+            <div className="space-y-6 md:space-y-8 w-full">
+                {/* Fila 1: Responsables (En una sola línea en Desktop) */}
+                <div className="grid gap-3 md:gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
+                    {config.tiene_lectura_introduccion && (
+                        <AssignmentSection
+                            label={t('culto.introduccion')}
+                            icon={<User className="w-5 h-5" />}
+                            selectedUserId={culto.id_usuario_intro}
+                            usuarioActual={culto.usuario_intro}
+                            onSelect={(id) => handleAssignment('introduccion', id)}
+                            disabled={isUpdating}
+                            t={t}
+                        />
+                    )}
 
-                        {config.tiene_lectura_finalizacion && (
-                            <AssignmentSection
-                                label={t('culto.finalizacion')}
-                                icon={<User className="w-5 h-5" />}
-                                selectedUserId={culto.id_usuario_finalizacion}
-                                usuarioActual={culto.usuario_finalizacion}
-                                onSelect={(id) => handleAssignment('finalizacion', id)}
-                                disabled={isUpdating}
-                                t={t}
-                            />
-                        )}
+                    {config.tiene_ensenanza && (
+                        <AssignmentSection
+                            label={t('culto.ensenanza')}
+                            icon={<BookOpen className="w-5 h-5" />}
+                            selectedUserId={culto.id_usuario_ensenanza}
+                            usuarioActual={culto.usuario_ensenanza}
+                            onSelect={(id) => handleAssignment('ensenanza', id)}
+                            disabled={isUpdating}
+                            t={t}
+                        />
+                    )}
 
-                        {config.tiene_ensenanza && (
-                            <AssignmentSection
-                                label={t('culto.ensenanza')}
-                                icon={<BookOpen className="w-5 h-5" />}
-                                selectedUserId={culto.id_usuario_ensenanza}
-                                usuarioActual={culto.usuario_ensenanza}
-                                onSelect={(id) => handleAssignment('ensenanza', id)}
-                                disabled={isUpdating}
-                                t={t}
-                            />
-                        )}
+                    {config.tiene_testimonios && (
+                        <AssignmentSection
+                            label={t('culto.testimonios')}
+                            icon={<User className="w-5 h-5" />}
+                            selectedUserId={culto.id_usuario_testimonios}
+                            usuarioActual={culto.usuario_testimonios}
+                            onSelect={(id) => handleAssignment('testimonios', id)}
+                            disabled={isUpdating}
+                            t={t}
+                        />
+                    )}
 
-                        {config.tiene_testimonios && (
-                            <AssignmentSection
-                                label={t('culto.testimonios')}
-                                icon={<User className="w-5 h-5" />}
-                                selectedUserId={culto.id_usuario_testimonios}
-                                usuarioActual={culto.usuario_testimonios}
-                                onSelect={(id) => handleAssignment('testimonios', id)}
-                                disabled={isUpdating}
-                                t={t}
-                            />
-                        )}
-                    </div>
+                    {config.tiene_lectura_finalizacion && (
+                        <AssignmentSection
+                            label={t('culto.finalizacion')}
+                            icon={<User className="w-5 h-5" />}
+                            selectedUserId={culto.id_usuario_finalizacion}
+                            usuarioActual={culto.usuario_finalizacion}
+                            onSelect={(id) => handleAssignment('finalizacion', id)}
+                            disabled={isUpdating}
+                            t={t}
+                        />
+                    )}
+                </div>
 
-                    {/* Lecturas Bíblicas - Diseño Card Premium */}
+                {/* Fila 2: Lecturas y Música */}
+                <div className="grid gap-4 md:gap-6 lg:gap-8 lg:grid-cols-12 w-full items-start">
+                    {/* Columna Izquierda: Biblia (Bloque más pequeño y compacto) */}
                     {(config.tiene_lectura_introduccion || config.tiene_lectura_finalizacion) && (
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="w-full">
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }} 
+                            animate={{ opacity: 1, y: 0 }} 
+                            transition={{ delay: 0.2 }} 
+                            className="lg:col-span-4 xl:col-span-3 w-full"
+                        >
                             <Card className="glass rounded-[2.5rem] border border-white/20 shadow-2xl overflow-hidden w-full">
-                                <CardHeader className="p-4 md:p-6 lg:p-8 border-b border-white/10 bg-primary/5">
-                                    <CardTitle icon={<BookOpen className="w-6 h-6 text-primary" />} className="text-xl font-black uppercase tracking-tighter">
+                                <CardHeader className="p-4 md:p-6 border-b border-white/10 bg-primary/5">
+                                    <CardTitle icon={<BookOpen className="w-5 h-5 text-primary" />} className="text-lg font-black uppercase tracking-tighter">
                                         {t('dashboard.lecturas')}
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="p-4 md:p-6 lg:p-8">
+                                <CardContent className="p-4 md:p-5 lg:p-6">
                                     <BibleReadingManager
                                         cultoId={culto.id}
                                         userId={userId}
@@ -320,24 +325,29 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                             </Card>
                         </motion.div>
                     )}
-                </div>
 
-                {/* Columna Derecha: Música */}
-                <div className="lg:col-span-4 w-full space-y-4 md:space-y-6 lg:space-y-8">
+                    {/* Columna Derecha: Música (Bloque principal más grande y detallado) */}
                     {config.tiene_himnos_y_coros && (
-                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="w-full">
-                            <Card className="lg:sticky lg:top-8 glass rounded-[2.5rem] border border-white/20 shadow-2xl overflow-hidden w-full">
+                        <motion.div 
+                            initial={{ opacity: 0, x: 20 }} 
+                            animate={{ opacity: 1, x: 0 }} 
+                            transition={{ delay: 0.3 }} 
+                            className={`${(config.tiene_lectura_introduccion || config.tiene_lectura_finalizacion) ? 'lg:col-span-8 xl:col-span-9' : 'lg:col-span-12'} w-full`}
+                        >
+                            <Card className="glass rounded-[2.5rem] border border-white/20 shadow-2xl overflow-hidden w-full">
                                 <CardHeader className="p-4 md:p-6 lg:p-8 border-b border-white/10 bg-accent/5">
-                                    <CardTitle icon={<Music className="w-6 h-6 text-primary" />} className="text-xl font-black uppercase tracking-tighter">
-                                        {t('dashboard.hymns')}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-4 md:p-6 lg:p-8">
-                                    <div className="bg-primary/5 p-3 md:p-4 rounded-2xl border border-primary/10 mb-4 md:mb-6">
-                                        <p className="text-[10px] text-primary font-black uppercase tracking-widest leading-relaxed">
-                                            * Máximo 3 himnos y 3 coros para optimizar el tiempo del culto.
-                                        </p>
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle icon={<Music className="w-6 h-6 text-primary" />} className="text-xl md:text-2xl font-black uppercase tracking-tighter">
+                                            {t('dashboard.hymns')}
+                                        </CardTitle>
+                                        <div className="hidden sm:block bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10">
+                                            <p className="text-[10px] text-primary font-black uppercase tracking-widest leading-none">
+                                                Máximo 3 por categoría
+                                            </p>
+                                        </div>
                                     </div>
+                                </CardHeader>
+                                <CardContent className="p-4 md:p-5 lg:p-6">
                                     <HimnoCoroSelector cultoId={culto.id} />
                                 </CardContent>
                             </Card>

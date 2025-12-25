@@ -350,7 +350,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
 
             {/* Capítulo y Versículo Inicio y Fin */}
             <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <div className="flex justify-between items-end ml-1">
                             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Capítulo</label>
