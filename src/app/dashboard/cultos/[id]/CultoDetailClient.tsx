@@ -25,7 +25,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import UserSelector from '@/components/UserSelector'
 import HimnoCoroSelector from '@/components/HimnoCoroSelector'
 import BibleReadingManager from '@/components/BibleReadingManager'
-import { updateAssignment } from './actions'
+import { updateAssignment, toggleFestivo } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -40,6 +40,20 @@ interface CultoDetailClientProps {
 /**
  * Componente interno para tarjetas de asignación reutilizables con diseño premium
  */
+interface AssignmentSectionProps {
+    label: string,
+    icon: any,
+    selectedUserId: string | null,
+    usuarioActual: any,
+    onSelect: (id: string | null) => void,
+    disabled: boolean,
+    t: any,
+    cultoId: string,
+}
+
+/**
+ * Componente interno para tarjetas de asignación reutilizables con diseño premium
+ */
 function AssignmentSection({
     label,
     icon,
@@ -49,25 +63,16 @@ function AssignmentSection({
     disabled,
     t,
     cultoId,
-}: {
-    label: string,
-    icon: any,
-    selectedUserId: string | null,
-    usuarioActual: any,
-    onSelect: (id: string | null) => void,
-    disabled: boolean,
-    t: any,
-    cultoId: string,
-}) {
+}: AssignmentSectionProps) {
     const [isEditing, setIsEditing] = useState(!selectedUserId)
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="h-full w-full min-w-0"
+            className={`h-full w-full min-w-0 ${isEditing ? 'relative z-[100]' : 'relative z-10'}`}
         >
-            <Card className="h-full w-full min-w-0 border-t-4 border-primary/40 glass group hover:border-primary transition-all duration-500 shadow-xl overflow-hidden relative">
+            <Card className={`h-full w-full min-w-0 border-t-4 border-primary/40 glass group hover:border-primary transition-all duration-500 shadow-xl relative overflow-visible ${isEditing ? 'ring-4 ring-primary/30' : ''}`}>
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
                 
                 <CardHeader className="flex flex-row items-start justify-between pb-2 md:pb-3 shrink-0 gap-2">
@@ -83,9 +88,9 @@ function AssignmentSection({
                         </button>
                     )}
                 </CardHeader>
-                <CardContent className="p-2.5 md:p-3.5 flex-1 flex flex-col min-h-0">
-                    <div className="space-y-2.5 md:space-y-3.5 flex-1 flex flex-col min-h-0">
-                        <div className="shrink-0">
+                <CardContent className="p-2.5 md:p-3.5 flex-1 flex flex-col overflow-visible">
+                    <div className="space-y-2.5 md:space-y-3.5 flex-1 flex flex-col overflow-visible">
+                        <div className="shrink-0 relative z-[110]">
                             <UserSelector
                                 selectedUserId={selectedUserId}
                                 onSelect={(id) => {
@@ -101,7 +106,7 @@ function AssignmentSection({
                         <AnimatePresence mode="wait">
                             {usuarioActual ? (
                                 <motion.div 
-                                    key={usuarioActual.id}
+                                    key={usuarioActual.id || `assigned-${label}`}
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
@@ -189,6 +194,24 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
     const locale = language === 'ca-ES' ? ca : es
     const [isUpdating, setIsUpdating] = useState(false)
 
+    const handleToggleFestivo = async () => {
+        setIsUpdating(true)
+        try {
+            const result = await toggleFestivo(culto.id, !!culto.es_laborable_festivo, culto.hora_inicio)
+            if (result.success) {
+                toast.success(culto.es_laborable_festivo ? 'Horario normal restaurado' : 'Horario festivo aplicado (-1h)', {
+                    icon: <Sparkles className="w-5 h-5 text-primary" />
+                })
+            } else {
+                toast.error(result.error || 'Error al cambiar estado festivo')
+            }
+        } catch (error) {
+            toast.error('Error de conexión')
+        } finally {
+            setIsUpdating(false)
+        }
+    }
+
     const handleAssignment = async (
         tipo: 'introduccion' | 'finalizacion' | 'ensenanza' | 'testimonios',
         selectedUserId: string | null
@@ -260,12 +283,31 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                             {culto.hora_inicio.slice(0, 5)}
                                         </span>
                                     </div>
-                                    {culto.es_laborable_festivo && (
-                                        <div className="flex items-center gap-3 bg-amber-500/10 text-amber-600 px-6 py-3 rounded-2xl border border-amber-500/20 shadow-lg shadow-amber-500/10 font-black animate-pulse">
-                                            <AlertCircle className="w-5 h-5" />
-                                            <span className="text-xs uppercase tracking-widest">Festivo</span>
-                                        </div>
-                                    )}
+
+                                    {/* Toggle Festivo Premium */}
+                                    <button
+                                        onClick={handleToggleFestivo}
+                                        disabled={isUpdating}
+                                        className={`flex items-center gap-3 px-6 py-3 rounded-2xl border transition-all font-black group relative overflow-hidden ${
+                                            culto.es_laborable_festivo 
+                                                ? 'bg-primary text-white border-primary shadow-lg shadow-primary/25 scale-105' 
+                                                : 'bg-white/40 dark:bg-black/20 backdrop-blur-md text-muted-foreground border-white/20 hover:border-primary/50'
+                                        }`}
+                                    >
+                                        <div className={`absolute inset-0 bg-linear-to-r from-white/20 to-transparent -translate-x-full transition-transform duration-1000 ${culto.es_laborable_festivo ? 'group-hover:translate-x-full' : ''}`} />
+                                        <AlertCircle className={`w-5 h-5 ${culto.es_laborable_festivo ? 'text-white' : 'text-amber-500'}`} />
+                                        <span className="text-xs uppercase tracking-widest relative z-10">
+                                            {culto.es_laborable_festivo ? 'Día Festivo (-1h)' : 'Marcar Festivo'}
+                                        </span>
+                                        {culto.es_laborable_festivo && (
+                                            <motion.div
+                                                layoutId="festivo-sparkle"
+                                                className="absolute -top-1 -right-1"
+                                            >
+                                                <Sparkles className="w-4 h-4 text-white/50 animate-pulse" />
+                                            </motion.div>
+                                        )}
+                                    </button>
                                 </div>
                             </div>
 
@@ -280,7 +322,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
             {/* Cuadrícula de Contenido Responsiva */}
             <div className="space-y-6 md:space-y-8 w-full">
                 {/* Fila 1: Responsables (Diseño Inteligente: Se expanden para ocupar el espacio) */}
-                <div className="flex flex-wrap gap-4 md:gap-6 w-full">
+                <div className="flex flex-wrap gap-4 md:gap-6 w-full overflow-visible relative z-30">
                     {config.tiene_lectura_introduccion && (
                         <div className="flex-1 min-w-[280px] lg:min-w-[340px] max-w-full">
                             <AssignmentSection
@@ -352,7 +394,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                             transition={{ delay: 0.3 }} 
                             className="lg:col-span-12 w-full"
                         >
-                            <Card className="glass rounded-[2.5rem] border border-white/20 shadow-2xl overflow-hidden w-full">
+                            <Card className="glass rounded-[2.5rem] border border-white/20 shadow-2xl w-full">
                                 <CardHeader className="p-4 md:p-6 lg:p-8 border-b border-white/10 bg-accent/5">
                                     <div className="flex items-center justify-between">
                                         <CardTitle icon={<Music className="w-6 h-6 text-primary" />} className="text-xl md:text-2xl font-black uppercase tracking-tighter">

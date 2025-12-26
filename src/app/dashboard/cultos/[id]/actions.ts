@@ -51,6 +51,45 @@ export async function updateAssignment(
 }
 
 /**
+ * Toggle del estado festivo laborable con ajuste automático de horario
+ */
+export async function toggleFestivo(cultoId: string, currentStatus: boolean, currentHora: string) {
+    const supabase = await createClient()
+
+    // Calcular nueva hora: -1h si pasa a festivo, +1h si vuelve a normal
+    const [h, m] = currentHora.split(':').map(Number)
+    const newH = currentStatus ? (h + 1) % 24 : (h - 1 + 24) % 24
+    const newHora = `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+
+    const { error } = await supabase
+        .from('cultos')
+        .update({ 
+            es_laborable_festivo: !currentStatus,
+            hora_inicio: newHora
+        })
+        .eq('id', cultoId)
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    // Registrar en movimientos
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+        await supabase.from('movimientos').insert({
+            id_usuario: user.id,
+            tipo: 'cambio_festivo',
+            descripcion: `Cambio de estado festivo en culto. Nueva hora: ${newHora}`,
+            culto_id: cultoId,
+        })
+    }
+
+    revalidatePath(`/dashboard/cultos/${cultoId}`)
+    revalidatePath('/dashboard/cultos')
+    return { success: true }
+}
+
+/**
  * Buscar hermanos con pulpito = true para asignaciones
  */
 export async function searchProfiles(query: string = '') {

@@ -508,9 +508,9 @@ export default function HimnoCoroSelector({
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-1 bg-muted/30 dark:bg-white/5 p-2 rounded-2xl border border-border/50 dark:border-white/10 max-h-60 overflow-y-auto no-scrollbar"
                     >
-                        {results.map((item) => (
+                        {results.map((item, idx) => (
                             <div
-                                key={item.id}
+                                key={item.id || `himno-coro-result-${idx}`}
                                 className="flex items-center justify-between p-4 bg-card rounded-xl hover:bg-blue-500/10 transition-all group cursor-pointer border border-border/50 shadow-sm"
                                 onClick={() => handleAdd(item)}
                             >
@@ -560,8 +560,8 @@ export default function HimnoCoroSelector({
                         Mis Listas Guardadas ({savedLists.length}/2)
                     </h3>
                     <div className="grid grid-cols-1 gap-2">
-                        {savedLists.map((list) => (
-                            <div key={list.id} className="flex items-center justify-between p-3 bg-muted/30 dark:bg-white/5 rounded-2xl border border-border/50 dark:border-white/10 shadow-sm group hover:bg-muted/50 dark:hover:bg-white/10 transition-all cursor-pointer">
+                        {savedLists.map((list, idx) => (
+                            <div key={list.id || `saved-list-${idx}`} className="flex items-center justify-between p-3 bg-muted/30 dark:bg-white/5 rounded-2xl border border-border/50 dark:border-white/10 shadow-sm group hover:bg-muted/50 dark:hover:bg-white/10 transition-all cursor-pointer">
                                 <div className="flex-1" onClick={() => loadList(list)}>
                                     <p className="text-xs font-black uppercase tracking-tight text-foreground truncate">
                                         {list.name}
@@ -604,13 +604,13 @@ export default function HimnoCoroSelector({
                         onDragEnd={handleDragEnd}
                     >
                         <SortableContext
-                            items={sortedSelected.map(item => item.id)}
+                            items={sortedSelected.map((item, idx) => item.id || `selected-${idx}`)}
                             strategy={verticalListSortingStrategy}
                         >
                             <div className="space-y-2">
                                 {sortedSelected.map((item, index) => (
                                     <SortableItem
-                                        key={item.id}
+                                        key={item.id || `selected-item-${index}`}
                                         item={item}
                                         onRemove={handleRemove}
                                         onMoveUp={handleMoveUp}

@@ -68,7 +68,14 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
 
     const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
-    const eventsMap = new Map(events.map(e => [e.fecha, e]))
+    
+    // Deduplicar eventos por fecha para asegurar que solo haya uno por día
+    const eventsMap = new Map()
+    events.forEach(e => {
+        if (!eventsMap.has(e.fecha)) {
+            eventsMap.set(e.fecha, e)
+        }
+    })
 
     const handlePrev = () => {
         let newDate: Date
@@ -99,6 +106,8 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
     const weekDaysInterval = eachDayOfInterval({ start: weekStart, end: weekEnd })
 
     const daysToRender = view === 'month' ? days : view === 'week' ? weekDaysInterval : [currentDate]
+
+    const isMonthActual = isSameMonth(currentDate, new Date())
 
     const handleToday = () => {
         const today = new Date()
@@ -143,9 +152,13 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                     </button>
                     <button
                         onClick={handleToday}
-                        className="px-5 py-2 text-xs font-black uppercase tracking-widest hover:bg-background hover:shadow-sm rounded-xl transition-all"
+                        className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl ${
+                            isMonthActual 
+                                ? 'bg-blue-600 text-white shadow-lg' 
+                                : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-muted-foreground hover:text-blue-600'
+                        }`}
                     >
-                        {t('calendar.today')}
+                        {isMonthActual ? t('calendar.today') : 'Ir a Hoy'}
                     </button>
                     <button
                         onClick={handleNext}
@@ -180,68 +193,68 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                 transition={{ delay: idx * 0.01 }}
                                 onClick={() => onDateSelect?.(day)}
                                 className={`
-                                    ${view === 'day' ? 'min-h-[400px]' : view === 'week' ? 'min-h-[200px]' : 'min-h-[120px]'} p-4 transition-all relative group/day cursor-pointer
+                                    ${view === 'day' ? 'min-h-[400px]' : view === 'week' ? 'min-h-[200px]' : 'min-h-[140px] md:min-h-[160px]'} p-2 md:p-4 transition-all relative group/day cursor-pointer overflow-hidden flex flex-col
                                     ${isCurrentMonth || view !== 'month' ? 'bg-background/40' : 'bg-muted/10 opacity-40'}
                                     ${isToday ? 'ring-2 ring-inset ring-primary shadow-[inset_0_0_20px_rgba(var(--primary-rgb),0.05)]' : ''}
                                     hover:bg-primary/5
                                 `}
                             >
-                                <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center justify-between mb-2 md:mb-4 shrink-0">
                                     <div className="flex flex-col">
-                                        <span className={`text-lg font-black ${!isCurrentMonth && view === 'month' ? 'text-muted-foreground/40' : isToday ? 'text-primary' : ''}`}>
+                                        <span className={`text-base md:text-lg font-black ${!isCurrentMonth && view === 'month' ? 'text-muted-foreground/40' : isToday ? 'text-primary' : ''}`}>
                                             {format(day, 'd')}
                                         </span>
                                         {view === 'day' && (
-                                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                                            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-widest">
                                                 {format(day, 'EEEE', { locale })}
                                             </span>
                                         )}
                                     </div>
                                     {event && (
                                         <div
-                                            className="w-3 h-3 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.1)] border-2 border-white dark:border-slate-800"
+                                            className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.1)] border-2 border-white dark:border-slate-800 shrink-0"
                                             style={{ backgroundColor: event.tipo_culto?.color || '#888' }}
                                         />
                                     )}
                                 </div>
 
                                 {event ? (
-                                    <Link href={`/dashboard/cultos/${event.id}`}>
+                                    <Link href={`/dashboard/cultos/${event.id}`} className="flex-1 min-h-0">
                                         <div className={`
-                                            space-y-4 p-4 rounded-2xl transition-all cursor-pointer border shadow-sm
+                                            h-full space-y-2 md:space-y-4 p-2 md:p-4 rounded-xl md:rounded-2xl transition-all cursor-pointer border shadow-sm flex flex-col overflow-hidden
                                             ${isDark ? 'bg-slate-800/50 border-white/5 hover:bg-slate-800' : 'bg-white border-gray-100 hover:bg-gray-50'}
                                             ${view === 'day' ? 'max-w-2xl' : ''}
                                         `}>
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-xs font-black uppercase tracking-tight leading-tight">
+                                            <div className="flex items-center justify-between gap-1 shrink-0">
+                                                <p className="text-[9px] md:text-xs font-black uppercase tracking-tight leading-tight truncate">
                                                     {event.tipo_culto?.nombre}
                                                 </p>
                                                 <div className={`
-                                                    text-[8px] font-black uppercase tracking-[0.2em] px-2 py-1 rounded-lg inline-flex items-center gap-1
+                                                    text-[7px] md:text-[8px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] px-1.5 py-0.5 md:px-2 md:py-1 rounded-lg inline-flex items-center gap-1 shrink-0
                                                     ${status === 'complete' 
                                                         ? 'bg-emerald-500/10 text-emerald-600' 
                                                         : 'bg-amber-500/10 text-amber-600'}
                                                 `}>
-                                                    {status === 'complete' ? <CheckCircle size={10} /> : <Clock size={10} />}
-                                                    {status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}
+                                                    {status === 'complete' ? <CheckCircle size={8} className="md:w-[10px] md:h-[10px]" /> : <Clock size={8} className="md:w-[10px] md:h-[10px]" />}
+                                                    <span className="hidden xs:inline">{status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}</span>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-bold">
-                                                <div className="flex items-center gap-1.5">
-                                                    <Clock size={14} className="text-primary/60" />
+                                            <div className="flex items-center gap-2 md:gap-4 text-[9px] md:text-[11px] text-muted-foreground font-bold shrink-0">
+                                                <div className="flex items-center gap-1 md:gap-1.5">
+                                                    <Clock size={12} className="md:w-[14px] md:h-[14px] text-primary/60" />
                                                     {event.hora_inicio.slice(0, 5)}
                                                 </div>
                                                 {event.es_laborable_festivo && (
                                                     <div className="flex items-center gap-1 text-amber-500">
-                                                        <AlertCircle size={14} />
-                                                        <span>Festivo</span>
+                                                        <AlertCircle size={12} className="md:w-[14px] md:h-[14px]" />
+                                                        <span className="hidden sm:inline">Festivo</span>
                                                     </div>
                                                 )}
                                             </div>
 
                                             {view === 'day' && (
-                                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50">
+                                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50 shrink-0">
                                                     <div className="space-y-1">
                                                         <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest">Responsable</p>
                                                         <p className="text-xs font-bold truncate">Sin asignar</p>
@@ -276,7 +289,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                         exit={{ opacity: 0, x: -20 }}
                         className="space-y-4"
                     >
-                        {events
+                        {Array.from(eventsMap.values())
                             .filter(e => isSameMonth(new Date(e.fecha), currentDate))
                             .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
                             .map((event, idx) => {

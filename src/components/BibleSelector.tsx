@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, ChevronDown, BookOpen, AlertCircle, X, ArrowLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getBibliaLibros } from '@/app/dashboard/lecturas/actions'
@@ -24,6 +25,7 @@ interface BibleSelectorProps {
 
 export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps) {
     const { t } = useI18n()
+    const [id] = useState(() => Math.random().toString(36).substring(2, 9))
     const [libros, setLibros] = useState<BibleBook[]>([])
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedLibroObj, setSelectedLibroObj] = useState<BibleBook | null>(null)
@@ -31,11 +33,18 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
     const [versiculoInicio, setVersiculoInicio] = useState<number | ''>('')
     const [versiculoFin, setVersiculoFin] = useState<number | ''>('')
     const [showDropdown, setShowDropdown] = useState(false)
-    const [isMobileSearchActive, setIsMobileSearchActive] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
+    const [isMobileSearchActive, setIsMobileSearchActive] = useState(false)
+    const [dropdownRect, setDropdownRect] = useState<{ top: number, left: number, width: number } | null>(null)
+    const [mounted, setMounted] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
     const dropdownRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        setMounted(true)
+        return () => setMounted(false)
+    }, [])
 
     useEffect(() => {
         const checkMobile = () => {
@@ -56,6 +65,30 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
+
+    // Posicionamiento dinámico para el dropdown fixed
+    const updatePosition = () => {
+        if (inputRef.current) {
+            const rect = inputRef.current.getBoundingClientRect()
+            setDropdownRect({
+                top: rect.bottom,
+                left: rect.left,
+                width: rect.width
+            })
+        }
+    }
+
+    useEffect(() => {
+        if (showDropdown && !isMobile) {
+            updatePosition()
+            window.addEventListener('scroll', updatePosition, true)
+            window.addEventListener('resize', updatePosition)
+            return () => {
+                window.removeEventListener('scroll', updatePosition, true)
+                window.removeEventListener('resize', updatePosition)
+            }
+        }
+    }, [showDropdown, isMobile])
 
     useEffect(() => {
         async function loadLibros() {
@@ -201,77 +234,88 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                         />
                     </div>
 
-                    {/* Desktop Search Results - More integrated and premium */}
+                    {/* Desktop Search Results - PORTAL position for reliability */}
                     <AnimatePresence>
-                        {!isMobile && showDropdown && (
-                            <motion.div 
-                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                ref={dropdownRef}
-                                className="absolute z-[100] w-full top-full mt-3 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden border border-gray-200 dark:border-white/10 flex flex-col min-h-[100px] max-h-[450px]"
-                            >
-                                <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Resultados de búsqueda</p>
-                                    <button 
-                                        onClick={() => setShowDropdown(false)}
-                                        className="p-1.5 hover:bg-muted rounded-full transition-colors"
-                                    >
-                                        <X className="w-4 h-4 text-muted-foreground" />
-                                    </button>
-                                </div>
-                                <div className="overflow-y-auto p-2 no-scrollbar">
-                                    {filteredLibros.length > 0 ? (
-                                        <div className="grid grid-cols-1 gap-1">
-                                            {filteredLibros.map((libro) => (
-                                                <button
-                                                    key={libro.id}
-                                                    onClick={() => handleSelectLibro(libro)}
-                                                    className="w-full px-4 py-3.5 text-left hover:bg-primary/5 dark:hover:bg-primary/10 transition-all flex items-center justify-between group rounded-[1.5rem] relative overflow-hidden"
-                                                >
-                                                    <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors" />
-                                                    <div className="flex items-center gap-4 relative z-10">
-                                                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover:scale-105 group-hover:rotate-3 ${
-                                                            libro.testamento === 'AT' 
-                                                                ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' 
-                                                                : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
-                                                        }`}>
-                                                            {libro.abreviatura.slice(0, 2)}
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-black text-sm md:text-base group-hover:text-primary transition-colors uppercase tracking-tight">{libro.nombre}</p>
-                                                            <div className="flex items-center gap-2 mt-0.5">
-                                                                <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border ${
-                                                                    libro.testamento === 'AT' 
-                                                                        ? 'bg-amber-500/5 border-amber-500/20 text-amber-600' 
-                                                                        : 'bg-blue-500/5 border-blue-500/20 text-blue-600'
-                                                                }`}>
-                                                                    {libro.testamento === 'AT' ? 'Antiguo Testamento' : 'Nuevo Testamento'}
-                                                                </span>
-                                                                <span className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-widest">•</span>
-                                                                <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest italic">
-                                                                    {libro.capitulos.length} Capítulos
-                                                                </p>
+                        {mounted && !isMobile && showDropdown && dropdownRect && createPortal(
+                            <div key={`bible-selector-portal-${id}`} className="fixed inset-0 z-[9998]" onClick={() => setShowDropdown(false)}>
+                                <motion.div 
+                                    key={`bible-selector-dropdown-${id}`}
+                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                    ref={dropdownRef}
+                                    style={{
+                                        position: 'fixed',
+                                        top: dropdownRect.top + 8,
+                                        left: dropdownRect.left,
+                                        width: dropdownRect.width,
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] overflow-hidden border border-gray-200 dark:border-white/10 flex flex-col min-h-[100px] max-h-[450px]"
+                                >
+                                    <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between shrink-0">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Resultados de búsqueda</p>
+                                        <button 
+                                            onClick={() => setShowDropdown(false)}
+                                            className="p-1.5 hover:bg-muted rounded-full transition-colors"
+                                        >
+                                            <X className="w-4 h-4 text-muted-foreground" />
+                                        </button>
+                                    </div>
+                                    <div className="overflow-y-auto p-2 no-scrollbar flex-1">
+                                        {filteredLibros.length > 0 ? (
+                                            <div className="grid grid-cols-1 gap-1">
+                                                {filteredLibros.map((libro, idx) => (
+                                                    <button
+                                                        key={libro.id || `libro-result-${idx}`}
+                                                        onClick={() => handleSelectLibro(libro)}
+                                                        className="w-full px-4 py-3.5 text-left hover:bg-primary/5 dark:hover:bg-primary/10 transition-all flex items-center justify-between group rounded-[1.5rem] relative overflow-hidden"
+                                                    >
+                                                        <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors" />
+                                                        <div className="flex items-center gap-4 relative z-10">
+                                                            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover:scale-105 group-hover:rotate-3 ${
+                                                                libro.testamento === 'AT' 
+                                                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' 
+                                                                    : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
+                                                            }`}>
+                                                                {libro.abreviatura.slice(0, 2)}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-black text-sm md:text-base group-hover:text-primary transition-colors uppercase tracking-tight">{libro.nombre}</p>
+                                                                <div className="flex items-center gap-2 mt-0.5">
+                                                                    <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border ${
+                                                                        libro.testamento === 'AT' 
+                                                                            ? 'bg-amber-500/5 border-amber-500/20 text-amber-600' 
+                                                                            : 'bg-blue-500/5 border-blue-500/20 text-blue-600'
+                                                                    }`}>
+                                                                        {libro.testamento === 'AT' ? 'Antiguo Testamento' : 'Nuevo Testamento'}
+                                                                    </span>
+                                                                    <span className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-widest">•</span>
+                                                                    <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest italic">
+                                                                        {libro.capitulos.length} Capítulos
+                                                                    </p>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="w-8 h-8 rounded-xl bg-primary/0 group-hover:bg-primary/10 flex items-center justify-center transition-all relative z-10">
-                                                        <ChevronDown className="w-4 h-4 text-muted-foreground/30 -rotate-90 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="p-10 text-center">
-                                            <BookOpen className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
-                                            <p className="text-xs font-black text-muted-foreground/40 uppercase tracking-widest">No hay resultados para "{searchQuery}"</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="p-3 bg-muted/20 border-t border-border/50 text-center">
-                                    <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Sugerencia: Escribe para filtrar la lista</p>
-                                </div>
-                            </motion.div>
+                                                        <div className="w-8 h-8 rounded-xl bg-primary/0 group-hover:bg-primary/10 flex items-center justify-center transition-all relative z-10">
+                                                            <ChevronDown className="w-4 h-4 text-muted-foreground/30 -rotate-90 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="p-10 text-center">
+                                                <BookOpen className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
+                                                <p className="text-xs font-black text-muted-foreground/40 uppercase tracking-widest">No hay resultados para "{searchQuery}"</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-3 bg-muted/20 border-t border-border/50 text-center shrink-0">
+                                        <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Sugerencia: Escribe para filtrar la lista</p>
+                                    </div>
+                                </motion.div>
+                            </div>,
+                            document.body
                         )}
                     </AnimatePresence>
                 </div>
@@ -318,9 +362,9 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                         {/* Search Results */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-2">
                             {filteredLibros.length > 0 ? (
-                                filteredLibros.map((libro) => (
+                                filteredLibros.map((libro, idx) => (
                                     <button
-                                        key={libro.id}
+                                        key={libro.id || `mobile-libro-result-${idx}`}
                                         onClick={() => handleSelectLibro(libro)}
                                         className="w-full p-4 text-left bg-muted/20 hover:bg-primary/5 active:bg-primary/10 rounded-2xl transition-all border border-border/10 flex items-center gap-4 group"
                                     >

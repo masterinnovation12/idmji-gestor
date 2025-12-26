@@ -50,6 +50,91 @@ interface RepetitionData {
     }
 }
 
+interface ReadingItemProps {
+    lectura: LecturaBiblica
+    onEdit: (tipo: 'introduccion' | 'finalizacion') => void
+    onDelete: (id: string) => void
+}
+
+function ReadingItem({ lectura, onEdit, onDelete }: ReadingItemProps) {
+    return (
+        <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className={`p-3.5 md:p-4.5 rounded-[1.75rem] border shadow-inner relative overflow-hidden group/reading transition-all ${
+                lectura.es_repetida
+                    ? 'bg-red-500/5 border-red-500/20'
+                    : 'bg-primary/5 border-primary/10'
+            }`}
+        >
+            <div className="absolute inset-0 bg-linear-to-r from-primary/5 to-transparent opacity-0 group-hover/reading:opacity-100 transition-opacity" />
+            
+            <div className="flex flex-col gap-3 relative z-10">
+                <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center border-2 shadow-lg shrink-0 ${
+                        lectura.es_repetida ? 'bg-red-500/20 border-white/20 text-red-600' : 'bg-primary/20 border-white/20 text-primary'
+                    }`}>
+                        <BookOpen className="w-5 h-5 md:w-6 md:h-6" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                            <p className="text-[9px] md:text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-none">
+                                {lectura.tipo_lectura === 'introduccion' ? 'Lectura Introducción' : 'Lectura Final'}
+                            </p>
+                            {lectura.es_repetida && (
+                                <div className="flex items-center gap-1 text-red-600 font-black text-[7px] uppercase bg-red-500/10 px-1.5 py-0.5 rounded-full border border-red-500/20 shrink-0">
+                                    <AlertCircle className="w-2.5 h-2.5" />
+                                    <span>Repetida</span>
+                                </div>
+                            )}
+                        </div>
+                        <p className={`text-sm md:text-base lg:text-lg font-black uppercase tracking-tight mt-1 leading-none whitespace-nowrap break-normal ${lectura.es_repetida ? 'text-red-600' : 'text-foreground'}`}>
+                            {lectura.libro} {lectura.capitulo_inicio}:{lectura.versiculo_inicio}
+                            {lectura.capitulo_fin !== lectura.capitulo_inicio || lectura.versiculo_fin !== lectura.versiculo_inicio
+                                ? ` - ${lectura.capitulo_fin}:${lectura.versiculo_fin}`
+                                : ''}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-2">
+                            <div className="flex items-center gap-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                <p className="text-[8px] md:text-[9px] lg:text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-none">
+                                    Registrada
+                                </p>
+                            </div>
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="bg-emerald-500/20 p-0.5 rounded-full"
+                            >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                            </motion.div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-primary/10">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onEdit(lectura.tipo_lectura as any); }}
+                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white dark:bg-slate-800 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all shadow-sm border border-border/50 group/btn"
+                    >
+                        <Edit2 className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Modificar</span>
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onDelete(lectura.id); }}
+                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white dark:bg-slate-800 text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-all shadow-sm border border-border/50 group/btn"
+                    >
+                        <Trash2 className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Eliminar</span>
+                    </button>
+                </div>
+            </div>
+        </motion.div>
+    )
+}
+
 export default function BibleReadingManager({ cultoId, userId, config }: BibleReadingManagerProps) {
     const { t, language } = useI18n()
     const [lecturas, setLecturas] = useState<LecturaBiblica[]>([])
@@ -211,83 +296,6 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
         }
     }
 
-    const ReadingItem = ({ lectura }: { lectura: LecturaBiblica }) => (
-        <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className={`p-3.5 md:p-4.5 rounded-[1.75rem] border shadow-inner relative overflow-hidden group/reading transition-all ${
-                lectura.es_repetida
-                    ? 'bg-red-500/5 border-red-500/20'
-                    : 'bg-primary/5 border-primary/10'
-            }`}
-        >
-            <div className="absolute inset-0 bg-linear-to-r from-primary/5 to-transparent opacity-0 group-hover/reading:opacity-100 transition-opacity" />
-            
-            <div className="flex flex-col gap-3 relative z-10">
-                <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center border-2 shadow-lg shrink-0 ${
-                        lectura.es_repetida ? 'bg-red-500/20 border-white/20 text-red-600' : 'bg-primary/20 border-white/20 text-primary'
-                    }`}>
-                        <BookOpen className="w-5 h-5 md:w-6 md:h-6" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                            <p className="text-[9px] md:text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-none">
-                                {lectura.tipo_lectura === 'introduccion' ? 'Lectura Introducción' : 'Lectura Final'}
-                            </p>
-                            {lectura.es_repetida && (
-                                <div className="flex items-center gap-1 text-red-600 font-black text-[7px] uppercase bg-red-500/10 px-1.5 py-0.5 rounded-full border border-red-500/20 shrink-0">
-                                    <AlertCircle className="w-2.5 h-2.5" />
-                                    <span>Repetida</span>
-                                </div>
-                            )}
-                        </div>
-                        <p className={`text-sm md:text-base lg:text-lg font-black uppercase tracking-tight mt-1 leading-none whitespace-nowrap break-normal ${lectura.es_repetida ? 'text-red-600' : 'text-foreground'}`}>
-                            {lectura.libro} {lectura.capitulo_inicio}:{lectura.versiculo_inicio}
-                            {lectura.capitulo_fin !== lectura.capitulo_inicio || lectura.versiculo_fin !== lectura.versiculo_inicio
-                                ? ` - ${lectura.capitulo_fin}:${lectura.versiculo_fin}`
-                                : ''}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-2">
-                            <div className="flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                                <p className="text-[8px] md:text-[9px] lg:text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-none">
-                                    Registrada
-                                </p>
-                            </div>
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="bg-emerald-500/20 p-0.5 rounded-full"
-                            >
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                            </motion.div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-primary/10">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); setActiveTipo(lectura.tipo_lectura as any); setIsModalOpen(true); }}
-                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white dark:bg-slate-800 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all shadow-sm border border-border/50 group/btn"
-                    >
-                        <Edit2 className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Modificar</span>
-                    </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(lectura.id); }}
-                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white dark:bg-slate-800 text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-all shadow-sm border border-border/50 group/btn"
-                    >
-                        <Trash2 className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Eliminar</span>
-                    </button>
-                </div>
-            </div>
-        </motion.div>
-    )
-
     return (
         <div className="space-y-6 h-full flex flex-col">
             {/* Bloque vacío con botón centrado */}
@@ -300,13 +308,19 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                 ) : lecturas.length > 0 ? (
                     <div className="grid gap-4 grid-cols-1">
                         <AnimatePresence mode="popLayout">
-                            {lecturas.map((lectura) => (
-                                <ReadingItem key={lectura.id} lectura={lectura} />
+                            {lecturas.map((lectura, idx) => (
+                                <ReadingItem 
+                                    key={lectura.id || `lectura-${lectura.tipo_lectura}-${idx}`} 
+                                    lectura={lectura} 
+                                    onEdit={(tipo) => { setActiveTipo(tipo); setIsModalOpen(true); }}
+                                    onDelete={(id) => setDeleteConfirmId(id)}
+                                />
                             ))}
                         </AnimatePresence>
                     </div>
                 ) : (
                     <motion.div
+                        key="empty-state"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="p-10 border-2 border-dashed border-primary/20 rounded-[2rem] flex flex-col items-center justify-center gap-6 bg-primary/5 group/empty hover:border-primary/40 transition-all cursor-pointer"
@@ -339,6 +353,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
             <div className="flex flex-wrap gap-3 md:gap-4 pt-4 border-t border-border/50 shrink-0">
                 {lecturas.length > 0 && config.tiene_lectura_introduccion && !lecturas.some(l => l.tipo_lectura === 'introduccion') && (
                     <motion.button
+                        key="btn-add-intro"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => { setActiveTipo('introduccion'); setIsModalOpen(true); }}
@@ -350,6 +365,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                 )}
                 {lecturas.length > 0 && config.tiene_lectura_finalizacion && !lecturas.some(l => l.tipo_lectura === 'finalizacion') && (
                     <motion.button
+                        key="btn-add-final"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => { setActiveTipo('finalizacion'); setIsModalOpen(true); }}
@@ -367,6 +383,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                 onClose={() => setDeleteConfirmId(null)}
                 title="Confirmar eliminación"
                 size="sm"
+                keyPrefix="delete-reading"
             >
                 <div className="p-4 space-y-6">
                     <div className="flex flex-col items-center text-center space-y-4">
@@ -414,6 +431,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                     </div>
                 }
                 size="md"
+                keyPrefix="bible-selection"
             >
                 {!repetitionData ? (
                     <div className="p-1">

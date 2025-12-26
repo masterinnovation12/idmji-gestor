@@ -48,6 +48,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
     const [view, setView] = useState<'month' | 'week' | 'day'>('month')
     const [selectedDate, setSelectedDate] = useState(new Date())
     const [showSuccess, setShowSuccess] = useState(false)
+    const [statusFilter, setStatusFilter] = useState<'all' | 'complete' | 'pending'>('all')
 
     const handleGenerate = async () => {
         setIsGenerating(true)
@@ -85,7 +86,13 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
 
     const totalCultos = cultos.length
     const completeCultos = cultos.filter(c => getCultoStatus(c) === 'complete').length
-    const pendingCultos = cultos.filter(c => getCultoStatus(c) === 'incomplete').length
+    const pendingCultos = cultos.filter(c => getCultoStatus(c) === 'pending').length
+
+    const filteredCultos = cultos.filter(c => {
+        if (statusFilter === 'all') return true
+        const status = getCultoStatus(c)
+        return status === statusFilter
+    })
 
     return (
         <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4 md:px-8 relative no-scrollbar">
@@ -153,10 +160,10 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                         >
                             {t('calendar.title')}
                         </motion.h1>
-                        <p className="text-muted-foreground font-bold tracking-wide flex items-center gap-2.5 uppercase text-xs opacity-80">
+                        <div className="text-muted-foreground font-bold tracking-wide flex items-center gap-2.5 uppercase text-xs opacity-80">
                             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                             {t('dashboard.calendarDesc')}
-                        </p>
+                        </div>
                     </div>
 
                     <motion.div
@@ -190,44 +197,77 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
             >
                 <div className="absolute -inset-4 bg-linear-to-r from-primary/10 via-accent/10 to-primary/10 rounded-[3rem] blur-3xl opacity-30 group-hover:opacity-60 transition duration-1000" />
                 <div className="relative glass rounded-[3rem] p-4 md:p-8 overflow-hidden border border-white/20 dark:border-white/5 shadow-[0_30px_60px_rgba(0,0,0,0.12)]">
-                    {/* View Switcher */}
-                    <div className="flex justify-center mb-8">
+                    {/* View & Status Switchers */}
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-8">
                         <div className="inline-flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner">
                             <button
                                 onClick={() => setView('month')}
-                                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                     view === 'month' 
-                                        ? 'bg-primary text-white shadow-lg' 
-                                        : 'text-muted-foreground hover:bg-background hover:text-primary'
+                                        ? 'bg-blue-600 text-white shadow-lg' 
+                                        : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
                                 }`}
                             >
                                 Mensual
                             </button>
                             <button
                                 onClick={() => setView('week')}
-                                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                     view === 'week' 
-                                        ? 'bg-primary text-white shadow-lg' 
-                                        : 'text-muted-foreground hover:bg-background hover:text-primary'
+                                        ? 'bg-blue-600 text-white shadow-lg' 
+                                        : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
                                 }`}
                             >
                                 Semanal
                             </button>
                             <button
                                 onClick={() => setView('day')}
-                                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                     view === 'day' 
-                                        ? 'bg-primary text-white shadow-lg' 
-                                        : 'text-muted-foreground hover:bg-background hover:text-primary'
+                                        ? 'bg-blue-600 text-white shadow-lg' 
+                                        : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
                                 }`}
                             >
                                 Diario
                             </button>
                         </div>
+
+                        <div className="inline-flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner">
+                            <button
+                                onClick={() => setStatusFilter('all')}
+                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    statusFilter === 'all' 
+                                        ? 'bg-blue-600 text-white shadow-lg' 
+                                        : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
+                                }`}
+                            >
+                                Todos
+                            </button>
+                            <button
+                                onClick={() => setStatusFilter('complete')}
+                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    statusFilter === 'complete' 
+                                        ? 'bg-emerald-600 text-white shadow-lg' 
+                                        : 'text-muted-foreground hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600'
+                                }`}
+                            >
+                                Completos
+                            </button>
+                            <button
+                                onClick={() => setStatusFilter('pending')}
+                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    statusFilter === 'pending' 
+                                        ? 'bg-amber-600 text-white shadow-lg' 
+                                        : 'text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600'
+                                }`}
+                            >
+                                Pendientes
+                            </button>
+                        </div>
                     </div>
 
                     <Calendar
-                        events={cultos}
+                        events={filteredCultos}
                         onMonthChange={handleMonthChange}
                         view={view}
                         selectedDate={selectedDate}
