@@ -239,37 +239,48 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                 {event ? (
                                     <Link href={`/dashboard/cultos/${event.id}`} className="flex-1 min-h-0">
                                         <div className={`
-                                            h-full p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] transition-all cursor-pointer border shadow-md flex flex-col gap-4 overflow-hidden
-                                            ${event.es_laborable_festivo 
-                                                ? (isDark ? 'bg-amber-900/20 border-amber-500/30 hover:bg-amber-900/30' : 'bg-[#fffbeb] border-amber-200/50 hover:bg-[#fff7d1] shadow-lg shadow-amber-200/10')
-                                                : (isDark ? 'bg-slate-800/40 border-white/5 hover:bg-slate-800/60' : 'bg-white border-gray-100 hover:bg-gray-50')
+                                            h-full p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] transition-all cursor-pointer border shadow-md flex flex-col items-center justify-between text-center overflow-hidden
+                                            ${status === 'complete'
+                                                ? (isDark ? 'bg-emerald-900/20 border-emerald-500/30 hover:bg-emerald-900/30' : 'bg-[#f0fdf4] border-emerald-200/60 hover:bg-[#dcfce7] shadow-lg shadow-emerald-200/10')
+                                                : event.es_laborable_festivo 
+                                                    ? (isDark ? 'bg-amber-900/20 border-amber-500/30 hover:bg-amber-900/30' : 'bg-[#fffbeb] border-amber-200/50 hover:bg-[#fff7d1] shadow-lg shadow-amber-200/10')
+                                                    : (isDark ? 'bg-slate-800/40 border-white/5 hover:bg-slate-800/60' : 'bg-white border-gray-100 hover:bg-gray-50')
                                             }
-                                            ${view === 'day' ? 'max-w-2xl' : ''}
+                                            ${view === 'day' ? 'max-w-2xl mx-auto' : ''}
                                         `}>
-                                            <div className="flex flex-col gap-3 shrink-0">
-                                                <p className={`text-[10px] md:text-[13px] font-black uppercase tracking-tighter leading-tight break-words w-full ${event.es_laborable_festivo ? 'text-amber-900 dark:text-amber-100' : ''}`}>
+                                            {/* Cabecera: Nombre del Culto */}
+                                            <div className="w-full">
+                                                <p className={`text-[9px] md:text-[11px] font-black uppercase tracking-tight leading-tight mb-2 ${
+                                                    status === 'complete' ? 'text-emerald-900 dark:text-emerald-100' : 
+                                                    event.es_laborable_festivo ? 'text-amber-900 dark:text-amber-100' : ''
+                                                }`}>
                                                     {event.tipo_culto?.nombre}
                                                 </p>
                                                 
                                                 <div className={`
-                                                    self-start text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 shadow-sm border
+                                                    mx-auto text-[7px] md:text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full inline-flex items-center gap-1 shadow-xs border
                                                     ${status === 'complete' 
-                                                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' 
-                                                        : 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30'}
+                                                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' 
+                                                        : 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/20'}
                                                 `}>
-                                                    {status === 'complete' ? <CheckCircle size={10} className="md:w-[12px] md:h-[12px]" /> : <Clock size={10} className="md:w-[12px] md:h-[12px]" />}
+                                                    {status === 'complete' ? <CheckCircle size={8} className="md:w-[10px] md:h-[10px]" /> : <Clock size={8} className="md:w-[10px] md:h-[10px]" />}
                                                     <span>{status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}</span>
                                                 </div>
                                             </div>
 
-                                            <div className={`flex flex-col gap-2.5 mt-auto pt-3 border-t ${event.es_laborable_festivo ? 'border-amber-500/20' : 'border-border/10'}`}>
-                                                <div className={`flex items-center gap-2 text-[10px] md:text-[12px] font-bold ${event.es_laborable_festivo ? 'text-amber-800 dark:text-amber-200' : 'text-muted-foreground'}`}>
-                                                    <Clock size={14} className="text-primary/70" />
+                                            {/* Pie: Hora y Festivo */}
+                                            <div className="w-full space-y-2 mt-2 pt-2 border-t border-black/5 dark:border-white/5">
+                                                <div className={`flex items-center justify-center gap-1.5 text-[9px] md:text-[10px] font-bold ${
+                                                    status === 'complete' ? 'text-emerald-800/70 dark:text-emerald-200/70' :
+                                                    event.es_laborable_festivo ? 'text-amber-800/70 dark:text-amber-200/70' : 
+                                                    'text-muted-foreground'
+                                                }`}>
+                                                    <Clock size={10} className="md:w-[12px] md:h-[12px] opacity-60" />
                                                     {event.hora_inicio.slice(0, 5)}
                                                 </div>
                                                 {event.es_laborable_festivo && (
-                                                    <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 text-[9px] md:text-[11px] font-black uppercase tracking-widest bg-amber-500/20 px-3 py-1.5 rounded-lg self-start border border-amber-500/20">
-                                                        <AlertCircle size={14} />
+                                                    <div className="mx-auto flex items-center justify-center gap-1 text-amber-700 dark:text-amber-300 text-[8px] md:text-[9px] font-black uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/10">
+                                                        <AlertCircle size={10} />
                                                         <span>Festivo</span>
                                                     </div>
                                                 )}
