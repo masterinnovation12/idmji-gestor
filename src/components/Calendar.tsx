@@ -243,30 +243,30 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                             ${isDark ? 'bg-slate-800/50 border-white/5 hover:bg-slate-800' : 'bg-white border-gray-100 hover:bg-gray-50'}
                                             ${view === 'day' ? 'max-w-2xl' : ''}
                                         `}>
-                                            <div className="flex items-center justify-between gap-1 shrink-0">
-                                                <p className="text-[9px] md:text-xs font-black uppercase tracking-tight leading-tight truncate">
+                                            <div className="flex items-center justify-between gap-1 shrink-0 mb-1">
+                                                <p className="text-[7px] sm:text-[8px] md:text-[10px] font-black uppercase tracking-tighter leading-none break-words flex-1">
                                                     {event.tipo_culto?.nombre}
                                                 </p>
                                                 <div className={`
-                                                    text-[7px] md:text-[8px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] px-1.5 py-0.5 md:px-2 md:py-1 rounded-lg inline-flex items-center gap-1 shrink-0
+                                                    text-[6px] md:text-[8px] font-black uppercase tracking-widest px-1 py-0.5 rounded-md inline-flex items-center gap-0.5 shrink-0
                                                     ${status === 'complete' 
                                                         ? 'bg-emerald-500/10 text-emerald-600' 
                                                         : 'bg-amber-500/10 text-amber-600'}
                                                 `}>
-                                                    {status === 'complete' ? <CheckCircle size={8} className="md:w-[10px] md:h-[10px]" /> : <Clock size={8} className="md:w-[10px] md:h-[10px]" />}
-                                                    <span className="hidden xs:inline">{status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}</span>
+                                                    {status === 'complete' ? <CheckCircle size={7} className="md:w-[9px] md:h-[9px]" /> : <Clock size={7} className="md:w-[9px] md:h-[9px]" />}
+                                                    <span className="hidden sm:inline">{status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}</span>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2 md:gap-4 text-[9px] md:text-[11px] text-muted-foreground font-bold shrink-0">
-                                                <div className="flex items-center gap-1 md:gap-1.5">
-                                                    <Clock size={12} className="md:w-[14px] md:h-[14px] text-primary/60" />
+                                            <div className="flex items-center justify-between mt-auto pt-1 border-t border-border/10">
+                                                <div className="flex items-center gap-1 text-[8px] md:text-[10px] text-muted-foreground font-bold">
+                                                    <Clock size={10} className="md:w-[12px] md:h-[12px] text-primary/60" />
                                                     {event.hora_inicio.slice(0, 5)}
                                                 </div>
                                                 {event.es_laborable_festivo && (
-                                                    <div className="flex items-center gap-1 text-amber-500">
-                                                        <AlertCircle size={12} className="md:w-[14px] md:h-[14px]" />
-                                                        <span className="hidden sm:inline">Festivo</span>
+                                                    <div className="flex items-center gap-1 text-amber-500 text-[8px] md:text-[10px]">
+                                                        <AlertCircle size={10} className="md:w-[12px] md:h-[12px]" />
+                                                        <span className="hidden xl:inline">Festivo</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -324,41 +324,42 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: idx * 0.05 }}
-                                            className="glass rounded-3xl p-5 flex items-center gap-5 border border-white/20 active:scale-[0.98] transition-all shadow-xl shadow-black/5"
+                                            className="glass rounded-[2rem] p-4 flex items-center gap-4 border border-white/20 active:scale-[0.98] transition-all shadow-xl shadow-black/5"
                                         >
-                                            <div className="flex flex-col items-center justify-center bg-primary/10 rounded-2xl w-16 h-16 shrink-0 border border-primary/20">
-                                                <span className="text-[10px] font-black text-primary uppercase tracking-tighter">
+                                            <div className="flex flex-col items-center justify-center bg-primary/10 rounded-2xl w-14 h-14 shrink-0 border border-primary/20">
+                                                <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter leading-none mb-0.5">
                                                     {format(new Date(event.fecha), 'MMM', { locale })}
                                                 </span>
-                                                <span className="text-2xl font-black text-primary tracking-tighter">
+                                                <span className="text-xl font-black text-primary tracking-tighter leading-none">
                                                     {format(new Date(event.fecha), 'd')}
                                                 </span>
                                             </div>
 
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-2 mb-1">
-                                                    <h3 className="font-black text-base uppercase tracking-tight truncate">
+                                                    <h3 className="font-black text-sm uppercase tracking-tight leading-tight break-words flex-1">
                                                         {event.tipo_culto?.nombre}
                                                     </h3>
                                                     <div
-                                                        className="w-3 h-3 rounded-full shrink-0 shadow-sm"
+                                                        className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
                                                         style={{ backgroundColor: event.tipo_culto?.color || '#888' }}
                                                     />
                                                 </div>
-                                                <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
-                                                    <p className="text-xs text-muted-foreground font-bold flex items-center gap-1.5">
-                                                        <Clock size={14} className="text-primary/60" />
+                                                <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
+                                                    <p className="text-[10px] text-muted-foreground font-bold flex items-center gap-1">
+                                                        <Clock size={12} className="text-primary/60" />
                                                         {event.hora_inicio.slice(0, 5)}
-                                                        {event.es_laborable_festivo && <AlertCircle size={14} className="text-amber-500" />}
+                                                        {event.es_laborable_festivo && <AlertCircle size={12} className="text-amber-500" />}
                                                     </p>
-                                                    <span className={`text-[10px] font-black uppercase tracking-[0.15em] ${status === 'complete' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                    <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ${status === 'complete' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                        {status === 'complete' ? <CheckCircle size={10} /> : <Clock size={10} />}
                                                         {status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}
-                                                    </span>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            <div className="p-2 bg-muted/50 rounded-xl">
-                                                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                                            <div className="p-2 bg-muted/30 rounded-xl shrink-0">
+                                                <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
                                             </div>
                                         </motion.div>
                                     </Link>
