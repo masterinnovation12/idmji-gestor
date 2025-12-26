@@ -211,7 +211,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                 transition={{ delay: idx * 0.01 }}
                                 onClick={() => onDateSelect?.(day)}
                                 className={`
-                                    ${view === 'day' ? 'min-h-[400px]' : view === 'week' ? 'min-h-[200px]' : 'min-h-[140px] md:min-h-[160px]'} p-2 md:p-4 transition-all relative group/day cursor-pointer overflow-hidden flex flex-col
+                                    ${view === 'day' ? 'min-h-[400px]' : view === 'week' ? 'min-h-[220px]' : 'min-h-[160px] md:min-h-[190px]'} p-2 md:p-4 transition-all relative group/day cursor-pointer overflow-hidden flex flex-col
                                     ${isCurrentMonth || view !== 'month' ? 'bg-background/40' : 'bg-muted/10 opacity-40'}
                                     ${isToday ? 'ring-2 ring-inset ring-primary shadow-[inset_0_0_20px_rgba(var(--primary-rgb),0.05)]' : ''}
                                     hover:bg-primary/5
@@ -239,33 +239,38 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                 {event ? (
                                     <Link href={`/dashboard/cultos/${event.id}`} className="flex-1 min-h-0">
                                         <div className={`
-                                            h-full space-y-2 md:space-y-4 p-2 md:p-4 rounded-xl md:rounded-2xl transition-all cursor-pointer border shadow-sm flex flex-col overflow-hidden
-                                            ${isDark ? 'bg-slate-800/50 border-white/5 hover:bg-slate-800' : 'bg-white border-gray-100 hover:bg-gray-50'}
+                                            h-full space-y-3 p-3 md:p-5 rounded-2xl md:rounded-[2rem] transition-all cursor-pointer border shadow-sm flex flex-col overflow-hidden
+                                            ${event.es_laborable_festivo 
+                                                ? (isDark ? 'bg-amber-900/30 border-amber-500/40 hover:bg-amber-900/40' : 'bg-[#fffbeb] border-amber-200/60 hover:bg-[#fff7d6] shadow-md shadow-amber-200/20')
+                                                : (isDark ? 'bg-slate-800/50 border-white/5 hover:bg-slate-800' : 'bg-white border-gray-100 hover:bg-gray-50')
+                                            }
                                             ${view === 'day' ? 'max-w-2xl' : ''}
                                         `}>
-                                            <div className="flex items-center justify-between gap-1 shrink-0 mb-1">
-                                                <p className="text-[7px] sm:text-[8px] md:text-[10px] font-black uppercase tracking-tighter leading-none break-words flex-1">
-                                                    {event.tipo_culto?.nombre}
-                                                </p>
-                                                <div className={`
-                                                    text-[6px] md:text-[8px] font-black uppercase tracking-widest px-1 py-0.5 rounded-md inline-flex items-center gap-0.5 shrink-0
-                                                    ${status === 'complete' 
-                                                        ? 'bg-emerald-500/10 text-emerald-600' 
-                                                        : 'bg-amber-500/10 text-amber-600'}
-                                                `}>
-                                                    {status === 'complete' ? <CheckCircle size={7} className="md:w-[9px] md:h-[9px]" /> : <Clock size={7} className="md:w-[9px] md:h-[9px]" />}
-                                                    <span className="hidden sm:inline">{status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}</span>
+                                            <div className="flex flex-col gap-2 shrink-0">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className={`text-[8px] md:text-[11px] font-black uppercase tracking-tighter leading-tight break-words flex-1 ${event.es_laborable_festivo ? 'text-amber-900 dark:text-amber-200' : ''}`}>
+                                                        {event.tipo_culto?.nombre}
+                                                    </p>
+                                                    <div className={`
+                                                        text-[7px] md:text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg inline-flex items-center gap-1 shrink-0 shadow-xs
+                                                        ${status === 'complete' 
+                                                            ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20' 
+                                                            : 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20'}
+                                                    `}>
+                                                        {status === 'complete' ? <CheckCircle size={8} className="md:w-[11px] md:h-[11px]" /> : <Clock size={8} className="md:w-[11px] md:h-[11px]" />}
+                                                        <span>{status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}</span>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-between mt-auto pt-1 border-t border-border/10">
-                                                <div className="flex items-center gap-1 text-[8px] md:text-[10px] text-muted-foreground font-bold">
-                                                    <Clock size={10} className="md:w-[12px] md:h-[12px] text-primary/60" />
+                                            <div className={`flex items-center justify-between mt-auto pt-2 border-t ${event.es_laborable_festivo ? 'border-amber-500/20' : 'border-border/10'}`}>
+                                                <div className={`flex items-center gap-1.5 text-[9px] md:text-[11px] font-bold ${event.es_laborable_festivo ? 'text-amber-800/70 dark:text-amber-200/70' : 'text-muted-foreground'}`}>
+                                                    <Clock size={12} className="md:w-[14px] md:h-[14px] text-primary/60" />
                                                     {event.hora_inicio.slice(0, 5)}
                                                 </div>
                                                 {event.es_laborable_festivo && (
-                                                    <div className="flex items-center gap-1 text-amber-500 text-[8px] md:text-[10px]">
-                                                        <AlertCircle size={10} className="md:w-[12px] md:h-[12px]" />
+                                                    <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-[9px] md:text-[11px] font-black uppercase tracking-widest">
+                                                        <AlertCircle size={12} className="md:w-[14px] md:h-[14px]" />
                                                         <span className="hidden xl:inline">Festivo</span>
                                                     </div>
                                                 )}
