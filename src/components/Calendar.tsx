@@ -17,7 +17,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertCircle, CheckCircle, Clock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertCircle, CheckCircle, Clock, BookOpen } from 'lucide-react'
 import {
     startOfMonth,
     endOfMonth,
@@ -188,7 +188,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
             </div>
 
             {/* Calendar Grid (Desktop) */}
-            <div className="hidden md:block">
+            <div className="hidden xl:block">
                 <div className={`grid ${view === 'day' ? 'grid-cols-1' : 'grid-cols-7'} gap-px bg-border/20 rounded-[2rem] overflow-hidden border border-border/50 shadow-2xl`}>
                     {view !== 'day' && weekDays.map(day => (
                         <div key={day} className="bg-muted/30 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground py-4 border-b border-border/50">
@@ -237,9 +237,9 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                 </div>
 
                                 {event ? (
-                                    <Link href={`/dashboard/cultos/${event.id}`} className="flex-1 min-h-0">
+                                    <Link href={`/dashboard/cultos/${event.id}`} className="flex-1 min-h-0 w-full h-full">
                                         <div className={`
-                                            h-full p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] transition-all cursor-pointer border shadow-md flex flex-col items-center justify-between text-center overflow-hidden
+                                            w-full h-full p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] transition-all cursor-pointer border shadow-md flex flex-col items-center justify-between text-center overflow-hidden
                                             ${status === 'complete'
                                                 ? (isDark ? 'bg-emerald-900/20 border-emerald-500/30 hover:bg-emerald-900/30' : 'bg-[#f0fdf4] border-emerald-200/60 hover:bg-[#dcfce7] shadow-lg shadow-emerald-200/10')
                                                 : event.es_laborable_festivo 
@@ -268,8 +268,35 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                 </div>
                                             </div>
 
+                                            {/* Sección de Asignaciones (Solo en escritorio) */}
+                                            {view !== 'day' && (
+                                                <div className="w-full space-y-1.5 mt-2 pt-2 border-t border-black/5 dark:border-white/5">
+                                                    <div className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">
+                                                        Asignaciones
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        {event.usuario_intro && (
+                                                            <div className="text-[10px] font-bold truncate px-1">
+                                                                <span className="text-muted-foreground/70">Intro:</span> {event.usuario_intro.nombre} {event.usuario_intro.apellidos}
+                                                            </div>
+                                                        )}
+                                                        {event.usuario_ensenanza && (
+                                                            <div className="text-[10px] font-bold truncate px-1 flex items-center justify-center gap-1">
+                                                                <BookOpen size={10} className="text-primary/60" />
+                                                                <span className="text-muted-foreground/70">Enseñanza:</span> {event.usuario_ensenanza.nombre} {event.usuario_ensenanza.apellidos}
+                                                            </div>
+                                                        )}
+                                                        {event.usuario_finalizacion && (
+                                                            <div className="text-[10px] font-bold truncate px-1">
+                                                                <span className="text-muted-foreground/70">Finalización:</span> {event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Pie: Hora y Festivo */}
-                                            <div className="w-full space-y-2 mt-2 pt-2 border-t border-black/5 dark:border-white/5">
+                                            <div className="w-full space-y-2 mt-auto pt-2 border-t border-black/5 dark:border-white/5">
                                                 <div className={`flex items-center justify-center gap-1.5 text-[9px] md:text-[10px] font-bold ${
                                                     status === 'complete' ? 'text-emerald-800/70 dark:text-emerald-200/70' :
                                                     event.es_laborable_festivo ? 'text-amber-800/70 dark:text-amber-200/70' : 
@@ -312,8 +339,8 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                 </div>
             </div>
 
-            {/* Calendar List (Mobile) - Vista de tarjetas premium */}
-            <div className="md:hidden space-y-4 px-2 max-h-[60vh] overflow-y-auto no-scrollbar">
+            {/* Calendar List (Mobile/Tablet) - Vista de tarjetas premium */}
+            <div className="xl:hidden space-y-4 px-2 max-h-[60vh] overflow-y-auto no-scrollbar">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={`${view}-${currentDate.getTime()}`}

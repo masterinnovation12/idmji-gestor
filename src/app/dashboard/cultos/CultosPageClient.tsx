@@ -23,14 +23,17 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Calendar from '@/components/Calendar'
 import { generateCultosForMonth, getCultosForMonth } from './actions'
+import { getHermanos } from '../hermanos/actions'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { RefreshCw, Check, Calendar as CalendarIcon, CheckCircle, Clock, ChevronLeft, Sparkles, LayoutDashboard, AlertCircle } from 'lucide-react'
+import { Input } from '@/components/ui/Input'
+import { RefreshCw, Check, Calendar as CalendarIcon, CheckCircle, Clock, ChevronLeft, Sparkles, LayoutDashboard, AlertCircle, Users, Search, X } from 'lucide-react'
 import { getCultoStatus } from '@/lib/utils/culto-helpers'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
 import { Culto } from '@/types/database'
+import type { HermanoData } from '../hermanos/actions'
 
 interface CultosPageClientProps {
     initialCultos: Culto[]
@@ -55,6 +58,10 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
     const [statusFilter, setStatusFilter] = useState<'all' | 'complete' | 'pending'>('all')
     const [typeFilter, setTypeFilter] = useState<'all' | 'estudio' | 'alabanza' | 'ensenanza'>('all')
     const [showFestivosOnly, setShowFestivosOnly] = useState(false)
+    const [selectedHermanos, setSelectedHermanos] = useState<string[]>([])
+    const [showHermanosModal, setShowHermanosModal] = useState(false)
+    const [hermanos, setHermanos] = useState<HermanoData[]>([])
+    const [hermanosSearch, setHermanosSearch] = useState('')
 
     const handleGenerate = async () => {
         setIsGenerating(true)
@@ -90,6 +97,45 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
         setCultos(data || [])
     }
 
+    const loadHermanos = async () => {
+        const result = await getHermanos(hermanosSearch || undefined)
+        if (result.success && result.data) {
+            setHermanos(result.data)
+        }
+    }
+
+    // Cargar hermanos cuando se abre el modal
+    useEffect(() => {
+        if (showHermanosModal) {
+            loadHermanos()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showHermanosModal])
+
+    // Búsqueda con debounce
+    useEffect(() => {
+        if (showHermanosModal) {
+            const timeoutId = setTimeout(() => {
+                loadHermanos()
+            }, 300)
+            return () => clearTimeout(timeoutId)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hermanosSearch, showHermanosModal])
+
+    const toggleHermano = (hermanoId: string) => {
+        setSelectedHermanos(prev => 
+            prev.includes(hermanoId) 
+                ? prev.filter(id => id !== hermanoId)
+                : [...prev, hermanoId]
+        )
+    }
+
+    const getHermanoName = (hermanoId: string) => {
+        const hermano = hermanos.find(h => h.id === hermanoId)
+        return hermano ? `${hermano.nombre || ''} ${hermano.apellidos || ''}`.trim() : ''
+    }
+
     const totalCultos = cultos.length
     const completeCultos = cultos.filter(c => getCultoStatus(c) === 'complete').length
     const pendingCultos = cultos.filter(c => getCultoStatus(c) === 'pending').length
@@ -110,6 +156,17 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
             if (typeFilter === 'estudio' && !nombre.includes('estudio')) return false
             if (typeFilter === 'alabanza' && !nombre.includes('alabanza')) return false
             if (typeFilter === 'ensenanza' && !nombre.includes('enfermedad') && !nombre.includes('enseñanza')) return false
+        }
+
+        // Filtro por Hermanos
+        if (selectedHermanos.length > 0) {
+            const hasSelectedHermano = 
+                (c.id_usuario_intro && selectedHermanos.includes(c.id_usuario_intro)) ||
+                (c.id_usuario_ensenanza && selectedHermanos.includes(c.id_usuario_ensenanza)) ||
+                (c.id_usuario_finalizacion && selectedHermanos.includes(c.id_usuario_finalizacion)) ||
+                (c.id_usuario_testimonios && selectedHermanos.includes(c.id_usuario_testimonios))
+            
+            if (!hasSelectedHermano) return false
         }
 
         return true
@@ -221,7 +278,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                     
                     {/* Panel de Filtros Premium */}
                     <div className="flex flex-col gap-8 mb-10">
-                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                             {/* Filtro de Vista */}
                             <div className="space-y-3">
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-2">
@@ -368,6 +425,31 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Filtro por Hermanos */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-2">
+                                    Hermanos
+                                </p>
+                                <div className="flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner w-full">
+                                    <button
+                                        onClick={() => setShowHermanosModal(true)}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 relative ${
+                                            selectedHermanos.length > 0
+                                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20 border-b-2 border-purple-700' 
+                                                : 'text-muted-foreground hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600'
+                                        }`}
+                                    >
+                                        <Users className={`w-3.5 h-3.5 ${selectedHermanos.length > 0 ? 'text-white' : 'text-purple-500'}`} />
+                                        Hermanos
+                                        {selectedHermanos.length > 0 && (
+                                            <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-full text-[9px]">
+                                                {selectedHermanos.length}
+                                            </span>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -444,6 +526,108 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                             isLoading={isGenerating}
                         >
                             {t('calendar.generate')}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal de Selección de Hermanos */}
+            <Modal
+                isOpen={showHermanosModal}
+                onClose={() => setShowHermanosModal(false)}
+                title="Filtrar por Hermanos"
+                size="lg"
+            >
+                <div className="space-y-6 pt-6">
+                    {/* Búsqueda */}
+                    <Input
+                        icon={<Search className="w-4 h-4" />}
+                        placeholder="Buscar hermanos..."
+                        value={hermanosSearch}
+                        onChange={(e) => setHermanosSearch(e.target.value)}
+                    />
+
+                    {/* Hermanos Seleccionados */}
+                    {selectedHermanos.length > 0 && (
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                Seleccionados ({selectedHermanos.length})
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {selectedHermanos.map(hermanoId => (
+                                    <div
+                                        key={hermanoId}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 text-purple-700 dark:text-purple-300 rounded-xl text-[10px] font-bold"
+                                    >
+                                        <span>{getHermanoName(hermanoId) || 'Hermano'}</span>
+                                        <button
+                                            onClick={() => toggleHermano(hermanoId)}
+                                            className="hover:bg-purple-500/30 rounded-full p-0.5"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Lista de Hermanos */}
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {hermanos.length === 0 ? (
+                            <p className="text-center text-muted-foreground py-8 text-sm">
+                                No se encontraron hermanos
+                            </p>
+                        ) : (
+                            hermanos.map(hermano => {
+                                const isSelected = selectedHermanos.includes(hermano.id)
+                                const fullName = `${hermano.nombre || ''} ${hermano.apellidos || ''}`.trim() || hermano.email
+                                return (
+                                    <button
+                                        key={hermano.id}
+                                        onClick={() => toggleHermano(hermano.id)}
+                                        className={`w-full text-left p-4 rounded-2xl border transition-all ${
+                                            isSelected
+                                                ? 'bg-purple-500/20 border-purple-500/50 shadow-lg'
+                                                : 'bg-muted/30 border-border/50 hover:bg-muted/50'
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-sm truncate">{fullName}</p>
+                                                {hermano.email && (
+                                                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                                                        {hermano.email}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            {isSelected && (
+                                                <CheckCircle className="w-5 h-5 text-purple-600 shrink-0" />
+                                            )}
+                                        </div>
+                                    </button>
+                                )
+                            })
+                        )}
+                    </div>
+
+                    {/* Botones de Acción */}
+                    <div className="flex gap-4 pt-4 border-t border-border/50">
+                        <Button
+                            onClick={() => {
+                                setSelectedHermanos([])
+                                setShowHermanosModal(false)
+                            }}
+                            variant="ghost"
+                            className="flex-1 h-12 rounded-xl font-black uppercase tracking-widest text-[10px]"
+                        >
+                            Limpiar
+                        </Button>
+                        <Button
+                            onClick={() => setShowHermanosModal(false)}
+                            className="flex-1 h-12 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-purple-500/20 border-b-4 border-purple-700"
+                        >
+                            Aplicar Filtro
                         </Button>
                     </div>
                 </div>
