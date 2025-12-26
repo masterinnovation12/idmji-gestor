@@ -283,14 +283,20 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
             <div className="md:hidden space-y-4 px-2 max-h-[60vh] overflow-y-auto no-scrollbar">
                 <AnimatePresence mode="wait">
                     <motion.div
-                        key={currentDate.getMonth()}
+                        key={`${view}-${currentDate.getTime()}`}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
                         className="space-y-4"
                     >
                         {Array.from(eventsMap.values())
-                            .filter(e => isSameMonth(new Date(e.fecha), currentDate))
+                            .filter(e => {
+                                const eventDate = new Date(e.fecha)
+                                if (view === 'month') return isSameMonth(eventDate, currentDate)
+                                if (view === 'week') return isSameWeek(eventDate, currentDate, { weekStartsOn: 1 })
+                                if (view === 'day') return isSameDay(eventDate, currentDate)
+                                return true
+                            })
                             .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
                             .map((event, idx) => {
                                 const status = getCultoStatus(event)
@@ -341,7 +347,13 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                 )
                             })}
 
-                        {events.filter(e => isSameMonth(new Date(e.fecha), currentDate)).length === 0 && (
+                        {Array.from(eventsMap.values()).filter(e => {
+                            const eventDate = new Date(e.fecha)
+                            if (view === 'month') return isSameMonth(eventDate, currentDate)
+                            if (view === 'week') return isSameWeek(eventDate, currentDate, { weekStartsOn: 1 })
+                            if (view === 'day') return isSameDay(eventDate, currentDate)
+                            return true
+                        }).length === 0 && (
                             <div className="text-center py-12 glass rounded-3xl border border-white/20">
                                 <CalendarIcon className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
                                 <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
