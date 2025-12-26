@@ -48,6 +48,7 @@ function AssignmentSection({
     onSelect,
     disabled,
     t,
+    cultoId,
 }: {
     label: string,
     icon: any,
@@ -56,6 +57,7 @@ function AssignmentSection({
     onSelect: (id: string | null) => void,
     disabled: boolean,
     t: any,
+    cultoId: string,
 }) {
     const [isEditing, setIsEditing] = useState(!selectedUserId)
 
@@ -81,8 +83,8 @@ function AssignmentSection({
                         </button>
                     )}
                 </CardHeader>
-                <CardContent className="p-2 md:p-3 flex-1 flex flex-col min-h-0">
-                    <div className="space-y-3 md:space-y-4 flex-1 flex flex-col min-h-0">
+                <CardContent className="p-2.5 md:p-3.5 flex-1 flex flex-col min-h-0">
+                    <div className="space-y-2.5 md:space-y-3.5 flex-1 flex flex-col min-h-0">
                         <div className="shrink-0">
                             <UserSelector
                                 selectedUserId={selectedUserId}
@@ -103,7 +105,7 @@ function AssignmentSection({
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
-                                    className={`flex items-center gap-3.5 p-3.5 md:p-4.5 rounded-[1.75rem] border shadow-inner relative overflow-hidden group/assigned transition-all flex-1 min-h-0 ${
+                                    className={`flex flex-col gap-3 p-3.5 md:p-4.5 rounded-[1.75rem] border shadow-inner relative overflow-hidden group/assigned transition-all flex-1 min-h-0 ${
                                         isEditing 
                                             ? 'bg-muted/50 border-border opacity-60' 
                                             : 'bg-primary/5 border-primary/10'
@@ -111,37 +113,57 @@ function AssignmentSection({
                                 >
                                     <div className="absolute inset-0 bg-linear-to-r from-primary/5 to-transparent opacity-0 group-hover/assigned:opacity-100 transition-opacity" />
                                     
-                                    <div className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-black text-xs md:text-sm lg:text-base border-2 shadow-lg relative z-10 shrink-0 ${
-                                        isEditing ? 'bg-muted border-border text-muted-foreground' : 'bg-primary/20 border-white/20 text-primary'
-                                    }`}>
-                                        {usuarioActual.avatar_url ? (
-                                            <img src={usuarioActual.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
-                                        ) : (
-                                            <span className="uppercase tracking-tighter">{usuarioActual.nombre?.[0]}{usuarioActual.apellidos?.[0]}</span>
-                                        )}
-                                    </div>
-                                    <div className="relative z-10 min-w-0 flex-1">
-                                        <p className={`text-[11px] md:text-sm lg:text-base xl:text-lg font-black uppercase tracking-tight leading-none whitespace-nowrap ${isEditing ? 'text-muted-foreground' : 'text-foreground'}`}>
-                                            {usuarioActual.nombre} {usuarioActual.apellidos}
-                                        </p>
-                                        <div className="flex items-center gap-2.5 mt-2">
-                                            <div className="flex items-center gap-1.5">
-                                                <div className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${isEditing ? 'bg-muted-foreground' : 'bg-emerald-500'}`} />
-                                                <p className="text-[8px] md:text-[10px] lg:text-[11px] text-muted-foreground font-black uppercase tracking-widest leading-none">
-                                                    {isEditing ? 'Modificando...' : 'Asignado'}
-                                                </p>
-                                            </div>
-                                            {!isEditing && (
-                                                <motion.div
-                                                    initial={{ scale: 0 }}
-                                                    animate={{ scale: 1 }}
-                                                    className="bg-emerald-500/20 p-0.5 rounded-full shadow-sm shadow-emerald-500/20"
-                                                >
-                                                    <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-500" />
-                                                </motion.div>
+                                    <div className="flex items-center gap-3 relative z-10">
+                                        <div className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-black text-xs md:text-sm lg:text-base border-2 shadow-lg shrink-0 ${
+                                            isEditing ? 'bg-muted border-border text-muted-foreground' : 'bg-primary/20 border-white/20 text-primary'
+                                        }`}>
+                                            {usuarioActual.avatar_url ? (
+                                                <img src={usuarioActual.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
+                                            ) : (
+                                                <span className="uppercase tracking-tighter">{usuarioActual.nombre?.[0]}{usuarioActual.apellidos?.[0]}</span>
                                             )}
                                         </div>
+                                        <div className="relative z-10 min-w-0 flex-1">
+                                            <p className={`text-[11px] md:text-sm lg:text-base xl:text-lg font-black uppercase tracking-tight leading-none whitespace-nowrap ${isEditing ? 'text-muted-foreground' : 'text-foreground'}`}>
+                                                {usuarioActual.nombre} {usuarioActual.apellidos}
+                                            </p>
+                                            <div className="flex items-center gap-2.5 mt-2">
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${isEditing ? 'bg-muted-foreground' : 'bg-emerald-500'}`} />
+                                                    <p className="text-[8px] md:text-[10px] lg:text-[11px] text-muted-foreground font-black uppercase tracking-widest leading-none">
+                                                        {isEditing ? 'Modificando...' : 'Asignado'}
+                                                    </p>
+                                                </div>
+                                                {!isEditing && (
+                                                    <motion.div
+                                                        initial={{ scale: 0 }}
+                                                        animate={{ scale: 1 }}
+                                                        className="bg-emerald-500/20 p-0.5 rounded-full shadow-sm shadow-emerald-500/20"
+                                                    >
+                                                        <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-500" />
+                                                    </motion.div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    {/* Bloque de Lectura Bíblica Integrado (Solo para Introducción) */}
+                                    {label === t('culto.introduccion') && !isEditing && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="relative z-10 mt-1 pt-3 border-t border-primary/10"
+                                        >
+                                            <BibleReadingManager
+                                                cultoId={cultoId}
+                                                userId={usuarioActual.id}
+                                                config={{
+                                                    tiene_lectura_introduccion: true,
+                                                    tiene_lectura_finalizacion: false
+                                                }}
+                                            />
+                                        </motion.div>
+                                    )}
                                 </motion.div>
                             ) : !isEditing ? (
                                 <motion.div
@@ -269,6 +291,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                 onSelect={(id) => handleAssignment('introduccion', id)}
                                 disabled={isUpdating}
                                 t={t}
+                                cultoId={culto.id}
                             />
                         </div>
                     )}
@@ -283,6 +306,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                 onSelect={(id) => handleAssignment('ensenanza', id)}
                                 disabled={isUpdating}
                                 t={t}
+                                cultoId={culto.id}
                             />
                         </div>
                     )}
@@ -297,6 +321,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                 onSelect={(id) => handleAssignment('testimonios', id)}
                                 disabled={isUpdating}
                                 t={t}
+                                cultoId={culto.id}
                             />
                         </div>
                     )}
@@ -311,6 +336,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                 onSelect={(id) => handleAssignment('finalizacion', id)}
                                 disabled={isUpdating}
                                 t={t}
+                                cultoId={culto.id}
                             />
                         </div>
                     )}
@@ -318,41 +344,13 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
 
                 {/* Fila 2: Lecturas y Música */}
                 <div className="grid gap-4 md:gap-6 lg:gap-8 lg:grid-cols-12 w-full items-start">
-                    {/* Columna Izquierda: Biblia (Bloque más pequeño y compacto) */}
-                    {(config.tiene_lectura_introduccion || config.tiene_lectura_finalizacion) && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: 20 }} 
-                            animate={{ opacity: 1, y: 0 }} 
-                            transition={{ delay: 0.2 }} 
-                            className="lg:col-span-4 xl:col-span-3 w-full"
-                        >
-                            <Card className="glass rounded-[2.5rem] border border-white/20 shadow-2xl overflow-hidden w-full">
-                                <CardHeader className="p-4 md:p-6 border-b border-white/10 bg-primary/5">
-                                    <CardTitle icon={<BookOpen className="w-5 h-5 text-primary" />} className="text-lg font-black uppercase tracking-tighter">
-                                        {t('dashboard.lecturas')}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-4 md:p-5 lg:p-6">
-                                    <BibleReadingManager
-                                        cultoId={culto.id}
-                                        userId={userId}
-                                        config={{
-                                            tiene_lectura_introduccion: !!config.tiene_lectura_introduccion,
-                                            tiene_lectura_finalizacion: !!config.tiene_lectura_finalizacion
-                                        }}
-                                    />
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    )}
-
                     {/* Columna Derecha: Música (Bloque principal más grande y detallado) */}
                     {config.tiene_himnos_y_coros && (
                         <motion.div 
                             initial={{ opacity: 0, x: 20 }} 
                             animate={{ opacity: 1, x: 0 }} 
                             transition={{ delay: 0.3 }} 
-                            className={`${(config.tiene_lectura_introduccion || config.tiene_lectura_finalizacion) ? 'lg:col-span-8 xl:col-span-9' : 'lg:col-span-12'} w-full`}
+                            className="lg:col-span-12 w-full"
                         >
                             <Card className="glass rounded-[2.5rem] border border-white/20 shadow-2xl overflow-hidden w-full">
                                 <CardHeader className="p-4 md:p-6 lg:p-8 border-b border-white/10 bg-accent/5">

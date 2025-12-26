@@ -102,18 +102,21 @@ function SortableItem({ item, onRemove, onMoveUp, onMoveDown, isFirst, isLast }:
                     {item.tipo === 'himno' ? 'H' : 'C'}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p className="font-black text-[11px] md:text-xs uppercase tracking-tight leading-tight text-foreground break-words whitespace-normal">
+                    <p className="font-black text-xs md:text-sm uppercase tracking-tight leading-tight text-foreground break-words whitespace-normal">
                         #{data?.numero} <span className="text-muted-foreground mx-1">|</span> {data?.titulo}
                     </p>
-                    <div className="flex items-center gap-3 mt-1.5">
-                        <span className={`text-[7px] md:text-[8px] uppercase font-black px-2 py-0.5 rounded-full tracking-tighter ${item.tipo === 'himno' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'
-                            }`}>
-                            {item.tipo}
+                    <div className="flex items-center gap-3 mt-2">
+                        <span className={`text-[8px] md:text-[9px] uppercase font-black px-2.5 py-1 rounded-full tracking-wider border shadow-sm ${
+                            item.tipo === 'himno' 
+                                ? 'bg-blue-500/10 border-blue-500/20 text-blue-600' 
+                                : 'bg-purple-500/10 border-purple-500/20 text-purple-600'
+                        }`}>
+                            {item.tipo === 'himno' ? 'Himno' : 'Coro'}
                         </span>
-                        <span className="text-[8px] md:text-[9px] text-muted-foreground font-black flex items-center gap-1.5">
-                            <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                        <div className="flex items-center gap-1.5 text-[9px] md:text-[10px] text-muted-foreground/60 font-black uppercase tracking-widest">
+                            <Clock className="w-3 h-3 opacity-50" />
                             {formatDuration(data?.duracion_segundos || 0)}
-                        </span>
+                        </div>
                     </div>
                 </div>
             </div>
