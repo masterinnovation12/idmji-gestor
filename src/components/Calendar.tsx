@@ -16,7 +16,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertCircle, CheckCircle, Clock } from 'lucide-react'
 import {
     startOfMonth,
@@ -53,7 +53,12 @@ interface CalendarProps {
 
 export default function Calendar({ events, onMonthChange, view = 'month', selectedDate, onDateSelect }: CalendarProps) {
     const { t, language } = useI18n()
-    const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+    const [isDark, setIsDark] = useState(false)
+    
+    useEffect(() => {
+        setIsDark(document.documentElement.classList.contains('dark'))
+    }, [])
+
     const [internalDate, setInternalDate] = useState(new Date())
     const currentDate = selectedDate || internalDate
     const setCurrentDate = (date: Date) => {

@@ -19,13 +19,13 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Calendar from '@/components/Calendar'
 import { generateCultosForMonth, getCultosForMonth } from './actions'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { RefreshCw, Check, Calendar as CalendarIcon, CheckCircle, Clock, ChevronLeft, Sparkles, LayoutDashboard } from 'lucide-react'
+import { RefreshCw, Check, Calendar as CalendarIcon, CheckCircle, Clock, ChevronLeft, Sparkles, LayoutDashboard, AlertCircle } from 'lucide-react'
 import { getCultoStatus } from '@/lib/utils/culto-helpers'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -37,9 +37,13 @@ interface CultosPageClientProps {
 }
 
 export default function CultosPageClient({ initialCultos }: CultosPageClientProps) {
-    const { t, theme } = useI18n() as any // Cast temporarily to access theme if provider supports it, or use useTheme
-    // Using a safer way to get isDark
-    const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+    const { t, theme } = useI18n() as any 
+    const [isDark, setIsDark] = useState(false)
+    
+    useEffect(() => {
+        setIsDark(document.documentElement.classList.contains('dark'))
+    }, [])
+
     const [cultos, setCultos] = useState(initialCultos)
     const [isGenerating, setIsGenerating] = useState(false)
     const [showConfirmModal, setShowConfirmModal] = useState(false)
@@ -50,6 +54,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
     const [showSuccess, setShowSuccess] = useState(false)
     const [statusFilter, setStatusFilter] = useState<'all' | 'complete' | 'pending'>('all')
     const [typeFilter, setTypeFilter] = useState<'all' | 'estudio' | 'alabanza' | 'ensenanza'>('all')
+    const [showFestivosOnly, setShowFestivosOnly] = useState(false)
 
     const handleGenerate = async () => {
         setIsGenerating(true)
@@ -90,6 +95,9 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
     const pendingCultos = cultos.filter(c => getCultoStatus(c) === 'pending').length
 
     const filteredCultos = cultos.filter(c => {
+        // Filtro de Festivos
+        if (showFestivosOnly && !c.es_laborable_festivo) return false
+
         // Filtro de Estado
         if (statusFilter !== 'all') {
             const status = getCultoStatus(c)
@@ -213,7 +221,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                     
                     {/* Panel de Filtros Premium */}
                     <div className="flex flex-col gap-8 mb-10">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                             {/* Filtro de Vista */}
                             <div className="space-y-3">
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-2">
@@ -337,6 +345,26 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                         }`}
                                     >
                                         Enseñanza
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Filtro Festivos */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-2">
+                                    Días Especiales
+                                </p>
+                                <div className="flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner w-full">
+                                    <button
+                                        onClick={() => setShowFestivosOnly(!showFestivosOnly)}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                                            showFestivosOnly 
+                                                ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 border-b-2 border-amber-700' 
+                                                : 'text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600'
+                                        }`}
+                                    >
+                                        <AlertCircle className={`w-3.5 h-3.5 ${showFestivosOnly ? 'text-white' : 'text-amber-500'}`} />
+                                        Festivos
                                     </button>
                                 </div>
                             </div>

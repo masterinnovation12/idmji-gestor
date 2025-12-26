@@ -270,44 +270,61 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                     </h1>
                                 </div>
 
-                                <div className="flex flex-wrap gap-4">
-                                    <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 shadow-sm">
-                                        <Calendar className="w-5 h-5 text-primary" />
-                                        <span className="text-sm font-black uppercase tracking-tight">
-                                            {format(new Date(culto.fecha), 'PPPP', { locale })}
-                                        </span>
+                                <div className="flex flex-wrap items-center gap-6 md:gap-10">
+                                    <div className="flex items-center gap-4 bg-white/40 dark:bg-black/20 backdrop-blur-md px-8 py-4 rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30">
+                                        <Calendar className="w-6 h-6 text-primary" />
+                                        <div className="flex flex-col">
+                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none mb-1">Fecha del Culto</p>
+                                            <span className="text-base md:text-xl font-black uppercase tracking-tight">
+                                                {format(new Date(culto.fecha), 'PPPP', { locale })}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 shadow-sm font-black">
-                                        <Clock className="w-5 h-5 text-primary" />
-                                        <span className="text-sm uppercase tracking-widest">
-                                            {culto.hora_inicio.slice(0, 5)}
-                                        </span>
+                                    
+                                    <div className="flex items-center gap-4 bg-white/40 dark:bg-black/20 backdrop-blur-md px-8 py-4 rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30 font-black">
+                                        <Clock className="w-6 h-6 text-primary" />
+                                        <div className="flex flex-col">
+                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none mb-1">Hora Inicio</p>
+                                            <span className="text-base md:text-xl uppercase tracking-widest">
+                                                {culto.hora_inicio.slice(0, 5)}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     {/* Toggle Festivo Premium */}
-                                    <button
-                                        onClick={handleToggleFestivo}
-                                        disabled={isUpdating}
-                                        className={`flex items-center gap-3 px-6 py-3 rounded-2xl border transition-all font-black group relative overflow-hidden ${
-                                            culto.es_laborable_festivo 
-                                                ? 'bg-primary text-white border-primary shadow-lg shadow-primary/25 scale-105' 
-                                                : 'bg-white/40 dark:bg-black/20 backdrop-blur-md text-muted-foreground border-white/20 hover:border-primary/50'
-                                        }`}
-                                    >
-                                        <div className={`absolute inset-0 bg-linear-to-r from-white/20 to-transparent -translate-x-full transition-transform duration-1000 ${culto.es_laborable_festivo ? 'group-hover:translate-x-full' : ''}`} />
-                                        <AlertCircle className={`w-5 h-5 ${culto.es_laborable_festivo ? 'text-white' : 'text-amber-500'}`} />
-                                        <span className="text-xs uppercase tracking-widest relative z-10">
-                                            {culto.es_laborable_festivo ? 'Día Festivo (-1h)' : 'Marcar Festivo'}
-                                        </span>
-                                        {culto.es_laborable_festivo && (
-                                            <motion.div
-                                                layoutId="festivo-sparkle"
-                                                className="absolute -top-1 -right-1"
-                                            >
-                                                <Sparkles className="w-4 h-4 text-white/50 animate-pulse" />
-                                            </motion.div>
-                                        )}
-                                    </button>
+                                    <div className="flex flex-col gap-2">
+                                        <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-4 leading-none">Estado de Jornada</p>
+                                        <button
+                                            onClick={handleToggleFestivo}
+                                            disabled={isUpdating}
+                                            className={`flex items-center gap-4 px-8 py-4 rounded-3xl border transition-all font-black group relative overflow-hidden h-full ${
+                                                culto.es_laborable_festivo 
+                                                    ? 'bg-amber-500 text-white border-amber-600 shadow-xl shadow-amber-500/30 scale-105' 
+                                                    : 'bg-white/40 dark:bg-black/20 backdrop-blur-md text-muted-foreground border-white/20 hover:border-amber-500/50 hover:bg-amber-50/10'
+                                            }`}
+                                        >
+                                            <div className={`absolute inset-0 bg-linear-to-r from-white/20 to-transparent -translate-x-full transition-transform duration-1000 ${culto.es_laborable_festivo ? 'group-hover:translate-x-full' : ''}`} />
+                                            <div className={`p-2 rounded-xl transition-colors ${culto.es_laborable_festivo ? 'bg-white/20' : 'bg-amber-500/10'}`}>
+                                                <AlertCircle className={`w-6 h-6 ${culto.es_laborable_festivo ? 'text-white' : 'text-amber-500'}`} />
+                                            </div>
+                                            <div className="flex flex-col items-start">
+                                                <span className={`text-[10px] uppercase tracking-widest leading-none mb-1 ${culto.es_laborable_festivo ? 'text-white/80' : 'text-muted-foreground'}`}>
+                                                    {culto.es_laborable_festivo ? 'Día Especial' : 'Día Laborable'}
+                                                </span>
+                                                <span className="text-sm uppercase tracking-tight relative z-10 whitespace-nowrap">
+                                                    {culto.es_laborable_festivo ? 'Festivo Aplicado' : 'Marcar como Festivo'}
+                                                </span>
+                                            </div>
+                                            {culto.es_laborable_festivo && (
+                                                <motion.div
+                                                    layoutId="festivo-sparkle"
+                                                    className="ml-2"
+                                                >
+                                                    <Sparkles className="w-5 h-5 text-white/70 animate-pulse" />
+                                                </motion.div>
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
