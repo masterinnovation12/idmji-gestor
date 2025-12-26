@@ -49,6 +49,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
     const [selectedDate, setSelectedDate] = useState(new Date())
     const [showSuccess, setShowSuccess] = useState(false)
     const [statusFilter, setStatusFilter] = useState<'all' | 'complete' | 'pending'>('all')
+    const [typeFilter, setTypeFilter] = useState<'all' | 'estudio' | 'alabanza' | 'ensenanza'>('all')
 
     const handleGenerate = async () => {
         setIsGenerating(true)
@@ -89,9 +90,21 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
     const pendingCultos = cultos.filter(c => getCultoStatus(c) === 'pending').length
 
     const filteredCultos = cultos.filter(c => {
-        if (statusFilter === 'all') return true
-        const status = getCultoStatus(c)
-        return status === statusFilter
+        // Filtro de Estado
+        if (statusFilter !== 'all') {
+            const status = getCultoStatus(c)
+            if (status !== statusFilter) return false
+        }
+
+        // Filtro de Tipo
+        if (typeFilter !== 'all') {
+            const nombre = c.tipo_culto?.nombre?.toLowerCase() || ''
+            if (typeFilter === 'estudio' && !nombre.includes('estudio')) return false
+            if (typeFilter === 'alabanza' && !nombre.includes('alabanza')) return false
+            if (typeFilter === 'ensenanza' && !nombre.includes('enfermedad') && !nombre.includes('enseñanza')) return false
+        }
+
+        return true
     })
 
     return (
@@ -197,72 +210,136 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
             >
                 <div className="absolute -inset-4 bg-linear-to-r from-primary/10 via-accent/10 to-primary/10 rounded-[3rem] blur-3xl opacity-30 group-hover:opacity-60 transition duration-1000" />
                 <div className="relative glass rounded-[3rem] p-4 md:p-8 overflow-hidden border border-white/20 dark:border-white/5 shadow-[0_30px_60px_rgba(0,0,0,0.12)]">
-                    {/* View & Status Switchers */}
-                    <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-8">
-                        <div className="inline-flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner">
-                            <button
-                                onClick={() => setView('month')}
-                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    view === 'month' 
-                                        ? 'bg-blue-600 text-white shadow-lg' 
-                                        : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
-                                }`}
-                            >
-                                Mensual
-                            </button>
-                            <button
-                                onClick={() => setView('week')}
-                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    view === 'week' 
-                                        ? 'bg-blue-600 text-white shadow-lg' 
-                                        : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
-                                }`}
-                            >
-                                Semanal
-                            </button>
-                            <button
-                                onClick={() => setView('day')}
-                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    view === 'day' 
-                                        ? 'bg-blue-600 text-white shadow-lg' 
-                                        : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
-                                }`}
-                            >
-                                Diario
-                            </button>
-                        </div>
+                    
+                    {/* Panel de Filtros Premium */}
+                    <div className="flex flex-col gap-8 mb-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Filtro de Vista */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-2">
+                                    Filtro Vista
+                                </p>
+                                <div className="flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner w-full">
+                                    <button
+                                        onClick={() => setView('month')}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            view === 'month' 
+                                                ? 'bg-blue-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
+                                        }`}
+                                    >
+                                        Mensual
+                                    </button>
+                                    <button
+                                        onClick={() => setView('week')}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            view === 'week' 
+                                                ? 'bg-blue-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
+                                        }`}
+                                    >
+                                        Semanal
+                                    </button>
+                                    <button
+                                        onClick={() => setView('day')}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            view === 'day' 
+                                                ? 'bg-blue-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
+                                        }`}
+                                    >
+                                        Diario
+                                    </button>
+                                </div>
+                            </div>
 
-                        <div className="inline-flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner">
-                            <button
-                                onClick={() => setStatusFilter('all')}
-                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    statusFilter === 'all' 
-                                        ? 'bg-blue-600 text-white shadow-lg' 
-                                        : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
-                                }`}
-                            >
-                                Todos
-                            </button>
-                            <button
-                                onClick={() => setStatusFilter('complete')}
-                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    statusFilter === 'complete' 
-                                        ? 'bg-emerald-600 text-white shadow-lg' 
-                                        : 'text-muted-foreground hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600'
-                                }`}
-                            >
-                                Completos
-                            </button>
-                            <button
-                                onClick={() => setStatusFilter('pending')}
-                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    statusFilter === 'pending' 
-                                        ? 'bg-amber-600 text-white shadow-lg' 
-                                        : 'text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600'
-                                }`}
-                            >
-                                Pendientes
-                            </button>
+                            {/* Filtros Asignados (Estado) */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-2">
+                                    Filtros Asignados
+                                </p>
+                                <div className="flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner w-full">
+                                    <button
+                                        onClick={() => setStatusFilter('all')}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            statusFilter === 'all' 
+                                                ? 'bg-slate-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-900/20 hover:text-slate-600'
+                                        }`}
+                                    >
+                                        Todos
+                                    </button>
+                                    <button
+                                        onClick={() => setStatusFilter('complete')}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            statusFilter === 'complete' 
+                                                ? 'bg-emerald-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600'
+                                        }`}
+                                    >
+                                        Completos
+                                    </button>
+                                    <button
+                                        onClick={() => setStatusFilter('pending')}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            statusFilter === 'pending' 
+                                                ? 'bg-amber-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600'
+                                        }`}
+                                    >
+                                        Pendientes
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Filtro por Tipo de Culto */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-2">
+                                    Tipo de Culto
+                                </p>
+                                <div className="flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner w-full flex-wrap">
+                                    <button
+                                        onClick={() => setTypeFilter('all')}
+                                        className={`flex-1 min-w-[60px] py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            typeFilter === 'all' 
+                                                ? 'bg-indigo-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600'
+                                        }`}
+                                    >
+                                        Todos
+                                    </button>
+                                    <button
+                                        onClick={() => setTypeFilter('estudio')}
+                                        className={`flex-1 min-w-[60px] py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            typeFilter === 'estudio' 
+                                                ? 'bg-emerald-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600'
+                                        }`}
+                                    >
+                                        Estudio
+                                    </button>
+                                    <button
+                                        onClick={() => setTypeFilter('alabanza')}
+                                        className={`flex-1 min-w-[60px] py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            typeFilter === 'alabanza' 
+                                                ? 'bg-blue-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
+                                        }`}
+                                    >
+                                        Alabanza
+                                    </button>
+                                    <button
+                                        onClick={() => setTypeFilter('ensenanza')}
+                                        className={`flex-1 min-w-[60px] py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            typeFilter === 'ensenanza' 
+                                                ? 'bg-purple-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600'
+                                        }`}
+                                    >
+                                        Enseñanza
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

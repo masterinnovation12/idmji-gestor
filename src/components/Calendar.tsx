@@ -133,38 +133,51 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
     return (
         <div className="space-y-6">
             {/* Header del Calendario */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 rounded-2xl">
-                        <CalendarIcon className="w-6 h-6 text-primary" />
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 px-2 mb-8">
+                <div className="flex items-center gap-5">
+                    <div className="p-4 bg-primary/10 rounded-3xl border border-primary/20 shadow-inner">
+                        <CalendarIcon className="w-7 h-7 text-primary" />
                     </div>
-                    <h2 className="text-2xl font-black uppercase tracking-tight">
-                        {format(currentDate, 'MMMM yyyy', { locale })}
-                    </h2>
+                    <div className="flex flex-col">
+                        <h2 className="text-3xl font-black uppercase tracking-tighter leading-none mb-1">
+                            {view === 'month' ? format(currentDate, 'MMMM yyyy', { locale }) : 
+                             view === 'week' ? `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd MMM')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd MMM, yyyy')}` :
+                             format(currentDate, 'EEEE, d MMMM yyyy', { locale })}
+                        </h2>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-60">
+                            {view === 'month' ? 'Vista Mensual' : view === 'week' ? 'Vista Semanal' : 'Vista Diaria'}
+                        </p>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-muted/30 p-1.5 rounded-2xl border border-border/50">
+                <div className="flex items-center gap-3 bg-muted/30 p-2 rounded-[2.5rem] border border-border/50 shadow-inner backdrop-blur-md">
                     <button
                         onClick={handlePrev}
-                        className="p-2.5 hover:bg-background hover:shadow-sm rounded-xl transition-all"
+                        className="p-3 hover:bg-background hover:shadow-lg rounded-2xl transition-all group active:scale-90 flex items-center gap-2"
+                        title={view === 'month' ? 'Mes Anterior' : view === 'week' ? 'Semana Anterior' : 'Día Anterior'}
                     >
-                        <ChevronLeft className="w-5 h-5" />
+                        <ChevronLeft className="w-6 h-6 text-primary group-hover:-translate-x-0.5 transition-transform" />
+                        <span className="hidden lg:inline text-[10px] font-black uppercase tracking-widest text-primary/70">Anterior</span>
                     </button>
+                    
                     <button
                         onClick={handleToday}
-                        className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl ${
+                        className={`px-8 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-2xl border-b-2 ${
                             isMonthActual 
-                                ? 'bg-blue-600 text-white shadow-lg' 
-                                : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-muted-foreground hover:text-blue-600'
+                                ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20 border-blue-800' 
+                                : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-muted-foreground hover:text-blue-600 border-transparent hover:border-blue-200'
                         }`}
                     >
-                        {isMonthActual ? t('calendar.today') : 'Ir a Hoy'}
+                        {isMonthActual ? t('calendar.today') : 'Hoy'}
                     </button>
+
                     <button
                         onClick={handleNext}
-                        className="p-2.5 hover:bg-background hover:shadow-sm rounded-xl transition-all"
+                        className="p-3 hover:bg-background hover:shadow-lg rounded-2xl transition-all group active:scale-90 flex items-center gap-2"
+                        title={view === 'month' ? 'Mes Siguiente' : view === 'week' ? 'Semana Siguiente' : 'Día Siguiente'}
                     >
-                        <ChevronRight className="w-5 h-5" />
+                        <span className="hidden lg:inline text-[10px] font-black uppercase tracking-widest text-primary/70">Siguiente</span>
+                        <ChevronRight className="w-6 h-6 text-primary group-hover:translate-x-0.5 transition-transform" />
                     </button>
                 </div>
             </div>
