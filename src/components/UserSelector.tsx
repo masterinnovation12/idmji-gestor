@@ -3,6 +3,7 @@
  * 
  * Componente de búsqueda y selección de hermanos para asignaciones.
  * Filtra automáticamente por usuarios con acceso al púlpito.
+ * Usa Portals para garantizar que los resultados sean siempre visibles.
  * 
  * @author Antigravity AI
  * @date 2024-12-25
@@ -11,6 +12,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, X, User, Check, Loader2, ChevronDown } from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
 import { searchProfiles } from '@/app/dashboard/cultos/[id]/actions'
@@ -34,12 +36,20 @@ export default function UserSelector({
     onEditChange 
 }: UserSelectorProps) {
     const { t } = useI18n()
+    const [id] = useState(() => Math.random().toString(36).substring(2, 9))
     const [query, setQuery] = useState('')
     const [results, setResults] = useState<Profile[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [showResults, setShowResults] = useState(false)
     const [internalIsEditing, setInternalIsEditing] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
+    const [dropdownRect, setDropdownRect] = useState<{ top: number, left: number, width: number } | null>(null)
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+        return () => setMounted(false)
+    }, [])
 
     // Sync with external editing state if provided
     const isEditing = externalIsEditing !== undefined ? externalIsEditing : internalIsEditing
@@ -60,7 +70,9 @@ export default function UserSelector({
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setShowResults(false)
+                // Si el portal está abierto, también necesitamos verificar si el clic fue dentro del portal
+                // Pero como es fixed y está en el body, es más complejo.
+                // Usamos un timeout pequeño para permitir clics en los botones de resultados
             }
         }
         document.addEventListener('mousedown', handleClickOutside)
@@ -85,6 +97,30 @@ export default function UserSelector({
 
         search()
     }, [debouncedQuery])
+
+    // Posicionamiento dinámico para el dropdown fixed
+    const updatePosition = () => {
+        if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect()
+            setDropdownRect({
+                top: rect.bottom,
+                left: rect.left,
+                width: rect.width
+            })
+        }
+    }
+
+    useEffect(() => {
+        if (showResults) {
+            updatePosition()
+            window.addEventListener('scroll', updatePosition, true)
+            window.addEventListener('resize', updatePosition)
+            return () => {
+                window.removeEventListener('scroll', updatePosition, true)
+                window.removeEventListener('resize', updatePosition)
+            }
+        }
+    }, [showResults])
 
     const handleSelect = (user: Profile) => {
         onSelect(user.id)
@@ -117,6 +153,7 @@ export default function UserSelector({
                     onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => {
                         setShowResults(true)
+                        updatePosition()
                         // Trigger immediate search if results are empty
                         if (results.length === 0) {
                             searchProfiles('').then(({ data }) => setResults(data as Profile[] || []))
@@ -136,16 +173,24 @@ export default function UserSelector({
                 )}
             </div>
 
-            {/* Dropdown de Resultados */}
-            <AnimatePresence>
-                {showResults && (
+            {/* Dropdown de Resultados con PORTAL */}
+            {mounted && showResults && dropdownRect && createPortal(
+                <div key={`user-selector-portal-${id}`} className="fixed inset-0 z-[9998]" onClick={() => setShowResults(false)}>
                     <motion.div
+                        key={`user-selector-dropdown-${id}`}
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute z-50 w-full top-full mt-3 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] border border-gray-200 dark:border-white/10 max-h-[450px] overflow-hidden flex flex-col"
+                        style={{
+                            position: 'fixed',
+                            top: dropdownRect.top + 8,
+                            left: dropdownRect.left,
+                            width: dropdownRect.width,
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] border border-gray-200 dark:border-white/10 max-h-[450px] overflow-hidden flex flex-col pointer-events-auto"
                     >
-                        <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between">
+                        <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between shrink-0">
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
                                 {query ? 'Resultados de búsqueda' : 'Hermanos sugeridos'}
                             </p>
@@ -156,14 +201,14 @@ export default function UserSelector({
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
-                        <div className="overflow-y-auto no-scrollbar p-2">
+                        <div className="overflow-y-auto no-scrollbar p-2 flex-1">
                             {results.length > 0 ? (
                                 <div className="grid grid-cols-1 gap-1">
-                                    {results.map((user) => {
+                                    {results.map((user, idx) => {
                                         const isSelected = selectedUserId === user.id
                                         return (
                                             <button
-                                                key={user.id}
+                                                key={user.id || `user-result-${idx}`}
                                                 onClick={() => handleSelect(user)}
                                                 className={`
                                                     w-full px-4 py-3.5 text-left transition-all rounded-[1.5rem] flex items-center justify-between group/item relative overflow-hidden
@@ -217,12 +262,13 @@ export default function UserSelector({
                                 )
                             )}
                         </div>
-                        <div className="p-3 bg-muted/20 border-t border-border/50 text-center">
+                        <div className="p-3 bg-muted/20 border-t border-border/50 text-center shrink-0">
                             <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Selecciona un hermano para asignar</p>
                         </div>
                     </motion.div>
-                )}
-            </AnimatePresence>
+                </div>,
+                document.body
+            )}
 
             {/* Botones de acción en modo edición */}
             <div className="flex items-center gap-3">

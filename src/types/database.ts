@@ -71,7 +71,7 @@ export interface LecturaBiblica {
     id_usuario_lector: string
     es_repetida: boolean
     lectura_original_id: string | null
-    fecha_hora_registro: string
+    created_at: string
 
     // Relaciones
     lector?: Partial<Profile> | null

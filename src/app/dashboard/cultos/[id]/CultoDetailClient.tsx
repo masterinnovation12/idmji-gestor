@@ -25,7 +25,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import UserSelector from '@/components/UserSelector'
 import HimnoCoroSelector from '@/components/HimnoCoroSelector'
 import BibleReadingManager from '@/components/BibleReadingManager'
-import { updateAssignment } from './actions'
+import { updateAssignment, toggleFestivo } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -40,6 +40,20 @@ interface CultoDetailClientProps {
 /**
  * Componente interno para tarjetas de asignación reutilizables con diseño premium
  */
+interface AssignmentSectionProps {
+    label: string,
+    icon: any,
+    selectedUserId: string | null,
+    usuarioActual: any,
+    onSelect: (id: string | null) => void,
+    disabled: boolean,
+    t: any,
+    cultoId: string,
+}
+
+/**
+ * Componente interno para tarjetas de asignación reutilizables con diseño premium
+ */
 function AssignmentSection({
     label,
     icon,
@@ -48,24 +62,17 @@ function AssignmentSection({
     onSelect,
     disabled,
     t,
-}: {
-    label: string,
-    icon: any,
-    selectedUserId: string | null,
-    usuarioActual: any,
-    onSelect: (id: string | null) => void,
-    disabled: boolean,
-    t: any,
-}) {
+    cultoId,
+}: AssignmentSectionProps) {
     const [isEditing, setIsEditing] = useState(!selectedUserId)
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="h-full w-full min-w-0"
+            className={`h-full w-full min-w-0 ${isEditing ? 'relative z-[100]' : 'relative z-10'}`}
         >
-            <Card className="h-full w-full min-w-0 border-t-4 border-primary/40 glass group hover:border-primary transition-all duration-500 shadow-xl overflow-hidden relative">
+            <Card className={`h-full w-full min-w-0 border-t-4 border-primary/40 glass group hover:border-primary transition-all duration-500 shadow-xl relative overflow-visible ${isEditing ? 'ring-4 ring-primary/30' : ''}`}>
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
                 
                 <CardHeader className="flex flex-row items-start justify-between pb-2 md:pb-3 shrink-0 gap-2">
@@ -81,9 +88,9 @@ function AssignmentSection({
                         </button>
                     )}
                 </CardHeader>
-                <CardContent className="p-2 md:p-3 flex-1 flex flex-col min-h-0">
-                    <div className="space-y-3 md:space-y-4 flex-1 flex flex-col min-h-0">
-                        <div className="shrink-0">
+                <CardContent className="p-2.5 md:p-3.5 flex-1 flex flex-col overflow-visible">
+                    <div className="space-y-2.5 md:space-y-3.5 flex-1 flex flex-col overflow-visible">
+                        <div className="shrink-0 relative z-[110]">
                             <UserSelector
                                 selectedUserId={selectedUserId}
                                 onSelect={(id) => {
@@ -99,11 +106,11 @@ function AssignmentSection({
                         <AnimatePresence mode="wait">
                             {usuarioActual ? (
                                 <motion.div 
-                                    key={usuarioActual.id}
+                                    key={usuarioActual.id || `assigned-${label}`}
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
-                                    className={`flex items-center gap-3.5 p-3.5 md:p-4.5 rounded-[1.75rem] border shadow-inner relative overflow-hidden group/assigned transition-all flex-1 min-h-0 ${
+                                    className={`flex flex-col gap-3 p-3.5 md:p-4.5 rounded-[1.75rem] border shadow-inner relative overflow-hidden group/assigned transition-all flex-1 min-h-0 ${
                                         isEditing 
                                             ? 'bg-muted/50 border-border opacity-60' 
                                             : 'bg-primary/5 border-primary/10'
@@ -111,37 +118,57 @@ function AssignmentSection({
                                 >
                                     <div className="absolute inset-0 bg-linear-to-r from-primary/5 to-transparent opacity-0 group-hover/assigned:opacity-100 transition-opacity" />
                                     
-                                    <div className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-black text-xs md:text-sm lg:text-base border-2 shadow-lg relative z-10 shrink-0 ${
-                                        isEditing ? 'bg-muted border-border text-muted-foreground' : 'bg-primary/20 border-white/20 text-primary'
-                                    }`}>
-                                        {usuarioActual.avatar_url ? (
-                                            <img src={usuarioActual.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
-                                        ) : (
-                                            <span className="uppercase tracking-tighter">{usuarioActual.nombre?.[0]}{usuarioActual.apellidos?.[0]}</span>
-                                        )}
-                                    </div>
-                                    <div className="relative z-10 min-w-0 flex-1">
-                                        <p className={`text-[11px] md:text-sm lg:text-base xl:text-lg font-black uppercase tracking-tight leading-none whitespace-nowrap ${isEditing ? 'text-muted-foreground' : 'text-foreground'}`}>
-                                            {usuarioActual.nombre} {usuarioActual.apellidos}
-                                        </p>
-                                        <div className="flex items-center gap-2.5 mt-2">
-                                            <div className="flex items-center gap-1.5">
-                                                <div className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${isEditing ? 'bg-muted-foreground' : 'bg-emerald-500'}`} />
-                                                <p className="text-[8px] md:text-[10px] lg:text-[11px] text-muted-foreground font-black uppercase tracking-widest leading-none">
-                                                    {isEditing ? 'Modificando...' : 'Asignado'}
-                                                </p>
-                                            </div>
-                                            {!isEditing && (
-                                                <motion.div
-                                                    initial={{ scale: 0 }}
-                                                    animate={{ scale: 1 }}
-                                                    className="bg-emerald-500/20 p-0.5 rounded-full shadow-sm shadow-emerald-500/20"
-                                                >
-                                                    <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-500" />
-                                                </motion.div>
+                                    <div className="flex items-center gap-3 relative z-10">
+                                        <div className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-black text-xs md:text-sm lg:text-base border-2 shadow-lg shrink-0 ${
+                                            isEditing ? 'bg-muted border-border text-muted-foreground' : 'bg-primary/20 border-white/20 text-primary'
+                                        }`}>
+                                            {usuarioActual.avatar_url ? (
+                                                <img src={usuarioActual.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
+                                            ) : (
+                                                <span className="uppercase tracking-tighter">{usuarioActual.nombre?.[0]}{usuarioActual.apellidos?.[0]}</span>
                                             )}
                                         </div>
+                                        <div className="relative z-10 min-w-0 flex-1">
+                                            <p className={`text-[11px] md:text-sm lg:text-base xl:text-lg font-black uppercase tracking-tight leading-none whitespace-nowrap ${isEditing ? 'text-muted-foreground' : 'text-foreground'}`}>
+                                                {usuarioActual.nombre} {usuarioActual.apellidos}
+                                            </p>
+                                            <div className="flex items-center gap-2.5 mt-2">
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${isEditing ? 'bg-muted-foreground' : 'bg-emerald-500'}`} />
+                                                    <p className="text-[8px] md:text-[10px] lg:text-[11px] text-muted-foreground font-black uppercase tracking-widest leading-none">
+                                                        {isEditing ? 'Modificando...' : 'Asignado'}
+                                                    </p>
+                                                </div>
+                                                {!isEditing && (
+                                                    <motion.div
+                                                        initial={{ scale: 0 }}
+                                                        animate={{ scale: 1 }}
+                                                        className="bg-emerald-500/20 p-0.5 rounded-full shadow-sm shadow-emerald-500/20"
+                                                    >
+                                                        <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-500" />
+                                                    </motion.div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    {/* Bloque de Lectura Bíblica Integrado (Solo para Introducción) */}
+                                    {label === t('culto.introduccion') && !isEditing && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="relative z-10 mt-1 pt-3 border-t border-primary/10"
+                                        >
+                                            <BibleReadingManager
+                                                cultoId={cultoId}
+                                                userId={usuarioActual.id}
+                                                config={{
+                                                    tiene_lectura_introduccion: true,
+                                                    tiene_lectura_finalizacion: false
+                                                }}
+                                            />
+                                        </motion.div>
+                                    )}
                                 </motion.div>
                             ) : !isEditing ? (
                                 <motion.div
@@ -166,6 +193,24 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
     const { t, language } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
     const [isUpdating, setIsUpdating] = useState(false)
+
+    const handleToggleFestivo = async () => {
+        setIsUpdating(true)
+        try {
+            const result = await toggleFestivo(culto.id, !!culto.es_laborable_festivo, culto.hora_inicio)
+            if (result.success) {
+                toast.success(culto.es_laborable_festivo ? 'Horario normal restaurado' : 'Horario festivo aplicado (-1h)', {
+                    icon: <Sparkles className="w-5 h-5 text-primary" />
+                })
+            } else {
+                toast.error(result.error || 'Error al cambiar estado festivo')
+            }
+        } catch (error) {
+            toast.error('Error de conexión')
+        } finally {
+            setIsUpdating(false)
+        }
+    }
 
     const handleAssignment = async (
         tipo: 'introduccion' | 'finalizacion' | 'ensenanza' | 'testimonios',
@@ -225,25 +270,61 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                     </h1>
                                 </div>
 
-                                <div className="flex flex-wrap gap-4">
-                                    <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 shadow-sm">
-                                        <Calendar className="w-5 h-5 text-primary" />
-                                        <span className="text-sm font-black uppercase tracking-tight">
-                                            {format(new Date(culto.fecha), 'PPPP', { locale })}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 shadow-sm font-black">
-                                        <Clock className="w-5 h-5 text-primary" />
-                                        <span className="text-sm uppercase tracking-widest">
-                                            {culto.hora_inicio.slice(0, 5)}
-                                        </span>
-                                    </div>
-                                    {culto.es_laborable_festivo && (
-                                        <div className="flex items-center gap-3 bg-amber-500/10 text-amber-600 px-6 py-3 rounded-2xl border border-amber-500/20 shadow-lg shadow-amber-500/10 font-black animate-pulse">
-                                            <AlertCircle className="w-5 h-5" />
-                                            <span className="text-xs uppercase tracking-widest">Festivo</span>
+                                <div className="flex flex-wrap items-center gap-6 md:gap-10">
+                                    <div className="flex items-center gap-4 bg-white/40 dark:bg-black/20 backdrop-blur-md px-8 py-4 rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30">
+                                        <Calendar className="w-6 h-6 text-primary" />
+                                        <div className="flex flex-col">
+                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none mb-1">Fecha del Culto</p>
+                                            <span className="text-base md:text-xl font-black uppercase tracking-tight">
+                                                {format(new Date(culto.fecha), 'PPPP', { locale })}
+                                            </span>
                                         </div>
-                                    )}
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-4 bg-white/40 dark:bg-black/20 backdrop-blur-md px-8 py-4 rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30 font-black">
+                                        <Clock className="w-6 h-6 text-primary" />
+                                        <div className="flex flex-col">
+                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none mb-1">Hora Inicio</p>
+                                            <span className="text-base md:text-xl uppercase tracking-widest">
+                                                {culto.hora_inicio.slice(0, 5)}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Toggle Festivo Premium */}
+                                    <div className="flex flex-col gap-2">
+                                        <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-4 leading-none">Estado de Jornada</p>
+                                        <button
+                                            onClick={handleToggleFestivo}
+                                            disabled={isUpdating}
+                                            className={`flex items-center gap-4 px-8 py-4 rounded-3xl border transition-all font-black group relative overflow-hidden h-full ${
+                                                culto.es_laborable_festivo 
+                                                    ? 'bg-amber-500 text-white border-amber-600 shadow-xl shadow-amber-500/30 scale-105' 
+                                                    : 'bg-white/40 dark:bg-black/20 backdrop-blur-md text-muted-foreground border-white/20 hover:border-amber-500/50 hover:bg-amber-50/10'
+                                            }`}
+                                        >
+                                            <div className={`absolute inset-0 bg-linear-to-r from-white/20 to-transparent -translate-x-full transition-transform duration-1000 ${culto.es_laborable_festivo ? 'group-hover:translate-x-full' : ''}`} />
+                                            <div className={`p-2 rounded-xl transition-colors ${culto.es_laborable_festivo ? 'bg-white/20' : 'bg-amber-500/10'}`}>
+                                                <AlertCircle className={`w-6 h-6 ${culto.es_laborable_festivo ? 'text-white' : 'text-amber-500'}`} />
+                                            </div>
+                                            <div className="flex flex-col items-start">
+                                                <span className={`text-[10px] uppercase tracking-widest leading-none mb-1 ${culto.es_laborable_festivo ? 'text-white/80' : 'text-muted-foreground'}`}>
+                                                    {culto.es_laborable_festivo ? 'Día Especial' : 'Día Laborable'}
+                                                </span>
+                                                <span className="text-sm uppercase tracking-tight relative z-10 whitespace-nowrap">
+                                                    {culto.es_laborable_festivo ? 'Festivo Aplicado' : 'Marcar como Festivo'}
+                                                </span>
+                                            </div>
+                                            {culto.es_laborable_festivo && (
+                                                <motion.div
+                                                    layoutId="festivo-sparkle"
+                                                    className="ml-2"
+                                                >
+                                                    <Sparkles className="w-5 h-5 text-white/70 animate-pulse" />
+                                                </motion.div>
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -258,7 +339,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
             {/* Cuadrícula de Contenido Responsiva */}
             <div className="space-y-6 md:space-y-8 w-full">
                 {/* Fila 1: Responsables (Diseño Inteligente: Se expanden para ocupar el espacio) */}
-                <div className="flex flex-wrap gap-4 md:gap-6 w-full">
+                <div className="flex flex-wrap gap-4 md:gap-6 w-full overflow-visible relative z-30">
                     {config.tiene_lectura_introduccion && (
                         <div className="flex-1 min-w-[280px] lg:min-w-[340px] max-w-full">
                             <AssignmentSection
@@ -269,6 +350,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                 onSelect={(id) => handleAssignment('introduccion', id)}
                                 disabled={isUpdating}
                                 t={t}
+                                cultoId={culto.id}
                             />
                         </div>
                     )}
@@ -283,6 +365,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                 onSelect={(id) => handleAssignment('ensenanza', id)}
                                 disabled={isUpdating}
                                 t={t}
+                                cultoId={culto.id}
                             />
                         </div>
                     )}
@@ -297,6 +380,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                 onSelect={(id) => handleAssignment('testimonios', id)}
                                 disabled={isUpdating}
                                 t={t}
+                                cultoId={culto.id}
                             />
                         </div>
                     )}
@@ -311,6 +395,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                 onSelect={(id) => handleAssignment('finalizacion', id)}
                                 disabled={isUpdating}
                                 t={t}
+                                cultoId={culto.id}
                             />
                         </div>
                     )}
@@ -318,43 +403,15 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
 
                 {/* Fila 2: Lecturas y Música */}
                 <div className="grid gap-4 md:gap-6 lg:gap-8 lg:grid-cols-12 w-full items-start">
-                    {/* Columna Izquierda: Biblia (Bloque más pequeño y compacto) */}
-                    {(config.tiene_lectura_introduccion || config.tiene_lectura_finalizacion) && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: 20 }} 
-                            animate={{ opacity: 1, y: 0 }} 
-                            transition={{ delay: 0.2 }} 
-                            className="lg:col-span-4 xl:col-span-3 w-full"
-                        >
-                            <Card className="glass rounded-[2.5rem] border border-white/20 shadow-2xl overflow-hidden w-full">
-                                <CardHeader className="p-4 md:p-6 border-b border-white/10 bg-primary/5">
-                                    <CardTitle icon={<BookOpen className="w-5 h-5 text-primary" />} className="text-lg font-black uppercase tracking-tighter">
-                                        {t('dashboard.lecturas')}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-4 md:p-5 lg:p-6">
-                                    <BibleReadingManager
-                                        cultoId={culto.id}
-                                        userId={userId}
-                                        config={{
-                                            tiene_lectura_introduccion: !!config.tiene_lectura_introduccion,
-                                            tiene_lectura_finalizacion: !!config.tiene_lectura_finalizacion
-                                        }}
-                                    />
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    )}
-
                     {/* Columna Derecha: Música (Bloque principal más grande y detallado) */}
                     {config.tiene_himnos_y_coros && (
                         <motion.div 
                             initial={{ opacity: 0, x: 20 }} 
                             animate={{ opacity: 1, x: 0 }} 
                             transition={{ delay: 0.3 }} 
-                            className={`${(config.tiene_lectura_introduccion || config.tiene_lectura_finalizacion) ? 'lg:col-span-8 xl:col-span-9' : 'lg:col-span-12'} w-full`}
+                            className="lg:col-span-12 w-full"
                         >
-                            <Card className="glass rounded-[2.5rem] border border-white/20 shadow-2xl overflow-hidden w-full">
+                            <Card className="glass rounded-[2.5rem] border border-white/20 shadow-2xl w-full">
                                 <CardHeader className="p-4 md:p-6 lg:p-8 border-b border-white/10 bg-accent/5">
                                     <div className="flex items-center justify-between">
                                         <CardTitle icon={<Music className="w-6 h-6 text-primary" />} className="text-xl md:text-2xl font-black uppercase tracking-tighter">

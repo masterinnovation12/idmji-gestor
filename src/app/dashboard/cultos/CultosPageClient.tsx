@@ -19,27 +19,34 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Calendar from '@/components/Calendar'
 import { generateCultosForMonth, getCultosForMonth } from './actions'
+import { getHermanos } from '../hermanos/actions'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { RefreshCw, Check, Calendar as CalendarIcon, CheckCircle, Clock, ChevronLeft, Sparkles, LayoutDashboard } from 'lucide-react'
+import { Input } from '@/components/ui/Input'
+import { RefreshCw, Check, Calendar as CalendarIcon, CheckCircle, Clock, ChevronLeft, Sparkles, LayoutDashboard, AlertCircle, Users, Search, X } from 'lucide-react'
 import { getCultoStatus } from '@/lib/utils/culto-helpers'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
 import { Culto } from '@/types/database'
+import type { HermanoData } from '../hermanos/actions'
 
 interface CultosPageClientProps {
     initialCultos: Culto[]
 }
 
 export default function CultosPageClient({ initialCultos }: CultosPageClientProps) {
-    const { t, theme } = useI18n() as any // Cast temporarily to access theme if provider supports it, or use useTheme
-    // Using a safer way to get isDark
-    const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+    const { t, theme } = useI18n() as any 
+    const [isDark, setIsDark] = useState(false)
+    
+    useEffect(() => {
+        setIsDark(document.documentElement.classList.contains('dark'))
+    }, [])
+
     const [cultos, setCultos] = useState(initialCultos)
     const [isGenerating, setIsGenerating] = useState(false)
     const [showConfirmModal, setShowConfirmModal] = useState(false)
@@ -48,6 +55,13 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
     const [view, setView] = useState<'month' | 'week' | 'day'>('month')
     const [selectedDate, setSelectedDate] = useState(new Date())
     const [showSuccess, setShowSuccess] = useState(false)
+    const [statusFilter, setStatusFilter] = useState<'all' | 'complete' | 'pending'>('all')
+    const [typeFilter, setTypeFilter] = useState<'all' | 'estudio' | 'alabanza' | 'ensenanza'>('all')
+    const [showFestivosOnly, setShowFestivosOnly] = useState(false)
+    const [selectedHermanos, setSelectedHermanos] = useState<string[]>([])
+    const [showHermanosModal, setShowHermanosModal] = useState(false)
+    const [hermanos, setHermanos] = useState<HermanoData[]>([])
+    const [hermanosSearch, setHermanosSearch] = useState('')
 
     const handleGenerate = async () => {
         setIsGenerating(true)
@@ -83,9 +97,80 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
         setCultos(data || [])
     }
 
+    const loadHermanos = async () => {
+        const result = await getHermanos(hermanosSearch || undefined)
+        if (result.success && result.data) {
+            setHermanos(result.data)
+        }
+    }
+
+    // Cargar hermanos cuando se abre el modal
+    useEffect(() => {
+        if (showHermanosModal) {
+            loadHermanos()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showHermanosModal])
+
+    // Búsqueda con debounce
+    useEffect(() => {
+        if (showHermanosModal) {
+            const timeoutId = setTimeout(() => {
+                loadHermanos()
+            }, 300)
+            return () => clearTimeout(timeoutId)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hermanosSearch, showHermanosModal])
+
+    const toggleHermano = (hermanoId: string) => {
+        setSelectedHermanos(prev => 
+            prev.includes(hermanoId) 
+                ? prev.filter(id => id !== hermanoId)
+                : [...prev, hermanoId]
+        )
+    }
+
+    const getHermanoName = (hermanoId: string) => {
+        const hermano = hermanos.find(h => h.id === hermanoId)
+        return hermano ? `${hermano.nombre || ''} ${hermano.apellidos || ''}`.trim() : ''
+    }
+
     const totalCultos = cultos.length
     const completeCultos = cultos.filter(c => getCultoStatus(c) === 'complete').length
-    const pendingCultos = cultos.filter(c => getCultoStatus(c) === 'incomplete').length
+    const pendingCultos = cultos.filter(c => getCultoStatus(c) === 'pending').length
+
+    const filteredCultos = cultos.filter(c => {
+        // Filtro de Festivos
+        if (showFestivosOnly && !c.es_laborable_festivo) return false
+
+        // Filtro de Estado
+        if (statusFilter !== 'all') {
+            const status = getCultoStatus(c)
+            if (status !== statusFilter) return false
+        }
+
+        // Filtro de Tipo
+        if (typeFilter !== 'all') {
+            const nombre = c.tipo_culto?.nombre?.toLowerCase() || ''
+            if (typeFilter === 'estudio' && !nombre.includes('estudio')) return false
+            if (typeFilter === 'alabanza' && !nombre.includes('alabanza')) return false
+            if (typeFilter === 'ensenanza' && !nombre.includes('enfermedad') && !nombre.includes('enseñanza')) return false
+        }
+
+        // Filtro por Hermanos
+        if (selectedHermanos.length > 0) {
+            const hasSelectedHermano = 
+                (c.id_usuario_intro && selectedHermanos.includes(c.id_usuario_intro)) ||
+                (c.id_usuario_ensenanza && selectedHermanos.includes(c.id_usuario_ensenanza)) ||
+                (c.id_usuario_finalizacion && selectedHermanos.includes(c.id_usuario_finalizacion)) ||
+                (c.id_usuario_testimonios && selectedHermanos.includes(c.id_usuario_testimonios))
+            
+            if (!hasSelectedHermano) return false
+        }
+
+        return true
+    })
 
     return (
         <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4 md:px-8 relative no-scrollbar">
@@ -153,10 +238,10 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                         >
                             {t('calendar.title')}
                         </motion.h1>
-                        <p className="text-muted-foreground font-bold tracking-wide flex items-center gap-2.5 uppercase text-xs opacity-80">
+                        <div className="text-muted-foreground font-bold tracking-wide flex items-center gap-2.5 uppercase text-xs opacity-80">
                             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                             {t('dashboard.calendarDesc')}
-                        </p>
+                        </div>
                     </div>
 
                     <motion.div
@@ -190,44 +275,186 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
             >
                 <div className="absolute -inset-4 bg-linear-to-r from-primary/10 via-accent/10 to-primary/10 rounded-[3rem] blur-3xl opacity-30 group-hover:opacity-60 transition duration-1000" />
                 <div className="relative glass rounded-[3rem] p-4 md:p-8 overflow-hidden border border-white/20 dark:border-white/5 shadow-[0_30px_60px_rgba(0,0,0,0.12)]">
-                    {/* View Switcher */}
-                    <div className="flex justify-center mb-8">
-                        <div className="inline-flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner">
-                            <button
-                                onClick={() => setView('month')}
-                                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    view === 'month' 
-                                        ? 'bg-primary text-white shadow-lg' 
-                                        : 'text-muted-foreground hover:bg-background hover:text-primary'
-                                }`}
-                            >
-                                Mensual
-                            </button>
-                            <button
-                                onClick={() => setView('week')}
-                                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    view === 'week' 
-                                        ? 'bg-primary text-white shadow-lg' 
-                                        : 'text-muted-foreground hover:bg-background hover:text-primary'
-                                }`}
-                            >
-                                Semanal
-                            </button>
-                            <button
-                                onClick={() => setView('day')}
-                                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    view === 'day' 
-                                        ? 'bg-primary text-white shadow-lg' 
-                                        : 'text-muted-foreground hover:bg-background hover:text-primary'
-                                }`}
-                            >
-                                Diario
-                            </button>
+                    
+                    {/* Panel de Filtros Premium */}
+                    <div className="flex flex-col gap-8 mb-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                            {/* Filtro de Vista */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-2">
+                                    Filtro Vista
+                                </p>
+                                <div className="flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner w-full">
+                                    <button
+                                        onClick={() => setView('month')}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            view === 'month' 
+                                                ? 'bg-blue-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
+                                        }`}
+                                    >
+                                        Mensual
+                                    </button>
+                                    <button
+                                        onClick={() => setView('week')}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            view === 'week' 
+                                                ? 'bg-blue-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
+                                        }`}
+                                    >
+                                        Semanal
+                                    </button>
+                                    <button
+                                        onClick={() => setView('day')}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            view === 'day' 
+                                                ? 'bg-blue-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
+                                        }`}
+                                    >
+                                        Diario
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Filtros Asignados (Estado) */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-2">
+                                    Filtros Asignados
+                                </p>
+                                <div className="flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner w-full">
+                                    <button
+                                        onClick={() => setStatusFilter('all')}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            statusFilter === 'all' 
+                                                ? 'bg-slate-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-900/20 hover:text-slate-600'
+                                        }`}
+                                    >
+                                        Todos
+                                    </button>
+                                    <button
+                                        onClick={() => setStatusFilter('complete')}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            statusFilter === 'complete' 
+                                                ? 'bg-emerald-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600'
+                                        }`}
+                                    >
+                                        Completos
+                                    </button>
+                                    <button
+                                        onClick={() => setStatusFilter('pending')}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            statusFilter === 'pending' 
+                                                ? 'bg-amber-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600'
+                                        }`}
+                                    >
+                                        Pendientes
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Filtro por Tipo de Culto */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-2">
+                                    Tipo de Culto
+                                </p>
+                                <div className="flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner w-full flex-wrap">
+                                    <button
+                                        onClick={() => setTypeFilter('all')}
+                                        className={`flex-1 min-w-[60px] py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            typeFilter === 'all' 
+                                                ? 'bg-indigo-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600'
+                                        }`}
+                                    >
+                                        Todos
+                                    </button>
+                                    <button
+                                        onClick={() => setTypeFilter('estudio')}
+                                        className={`flex-1 min-w-[60px] py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            typeFilter === 'estudio' 
+                                                ? 'bg-emerald-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600'
+                                        }`}
+                                    >
+                                        Estudio
+                                    </button>
+                                    <button
+                                        onClick={() => setTypeFilter('alabanza')}
+                                        className={`flex-1 min-w-[60px] py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            typeFilter === 'alabanza' 
+                                                ? 'bg-blue-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
+                                        }`}
+                                    >
+                                        Alabanza
+                                    </button>
+                                    <button
+                                        onClick={() => setTypeFilter('ensenanza')}
+                                        className={`flex-1 min-w-[60px] py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            typeFilter === 'ensenanza' 
+                                                ? 'bg-purple-600 text-white shadow-lg' 
+                                                : 'text-muted-foreground hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600'
+                                        }`}
+                                    >
+                                        Enseñanza
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Filtro Festivos */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-2">
+                                    Días Especiales
+                                </p>
+                                <div className="flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner w-full">
+                                    <button
+                                        onClick={() => setShowFestivosOnly(!showFestivosOnly)}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                                            showFestivosOnly 
+                                                ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 border-b-2 border-amber-700' 
+                                                : 'text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600'
+                                        }`}
+                                    >
+                                        <AlertCircle className={`w-3.5 h-3.5 ${showFestivosOnly ? 'text-white' : 'text-amber-500'}`} />
+                                        Festivos
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Filtro por Hermanos */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-2">
+                                    Hermanos
+                                </p>
+                                <div className="flex bg-muted/50 p-1.5 rounded-2xl border border-border/50 shadow-inner w-full">
+                                    <button
+                                        onClick={() => setShowHermanosModal(true)}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 relative ${
+                                            selectedHermanos.length > 0
+                                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20 border-b-2 border-purple-700' 
+                                                : 'text-muted-foreground hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600'
+                                        }`}
+                                    >
+                                        <Users className={`w-3.5 h-3.5 ${selectedHermanos.length > 0 ? 'text-white' : 'text-purple-500'}`} />
+                                        Hermanos
+                                        {selectedHermanos.length > 0 && (
+                                            <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-full text-[9px]">
+                                                {selectedHermanos.length}
+                                            </span>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <Calendar
-                        events={cultos}
+                        events={filteredCultos}
                         onMonthChange={handleMonthChange}
                         view={view}
                         selectedDate={selectedDate}
@@ -299,6 +526,108 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                             isLoading={isGenerating}
                         >
                             {t('calendar.generate')}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal de Selección de Hermanos */}
+            <Modal
+                isOpen={showHermanosModal}
+                onClose={() => setShowHermanosModal(false)}
+                title="Filtrar por Hermanos"
+                size="lg"
+            >
+                <div className="space-y-6 pt-6">
+                    {/* Búsqueda */}
+                    <Input
+                        icon={<Search className="w-4 h-4" />}
+                        placeholder="Buscar hermanos..."
+                        value={hermanosSearch}
+                        onChange={(e) => setHermanosSearch(e.target.value)}
+                    />
+
+                    {/* Hermanos Seleccionados */}
+                    {selectedHermanos.length > 0 && (
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                Seleccionados ({selectedHermanos.length})
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {selectedHermanos.map(hermanoId => (
+                                    <div
+                                        key={hermanoId}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 text-purple-700 dark:text-purple-300 rounded-xl text-[10px] font-bold"
+                                    >
+                                        <span>{getHermanoName(hermanoId) || 'Hermano'}</span>
+                                        <button
+                                            onClick={() => toggleHermano(hermanoId)}
+                                            className="hover:bg-purple-500/30 rounded-full p-0.5"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Lista de Hermanos */}
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {hermanos.length === 0 ? (
+                            <p className="text-center text-muted-foreground py-8 text-sm">
+                                No se encontraron hermanos
+                            </p>
+                        ) : (
+                            hermanos.map(hermano => {
+                                const isSelected = selectedHermanos.includes(hermano.id)
+                                const fullName = `${hermano.nombre || ''} ${hermano.apellidos || ''}`.trim() || hermano.email
+                                return (
+                                    <button
+                                        key={hermano.id}
+                                        onClick={() => toggleHermano(hermano.id)}
+                                        className={`w-full text-left p-4 rounded-2xl border transition-all ${
+                                            isSelected
+                                                ? 'bg-purple-500/20 border-purple-500/50 shadow-lg'
+                                                : 'bg-muted/30 border-border/50 hover:bg-muted/50'
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-sm truncate">{fullName}</p>
+                                                {hermano.email && (
+                                                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                                                        {hermano.email}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            {isSelected && (
+                                                <CheckCircle className="w-5 h-5 text-purple-600 shrink-0" />
+                                            )}
+                                        </div>
+                                    </button>
+                                )
+                            })
+                        )}
+                    </div>
+
+                    {/* Botones de Acción */}
+                    <div className="flex gap-4 pt-4 border-t border-border/50">
+                        <Button
+                            onClick={() => {
+                                setSelectedHermanos([])
+                                setShowHermanosModal(false)
+                            }}
+                            variant="ghost"
+                            className="flex-1 h-12 rounded-xl font-black uppercase tracking-widest text-[10px]"
+                        >
+                            Limpiar
+                        </Button>
+                        <Button
+                            onClick={() => setShowHermanosModal(false)}
+                            className="flex-1 h-12 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-purple-500/20 border-b-4 border-purple-700"
+                        >
+                            Aplicar Filtro
                         </Button>
                     </div>
                 </div>

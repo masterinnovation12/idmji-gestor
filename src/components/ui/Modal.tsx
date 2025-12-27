@@ -6,12 +6,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 interface ModalProps {
     isOpen: boolean
     onClose: () => void
-    title?: string
+    title?: ReactNode
     children: ReactNode
     size?: 'sm' | 'md' | 'lg' | 'xl'
+    keyPrefix?: string
 }
 
-export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, size = 'md', keyPrefix = 'modal' }: ModalProps) {
     const sizes = {
         sm: 'max-w-md',
         md: 'max-w-2xl',
@@ -22,9 +23,10 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
     return (
         <AnimatePresence>
             {isOpen && (
-                <>
+                <div key={`${keyPrefix}-container`}>
                     {/* Overlay */}
                     <motion.div
+                        key={`${keyPrefix}-overlay`}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -33,12 +35,13 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
                     />
 
                     {/* Modal */}
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
                         <motion.div
+                            key={`${keyPrefix}-content`}
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className={cn('glass w-full rounded-3xl p-6 relative', sizes[size])}
+                            className={cn('glass w-full rounded-3xl p-6 relative pointer-events-auto', sizes[size])}
                         >
                             {/* Close Button */}
                             <button
@@ -50,7 +53,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
 
                             {/* Title */}
                             {title && (
-                                <h2 className="text-2xl font-bold mb-6 pr-10">{title}</h2>
+                                <div className="text-2xl font-bold mb-6 pr-10">{title}</div>
                             )}
 
                             {/* Content */}
@@ -59,7 +62,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
                             </div>
                         </motion.div>
                     </div>
-                </>
+                </div>
             )}
         </AnimatePresence>
     )
