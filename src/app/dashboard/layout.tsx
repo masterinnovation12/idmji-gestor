@@ -19,7 +19,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion'
 import {
     LayoutDashboard,
     Calendar,
@@ -82,7 +82,7 @@ export default function DashboardLayout({
 
     // Fetch user profile on mount & Subscribe to Realtime changes
     useEffect(() => {
-        let channel: any = null
+        let channel: ReturnType<typeof supabase.channel> | null = null
 
         async function fetchAndSubscribe() {
             const { data: { user } } = await supabase.auth.getUser()
@@ -124,7 +124,7 @@ export default function DashboardLayout({
                             console.log('Profile updated realtime:', payload)
                             setUserProfile(prev => ({
                                 ...prev,
-                                ...payload.new as any,
+                                ...payload.new as { nombre?: string, apellidos?: string, avatar_url?: string, rol?: string },
                                 // Mantener el email ya que no viene en la tabla profiles
                                 email: prev?.email || user.email || null
                             }))
@@ -198,7 +198,7 @@ export default function DashboardLayout({
         }
     }, [isMobileMenuOpen, x])
 
-    const handlePanEnd = (event: any, info: any) => {
+    const handlePanEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
         const threshold = 100
         const velocityThreshold = 500
 
