@@ -1,19 +1,33 @@
 {
   "name": "IDMJI Sabadell",
-  "short_name": "IDMJI Sabadell",
+  "short_name": "IDMJI",
   "description": "Gestión de cultos y púlpito para IDMJI Sabadell",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#1e293b",
+  "background_color": "#ffffff",
   "theme_color": "#1e293b",
   "icons": [
     {
-      "src": "/logo.jpg",
-      "sizes": "192x192 512x512",
-      "type": "image/jpeg",
-      "purpose": "any maskable"
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "id": "idmji-sabadell-pwa",
+  "prefer_related_applications": false
 }
-`,file_path:

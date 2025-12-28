@@ -1,4 +1,5 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -13,6 +14,21 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children, size = 'md', keyPrefix = 'modal' }: ModalProps) {
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+        // Prevent body scroll when modal is open
+        if (isOpen) {
+            document.body.style.overflow = 'hidden'
+        } else {
+            document.body.style.overflow = 'unset'
+        }
+        return () => { document.body.style.overflow = 'unset' }
+    }, [isOpen])
+
+    if (!mounted) return null
+
     const sizes = {
         sm: 'max-w-md',
         md: 'max-w-2xl',
@@ -20,7 +36,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', keyPrefix
         xl: 'max-w-6xl',
     }
 
-    return (
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <div key={`${keyPrefix}-container`}>
@@ -31,17 +47,17 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', keyPrefix
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110]"
                     />
 
                     {/* Modal */}
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 pointer-events-none">
                         <motion.div
                             key={`${keyPrefix}-content`}
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className={cn('glass w-full rounded-3xl p-6 relative pointer-events-auto', sizes[size])}
+                            className={cn('glass w-full rounded-3xl p-6 relative pointer-events-auto shadow-2xl', sizes[size])}
                         >
                             {/* Close Button */}
                             <button
@@ -64,6 +80,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', keyPrefix
                     </div>
                 </div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     )
 }

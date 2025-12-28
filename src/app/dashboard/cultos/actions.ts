@@ -99,7 +99,7 @@ export async function generateCultosForMonth(date: Date) {
  */
 export async function generateYear(year: number) {
     let totals = 0
-    let errors = []
+    const errors = []
 
     for (let month = 0; month < 12; month++) {
         const date = new Date(year, month, 1) // 1st of each month
@@ -163,6 +163,31 @@ export async function getCultosForMonth(year: number, month: number) {
 
     if (error) {
         console.error('Error fetching cultos:', error)
+        return { error: error.message }
+    }
+
+    return { data }
+}
+
+/**
+ * Obtiene las asignaciones específicas de un usuario en un rango de fechas.
+ */
+export async function getUserAssignments(userId: string, startStr: string, endStr: string) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from('cultos')
+        .select(`
+            *,
+            tipo_culto:culto_types(nombre, color)
+        `)
+        .gte('fecha', startStr)
+        .lte('fecha', endStr)
+        .or(`id_usuario_intro.eq.${userId},id_usuario_ensenanza.eq.${userId},id_usuario_finalizacion.eq.${userId},id_usuario_testimonios.eq.${userId}`)
+        .order('fecha', { ascending: true })
+
+    if (error) {
+        console.error('Error fetching user assignments:', error)
         return { error: error.message }
     }
 

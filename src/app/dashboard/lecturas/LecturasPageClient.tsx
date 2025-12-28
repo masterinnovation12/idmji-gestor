@@ -16,7 +16,8 @@
 
 'use client'
 
-import { BookOpen, AlertCircle, ChevronLeft, ChevronRight, History, Calendar } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { BookOpen, AlertCircle, ChevronLeft, ChevronRight, History, Calendar, Search as SearchIcon, XCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
@@ -70,7 +71,25 @@ export default function LecturasPageClient({
     const pathname = usePathname()
     const searchParams = useSearchParams()
 
+    // Estado derivado de URL
     const soloRepetidas = searchParams.get('soloRepetidas') === 'true'
+    const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
+
+    // Debounce search update
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const params = new URLSearchParams(searchParams)
+            if (searchTerm) {
+                params.set('search', searchTerm)
+            } else {
+                params.delete('search')
+            }
+            params.set('page', '1') // Reset page on search
+            router.push(`${pathname}?${params.toString()}`)
+        }, 500)
+
+        return () => clearTimeout(timer)
+    }, [searchTerm, searchParams, pathname, router])
 
     const updateFilter = (newSoloRepetidas: boolean) => {
         const params = new URLSearchParams(searchParams)
@@ -90,53 +109,116 @@ export default function LecturasPageClient({
     }
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6 pb-12">
+        <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
             {/* Header y Filtros */}
-            <div className="px-2 space-y-4">
-                <Link
-                    href="/dashboard"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                    <ChevronLeft className="w-4 h-4" />
-                    {t('dashboard.title')}
-                </Link>
-
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <h1 className="text-4xl font-black bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                            {t('lecturas.title')}
-                        </h1>
-                        <p className="text-muted-foreground font-medium">{t('lecturas.desc')}</p>
+            <div className="px-4 md:px-6 py-6 bg-card/30 backdrop-blur-md border-b border-white/5 sticky top-0 z-30 transition-all rounded-b-3xl -mx-2 md:mx-0 shadow-sm">
+                <div className="space-y-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <Link
+                                href="/dashboard"
+                                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors ring-1 ring-white/10"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </Link>
+                            <div>
+                                <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
+                                    {t('lecturas.title')}
+                                </h1>
+                            </div>
+                        </div>
                     </div>
 
-                    <button
-                        onClick={() => updateFilter(!soloRepetidas)}
-                        className={`px-6 py-3 rounded-2xl transition-all flex items-center gap-2 font-bold text-sm tracking-tight ${soloRepetidas
-                            ? 'bg-red-500 text-white shadow-xl shadow-red-500/30 scale-105'
-                            : 'glass border border-border/50 hover:bg-white/10'
-                            }`}
-                    >
-                        <AlertCircle className={`w-4 h-4 ${soloRepetidas ? 'animate-pulse' : ''}`} />
-                        {soloRepetidas ? t('lecturas.filterAll') : t('lecturas.filterRepeated')}
-                    </button>
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+                        {/* Buscador Premium */}
+                        <div className="relative group flex-1 max-w-lg">
+                            <div className="absolute inset-0 bg-blue-500/10 blur-lg rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <div className="relative flex items-center bg-card border border-white/10 shadow-lg rounded-xl h-12 focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:border-blue-500/50 transition-all overflow-hidden">
+                                <SearchIcon className="w-5 h-5 text-muted-foreground ml-3 shrink-0 group-focus-within:text-blue-500 transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder={t('lecturas.searchPlaceholder') || "Buscar por libro (ej. Mateo, Salmos)..."}
+                                    className="w-full bg-transparent border-none outline-none px-3 text-base font-medium placeholder:text-muted-foreground/60 h-full text-foreground"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                                {searchTerm && (
+                                    <button
+                                        onClick={() => setSearchTerm('')}
+                                        className="p-2 mr-1 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                    >
+                                        <XCircle className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Separador móvil */}
+                        <div className="h-px bg-white/10 md:hidden w-full my-1" />
+
+                        {/* Filtro Toggle Mejorado */}
+                        <button
+                            onClick={() => updateFilter(!soloRepetidas)}
+                            className={`relative overflow-hidden h-12 px-6 rounded-xl border font-bold text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-2 group md:w-auto w-full ${soloRepetidas
+                                    ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20'
+                                    : 'bg-card hover:bg-accent/50 border-white/10 text-muted-foreground hover:text-foreground hover:border-white/20'
+                                }`}
+                        >
+                            <span className={`flex items-center justify-center w-5 h-5 rounded-full ${soloRepetidas ? 'bg-white/20' : 'bg-muted/50'} group-hover:scale-110 transition-transform`}>
+                                <AlertCircle className={`w-3.5 h-3.5 ${soloRepetidas ? 'text-white' : 'text-muted-foreground'}`} />
+                            </span>
+                            <span className="uppercase text-xs">{soloRepetidas ? t('lecturas.filterRepeated') : t('lecturas.filterAll')}</span>
+
+                            {/* Indicador de estado */}
+                            {soloRepetidas && (
+                                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] animate-[shimmer_2s_infinite]" />
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Listado Principal */}
-            <Card className="mx-2 overflow-hidden border-none shadow-2xl">
-                <CardHeader className="border-b border-border/50 bg-muted/20 pb-4">
-                    <CardTitle icon={<History className="w-6 h-6 text-primary" />} className="text-xl">
+            <Card className="mx-2 md:mx-6 overflow-hidden border border-white/5 shadow-2xl bg-card/40 backdrop-blur-xl ring-1 ring-white/5 rounded-3xl">
+                <CardHeader className="border-b border-white/5 bg-white/[0.02] py-6 px-6 md:px-8">
+                    <CardTitle className="text-xl md:text-2xl flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500">
+                            <History className="w-6 h-6" />
+                        </div>
                         {t('lecturas.history')}
+                        {searchTerm && (
+                            <span className="text-sm font-medium text-muted-foreground ml-2 px-3 py-1 rounded-full bg-white/5 border border-white/5">
+                                Resultados para &quot;{searchTerm}&quot;
+                            </span>
+                        )}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="divide-y divide-border/50">
+                    <div className="divide-y divide-white/5">
                         {initialLecturas.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
-                                <SearchXIcon className="w-16 h-16 text-muted-foreground/20" />
-                                <p className="text-muted-foreground font-medium max-w-xs">
-                                    {t('lecturas.noResults')}
-                                </p>
+                            <div className="flex flex-col items-center justify-center py-32 text-center space-y-6 px-4">
+                                <div className="p-6 rounded-full bg-muted/5 ring-1 ring-white/10">
+                                    <SearchIcon className="w-12 h-12 text-muted-foreground/30" />
+                                </div>
+                                <div className="space-y-2 max-w-sm">
+                                    <h3 className="text-lg font-bold text-foreground">
+                                        {searchTerm ? 'Sin coincidencias' : t('lecturas.noResults')}
+                                    </h3>
+                                    <p className="text-muted-foreground text-sm leading-relaxed">
+                                        {searchTerm
+                                            ? `No hemos encontrado lecturas del libro "${searchTerm}". Intenta con otro nombre.`
+                                            : t('lecturas.noResultsDesc') || "Aún no hay lecturas registradas en el historial."}
+                                    </p>
+                                </div>
+                                {searchTerm && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setSearchTerm('')}
+                                        className="rounded-full px-6 border-white/10 hover:bg-white/5"
+                                    >
+                                        Limpiar búsqueda
+                                    </Button>
+                                )}
                             </div>
                         ) : (
                             initialLecturas.map((lectura: LecturaExt) => (

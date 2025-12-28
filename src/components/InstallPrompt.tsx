@@ -1,18 +1,19 @@
 /**
  * InstallPrompt - IDMJI Gestor de Púlpito
  * 
- * Componente para invitar al usuario a instalar la PWA.
- * Mejorada la visibilidad y diseño premium.
+ * Componente mejorado para invitar al usuario a instalar la PWA.
+ * - iOS: Muestra prompt simplificado con instrucciones manuales
+ * - Android: Usa beforeinstallprompt nativo con re-prompt después de 7 días
  * 
  * @author Antigravity AI
- * @date 2024-12-25
+ * @date 2024-12-28
  */
 
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Download, X, Share, PlusSquare, Smartphone } from 'lucide-react'
+import { Download, X, Share, ArrowUp } from 'lucide-react'
 import { Button } from './ui/Button'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 
@@ -21,11 +22,15 @@ interface BeforeInstallPromptEvent extends Event {
     userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+const PROMPT_DISMISS_KEY = 'pwa_prompt_dismissed_at'
+const PROMPT_INSTALLED_KEY = 'pwa_installed'
+const REPROMPT_DAYS = 7
+
 export function InstallPrompt() {
     const [showPrompt, setShowPrompt] = useState(false)
+    const [showIOSInstructions, setShowIOSInstructions] = useState(false)
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-    const { theme } = useTheme()
-    const isDark = theme === 'dark'
+    const { isDark } = useTheme()
 
     const platform = useMemo(() => {
         if (typeof window === 'undefined') return null
@@ -35,46 +40,80 @@ export function InstallPrompt() {
         return 'other'
     }, [])
 
+    const isStandalone = useMemo(() => {
+        if (typeof window === 'undefined') return false
+        return window.matchMedia('(display-mode: standalone)').matches ||
+            (window.navigator as any).standalone === true
+    }, [])
+
+    const shouldShowPrompt = useCallback(() => {
+        if (typeof window === 'undefined') return false
+        if (isStandalone) return false
+
+        // Si ya instaló, no mostrar
+        const installed = localStorage.getItem(PROMPT_INSTALLED_KEY)
+        if (installed === 'true') return false
+
+        // Verificar si cerró el prompt recientemente
+        const dismissedAt = localStorage.getItem(PROMPT_DISMISS_KEY)
+        if (dismissedAt) {
+            const dismissDate = new Date(parseInt(dismissedAt))
+            const daysSince = (Date.now() - dismissDate.getTime()) / (1000 * 60 * 60 * 24)
+            if (daysSince < REPROMPT_DAYS) return false
+        }
+
+        return true
+    }, [isStandalone])
+
     useEffect(() => {
+        if (!shouldShowPrompt()) return
+
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault()
             setDeferredPrompt(e as BeforeInstallPromptEvent)
-            
-            const isClosed = sessionStorage.getItem('pwa_prompt_closed')
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone
-            
-            if (!isClosed && !isStandalone) {
-                setShowPrompt(true)
-            }
+            setShowPrompt(true)
         }
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
-        if (typeof window !== 'undefined') {
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone
-            if (platform === 'ios' && !isStandalone) {
-                const isClosed = sessionStorage.getItem('pwa_prompt_closed')
-                if (!isClosed) {
-                    const timer = setTimeout(() => setShowPrompt(true), 3000)
-                    return () => clearTimeout(timer)
-                }
+        // Para iOS, mostrar después de 2 segundos
+        if (platform === 'ios') {
+            const timer = setTimeout(() => setShowPrompt(true), 2000)
+            return () => {
+                clearTimeout(timer)
+                window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
             }
         }
 
         return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    }, [platform])
+    }, [platform, shouldShowPrompt])
 
     const handleInstall = async () => {
         if (!deferredPrompt) return
-        deferredPrompt.prompt()
-        const { outcome } = await deferredPrompt.userChoice
-        if (outcome === 'accepted') setShowPrompt(false)
+
+        try {
+            await deferredPrompt.prompt()
+            const { outcome } = await deferredPrompt.userChoice
+
+            if (outcome === 'accepted') {
+                localStorage.setItem(PROMPT_INSTALLED_KEY, 'true')
+                setShowPrompt(false)
+            }
+        } catch (error) {
+            console.error('Error durante instalación:', error)
+        }
+
         setDeferredPrompt(null)
     }
 
     const closePrompt = () => {
         setShowPrompt(false)
-        sessionStorage.setItem('pwa_prompt_closed', 'true')
+        setShowIOSInstructions(false)
+        localStorage.setItem(PROMPT_DISMISS_KEY, Date.now().toString())
+    }
+
+    const handleIOSConfirm = () => {
+        setShowIOSInstructions(true)
     }
 
     if (!showPrompt) return null
@@ -85,89 +124,128 @@ export function InstallPrompt() {
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}
-                className="fixed bottom-6 left-4 right-4 z-[9999] md:left-auto md:right-6 md:w-96"
+                className="fixed bottom-4 left-3 right-3 z-[9999] md:left-auto md:right-6 md:w-[380px]"
             >
-                {/* Contenedor con diseño sólido y premium para evitar transparencia excesiva */}
-                <div className={`relative overflow-hidden rounded-3xl border-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-6 ${
-                    isDark 
-                        ? 'bg-[#0f172a] border-slate-800' 
-                        : 'bg-white border-blue-100'
-                }`}>
-                    {/* Decoración de fondo sutil - El resplandor es ahora más controlado */}
-                    <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
-                    
-                    <button 
+                <div className={`relative overflow-hidden rounded-2xl border shadow-2xl ${isDark
+                    ? 'bg-slate-900 border-slate-700'
+                    : 'bg-white border-slate-200'
+                    }`}>
+                    {/* Close button */}
+                    <button
                         onClick={closePrompt}
-                        className={`absolute top-4 right-4 p-2 rounded-xl transition-all ${
-                            isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'
-                        }`}
+                        className={`absolute top-3 right-3 p-1.5 rounded-full transition-all z-10 ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-400'
+                            }`}
                     >
-                        <X size={20} />
+                        <X size={18} />
                     </button>
 
-                    <div className="flex gap-5 items-center">
-                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-2xl border ${
-                            isDark ? 'bg-slate-800 border-slate-700' : 'bg-blue-50 border-blue-100'
-                        }`}>
-                            <Smartphone className={`w-8 h-8 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-                        </div>
-                        <div className="space-y-1 pr-4">
-                            <h4 className={`font-black text-lg uppercase tracking-tight leading-tight ${
-                                isDark ? 'text-white' : 'text-slate-900'
-                            }`}>
-                                IDMJI Sabadell
-                            </h4>
-                            <p className={`text-[11px] leading-relaxed font-bold tracking-wide uppercase opacity-70 ${
-                                isDark ? 'text-blue-400' : 'text-blue-600'
-                            }`}>
-                                Instalar Aplicación
-                            </p>
-                        </div>
-                    </div>
-
-                    <p className={`mt-4 text-xs font-medium leading-relaxed ${
-                        isDark ? 'text-slate-400' : 'text-slate-600'
-                    }`}>
-                        Instala IDMJI Sabadell en tu pantalla de inicio para una experiencia premium y acceso instantáneo.
-                    </p>
-
-                    <div className="mt-6">
-                        {platform === 'ios' ? (
-                            <div className={`rounded-2xl p-4 flex flex-col items-center gap-3 border shadow-inner ${
-                                isDark 
-                                    ? 'bg-blue-500/5 border-blue-500/20 text-blue-400' 
-                                    : 'bg-blue-50 border-blue-100 text-blue-700'
-                            }`}>
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-white/10 rounded-lg">
-                                        <Share className="w-5 h-5" />
-                                    </div>
-                                    <span className="text-[11px] font-black uppercase tracking-[0.1em] text-center">
-                                        Pasos para iPhone
-                                    </span>
+                    {!showIOSInstructions ? (
+                        // Prompt principal simplificado
+                        <div className="p-5">
+                            <div className="flex items-start gap-4">
+                                <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${isDark ? 'bg-blue-500/20' : 'bg-blue-50'
+                                    }`}>
+                                    <img
+                                        src="/icons/icon-192x192.png"
+                                        alt="IDMJI"
+                                        className="w-10 h-10 rounded-lg"
+                                        onError={(e) => {
+                                            // Fallback si no existe el icono
+                                            (e.target as HTMLImageElement).src = '/logo.jpg'
+                                        }}
+                                    />
                                 </div>
-                                <div className="h-px w-full bg-current opacity-10" />
-                                <p className="text-[10px] font-bold text-center leading-tight">
-                                    Pulsa el botón compartir y luego selecciona <br/>
-                                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-md font-black ${isDark ? 'bg-blue-500/20' : 'bg-blue-600 text-white'}`}>
-                                        &quot;Añadir a pantalla de inicio&quot;
-                                    </span>
-                                </p>
+                                <div className="flex-1 min-w-0 pr-6">
+                                    <h4 className={`font-bold text-base ${isDark ? 'text-white' : 'text-slate-900'
+                                        }`}>
+                                        ¿Instalar IDMJI Sabadell?
+                                    </h4>
+                                    <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'
+                                        }`}>
+                                        Acceso rápido desde tu pantalla de inicio
+                                    </p>
+                                </div>
                             </div>
-                        ) : (
-                            <Button 
-                                onClick={handleInstall}
-                                className={`w-full rounded-2xl h-14 font-black uppercase tracking-[0.2em] text-[11px] shadow-[0_10px_20px_rgba(37,99,235,0.3)] transition-all active:scale-95 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1 ${
-                                    isDark 
-                                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                }`}
+
+                            <div className="flex gap-3 mt-5">
+                                <Button
+                                    onClick={closePrompt}
+                                    variant="outline"
+                                    className={`flex-1 h-11 rounded-xl font-medium ${isDark
+                                        ? 'border-slate-700 text-slate-300 hover:bg-slate-800'
+                                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    onClick={platform === 'ios' ? handleIOSConfirm : handleInstall}
+                                    className="flex-1 h-11 rounded-xl font-medium bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Instalar
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        // Instrucciones iOS
+                        <div className="p-5">
+                            <h4 className={`font-bold text-base text-center mb-4 ${isDark ? 'text-white' : 'text-slate-900'
+                                }`}>
+                                Pasos para instalar en iPhone
+                            </h4>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'
+                                        }`}>
+                                        1
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                            Pulsa el botón <strong>Compartir</strong>
+                                        </p>
+                                        <div className={`inline-flex items-center gap-1 mt-1 px-2 py-1 rounded text-xs ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
+                                            }`}>
+                                            <Share className="w-3 h-3" />
+                                            en la barra del navegador
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'
+                                        }`}>
+                                        2
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                            Selecciona <strong>&quot;Añadir a pantalla de inicio&quot;</strong>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'
+                                        }`}>
+                                        3
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                            Pulsa <strong>&quot;Añadir&quot;</strong> en la esquina superior derecha
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Button
+                                onClick={closePrompt}
+                                className="w-full mt-5 h-11 rounded-xl font-medium bg-blue-600 hover:bg-blue-700 text-white"
                             >
-                                <Download className="w-5 h-5 mr-3" />
-                                Instalar ahora
+                                Entendido
                             </Button>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </motion.div>
         </AnimatePresence>

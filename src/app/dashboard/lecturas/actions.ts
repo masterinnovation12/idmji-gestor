@@ -172,7 +172,7 @@ export async function deleteLectura(id: string, cultoId?: string) {
     if (cultoId) {
         revalidatePath(`/dashboard/cultos/${cultoId}`)
     }
-    
+
     return { success: true }
 }
 
@@ -208,7 +208,7 @@ export async function getLecturasByCulto(cultoId: string) {
             `)
             .eq('culto_id', cultoId)
             .order('tipo_lectura', { ascending: true })
-        
+
         if (!errorLector) return { data: dataWithLector }
     }
 
@@ -227,6 +227,7 @@ export async function getAllLecturas(
         tipoCulto?: string
         tipoLectura?: string
         soloRepetidas?: boolean
+        search?: string
     }
 ) {
     const supabase = await createClient()
@@ -235,10 +236,17 @@ export async function getAllLecturas(
         .from('lecturas_biblicas')
         .select(`
       *,
-      culto:cultos(fecha, tipo_culto:culto_types(nombre)),
+      culto:cultos!inner(fecha, tipo_culto:culto_types(nombre)),
       lector:profiles!id_usuario_lector(nombre, apellidos)
     `, { count: 'exact' })
         .order('created_at', { ascending: false })
+
+    if (filters?.search) {
+        const searchTerm = filters.search.trim()
+        console.log('Searching lecturas with term:', searchTerm)
+        // Búsqueda insensible a mayúsculas/minúsculas parcial en 'libro'
+        query = query.ilike('libro', `%${searchTerm}%`)
+    }
 
     if (filters?.soloRepetidas) {
         query = query.eq('es_repetida', true)
@@ -275,7 +283,7 @@ export async function getBibliaLibros() {
         let hasMore = true
         let from = 0
         const step = 400 // Paso pequeño para asegurar bypass de límites
-        
+
         while (hasMore) {
             const to = from + step - 1
             const { data, error } = await supabase
@@ -300,7 +308,7 @@ export async function getBibliaLibros() {
             } else {
                 hasMore = false
             }
-            
+
             // Límite de seguridad
             if (allRows.length > 3000) hasMore = false
         }
@@ -323,7 +331,7 @@ export async function getBibliaLibros() {
                     capitulos: []
                 })
             }
-            
+
             const book = booksMap.get(libroNombre)
             if (!book.capitulos.some((c: any) => c.n === row.capitulo)) {
                 book.capitulos.push({

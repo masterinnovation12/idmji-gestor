@@ -25,10 +25,10 @@ self.addEventListener('push', (event) => {
     const data = event.data ? event.data.json() : {}
 
     event.waitUntil(
-        self.registration.showNotification(data.title || 'IDMJI Gestor', {
+        self.registration.showNotification(data.title || 'IDMJI Sabadell', {
             body: data.body || 'Nueva notificación',
-            icon: '/web-app-manifest-192x192.png',
-            badge: '/web-app-manifest-192x192.png',
+            icon: '/icons/icon-192x192.png',
+            badge: '/icons/icon-192x192.png',
             data: data.url ? { url: data.url } : {}
         })
     )
