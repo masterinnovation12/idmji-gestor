@@ -80,27 +80,65 @@ export default function DashboardLayout({
         }
     }, [pathname])
 
-    // Fetch user profile on mount
+    // Fetch user profile on mount & Subscribe to Realtime changes
     useEffect(() => {
-        async function fetchUserProfile() {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('nombre, apellidos, avatar_url, rol')
-                    .eq('id', user.id)
-                    .single()
+        let channel: any = null
 
-                setUserProfile({
-                    nombre: profile?.nombre || null,
-                    apellidos: profile?.apellidos || null,
-                    avatar_url: profile?.avatar_url || null,
-                    email: user.email || null,
-                    rol: profile?.rol || null
-                })
+        async function fetchAndSubscribe() {
+            const { data: { user } } = await supabase.auth.getUser()
+
+            if (user) {
+                // 1. Initial Fetch
+                const fetchProfile = async () => {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('nombre, apellidos, avatar_url, rol')
+                        .eq('id', user.id)
+                        .single()
+
+                    if (profile) {
+                        setUserProfile({
+                            nombre: profile.nombre || null,
+                            apellidos: profile.apellidos || null,
+                            avatar_url: profile.avatar_url || null,
+                            email: user.email || null,
+                            rol: profile.rol || null
+                        })
+                    }
+                }
+
+                await fetchProfile()
+
+                // 2. Realtime Subscription
+                channel = supabase
+                    .channel('profile-changes')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'profiles',
+                            filter: `id=eq.${user.id}`
+                        },
+                        (payload) => {
+                            console.log('Profile updated realtime:', payload)
+                            setUserProfile(prev => ({
+                                ...prev,
+                                ...payload.new as any,
+                                // Mantener el email ya que no viene en la tabla profiles
+                                email: prev?.email || user.email || null
+                            }))
+                        }
+                    )
+                    .subscribe()
             }
         }
-        fetchUserProfile()
+
+        fetchAndSubscribe()
+
+        return () => {
+            if (channel) supabase.removeChannel(channel)
+        }
     }, [supabase])
 
     // Configuración dinámica de items del sidebar con i18n
@@ -159,7 +197,7 @@ export default function DashboardLayout({
         const clientX = e.targetTouches[0].clientX
         setTouchStartX(clientX)
         setTouchCurrentX(clientX)
-        
+
         // Si tocamos cerca del borde izquierdo y el menú está cerrado, activamos el modo swiping
         if (clientX < edgeThreshold && !isMobileMenuOpen) {
             setIsSwiping(true)
@@ -180,12 +218,12 @@ export default function DashboardLayout({
         }
 
         const distanceX = touchCurrentX - touchStartX
-        
+
         // Lógica para abrir (swipe de izquierda a derecha)
         if (!isMobileMenuOpen && distanceX > minSwipeDistance && touchStartX < edgeThreshold) {
             setIsMobileMenuOpen(true)
         }
-        
+
         // Lógica para cerrar (swipe de derecha a izquierda)
         if (isMobileMenuOpen && distanceX < -minSwipeDistance) {
             setIsMobileMenuOpen(false)
@@ -211,7 +249,7 @@ export default function DashboardLayout({
     }
 
     return (
-        <div 
+        <div
             className="min-h-screen bg-background selection:bg-primary/20 selection:text-primary overflow-x-hidden no-scrollbar"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
