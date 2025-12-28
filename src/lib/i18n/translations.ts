@@ -8,6 +8,11 @@ export const translations = {
         'login.forgot': 'He olvidado mis credenciales',
         'login.showPassword': 'Mostrar contraseña',
         'login.hidePassword': 'Ocultar contraseña',
+        'login.remember': 'Recordar credenciales',
+        'login.churchName': 'Iglesia de Dios Ministerial de Jesucristo Internacional',
+        'login.churchLocation': 'Sabadell, España',
+        'login.success': '¡Bienvenido!',
+        'login.redirecting': 'Entrando...',
 
         // Common
         'common.loading': 'Cargando...',
@@ -194,10 +199,9 @@ export const translations = {
         'profile.darkModeDesc': 'Cambiar apariencia de la interfaz',
         'profile.language': 'Idioma',
         'profile.appearance': 'Apariencia',
-        'profile.contactInfo': 'Información de contacto',
+        'profile.contactInfo': 'Información de Contacto',
         'profile.contactEmail': 'Email de contacto',
         'profile.phone': 'Teléfono',
-        'profile.contactInfo': 'Información de Contacto',
         'profile.loginEmail': 'Email de inicio de sesión',
         'profile.account': 'Cuenta de Acceso',
         'profile.registeredAt': 'Registrado desde',
@@ -285,6 +289,11 @@ export const translations = {
         'login.forgot': 'He oblidat les meves credencials',
         'login.showPassword': 'Mostrar contrasenya',
         'login.hidePassword': 'Amagar contrasenya',
+        'login.remember': 'Recordar credencials',
+        'login.churchName': 'Església de Déu Ministerial de Jesucrist Internacional',
+        'login.churchLocation': 'Sabadell, Espanya',
+        'login.success': 'Benvingut!',
+        'login.redirecting': 'Entrant...',
 
         // Common
         'common.loading': 'Carregant...',
