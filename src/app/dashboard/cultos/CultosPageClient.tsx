@@ -27,9 +27,8 @@ import { getHermanos } from '../hermanos/actions'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
-import { Check, Calendar as CalendarIcon, CheckCircle, Clock, ChevronLeft, Sparkles, LayoutDashboard, AlertCircle, Users, Search, X } from 'lucide-react'
+import { Check, Calendar as CalendarIcon, CheckCircle, Clock, Sparkles, LayoutDashboard, AlertCircle, Users, Search, X } from 'lucide-react'
 import { getCultoStatus } from '@/lib/utils/culto-helpers'
-import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
 import { Culto } from '@/types/database'
@@ -40,7 +39,7 @@ interface CultosPageClientProps {
 }
 
 export default function CultosPageClient({ initialCultos }: CultosPageClientProps) {
-    const { t, theme } = useI18n() as any
+    const { t } = useI18n()
     const [isDark, setIsDark] = useState(false)
 
     useEffect(() => {
@@ -49,11 +48,9 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
 
     const [cultos, setCultos] = useState(initialCultos)
 
-    const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
-    const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
     const [view, setView] = useState<'month' | 'week' | 'day'>('month')
     const [selectedDate, setSelectedDate] = useState(new Date())
-    const [showSuccess, setShowSuccess] = useState(false)
+    const [showSuccess] = useState(false)
     const [statusFilter, setStatusFilter] = useState<'all' | 'complete' | 'pending'>('all')
     const [typeFilter, setTypeFilter] = useState<'all' | 'estudio' | 'alabanza' | 'ensenanza'>('all')
     const [showFestivosOnly, setShowFestivosOnly] = useState(false)
@@ -65,8 +62,6 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
 
 
     const handleMonthChange = async (year: number, month: number) => {
-        setCurrentYear(year)
-        setCurrentMonth(month)
         setSelectedDate(new Date(year, month, 1))
         const { data } = await getCultosForMonth(year, month)
         setCultos(data || [])

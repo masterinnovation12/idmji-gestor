@@ -9,8 +9,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, BookOpen, Users, TrendingUp, Clock, UserIcon, ChevronRight, ChevronLeft, MapPin } from 'lucide-react'
-import { format, addWeeks, subWeeks, startOfWeek, endOfWeek, isSameDay } from 'date-fns'
+import { Calendar, BookOpen, Users, Clock, UserIcon, ChevronRight, ChevronLeft, MapPin } from 'lucide-react'
+import { format, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -22,7 +22,7 @@ import { toast } from 'sonner' // Ensure sonner is installed or remove if not
 
 // --- Sub-componentes ---
 
-function UserAvatar({ usuario, size = 'md' }: { usuario: Partial<Profile> | null | undefined, size?: 'sm' | 'md' | 'lg' }) {
+function UserAvatar({ usuario, size = 'md' }: { usuario: Partial<Profile> | null | undefined, size?: 'sm' | 'md' | 'lg' | 'xl' }) {
     if (!usuario) return null
 
     const sizeClasses = {
@@ -71,7 +71,7 @@ interface DashboardClientProps {
     }
 }
 
-export default function DashboardClient({ user, culto, esHoy, initialAssignments, stats }: DashboardClientProps) {
+export default function DashboardClient({ user, culto, esHoy, initialAssignments }: DashboardClientProps) {
     const { t, language } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
 
@@ -90,7 +90,7 @@ export default function DashboardClient({ user, culto, esHoy, initialAssignments
         const end = endOfWeek(newDate, { weekStartsOn: 1 })
 
         try {
-            const { data, error } = await getUserAssignments(
+            const { data } = await getUserAssignments(
                 user.id,
                 format(start, 'yyyy-MM-dd'),
                 format(end, 'yyyy-MM-dd')
