@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
-import { Search, ChevronDown, BookOpen, AlertCircle } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
+import { Search, ChevronDown, BookOpen, AlertCircle, X, ArrowLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getBibliaLibros } from '@/app/dashboard/lecturas/actions'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 
 interface Chapter {
     n: number
@@ -22,15 +24,71 @@ interface BibleSelectorProps {
 }
 
 export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps) {
+    const { t } = useI18n()
+    const [id] = useState(() => Math.random().toString(36).substring(2, 9))
     const [libros, setLibros] = useState<BibleBook[]>([])
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedLibroObj, setSelectedLibroObj] = useState<BibleBook | null>(null)
     const [capituloInicio, setCapituloInicio] = useState<number | ''>('')
     const [versiculoInicio, setVersiculoInicio] = useState<number | ''>('')
-    const [capituloFin, setCapituloFin] = useState<number | ''>('')
     const [versiculoFin, setVersiculoFin] = useState<number | ''>('')
     const [showDropdown, setShowDropdown] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
+    const [isMobileSearchActive, setIsMobileSearchActive] = useState(false)
+    const [dropdownRect, setDropdownRect] = useState<{ top: number, left: number, width: number } | null>(null)
+    const [mounted, setMounted] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const inputRef = useRef<HTMLInputElement>(null)
+    const dropdownRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        setMounted(true)
+        return () => setMounted(false)
+    }, [])
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768)
+        }
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && 
+                inputRef.current && !inputRef.current.contains(event.target as Node)) {
+                setShowDropdown(false)
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [])
+
+    // Posicionamiento dinámico para el dropdown fixed
+    const updatePosition = () => {
+        if (inputRef.current) {
+            const rect = inputRef.current.getBoundingClientRect()
+            setDropdownRect({
+                top: rect.bottom,
+                left: rect.left,
+                width: rect.width
+            })
+        }
+    }
+
+    useEffect(() => {
+        if (showDropdown && !isMobile) {
+            updatePosition()
+            window.addEventListener('scroll', updatePosition, true)
+            window.addEventListener('resize', updatePosition)
+            return () => {
+                window.removeEventListener('scroll', updatePosition, true)
+                window.removeEventListener('resize', updatePosition)
+            }
+        }
+    }, [showDropdown, isMobile])
 
     useEffect(() => {
         async function loadLibros() {
@@ -42,6 +100,16 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         loadLibros()
     }, [])
 
+    // Scroll lock for mobile search
+    useEffect(() => {
+        if (isMobileSearchActive) {
+            document.body.style.overflow = 'hidden'
+        } else {
+            document.body.style.overflow = ''
+        }
+        return () => { document.body.style.overflow = '' }
+    }, [isMobileSearchActive])
+
     const filteredLibros = libros.filter(libro =>
         libro.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
         libro.abreviatura.toLowerCase().includes(searchQuery.toLowerCase())
@@ -52,66 +120,83 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         setSearchQuery(libro.nombre)
         setCapituloInicio('')
         setVersiculoInicio('')
-        setCapituloFin('')
         setVersiculoFin('')
         setError(null)
         setShowDropdown(false)
+        setIsMobileSearchActive(false)
     }
 
-    const getMaxChapters = () => selectedLibroObj ? selectedLibroObj.capitulos.length : 150
+    const getMaxChapters = () => selectedLibroObj ? selectedLibroObj.capitulos.length : 0
     const getMaxVerses = (capNum: number | '') => {
-        if (!selectedLibroObj || capNum === '') return 176
+        if (!selectedLibroObj || capNum === '') return 0
         const cap = selectedLibroObj.capitulos.find(c => c.n === capNum)
-        return cap ? cap.v : 176
+        return cap ? cap.v : 0
     }
+
+    // Validación instantánea para capítulo
+    useEffect(() => {
+        if (selectedLibroObj && capituloInicio !== '') {
+            const max = getMaxChapters()
+            if (capituloInicio > max) {
+                setError(`El libro ${selectedLibroObj.nombre} solo tiene ${max} capítulos.`)
+            } else if (error?.includes('capítulos')) {
+                setError(null)
+            }
+        }
+    }, [capituloInicio, selectedLibroObj])
+
+    // Validación instantánea para versículos
+    useEffect(() => {
+        if (selectedLibroObj && capituloInicio !== '') {
+            const max = getMaxVerses(Number(capituloInicio))
+            if (versiculoInicio !== '' && versiculoInicio > max) {
+                setError(`El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${max} versículos.`)
+            } else if (versiculoFin !== '' && versiculoFin > max) {
+                setError(`El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${max} versículos.`)
+            } else if (versiculoInicio !== '' && versiculoFin !== '' && Number(versiculoFin) < Number(versiculoInicio)) {
+                setError(`El versículo de fin no puede ser menor al de inicio.`)
+            } else if (error && (error.includes('versículos') || error.includes('menor'))) {
+                setError(null)
+            }
+        }
+    }, [versiculoInicio, versiculoFin, capituloInicio, selectedLibroObj])
 
     const handleSubmit = () => {
         if (!selectedLibroObj || !capituloInicio || !versiculoInicio) {
+            setError("Por favor, selecciona un libro, capítulo y versículo.")
             return
         }
 
-        // Validaciones
+        // Re-validación final antes de enviar
         const maxCaps = getMaxChapters()
         if (capituloInicio > maxCaps) {
             setError(`El libro ${selectedLibroObj.nombre} solo tiene ${maxCaps} capítulos.`)
             return
         }
 
-        const maxVersStart = getMaxVerses(capituloInicio)
-        if (versiculoInicio > maxVersStart) {
-            setError(`El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${maxVersStart} versículos.`)
+        const maxVers = getMaxVerses(Number(capituloInicio))
+        if (versiculoInicio > maxVers) {
+            setError(`El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${maxVers} versículos.`)
             return
         }
 
-        if (capituloFin) {
-            if (capituloFin > maxCaps) {
-                setError(`El libro ${selectedLibroObj.nombre} solo tiene ${maxCaps} capítulos.`)
-                return
-            }
-            if (capituloFin < capituloInicio) {
-                setError(`El capítulo de fin no puede ser menor al de inicio.`)
-                return
-            }
-        }
-
         if (versiculoFin) {
-            const currentCapFin = capituloFin || capituloInicio
-            const maxVersEnd = getMaxVerses(currentCapFin)
-            if (versiculoFin > maxVersEnd) {
-                setError(`El capítulo ${currentCapFin} de ${selectedLibroObj.nombre} solo tiene ${maxVersEnd} versículos.`)
+            if (versiculoFin > maxVers) {
+                setError(`El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${maxVers} versículos.`)
                 return
             }
-            if (currentCapFin === capituloInicio && versiculoFin < versiculoInicio) {
+            if (Number(versiculoFin) < Number(versiculoInicio)) {
                 setError(`El versículo de fin no puede ser menor al de inicio.`)
                 return
             }
         }
 
+        setError(null)
         onSelect(
             selectedLibroObj.nombre,
             Number(capituloInicio),
             Number(versiculoInicio),
-            capituloFin ? Number(capituloFin) : undefined,
+            Number(capituloInicio),
             versiculoFin ? Number(versiculoFin) : undefined
         )
     }
@@ -119,7 +204,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
     return (
         <div className="space-y-6">
             {/* Libro */}
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 relative">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Libro de la Biblia</label>
                 <div className="relative group">
                     <div className="absolute inset-0 bg-primary/10 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
@@ -127,55 +212,196 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                         <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/60 group-focus-within:text-primary transition-colors" />
                         <input
                             type="text"
+                            ref={inputRef}
                             value={searchQuery}
                             onChange={(e) => {
                                 setSearchQuery(e.target.value)
-                                setShowDropdown(true)
-                                if (selectedLibroObj && e.target.value !== selectedLibroObj.nombre) {
-                                    setSelectedLibroObj(null)
+                                if (!isMobile) setShowDropdown(true)
+                            }}
+                            onClick={() => {
+                                if (isMobile) {
+                                    setIsMobileSearchActive(true)
+                                } else {
+                                    setShowDropdown(true)
                                 }
                             }}
-                            onFocus={() => setShowDropdown(true)}
-                            placeholder="Escribe el nombre del libro..."
+                            onFocus={() => {
+                                if (!isMobile) setShowDropdown(true)
+                            }}
+                            placeholder="Buscar libro..."
                             disabled={disabled}
-                            className="w-full bg-muted/30 border border-border/50 rounded-2xl pl-12 pr-4 py-4 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all text-sm md:text-base font-bold placeholder:text-muted-foreground/40 shadow-sm"
+                            className="w-full bg-muted/30 border border-border/50 rounded-2xl pl-12 pr-4 py-4 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all text-sm md:text-base font-bold placeholder:text-muted-foreground/40 shadow-sm cursor-text md:cursor-pointer"
                         />
                     </div>
 
-                    {showDropdown && filteredLibros.length > 0 && (
-                        <div className="absolute z-[100] w-full mt-3 glass rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] max-h-[400px] overflow-hidden border border-white/20 dark:border-white/5 animate-in fade-in zoom-in-95 duration-200 flex flex-col">
-                            <div className="overflow-y-auto p-3">
-                                {filteredLibros.map((libro) => (
-                                    <button
-                                        key={libro.id}
-                                        onClick={() => handleSelectLibro(libro)}
-                                        className="w-full px-5 py-4 text-left hover:bg-primary/10 transition-all flex items-center justify-between group rounded-2xl mb-1 last:mb-0"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${libro.testamento === 'AT' ? 'bg-amber-500/10 text-amber-600' : 'bg-blue-500/10 text-blue-600'}`}>
-                                                {libro.abreviatura.slice(0, 2)}
+                    {/* Desktop Search Results - PORTAL position for reliability */}
+                    <AnimatePresence>
+                        {mounted && !isMobile && showDropdown && dropdownRect && createPortal(
+                            <div key={`bible-selector-portal-${id}`} className="fixed inset-0 z-[9998]" onClick={() => setShowDropdown(false)}>
+                                <motion.div 
+                                    key={`bible-selector-dropdown-${id}`}
+                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                    ref={dropdownRef}
+                                    style={{
+                                        position: 'fixed',
+                                        top: dropdownRect.top + 8,
+                                        left: dropdownRect.left,
+                                        width: dropdownRect.width,
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] overflow-hidden border border-gray-200 dark:border-white/10 flex flex-col min-h-[100px] max-h-[450px]"
+                                >
+                                    <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between shrink-0">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Resultados de búsqueda</p>
+                                        <button 
+                                            onClick={() => setShowDropdown(false)}
+                                            className="p-1.5 hover:bg-muted rounded-full transition-colors"
+                                        >
+                                            <X className="w-4 h-4 text-muted-foreground" />
+                                        </button>
+                                    </div>
+                                    <div className="overflow-y-auto p-2 no-scrollbar flex-1">
+                                        {filteredLibros.length > 0 ? (
+                                            <div className="grid grid-cols-1 gap-1">
+                                                {filteredLibros.map((libro, idx) => (
+                                                    <button
+                                                        key={libro.id || `libro-result-${idx}`}
+                                                        onClick={() => handleSelectLibro(libro)}
+                                                        className="w-full px-4 py-3.5 text-left hover:bg-primary/5 dark:hover:bg-primary/10 transition-all flex items-center justify-between group rounded-[1.5rem] relative overflow-hidden"
+                                                    >
+                                                        <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors" />
+                                                        <div className="flex items-center gap-4 relative z-10">
+                                                            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover:scale-105 group-hover:rotate-3 ${
+                                                                libro.testamento === 'AT' 
+                                                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' 
+                                                                    : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
+                                                            }`}>
+                                                                {libro.abreviatura.slice(0, 2)}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-black text-sm md:text-base group-hover:text-primary transition-colors uppercase tracking-tight">{libro.nombre}</p>
+                                                                <div className="flex items-center gap-2 mt-0.5">
+                                                                    <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border ${
+                                                                        libro.testamento === 'AT' 
+                                                                            ? 'bg-amber-500/5 border-amber-500/20 text-amber-600' 
+                                                                            : 'bg-blue-500/5 border-blue-500/20 text-blue-600'
+                                                                    }`}>
+                                                                        {libro.testamento === 'AT' ? 'Antiguo Testamento' : 'Nuevo Testamento'}
+                                                                    </span>
+                                                                    <span className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-widest">•</span>
+                                                                    <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest italic">
+                                                                        {libro.capitulos.length} Capítulos
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="w-8 h-8 rounded-xl bg-primary/0 group-hover:bg-primary/10 flex items-center justify-center transition-all relative z-10">
+                                                            <ChevronDown className="w-4 h-4 text-muted-foreground/30 -rotate-90 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                                                        </div>
+                                                    </button>
+                                                ))}
                                             </div>
-                                            <div>
-                                                <p className="font-black text-sm md:text-base group-hover:text-primary transition-colors uppercase tracking-tight">{libro.nombre}</p>
-                                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                                                    {libro.testamento === 'AT' ? 'Antiguo Testamento' : 'Nuevo Testamento'} • {libro.capitulos.length} Capítulos
-                                                </p>
+                                        ) : (
+                                            <div className="p-10 text-center">
+                                                <BookOpen className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
+                                                <p className="text-xs font-black text-muted-foreground/40 uppercase tracking-widest">No hay resultados para "{searchQuery}"</p>
                                             </div>
-                                        </div>
-                                        <ChevronDown className="w-4 h-4 text-muted-foreground/30 -rotate-90" />
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                                        )}
+                                    </div>
+                                    <div className="p-3 bg-muted/20 border-t border-border/50 text-center shrink-0">
+                                        <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Sugerencia: Escribe para filtrar la lista</p>
+                                    </div>
+                                </motion.div>
+                            </div>,
+                            document.body
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
 
-            {/* Capítulo y Versículo Inicio y Fin (Rango Inteligente) */}
+            {/* Mobile Search Overlay */}
+            <AnimatePresence>
+                {isMobile && isMobileSearchActive && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[999] bg-white dark:bg-zinc-950 flex flex-col"
+                    >
+                        {/* Search Header */}
+                        <div className="flex items-center gap-4 p-4 border-b border-border/50">
+                            <button 
+                                onClick={() => setIsMobileSearchActive(false)}
+                                className="p-2 hover:bg-muted rounded-xl transition-colors"
+                            >
+                                <ArrowLeft className="w-6 h-6" />
+                            </button>
+                            <div className="flex-1 relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                                <input
+                                    type="text"
+                                    autoFocus
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Buscar libro..."
+                                    className="w-full bg-muted/50 rounded-2xl pl-12 pr-10 py-3.5 outline-none focus:ring-2 focus:ring-primary/20 font-bold text-base"
+                                />
+                                {searchQuery && (
+                                    <button 
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-muted-foreground/10 rounded-full"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Search Results */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                            {filteredLibros.length > 0 ? (
+                                filteredLibros.map((libro, idx) => (
+                                    <button
+                                        key={libro.id || `mobile-libro-result-${idx}`}
+                                        onClick={() => handleSelectLibro(libro)}
+                                        className="w-full p-4 text-left bg-muted/20 hover:bg-primary/5 active:bg-primary/10 rounded-2xl transition-all border border-border/10 flex items-center gap-4 group"
+                                    >
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm border shadow-sm ${
+                                            libro.testamento === 'AT' ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
+                                        }`}>
+                                            {libro.abreviatura.slice(0, 2)}
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-base uppercase tracking-tight text-foreground">{libro.nombre}</p>
+                                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
+                                                {libro.testamento === 'AT' ? 'Antiguo Testamento' : 'Nuevo Testamento'} • {libro.capitulos.length} Capítulos
+                                            </p>
+                                        </div>
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="p-12 text-center">
+                                    <BookOpen className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
+                                    <p className="font-bold text-muted-foreground uppercase tracking-widest">No se encontraron libros</p>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Capítulo y Versículo Inicio y Fin */}
             <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Capítulo</label>
+                        <div className="flex justify-between items-end ml-1">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Capítulo</label>
+                            {selectedLibroObj && (
+                                <span className="text-[8px] font-black text-primary uppercase">Máx: {getMaxChapters()}</span>
+                            )}
+                        </div>
                         <input
                             type="number"
                             min="1"
@@ -184,99 +410,76 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                             onChange={(e) => {
                                 setCapituloInicio(e.target.value === '' ? '' : Number(e.target.value))
                                 setError(null)
-                                // Auto-set end chapter if not set
-                                if (!capituloFin) setCapituloFin(e.target.value === '' ? '' : Number(e.target.value))
                             }}
-                            placeholder="Inicio"
+                            placeholder="Ej: 1"
                             disabled={disabled || !selectedLibroObj}
-                            className="w-full h-14 bg-muted/30 border border-border/50 rounded-2xl px-5 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all text-sm font-black shadow-sm"
+                            className={`w-full h-14 bg-muted/30 border rounded-2xl px-5 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${
+                                error && (error.includes('capítulos') || (capituloInicio !== '' && Number(capituloInicio) > getMaxChapters())) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
+                            }`}
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Versículos (Rango)</label>
+                        <div className="flex justify-between items-end ml-1">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Versículos (Rango)</label>
+                            {selectedLibroObj && capituloInicio !== '' && (
+                                <span className="text-[8px] font-black text-primary uppercase">Máx: {getMaxVerses(Number(capituloInicio))}</span>
+                            )}
+                        </div>
                         <div className="flex items-center gap-2">
-                            <input
-                                type="number"
-                                min="1"
-                                max={getMaxVerses(capituloInicio)}
-                                value={versiculoInicio}
-                                onChange={(e) => {
-                                    setVersiculoInicio(e.target.value === '' ? '' : Number(e.target.value))
-                                    setError(null)
-                                }}
-                                placeholder="Desde"
-                                disabled={disabled || !selectedLibroObj || capituloInicio === ''}
-                                className="flex-1 h-14 bg-muted/30 border border-border/50 rounded-2xl px-4 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all text-sm font-black shadow-sm text-center"
-                            />
+                            <div className="flex-1 relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground/40 uppercase">De</span>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max={getMaxVerses(Number(capituloInicio))}
+                                    value={versiculoInicio}
+                                    onChange={(e) => {
+                                        setVersiculoInicio(e.target.value === '' ? '' : Number(e.target.value))
+                                        setError(null)
+                                    }}
+                                    placeholder="Inicio"
+                                    disabled={disabled || !selectedLibroObj || capituloInicio === ''}
+                                    className={`w-full h-14 bg-muted/30 border rounded-2xl pl-8 pr-2 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${
+                                        error && (error.includes('versículos') && versiculoInicio !== '' && Number(versiculoInicio) > getMaxVerses(Number(capituloInicio))) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
+                                    }`}
+                                />
+                            </div>
                             <span className="text-muted-foreground font-black">—</span>
-                            <input
-                                type="number"
-                                min={capituloFin === capituloInicio ? (Number(versiculoInicio) || 1) : 1}
-                                max={getMaxVerses(capituloFin || capituloInicio)}
-                                value={versiculoFin}
-                                onChange={(e) => {
-                                    setVersiculoFin(e.target.value === '' ? '' : Number(e.target.value))
-                                    setError(null)
-                                }}
-                                placeholder="Hasta"
-                                disabled={disabled || !selectedLibroObj || capituloInicio === ''}
-                                className="flex-1 h-14 bg-muted/30 border border-border/50 rounded-2xl px-4 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all text-sm font-black shadow-sm text-center"
-                            />
+                            <div className="flex-1 relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground/40 uppercase">Hasta</span>
+                                <input
+                                    type="number"
+                                    min={Number(versiculoInicio) || 1}
+                                    max={getMaxVerses(Number(capituloInicio))}
+                                    value={versiculoFin}
+                                    onChange={(e) => {
+                                        setVersiculoFin(e.target.value === '' ? '' : Number(e.target.value))
+                                        setError(null)
+                                    }}
+                                    placeholder="Fin"
+                                    disabled={disabled || !selectedLibroObj || capituloInicio === ''}
+                                    className={`w-full h-14 bg-muted/30 border rounded-2xl pl-10 pr-2 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${
+                                        error && (error.includes('versículos') && versiculoFin !== '' && Number(versiculoFin) > getMaxVerses(Number(capituloInicio))) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
+                                    }`}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                {/* Switch para Cambio de Capítulo (Caso especial raro) */}
-                <div className="flex justify-end">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            if (capituloFin === capituloInicio) {
-                                setCapituloFin(Math.min(Number(capituloInicio) + 1, getMaxChapters()))
-                            } else {
-                                setCapituloFin(capituloInicio)
-                            }
-                        }}
-                        className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all border ${
-                            capituloFin !== capituloInicio 
-                                ? 'bg-primary/10 border-primary text-primary' 
-                                : 'bg-muted/30 border-border text-muted-foreground'
-                        }`}
-                    >
-                        {capituloFin !== capituloInicio ? 'Varios Capítulos' : '+ Diferente Capítulo'}
-                    </button>
-                </div>
-
-                {capituloFin !== capituloInicio && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="grid grid-cols-1 pt-1"
-                    >
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Capítulo Final</label>
-                            <input
-                                type="number"
-                                min={capituloInicio || 1}
-                                max={getMaxChapters()}
-                                value={capituloFin}
-                                onChange={(e) => setCapituloFin(e.target.value === '' ? '' : Number(e.target.value))}
-                                disabled={disabled || !selectedLibroObj || capituloInicio === ''}
-                                className="w-full h-14 bg-primary/5 border border-primary/20 rounded-2xl px-5 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all text-sm font-black shadow-sm"
-                            />
-                        </div>
-                    </motion.div>
-                )}
             </div>
 
             {/* Error Message */}
             {error && (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex gap-x-3 items-center text-red-600 text-xs font-bold animate-in shake duration-300 shadow-sm">
+                <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex gap-x-3 items-center text-red-600 text-xs font-bold shadow-sm"
+                >
                     <div className="p-1.5 bg-red-500/20 rounded-lg">
                         <AlertCircle className="w-4 h-4 shrink-0" />
                     </div>
                     <p>{error}</p>
-                </div>
+                </motion.div>
             )}
 
             {/* Preview */}
@@ -291,11 +494,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                         <p className="text-[9px] font-black text-muted-foreground/60 mb-2 uppercase tracking-[0.3em] relative z-10">Vista previa de la cita:</p>
                         <p className="text-2xl md:text-3xl font-black text-primary tracking-tighter uppercase italic relative z-10">
                             {selectedLibroObj.nombre} {capituloInicio}:{versiculoInicio}
-                            {(capituloFin || versiculoFin) && (
-                                <span className="text-primary/40 ml-2 not-italic">
-                                    — {capituloFin || capituloInicio}:{versiculoFin || versiculoInicio}
-                                </span>
-                            )}
+                            {versiculoFin && versiculoFin !== versiculoInicio && `-${versiculoFin}`}
                         </p>
                     </motion.div>
                 )}
@@ -304,7 +503,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
             {/* Submit */}
             <button
                 onClick={handleSubmit}
-                disabled={disabled || !selectedLibroObj || capituloInicio === '' || versiculoInicio === ''}
+                disabled={disabled || !selectedLibroObj || capituloInicio === '' || versiculoInicio === '' || !!error}
                 className="w-full h-16 bg-black dark:bg-white text-white dark:text-black rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-20 disabled:cursor-not-allowed shadow-2xl flex items-center justify-center gap-3 mt-4"
             >
                 <BookOpen className="w-5 h-5" />

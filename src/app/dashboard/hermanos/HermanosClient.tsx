@@ -17,8 +17,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { getHermanos } from './actions'
-import { Search, Users, User, ChevronLeft, ShieldCheck, Mail, Sparkles, Filter, Award, CheckCircle2, XCircle, X } from 'lucide-react'
+import { Search, Users, ChevronLeft, ShieldCheck, Mail, Sparkles, Award, CheckCircle2, XCircle, X } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
@@ -37,7 +36,7 @@ interface HermanosClientProps {
  */
 function HermanoAvatar({ hermano, size = "md" }: { hermano: Profile, size?: "sm" | "md" | "lg" | "xl" }) {
     const initials = `${hermano.nombre?.[0] || ''}${hermano.apellidos?.[0] || ''}`.toUpperCase() || '?'
-    
+
     // Generar un degradado basado en el nombre para que siempre sea el mismo para el mismo hermano
     const getGradient = (name: string) => {
         const colors = [
@@ -116,10 +115,10 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
             const email = (h.email || '').toLowerCase()
             const search = searchTerm.toLowerCase()
 
-            const matchesSearch = !searchTerm || 
+            const matchesSearch = !searchTerm ||
                 fullName.includes(search) ||
                 email.includes(search)
-            
+
             const matchesRole = filterRole === 'ALL' || h.rol === filterRole
 
             return matchesSearch && matchesRole
@@ -148,7 +147,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
     return (
         <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4 md:px-6 no-scrollbar" data-page="hermanos">
             {/* Breadcrumb Mejorado */}
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="flex items-center justify-between"
@@ -170,7 +169,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
             {/* Header Modernizado */}
             <div className="flex flex-col xl:flex-row gap-8 justify-between items-start xl:items-end">
                 <div className="space-y-4 max-w-2xl">
-                    <motion.h1 
+                    <motion.h1
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="text-5xl md:text-7xl font-black tracking-tight leading-none"
@@ -180,7 +179,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                             {t('hermanos.title').split(' ').slice(1).join(' ')}
                         </span>
                     </motion.h1>
-                    <motion.p 
+                    <motion.p
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
@@ -192,7 +191,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                 </div>
 
                 {/* Buscador */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.2 }}
@@ -221,7 +220,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                             .replace('{count}', filteredHermanos.length.toString())
                             .replace('{plural}', filteredHermanos.length !== 1 ? 's' : '')}
                     </h2>
-                    
+
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar w-full sm:w-auto -mx-2 sm:mx-0 px-2 sm:px-0">
                         {['ALL', 'ADMIN', 'EDITOR'].map((role) => (
                             <button
@@ -250,8 +249,8 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                         >
                             <div className="relative">
                                 <Search className="w-24 h-24 text-primary/10" />
-                                <motion.div 
-                                    animate={{ rotate: 360 }} 
+                                <motion.div
+                                    animate={{ rotate: 360 }}
                                     transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
                                     className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center"
                                 >
@@ -282,7 +281,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                     )} />
 
                                     <div className="relative h-full glass border border-white/10 rounded-[2rem] p-5 hover:bg-white/5 dark:hover:bg-muted/30 transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 flex flex-col items-center text-center overflow-hidden">
-                                        
+
                                         {/* Decoración superior */}
                                         <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
                                             {hermano.rol === 'ADMIN' ? <ShieldCheck className="w-12 h-12" /> : <Award className="w-12 h-12" />}
@@ -299,12 +298,12 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                             <p className="text-[10px] font-bold text-primary/80 uppercase truncate">
                                                 {highlightText(hermano.apellidos, searchTerm)}
                                             </p>
-                                            
+
                                             <div className="pt-2 flex flex-wrap justify-center gap-1">
                                                 <span className={cn(
                                                     "px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-full border shadow-sm",
-                                                    hermano.rol === 'ADMIN' 
-                                                        ? 'bg-red-500/10 text-red-500 border-red-500/20' 
+                                                    hermano.rol === 'ADMIN'
+                                                        ? 'bg-red-500/10 text-red-500 border-red-500/20'
                                                         : 'bg-primary/10 text-primary border-primary/20'
                                                 )}>
                                                     {hermano.rol}
@@ -336,8 +335,8 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                 "absolute -top-24 -right-24 w-64 h-64 blur-[100px] opacity-20 rounded-full",
                                 selectedHermano.rol === 'ADMIN' ? 'bg-red-500' : 'bg-primary'
                             )} />
-                            
-                            <button 
+
+                            <button
                                 onClick={() => setIsModalOpen(false)}
                                 className="absolute top-6 right-6 w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all hover:scale-110 z-10"
                             >
@@ -346,7 +345,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
 
                             <div className="flex flex-col items-center text-center space-y-6">
                                 <HermanoAvatar hermano={selectedHermano} size="xl" />
-                                
+
                                 <div className="space-y-2">
                                     <h2 className="text-3xl md:text-4xl font-black tracking-tighter uppercase leading-none">
                                         {selectedHermano.nombre}
@@ -357,8 +356,8 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                     <div className="flex items-center justify-center gap-2 pt-2">
                                         <span className={cn(
                                             "px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border shadow-sm",
-                                            selectedHermano.rol === 'ADMIN' 
-                                                ? 'bg-red-500/10 text-red-500 border-red-500/20' 
+                                            selectedHermano.rol === 'ADMIN'
+                                                ? 'bg-red-500/10 text-red-500 border-red-500/20'
                                                 : 'bg-primary/10 text-primary border-primary/20'
                                         )}>
                                             {selectedHermano.rol}
@@ -384,7 +383,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                         <div className="grid grid-cols-1 gap-3">
                                             {/* Teléfono */}
                                             {selectedHermano.telefono ? (
-                                                <a 
+                                                <a
                                                     href={`tel:${selectedHermano.telefono}`}
                                                     className="glass border border-white/5 rounded-2xl p-4 flex items-center gap-4 group hover:bg-primary/10 hover:border-primary/20 transition-all"
                                                 >
@@ -410,7 +409,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
 
                                             {/* Email de Contacto */}
                                             {selectedHermano.email_contacto ? (
-                                                <a 
+                                                <a
                                                     href={`mailto:${selectedHermano.email_contacto}`}
                                                     className="glass border border-white/5 rounded-2xl p-4 flex items-center gap-4 group hover:bg-primary/10 hover:border-primary/20 transition-all"
                                                 >
@@ -459,7 +458,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
             </Dialog>
 
             {/* Stats Flotantes Mejoradas */}
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
@@ -474,7 +473,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t('hermanos.statsPulpito')}</p>
                     </div>
                 </div>
-                
+
                 <div className="w-[1px] h-10 bg-white/10" />
 
                 <div className="flex items-center gap-4 group cursor-default">

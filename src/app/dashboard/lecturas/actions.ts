@@ -1,11 +1,10 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, unstable_noStore as noStore } from 'next/cache'
 
 /**
  * Crear o actualizar lectura bíblica
- * Detecta si la lectura ya existe (repetida)
  */
 export async function saveLectura(
     cultoId: string,
@@ -17,12 +16,23 @@ export async function saveLectura(
     versiculoFin: number | null,
     userId: string
 ) {
+    noStore()
     const supabase = await createClient()
 
-    // Buscar si esta lectura ya existe
-    const { data: existente } = await supabase
+    // 1. Verificar si ya existe una lectura de este TIPO para este CULTO
+    // Si existe, la actualizamos en lugar de insertar una nueva
+    const { data: existenteMismoTipo } = await supabase
         .from('lecturas_biblicas')
-        .select('id, fecha_hora_registro, culto_id, id_usuario_lector, cultos!inner(fecha)')
+        .select('id')
+        .eq('culto_id', cultoId)
+        .eq('tipo_lectura', tipoLectura)
+        .limit(1)
+        .single()
+
+    // 2. Buscar si esta CITAS ya existe en otro culto (detección de repetida)
+    const { data: existenteCita } = await supabase
+        .from('lecturas_biblicas')
+        .select('id, created_at, culto_id, id_usuario_lector, cultos!inner(fecha)')
         .eq('libro', libro)
         .eq('capitulo_inicio', capituloInicio)
         .eq('versiculo_inicio', versiculoInicio)
@@ -32,48 +42,54 @@ export async function saveLectura(
         .limit(1)
         .single()
 
-    let esRepetida = false
-    let lecturaOriginalId = null
-
-    if (existente) {
-        // La lectura ya existe - es repetida
-        esRepetida = true
-        lecturaOriginalId = existente.id
-
+    if (existenteCita && (!existenteMismoTipo || existenteCita.id !== existenteMismoTipo.id)) {
         return {
             requiresConfirmation: true,
             existingReading: {
-                id: existente.id,
-                fecha: Array.isArray(existente.cultos) ? existente.cultos[0]?.fecha : (existente.cultos as any)?.fecha,
-                lector: existente.id_usuario_lector,
+                id: existenteCita.id,
+                fecha: Array.isArray(existenteCita.cultos) ? existenteCita.cultos[0]?.fecha : (existenteCita.cultos as any)?.fecha,
+                lector: existenteCita.id_usuario_lector,
             }
         }
     }
 
-    // Insertar la lectura
-    const { data, error } = await supabase
-        .from('lecturas_biblicas')
-        .insert({
-            culto_id: cultoId,
-            tipo_lectura: tipoLectura,
-            libro,
-            capitulo_inicio: capituloInicio,
-            versiculo_inicio: versiculoInicio,
-            capitulo_fin: capituloFin || capituloInicio,
-            versiculo_fin: versiculoFin || versiculoInicio,
-            id_usuario_lector: userId,
-            es_repetida: esRepetida,
-            lectura_original_id: lecturaOriginalId,
-        })
-        .select()
-        .single()
+    const lecturaData = {
+        culto_id: cultoId,
+        tipo_lectura: tipoLectura,
+        libro,
+        capitulo_inicio: capituloInicio,
+        versiculo_inicio: versiculoInicio,
+        capitulo_fin: capituloFin || capituloInicio,
+        versiculo_fin: versiculoFin || versiculoInicio,
+        id_usuario_lector: userId,
+        es_repetida: false,
+        lectura_original_id: null,
+    }
 
-    if (error) {
-        return { error: error.message }
+    let result
+    if (existenteMismoTipo) {
+        // Actualizar existente
+        result = await supabase
+            .from('lecturas_biblicas')
+            .update(lecturaData)
+            .eq('id', existenteMismoTipo.id)
+            .select()
+            .single()
+    } else {
+        // Insertar nueva
+        result = await supabase
+            .from('lecturas_biblicas')
+            .insert(lecturaData)
+            .select()
+            .single()
+    }
+
+    if (result.error) {
+        return { error: result.error.message }
     }
 
     revalidatePath(`/dashboard/cultos/${cultoId}`)
-    return { success: true, data }
+    return { success: true, data: result.data }
 }
 
 /**
@@ -92,55 +108,111 @@ export async function confirmRepeatedLectura(
 ) {
     const supabase = await createClient()
 
-    const { data, error } = await supabase
+    // Verificar si ya existe una para actualizar
+    const { data: existente } = await supabase
         .from('lecturas_biblicas')
-        .insert({
-            culto_id: cultoId,
-            tipo_lectura: tipoLectura,
-            libro,
-            capitulo_inicio: capituloInicio,
-            versiculo_inicio: versiculoInicio,
-            capitulo_fin: capituloFin || capituloInicio,
-            versiculo_fin: versiculoFin || versiculoInicio,
-            id_usuario_lector: userId,
-            es_repetida: true,
-            lectura_original_id: lecturaOriginalId,
-        })
-        .select()
+        .select('id')
+        .eq('culto_id', cultoId)
+        .eq('tipo_lectura', tipoLectura)
+        .limit(1)
         .single()
+
+    const lecturaData = {
+        culto_id: cultoId,
+        tipo_lectura: tipoLectura,
+        libro,
+        capitulo_inicio: capituloInicio,
+        versiculo_inicio: versiculoInicio,
+        capitulo_fin: capituloFin || capituloInicio,
+        versiculo_fin: versiculoFin || versiculoInicio,
+        id_usuario_lector: userId,
+        es_repetida: true,
+        lectura_original_id: lecturaOriginalId,
+    }
+
+    let result
+    if (existente) {
+        result = await supabase
+            .from('lecturas_biblicas')
+            .update(lecturaData)
+            .eq('id', existente.id)
+            .select()
+            .single()
+    } else {
+        result = await supabase
+            .from('lecturas_biblicas')
+            .insert(lecturaData)
+            .select()
+            .single()
+    }
+
+    if (result.error) {
+        return { error: result.error.message }
+    }
+
+    revalidatePath(`/dashboard/cultos/${cultoId}`)
+    return { success: true, data: result.data }
+}
+
+/**
+ * Eliminar lectura bíblica
+ */
+export async function deleteLectura(id: string, cultoId?: string) {
+    noStore()
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('lecturas_biblicas')
+        .delete()
+        .eq('id', id)
 
     if (error) {
         return { error: error.message }
     }
 
-    revalidatePath(`/dashboard/cultos/${cultoId}`)
-    return { success: true, data }
+    if (cultoId) {
+        revalidatePath(`/dashboard/cultos/${cultoId}`)
+    }
+
+    return { success: true }
 }
 
 /**
  * Obtener lecturas de un culto
  */
 export async function getLecturasByCulto(cultoId: string) {
+    noStore()
     const supabase = await createClient()
+
+    console.log('Buscando lecturas para culto:', cultoId)
 
     const { data, error } = await supabase
         .from('lecturas_biblicas')
-        .select(`
-      *,
-      lector:profiles!id_usuario_lector(nombre, apellidos),
-      lectura_original:lecturas_biblicas!lectura_original_id(
-        fecha_hora_registro,
-        culto:cultos(fecha)
-      )
-    `)
+        .select('*') // Primero intentamos sin joins para descartar problemas de relación
         .eq('culto_id', cultoId)
         .order('tipo_lectura', { ascending: true })
 
     if (error) {
+        console.error('Error en query lecturas:', error)
         return { error: error.message }
     }
 
-    return { data }
+    console.log('Lecturas encontradas (raw):', data?.length)
+
+    // Si hay datos, intentamos cargar los lectores por separado o con join si es seguro
+    if (data && data.length > 0) {
+        const { data: dataWithLector, error: errorLector } = await supabase
+            .from('lecturas_biblicas')
+            .select(`
+                *,
+                lector:profiles!id_usuario_lector(nombre, apellidos)
+            `)
+            .eq('culto_id', cultoId)
+            .order('tipo_lectura', { ascending: true })
+
+        if (!errorLector) return { data: dataWithLector }
+    }
+
+    return { data: data || [] }
 }
 
 /**
@@ -155,6 +227,7 @@ export async function getAllLecturas(
         tipoCulto?: string
         tipoLectura?: string
         soloRepetidas?: boolean
+        search?: string
     }
 ) {
     const supabase = await createClient()
@@ -163,10 +236,17 @@ export async function getAllLecturas(
         .from('lecturas_biblicas')
         .select(`
       *,
-      culto:cultos(fecha, tipo_culto:culto_types(nombre)),
+      culto:cultos!inner(fecha, tipo_culto:culto_types(nombre)),
       lector:profiles!id_usuario_lector(nombre, apellidos)
     `, { count: 'exact' })
-        .order('fecha_hora_registro', { ascending: false })
+        .order('created_at', { ascending: false })
+
+    if (filters?.search) {
+        const searchTerm = filters.search.trim()
+        console.log('Searching lecturas with term:', searchTerm)
+        // Búsqueda insensible a mayúsculas/minúsculas parcial en 'libro'
+        query = query.ilike('libro', `%${searchTerm}%`)
+    }
 
     if (filters?.soloRepetidas) {
         query = query.eq('es_repetida', true)
@@ -197,37 +277,74 @@ export async function getAllLecturas(
  * Obtener lista de libros de la Biblia
  */
 export async function getBibliaLibros() {
-    const supabase = await createClient()
+    try {
+        const supabase = await createClient()
+        let allRows: any[] = []
+        let hasMore = true
+        let from = 0
+        const step = 400 // Paso pequeño para asegurar bypass de límites
 
-    // 1. Fetch all chapters ordered
-    const { data: rows, error } = await supabase
-        .from('biblia')
-        .select('*')
-        .order('orden')
-        .order('capitulo')
+        while (hasMore) {
+            const to = from + step - 1
+            const { data, error } = await supabase
+                .from('biblia')
+                .select('*')
+                .order('orden', { ascending: true })
+                .order('capitulo', { ascending: true })
+                .range(from, to)
 
-    if (error) {
-        return { error: error.message }
-    }
+            if (error) {
+                console.error(`Error en rango ${from}-${to}:`, error)
+                return { error: error.message }
+            }
 
-    // 2. Aggregate into BibleBook[] structure
-    const booksMap = new Map<string, any>()
+            if (data && data.length > 0) {
+                allRows = [...allRows, ...data]
+                if (data.length < step) {
+                    hasMore = false
+                } else {
+                    from += step
+                }
+            } else {
+                hasMore = false
+            }
 
-    rows.forEach((row) => {
-        if (!booksMap.has(row.libro)) {
-            booksMap.set(row.libro, {
-                id: booksMap.size + 1, // Simulated ID for frontend
-                nombre: row.libro,
-                testamento: row.testamento,
-                abreviatura: row.abreviatura,
-                capitulos: []
-            })
+            // Límite de seguridad
+            if (allRows.length > 3000) hasMore = false
         }
-        booksMap.get(row.libro).capitulos.push({
-            n: row.capitulo,
-            v: row.num_versiculos
-        })
-    })
 
-    return { data: Array.from(booksMap.values()) }
+        if (allRows.length === 0) {
+            return { data: [] }
+        }
+
+        // Agregamos por libro de forma robusta
+        const booksMap = new Map<string, any>()
+
+        allRows.forEach((row) => {
+            const libroNombre = row.libro.trim()
+            if (!booksMap.has(libroNombre)) {
+                booksMap.set(libroNombre, {
+                    id: row.orden,
+                    nombre: libroNombre,
+                    testamento: row.testamento,
+                    abreviatura: row.abreviatura,
+                    capitulos: []
+                })
+            }
+
+            const book = booksMap.get(libroNombre)
+            if (!book.capitulos.some((c: any) => c.n === row.capitulo)) {
+                book.capitulos.push({
+                    n: row.capitulo,
+                    v: row.num_versiculos
+                })
+            }
+        })
+
+        const finalData = Array.from(booksMap.values()).sort((a, b) => a.id - b.id)
+        return { data: finalData }
+    } catch (err) {
+        console.error('Excepción en getBibliaLibros:', err)
+        return { error: 'Error interno del servidor' }
+    }
 }

@@ -61,8 +61,6 @@ function SortableItem({ item, onRemove, onMoveUp, onMoveDown, isFirst, isLast }:
     isLast: boolean
 }) {
     const {
-        attributes,
-        listeners,
         setNodeRef,
         transform,
         transition,
@@ -73,7 +71,7 @@ function SortableItem({ item, onRemove, onMoveUp, onMoveDown, isFirst, isLast }:
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
-        scale: isDragging ? 1.05 : 1,
+        zIndex: isDragging ? 50 : 1,
     }
 
     const data = item.tipo === 'himno' ? item.himno : item.coro
@@ -90,82 +88,70 @@ function SortableItem({ item, onRemove, onMoveUp, onMoveDown, isFirst, isLast }:
             style={style}
             layout
             initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: isDragging ? 0.5 : 1, scale: isDragging ? 1.05 : 1 }}
+            animate={{ opacity: isDragging ? 0.5 : 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className={`flex items-center justify-between p-4 bg-muted/30 dark:bg-white/5 border border-border/50 dark:border-white/10 rounded-[1.5rem] shadow-sm hover:shadow-md transition-all group ${
-                isDragging ? 'ring-2 ring-primary ring-offset-2 z-50' : ''
+            className={`flex items-center justify-between p-3 md:p-4 bg-muted/30 dark:bg-white/5 border border-border/50 dark:border-white/10 rounded-2xl shadow-sm transition-all group ${
+                isDragging ? 'ring-2 ring-primary bg-background shadow-xl' : ''
             }`}
         >
-            <div className="flex items-center gap-4 flex-1">
-                {/* Drag Handle */}
-                <div
-                    {...attributes}
-                    {...listeners}
-                    className="cursor-grab active:cursor-grabbing p-2 hover:bg-primary/10 rounded-xl transition-colors shrink-0"
-                >
-                    <GripVertical className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-
-                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner shrink-0 ${item.tipo === 'himno'
+            <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+                <div className={`w-10 h-10 md:w-11 md:h-11 rounded-xl md:rounded-2xl flex items-center justify-center font-black text-xs md:text-sm shadow-inner shrink-0 ${item.tipo === 'himno'
                     ? 'bg-blue-500 text-white'
                     : 'bg-purple-500 text-white'
                     }`}>
                     {item.tipo === 'himno' ? 'H' : 'C'}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p className="font-black text-xs uppercase tracking-tight leading-snug text-foreground truncate">
+                    <p className="font-black text-xs md:text-sm uppercase tracking-tight leading-tight text-foreground break-words whitespace-normal">
                         #{data?.numero} <span className="text-muted-foreground mx-1">|</span> {data?.titulo}
                     </p>
-                    <div className="flex items-center gap-3 mt-1.5">
-                        <span className={`text-[8px] uppercase font-black px-2 py-0.5 rounded-full tracking-tighter ${item.tipo === 'himno' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'
-                            }`}>
-                            {item.tipo}
+                    <div className="flex items-center gap-3 mt-2">
+                        <span className={`text-[8px] md:text-[9px] uppercase font-black px-2.5 py-1 rounded-full tracking-wider border shadow-sm ${
+                            item.tipo === 'himno' 
+                                ? 'bg-blue-500/10 border-blue-500/20 text-blue-600' 
+                                : 'bg-purple-500/10 border-purple-500/20 text-purple-600'
+                        }`}>
+                            {item.tipo === 'himno' ? 'Himno' : 'Coro'}
                         </span>
-                        <span className="text-[9px] text-muted-foreground font-black flex items-center gap-1.5">
-                            <Clock className="w-3 h-3" />
+                        <div className="flex items-center gap-1.5 text-[9px] md:text-[10px] text-muted-foreground/60 font-black uppercase tracking-widest">
+                            <Clock className="w-3 h-3 opacity-50" />
                             {formatDuration(data?.duracion_segundos || 0)}
-                        </span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Control Buttons */}
-            <div className="flex items-center gap-1 shrink-0 ml-2">
-                {/* Move Up Button */}
+            <div className="flex items-center gap-0.5 md:gap-1 shrink-0 ml-2">
                 <button
                     onClick={() => onMoveUp(item.id)}
                     disabled={isFirst}
-                    className={`p-2 rounded-xl transition-all ${
+                    className={`p-1.5 md:p-2 rounded-lg transition-all ${
                         isFirst
-                            ? 'opacity-30 cursor-not-allowed'
-                            : 'text-primary hover:bg-primary/10 hover:scale-110 active:scale-95'
+                            ? 'opacity-20 cursor-not-allowed'
+                            : 'text-primary hover:bg-primary/10 active:scale-90'
                     }`}
-                    title="Mover arriba"
                 >
                     <ChevronUp className="w-4 h-4" />
                 </button>
 
-                {/* Move Down Button */}
                 <button
                     onClick={() => onMoveDown(item.id)}
                     disabled={isLast}
-                    className={`p-2 rounded-xl transition-all ${
+                    className={`p-1.5 md:p-2 rounded-lg transition-all ${
                         isLast
-                            ? 'opacity-30 cursor-not-allowed'
-                            : 'text-primary hover:bg-primary/10 hover:scale-110 active:scale-95'
+                            ? 'opacity-20 cursor-not-allowed'
+                            : 'text-primary hover:bg-primary/10 active:scale-90'
                     }`}
-                    title="Mover abajo"
                 >
                     <ChevronDown className="w-4 h-4" />
                 </button>
 
-                {/* Remove Button */}
                 <button
                     onClick={() => onRemove(item.id)}
-                    className="p-2.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all sm:opacity-0 group-hover:opacity-100"
-                    title="Eliminar"
+                    className="p-1.5 md:p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
                 >
-                    <Trash2 className="w-4.5 h-4.5" />
+                    <Trash2 className="w-4 h-4" />
                 </button>
             </div>
         </motion.div>
@@ -522,9 +508,9 @@ export default function HimnoCoroSelector({
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-1 bg-muted/30 dark:bg-white/5 p-2 rounded-2xl border border-border/50 dark:border-white/10 max-h-60 overflow-y-auto no-scrollbar"
                     >
-                        {results.map((item) => (
+                        {results.map((item, idx) => (
                             <div
-                                key={item.id}
+                                key={item.id || `himno-coro-result-${idx}`}
                                 className="flex items-center justify-between p-4 bg-card rounded-xl hover:bg-blue-500/10 transition-all group cursor-pointer border border-border/50 shadow-sm"
                                 onClick={() => handleAdd(item)}
                             >
@@ -574,8 +560,8 @@ export default function HimnoCoroSelector({
                         Mis Listas Guardadas ({savedLists.length}/2)
                     </h3>
                     <div className="grid grid-cols-1 gap-2">
-                        {savedLists.map((list) => (
-                            <div key={list.id} className="flex items-center justify-between p-3 bg-muted/30 dark:bg-white/5 rounded-2xl border border-border/50 dark:border-white/10 shadow-sm group hover:bg-muted/50 dark:hover:bg-white/10 transition-all cursor-pointer">
+                        {savedLists.map((list, idx) => (
+                            <div key={list.id || `saved-list-${idx}`} className="flex items-center justify-between p-3 bg-muted/30 dark:bg-white/5 rounded-2xl border border-border/50 dark:border-white/10 shadow-sm group hover:bg-muted/50 dark:hover:bg-white/10 transition-all cursor-pointer">
                                 <div className="flex-1" onClick={() => loadList(list)}>
                                     <p className="text-xs font-black uppercase tracking-tight text-foreground truncate">
                                         {list.name}
@@ -618,13 +604,13 @@ export default function HimnoCoroSelector({
                         onDragEnd={handleDragEnd}
                     >
                         <SortableContext
-                            items={sortedSelected.map(item => item.id)}
+                            items={sortedSelected.map((item, idx) => item.id || `selected-${idx}`)}
                             strategy={verticalListSortingStrategy}
                         >
                             <div className="space-y-2">
                                 {sortedSelected.map((item, index) => (
                                     <SortableItem
-                                        key={item.id}
+                                        key={item.id || `selected-item-${index}`}
                                         item={item}
                                         onRemove={handleRemove}
                                         onMoveUp={handleMoveUp}

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { getUsers, createUser, updateUserFull, deleteUser, UserData } from './actions'
-import { Users, Search, Shield, UserCheck, Trash2, Edit2, Plus, Camera, RotateCw, AlertTriangle, AlertCircle, X, Eye, EyeOff } from 'lucide-react'
+import { Users, Search, Trash2, Edit2, Plus, Camera, AlertCircle, X, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/Dialog'
@@ -20,7 +20,7 @@ interface UsersClientProps {
     availableRoles: string[]
 }
 
-export default function UsersClient({ initialUsers, counts, availableRoles }: UsersClientProps) {
+export default function UsersClient({ initialUsers, availableRoles }: UsersClientProps) {
     const { t } = useI18n()
     const [users, setUsers] = useState<UserData[]>(initialUsers)
     const defaultRole = availableRoles[0] || 'MIEMBRO'
@@ -133,7 +133,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                 const nombreDom = (formDataFromDom.get('nombre') as string) || formData.nombre
                 const emailPrefix = nombreDom.toLowerCase().trim().replace(/\s+/g, '.')
                 const fullEmail = `${emailPrefix}@idmjisabadell.org`
-                
+
                 console.log('Creating user with email:', fullEmail)
                 data.append('email', fullEmail)
                 data.append('password', (formDataFromDom.get('password') as string) || formData.password)
@@ -163,14 +163,14 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
             console.error('No user selected for deletion')
             return
         }
-        
+
         console.log('handleDelete called for user:', selectedUser.id, selectedUser.email)
         setIsLoading(true)
-        
+
         try {
             const result = await deleteUser(selectedUser.id)
             console.log('deleteUser result:', result)
-            
+
             if (result.success) {
                 console.log('User deleted successfully, updating UI')
                 toast.success(t('users.toast.deleted'))
@@ -277,7 +277,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                         </div>
                                     )}
                                     <span className={`absolute bottom-1 right-1 px-2 py-0.5 rounded-full text-[10px] font-black border-2 border-card uppercase ${user.rol === 'ADMIN' ? 'bg-amber-500 text-black' :
-                                            user.rol === 'EDITOR' ? 'bg-blue-500 text-white' : 'bg-zinc-200 text-zinc-700'
+                                        user.rol === 'EDITOR' ? 'bg-blue-500 text-white' : 'bg-zinc-200 text-zinc-700'
                                         }`}>
                                         {user.rol}
                                     </span>
@@ -300,7 +300,7 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                     </Button>
                                     <Button
                                         variant="ghost"
-                                        size="icon"
+                                        size="sm"
                                         onClick={() => { setSelectedUser(user); setIsDeleteOpen(true) }}
                                         className="rounded-xl h-9 w-9 text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
                                     >
@@ -378,8 +378,8 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                             onChange={(e) => {
                                                 const newName = e.target.value
                                                 const emailPrefix = newName.toLowerCase().trim().replace(/\s+/g, '.')
-                                                setFormData({ 
-                                                    ...formData, 
+                                                setFormData({
+                                                    ...formData,
                                                     nombre: newName,
                                                     email: isCreateOpen ? emailPrefix : formData.email
                                                 })
@@ -514,11 +514,10 @@ export default function UsersClient({ initialUsers, counts, availableRoles }: Us
                                         </div>
                                     </div>
 
-                                    <div className={`flex items-center justify-between p-3 rounded-xl border min-h-[44px] mt-[26px] overflow-hidden transition-colors ${
-                                        formData.pulpito 
-                                            ? 'border-blue-500/50 bg-blue-50' 
-                                            : 'border-zinc-200 bg-zinc-50'
-                                    }`}>
+                                    <div className={`flex items-center justify-between p-3 rounded-xl border min-h-[44px] mt-[26px] overflow-hidden transition-colors ${formData.pulpito
+                                        ? 'border-blue-500/50 bg-blue-50'
+                                        : 'border-zinc-200 bg-zinc-50'
+                                        }`}>
                                         <Label className={`cursor-pointer ${formData.pulpito ? 'text-blue-700 font-semibold' : 'text-zinc-700'}`} htmlFor="pulpito-switch">{t('users.form.pulpit')}</Label>
                                         <Switch
                                             id="pulpito-switch"

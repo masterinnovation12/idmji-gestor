@@ -9,12 +9,16 @@ import { revalidatePath } from 'next/cache'
 // Función para obtener cliente ADMIN (lazy initialization)
 function getSupabaseAdmin() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+
     if (!supabaseUrl || !serviceRoleKey) {
-        throw new Error('Supabase configuration is missing. Please check environment variables.')
+        const missing = []
+        if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL')
+        if (!serviceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY')
+        console.error(`Missing env vars: ${missing.join(', ')}`)
+        throw new Error(`Supabase configuration is missing: ${missing.join(', ')}. Please check .env.local`)
     }
-    
+
     return createAdminClient(
         supabaseUrl,
         serviceRoleKey,
@@ -170,7 +174,7 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
         }
         console.log('--- DEBUG CREATE USER ---')
         console.log('Final email for validation:', email)
-        
+
         const parsed = createSchema.safeParse({
             email,
             password: formData.get('password'),
@@ -189,7 +193,7 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
 
         const { email: validatedEmail, password, nombre, apellidos, rol, pulpito, email_contacto, telefono } = parsed.data
         console.log('DEBUG: Parsed data successfully', validatedEmail)
-        
+
         const avatarFile = formData.get('avatar') as File | null
 
         if (!validatedEmail.endsWith(VALID_DOMAIN)) {
@@ -215,7 +219,7 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
         // Verificar también en auth.users usando listUsers
         const { data: { users: existingUsers } } = await getSupabaseAdmin().auth.admin.listUsers()
         const emailExists = existingUsers?.some(u => u.email === validatedEmail)
-        
+
         if (emailExists) {
             console.error('DEBUG: Auth user exists', validatedEmail)
             return { success: false, error: 'Este email ya está registrado. No se pueden duplicar emails.' }
@@ -231,8 +235,8 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
             email: validatedEmail,
             password,
             email_confirm: true,
-            user_metadata: { 
-                nombre, 
+            user_metadata: {
+                nombre,
                 apellidos,
                 full_name: fullName,
                 display_name: displayName
@@ -388,9 +392,9 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
         revalidatePath('/dashboard/admin/users')
         revalidatePath('/dashboard/hermanos')
         return { success: true }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating user:', error)
-        return { success: false, error: 'Error al actualizar usuario' }
+        return { success: false, error: error.message || 'Error al actualizar usuario' }
     }
 }
 
@@ -432,7 +436,7 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
                 const parts = avatarUrl.split('/')
                 const fileName = parts[parts.length - 1]
                 const { error: storageError } = await supabaseAdmin.storage.from('avatars').remove([fileName])
-                
+
                 if (storageError) {
                     console.warn('Failed to delete avatar from storage (non-critical):', storageError.message)
                 } else {
@@ -446,10 +450,10 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
         // 3. Eliminar usuario de Auth PRIMERO (el perfil se eliminará automáticamente por CASCADE)
         console.log('Deleting auth user first for:', userId)
         const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
-        
+
         if (authError) {
             console.error('Supabase auth.admin.deleteUser error:', authError)
-            
+
             // Si el error indica que el usuario no existe, verificar si el perfil también se eliminó
             if (authError.message?.includes('not found') || authError.message?.includes('does not exist')) {
                 const { data: remainingProfile } = await supabaseAdmin
@@ -457,7 +461,7 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
                     .select('id')
                     .eq('id', userId)
                     .single()
-                
+
                 if (!remainingProfile) {
                     console.log('User and profile already deleted')
                     revalidatePath('/dashboard/admin/users')
@@ -465,26 +469,26 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
                     return { success: true }
                 }
             }
-            
+
             // Si hay un error de base de datos, puede ser por claves foráneas
             // Intentar eliminar el perfil manualmente primero y luego Auth
             if (authError.message?.includes('Database error')) {
                 console.log('Database error detected, trying to delete profile first, then auth')
-                
+
                 const { error: profileDeleteError } = await supabaseAdmin
                     .from('profiles')
                     .delete()
                     .eq('id', userId)
-                
+
                 if (profileDeleteError && profileDeleteError.code !== 'PGRST116') {
                     console.error('Error deleting profile:', profileDeleteError)
                 } else {
                     console.log('Profile deleted manually, retrying auth delete')
                 }
-                
+
                 // Reintentar eliminar de Auth después de eliminar el perfil
                 const { error: retryAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
-                
+
                 if (retryAuthError) {
                     // Verificar si el perfil se eliminó al menos
                     const { data: remainingProfile } = await supabaseAdmin
@@ -492,7 +496,7 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
                         .select('id')
                         .eq('id', userId)
                         .single()
-                    
+
                     if (!remainingProfile) {
                         console.warn('Profile deleted but auth user deletion failed:', retryAuthError.message)
                         // Considerar éxito parcial - el perfil se eliminó
@@ -500,7 +504,7 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
                         revalidatePath('/dashboard/hermanos')
                         return { success: true, error: `Perfil eliminado pero error al eliminar de Auth: ${retryAuthError.message}` }
                     }
-                    
+
                     throw new Error(`Error al eliminar usuario de Auth: ${retryAuthError.message}`)
                 } else {
                     console.log('Auth user deleted successfully on retry')
@@ -518,7 +522,7 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
             .select('id')
             .eq('id', userId)
             .single()
-        
+
         if (remainingProfile) {
             // Si el perfil aún existe, eliminarlo manualmente
             console.log('Profile still exists, deleting manually')
@@ -526,7 +530,7 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
                 .from('profiles')
                 .delete()
                 .eq('id', userId)
-            
+
             if (profileDeleteError && profileDeleteError.code !== 'PGRST116') {
                 console.error('Error deleting remaining profile:', profileDeleteError)
                 throw new Error(`Usuario eliminado de Auth pero error al eliminar perfil: ${profileDeleteError.message}`)
