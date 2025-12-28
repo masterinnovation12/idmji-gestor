@@ -94,6 +94,28 @@ export async function generateCultosForMonth(date: Date) {
 }
 
 /**
+ * Genera todos los cultos para un año entero (ej: 2026)
+ * Se usa para pre-generar datos por defecto.
+ */
+export async function generateYear(year: number) {
+    let totals = 0
+    let errors = []
+
+    for (let month = 0; month < 12; month++) {
+        const date = new Date(year, month, 1) // 1st of each month
+        const result = await generateCultosForMonth(date)
+        if (result.error) {
+            errors.push({ month: month + 1, error: result.error })
+        } else if (result.count) {
+            totals += result.count
+        }
+    }
+
+    revalidatePath('/dashboard/cultos')
+    return { success: errors.length === 0, total: totals, errors }
+}
+
+/**
  * Crea un culto de forma manual (excepción)
  */
 export async function createCulto(formData: FormData) {

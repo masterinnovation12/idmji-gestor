@@ -54,7 +54,7 @@ interface CalendarProps {
 export default function Calendar({ events, onMonthChange, view = 'month', selectedDate, onDateSelect }: CalendarProps) {
     const { t, language } = useI18n()
     const [isDark, setIsDark] = useState(false)
-    
+
     useEffect(() => {
         setIsDark(document.documentElement.classList.contains('dark'))
     }, [])
@@ -73,7 +73,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
 
     const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
-    
+
     // Deduplicar eventos por fecha para asegurar que solo haya uno por día
     const eventsMap = new Map()
     events.forEach(e => {
@@ -87,7 +87,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
         if (view === 'month') newDate = subMonths(currentDate, 1)
         else if (view === 'week') newDate = subWeeks(currentDate, 1)
         else newDate = subDays(currentDate, 1)
-        
+
         const oldMonth = currentDate.getMonth()
         setCurrentDate(newDate)
         if (view === 'month') onMonthChange?.(newDate.getFullYear(), newDate.getMonth())
@@ -118,7 +118,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
         const today = new Date()
         const oldMonth = currentDate.getMonth()
         const oldYear = currentDate.getFullYear()
-        
+
         setCurrentDate(today)
         if (today.getMonth() !== oldMonth || today.getFullYear() !== oldYear) {
             onMonthChange?.(today.getFullYear(), today.getMonth())
@@ -145,9 +145,9 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                     </div>
                     <div className="flex flex-col">
                         <h2 className="text-3xl font-black uppercase tracking-tighter leading-none mb-1">
-                            {view === 'month' ? format(currentDate, 'MMMM yyyy', { locale }) : 
-                             view === 'week' ? `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd MMM')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd MMM, yyyy')}` :
-                             format(currentDate, 'EEEE, d MMMM yyyy', { locale })}
+                            {view === 'month' ? format(currentDate, 'MMMM yyyy', { locale }) :
+                                view === 'week' ? `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd MMM')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd MMM, yyyy')}` :
+                                    format(currentDate, 'EEEE, d MMMM yyyy', { locale })}
                         </h2>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-60">
                             {view === 'month' ? 'Vista Mensual' : view === 'week' ? 'Vista Semanal' : 'Vista Diaria'}
@@ -164,14 +164,13 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                         <ChevronLeft className="w-6 h-6 text-primary group-hover:-translate-x-0.5 transition-transform" />
                         <span className="hidden lg:inline text-[10px] font-black uppercase tracking-widest text-primary/70">Anterior</span>
                     </button>
-                    
+
                     <button
                         onClick={handleToday}
-                        className={`px-8 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-2xl border-b-2 ${
-                            isMonthActual 
-                                ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20 border-blue-800' 
-                                : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-muted-foreground hover:text-blue-600 border-transparent hover:border-blue-200'
-                        }`}
+                        className={`px-8 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-2xl border-b-2 ${isMonthActual
+                            ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20 border-blue-800'
+                            : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-muted-foreground hover:text-blue-600 border-transparent hover:border-blue-200'
+                            }`}
                     >
                         {isMonthActual ? t('calendar.today') : 'Hoy'}
                     </button>
@@ -202,6 +201,23 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                         const isToday = isSameDay(day, new Date())
                         const isCurrentMonth = isSameMonth(day, currentDate)
                         const status = event ? getCultoStatus(event) : null
+
+                        // Hide days from other months in Month View
+                        if (view === 'month' && !isCurrentMonth) {
+                            return (
+                                <div
+                                    key={dateStr}
+                                    className="min-h-[220px] md:min-h-[280px] p-2 md:p-4 bg-muted/5 opacity-20 pointer-events-none border-none shadow-none"
+                                />
+                            )
+                        }
+
+                        // Sync Logic: Use explicit configuration from Culto Type
+                        const config = event?.tipo_culto || {}
+                        const showIntro = config.tiene_lectura_introduccion !== false // Default to true if undefined
+                        const showEnsenanza = !!config.tiene_ensenanza
+                        const showTestimonios = !!config.tiene_testimonios
+                        const showFinal = config.tiene_lectura_finalizacion !== false // Default to true if undefined
 
                         return (
                             <motion.div
@@ -241,27 +257,26 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                         <div className={`
                                             w-full h-full p-3 md:p-4 rounded-[1.5rem] md:rounded-[2rem] transition-all cursor-pointer border shadow-md flex flex-col justify-between text-center overflow-hidden
                                             ${status === 'complete'
-                                                ? (isDark ? 'bg-emerald-900/20 border-emerald-500/30 hover:bg-emerald-900/30' : 'bg-[#f0fdf4] border-emerald-200/60 hover:bg-[#dcfce7] shadow-lg shadow-emerald-200/10')
-                                                : event.es_laborable_festivo 
-                                                    ? (isDark ? 'bg-amber-900/20 border-amber-500/30 hover:bg-amber-900/30' : 'bg-[#fffbeb] border-amber-200/50 hover:bg-[#fff7d1] shadow-lg shadow-amber-200/10')
+                                                ? (isDark ? 'bg-emerald-900/30 border-emerald-500/40 hover:bg-emerald-900/40' : 'bg-emerald-100 border-emerald-300 hover:bg-emerald-200 shadow-lg shadow-emerald-200/20')
+                                                : event.es_laborable_festivo
+                                                    ? (isDark ? 'bg-amber-900/30 border-amber-500/40 hover:bg-amber-900/40' : 'bg-amber-100 border-amber-300 hover:bg-amber-200 shadow-lg shadow-amber-200/20')
                                                     : (isDark ? 'bg-slate-800/40 border-white/5 hover:bg-slate-800/60' : 'bg-white border-gray-100 hover:bg-gray-50')
                                             }
                                             ${view === 'day' ? 'max-w-2xl mx-auto' : ''}
                                         `}>
                                             {/* Cabecera: Nombre del Culto */}
                                             <div className="w-full">
-                                                <p className={`text-[9px] md:text-[11px] font-black uppercase tracking-tight leading-tight mb-2 ${
-                                                    status === 'complete' ? 'text-emerald-900 dark:text-emerald-100' : 
+                                                <p className={`text-[9px] md:text-[11px] font-black uppercase tracking-tight leading-tight mb-2 ${status === 'complete' ? 'text-emerald-900 dark:text-emerald-100' :
                                                     event.es_laborable_festivo ? 'text-amber-900 dark:text-amber-100' : ''
-                                                }`}>
+                                                    }`}>
                                                     {event.tipo_culto?.nombre}
                                                 </p>
-                                                
+
                                                 <div className={`
                                                     mx-auto text-[7px] md:text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full inline-flex items-center gap-1 shadow-xs border
-                                                    ${status === 'complete' 
-                                                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' 
-                                                        : 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/20'}
+                                                    ${status === 'complete'
+                                                        ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
+                                                        : 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30'}
                                                 `}>
                                                     {status === 'complete' ? <CheckCircle size={8} className="md:w-[10px] md:h-[10px]" /> : <Clock size={8} className="md:w-[10px] md:h-[10px]" />}
                                                     <span>{status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}</span>
@@ -269,37 +284,51 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                             </div>
 
                                             {/* Sección de Asignaciones */}
-                                            {view !== 'day' && (event.usuario_intro || event.usuario_finalizacion) && (
-                                                <div className="w-full space-y-1 mt-2 pt-2 border-t border-black/5 dark:border-white/5">
-                                                    <div className="space-y-0.5">
-                                                        {event.usuario_intro && (
-                                                            <div className="text-[10px] font-bold px-1 leading-snug text-left">
-                                                                <span className="text-muted-foreground/70">Intro:</span> <span className="break-words">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
-                                                            </div>
-                                                        )}
-                                                        {event.usuario_finalizacion && (
-                                                            <div className="text-[10px] font-bold px-1 leading-snug text-left">
-                                                                <span className="text-muted-foreground/70">Final:</span> <span className="break-words">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
-                                                            </div>
-                                                        )}
+                                            {view !== 'day' && (
+                                                (showIntro && event.usuario_intro) ||
+                                                (showEnsenanza && event.usuario_ensenanza) ||
+                                                (showTestimonios && event.usuario_testimonios) ||
+                                                (showFinal && event.usuario_finalizacion)
+                                            ) && (
+                                                    <div className="w-full space-y-1 mt-2 pt-2 border-t border-black/5 dark:border-white/5">
+                                                        <div className="space-y-0.5">
+                                                            {showIntro && event.usuario_intro && (
+                                                                <div className="text-[10px] font-bold px-1 leading-snug text-left">
+                                                                    <span className="text-muted-foreground/70">I:</span> <span className="break-words">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
+                                                                </div>
+                                                            )}
+                                                            {showEnsenanza && event.usuario_ensenanza && (
+                                                                <div className="text-[10px] font-bold px-1 leading-snug text-left">
+                                                                    <span className="text-muted-foreground/70">E:</span> <span className="break-words">{event.usuario_ensenanza.nombre} {event.usuario_ensenanza.apellidos}</span>
+                                                                </div>
+                                                            )}
+                                                            {showTestimonios && event.usuario_testimonios && (
+                                                                <div className="text-[10px] font-bold px-1 leading-snug text-left">
+                                                                    <span className="text-muted-foreground/70">T:</span> <span className="break-words">{event.usuario_testimonios.nombre} {event.usuario_testimonios.apellidos}</span>
+                                                                </div>
+                                                            )}
+                                                            {showFinal && event.usuario_finalizacion && (
+                                                                <div className="text-[10px] font-bold px-1 leading-snug text-left">
+                                                                    <span className="text-muted-foreground/70">F:</span> <span className="break-words">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                )}
 
                                             {/* Pie: Hora y Festivo */}
                                             <div className="w-full space-y-2 mt-auto pt-2 border-t border-black/5 dark:border-white/5">
-                                                <div className={`flex items-center justify-center gap-1.5 text-[9px] md:text-[10px] font-bold ${
-                                                    status === 'complete' ? 'text-emerald-800/70 dark:text-emerald-200/70' :
-                                                    event.es_laborable_festivo ? 'text-amber-800/70 dark:text-amber-200/70' : 
-                                                    'text-muted-foreground'
-                                                }`}>
+                                                <div className={`flex items-center justify-center gap-1.5 text-[9px] md:text-[10px] font-bold ${status === 'complete' ? 'text-emerald-900/80 dark:text-emerald-200/80' :
+                                                    event.es_laborable_festivo ? 'text-amber-900/80 dark:text-amber-200/80' :
+                                                        'text-muted-foreground'
+                                                    }`}>
                                                     <Clock size={10} className="md:w-[12px] md:h-[12px] opacity-60" />
                                                     {event.hora_inicio.slice(0, 5)}
                                                 </div>
                                                 {event.es_laborable_festivo && (
-                                                    <div className="mx-auto flex items-center justify-center gap-1 text-amber-700 dark:text-amber-300 text-[8px] md:text-[9px] font-black uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/10">
+                                                    <div className="mx-auto flex items-center justify-center gap-1 text-amber-800 dark:text-amber-200 text-[8px] md:text-[9px] font-black uppercase tracking-widest bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-600/20">
                                                         <AlertCircle size={10} />
-                                                        <span>Festivo</span>
+                                                        <span>{t('calendar.festivoLabel')}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -351,9 +380,15 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                             .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
                             .map((event, idx) => {
                                 const status = getCultoStatus(event)
+                                // Sync Logic (Mobile)
+                                const config = event?.tipo_culto || {}
+                                const showIntro = config.tiene_lectura_introduccion !== false
+                                const showEnsenanza = !!config.tiene_ensenanza
+                                const showTestimonios = !!config.tiene_testimonios
+                                const showFinal = config.tiene_lectura_finalizacion !== false
                                 return (
                                     <Link href={`/dashboard/cultos/${event.id}`} key={event.id}>
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: idx * 0.05 }}
@@ -390,16 +425,26 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                     </div>
                                                 </div>
                                                 {/* Asignaciones en móvil */}
-                                                {(event.usuario_intro || event.usuario_finalizacion) && (
+                                                {((showIntro && event.usuario_intro) || (showEnsenanza && event.usuario_ensenanza) || (showTestimonios && event.usuario_testimonios) || (showFinal && event.usuario_finalizacion)) && (
                                                     <div className="space-y-1 pt-2 border-t border-white/10 dark:border-white/5">
-                                                        {event.usuario_intro && (
+                                                        {showIntro && event.usuario_intro && (
                                                             <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="text-muted-foreground/70">Intro:</span> <span className="break-words">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
+                                                                <span className="text-muted-foreground/70">I:</span> <span className="break-words">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
                                                             </div>
                                                         )}
-                                                        {event.usuario_finalizacion && (
+                                                        {showEnsenanza && event.usuario_ensenanza && (
                                                             <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="text-muted-foreground/70">Final:</span> <span className="break-words">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
+                                                                <span className="text-muted-foreground/70">E:</span> <span className="break-words">{event.usuario_ensenanza.nombre} {event.usuario_ensenanza.apellidos}</span>
+                                                            </div>
+                                                        )}
+                                                        {showTestimonios && event.usuario_testimonios && (
+                                                            <div className="text-[10px] font-bold leading-snug">
+                                                                <span className="text-muted-foreground/70">T:</span> <span className="break-words">{event.usuario_testimonios.nombre} {event.usuario_testimonios.apellidos}</span>
+                                                            </div>
+                                                        )}
+                                                        {showFinal && event.usuario_finalizacion && (
+                                                            <div className="text-[10px] font-bold leading-snug">
+                                                                <span className="text-muted-foreground/70">F:</span> <span className="break-words">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -421,13 +466,13 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                             if (view === 'day') return isSameDay(eventDate, currentDate)
                             return true
                         }).length === 0 && (
-                            <div className="text-center py-12 glass rounded-3xl border border-white/20">
-                                <CalendarIcon className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
-                                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                                    {t('calendar.noCultos')}
-                                </p>
-                            </div>
-                        )}
+                                <div className="text-center py-12 glass rounded-3xl border border-white/20">
+                                    <CalendarIcon className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+                                    <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                                        {t('calendar.noCultos')}
+                                    </p>
+                                </div>
+                            )}
                     </motion.div>
                 </AnimatePresence>
             </div>

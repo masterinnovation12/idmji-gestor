@@ -20,7 +20,7 @@ export default async function DashboardPage() {
 
     // Get today's culto
     const today = format(new Date(), 'yyyy-MM-dd')
-    const { data: cultosData, error: cultosError } = await supabase
+    const { data: cultosData } = await supabase
         .from('cultos')
         .select(`
       *,
