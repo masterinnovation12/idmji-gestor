@@ -287,6 +287,21 @@ export const translations = {
         'audit.type.hymn': 'Himno',
         'audit.type.chorus': 'Coro',
         'audit.type.culto': 'Culto',
+
+        // PWA Install Prompt
+        'pwa.installTitle': 'Instalar Aplicación',
+        'pwa.installDesc': 'Instala la app para un acceso más rápido y offline',
+        'pwa.later': 'Más tarde',
+        'pwa.install': 'Instalar',
+        'pwa.iosTitle': 'Instalar en iOS',
+        'pwa.iosStep1': 'Pulsa el botón',
+        'pwa.share': 'Compartir',
+        'pwa.inSafari': 'en la barra de navegación',
+        'pwa.iosStep2': 'Selecciona',
+        'pwa.addToHome': 'Añadir a Inicio',
+        'pwa.iosStep3': 'Pulsa',
+        'pwa.add': 'Añadir',
+        'pwa.understood': 'Entendido',
     },
     'ca-ES': {
         // Login
@@ -577,6 +592,21 @@ export const translations = {
         'audit.type.hymn': 'Himne',
         'audit.type.chorus': 'Coro',
         'audit.type.culto': 'Culte',
+
+        // PWA Install Prompt
+        'pwa.installTitle': 'Instal·lar Aplicació',
+        'pwa.installDesc': 'Instal·la l\'app per a un accés més ràpid i offline',
+        'pwa.later': 'Més tard',
+        'pwa.install': 'Instal·lar',
+        'pwa.iosTitle': 'Instal·lar en iOS',
+        'pwa.iosStep1': 'Prem el botó',
+        'pwa.share': 'Compartir',
+        'pwa.inSafari': 'a la barra de navegació',
+        'pwa.iosStep2': 'Selecciona',
+        'pwa.addToHome': 'Afegir a l\'Inici',
+        'pwa.iosStep3': 'Prem',
+        'pwa.add': 'Afegir',
+        'pwa.understood': 'Entès',
     },
 } as const
 
