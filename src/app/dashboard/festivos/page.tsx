@@ -22,8 +22,8 @@ export default async function FestivosPage() {
         redirect('/dashboard')
     }
 
-    const currentYear = new Date().getFullYear()
-    const { data: festivos } = await getFestivos(currentYear)
+    // Fetch all holidays to avoid missing future ones
+    const { data: festivos } = await getFestivos()
 
     return <FestivosPageClient initialFestivos={festivos || []} />
 }

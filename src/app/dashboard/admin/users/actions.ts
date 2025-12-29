@@ -80,11 +80,11 @@ export async function getRoles(): Promise<ActionResponse<string[]>> {
 
         if (error) throw error
 
-        const distinct = Array.from(new Set((data || []).map((r: any) => r.rol).filter(Boolean)))
+        const distinct = Array.from(new Set((data || []).map((r: { rol: string }) => r.rol).filter(Boolean)))
         const roles = distinct.length > 0 ? distinct : [...FALLBACK_ROLES]
 
         return { success: true, data: roles }
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error fetching roles:', error)
         return { success: false, error: 'Error al cargar roles' }
     }
@@ -157,9 +157,9 @@ export async function getUsers(): Promise<ActionResponse<UserData[]>> {
         })
 
         return { success: true, data: enrichedUsers }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching users:', error)
-        const errorMessage = error?.message || 'Error al cargar usuarios'
+        const errorMessage = error instanceof Error ? error.message : 'Error al cargar usuarios'
         return { success: false, error: errorMessage }
     }
 }
@@ -310,9 +310,10 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
         revalidatePath('/dashboard/admin/users')
         revalidatePath('/dashboard/hermanos')
         return { success: true }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error creating user:', error)
-        return { success: false, error: error.message || 'Error al crear usuario' }
+        const errorMessage = error instanceof Error ? error.message : 'Error al crear usuario'
+        return { success: false, error: errorMessage }
     }
 }
 
@@ -392,9 +393,10 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
         revalidatePath('/dashboard/admin/users')
         revalidatePath('/dashboard/hermanos')
         return { success: true }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error updating user:', error)
-        return { success: false, error: error.message || 'Error al actualizar usuario' }
+        const errorMessage = error instanceof Error ? error.message : 'Error al actualizar usuario'
+        return { success: false, error: errorMessage }
     }
 }
 
@@ -541,9 +543,9 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
         revalidatePath('/dashboard/admin/users')
         revalidatePath('/dashboard/hermanos')
         return { success: true }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error in deleteUser action:', error)
-        const errorMessage = error?.message || 'Error desconocido al eliminar usuario'
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido al eliminar usuario'
         return { success: false, error: errorMessage }
     }
 }

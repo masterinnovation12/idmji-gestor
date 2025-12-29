@@ -2,12 +2,16 @@
   "name": "IDMJI Sabadell",
   "short_name": "IDMJI",
   "description": "Gestión de cultos y púlpito para IDMJI Sabadell",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#1e293b",
+  "background_color": "#0f172a",
+  "theme_color": "#0660c6",
+  "categories": [
+    "lifestyle",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -28,6 +32,25 @@
       "purpose": "maskable"
     }
   ],
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Panel de control de IDMJI Sabadell"
+    },
+    {
+      "src": "/screenshots/screenshot-narrow.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Vista móvil del calendario de cultos"
+    }
+  ],
   "id": "idmji-sabadell-pwa",
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }

@@ -392,20 +392,41 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: idx * 0.05 }}
-                                            className="glass rounded-[2rem] p-5 flex items-start gap-4 border border-white/20 active:scale-[0.98] transition-all shadow-xl shadow-black/5 min-h-[140px]"
+                                            className={`
+                                                glass rounded-[2rem] p-5 flex items-start gap-4 border active:scale-[0.98] transition-all shadow-xl shadow-black/5 min-h-[140px]
+                                                ${status === 'complete'
+                                                    ? (isDark ? 'bg-emerald-900/30 border-emerald-500/40' : 'bg-emerald-50 border-emerald-200 shadow-emerald-500/10')
+                                                    : event.es_laborable_festivo
+                                                        ? (isDark ? 'bg-amber-900/30 border-amber-500/40' : 'bg-amber-50 border-amber-200 shadow-amber-500/10')
+                                                        : 'border-white/20'
+                                                }
+                                            `}
                                         >
-                                            <div className="flex flex-col items-center justify-center bg-primary/10 rounded-2xl w-14 h-14 shrink-0 border border-primary/20">
-                                                <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter leading-none mb-0.5">
+                                            <div className={`flex flex-col items-center justify-center rounded-2xl w-14 h-14 shrink-0 border ${status === 'complete'
+                                                ? 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30'
+                                                : event.es_laborable_festivo
+                                                    ? 'bg-amber-500/20 text-amber-600 border-amber-500/30'
+                                                    : 'bg-primary/10 text-primary border-primary/20'
+                                                }`}>
+                                                <span className={`text-[9px] font-black uppercase tracking-tighter leading-none mb-0.5 ${status === 'complete' ? 'text-emerald-700 dark:text-emerald-400' :
+                                                    event.es_laborable_festivo ? 'text-amber-700 dark:text-amber-400' :
+                                                        'text-primary/60'
+                                                    }`}>
                                                     {format(new Date(event.fecha), 'MMM', { locale })}
                                                 </span>
-                                                <span className="text-xl font-black text-primary tracking-tighter leading-none">
+                                                <span className={`text-xl font-black tracking-tighter leading-none ${status === 'complete' ? 'text-emerald-700 dark:text-emerald-400' :
+                                                    event.es_laborable_festivo ? 'text-amber-700 dark:text-amber-400' :
+                                                        'text-primary'
+                                                    }`}>
                                                     {format(new Date(event.fecha), 'd')}
                                                 </span>
                                             </div>
 
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-2 mb-2">
-                                                    <h3 className="font-black text-sm uppercase tracking-tight leading-tight break-words flex-1">
+                                                    <h3 className={`font-black text-sm uppercase tracking-tight leading-tight break-words flex-1 ${status === 'complete' ? 'text-emerald-900 dark:text-emerald-50' :
+                                                        event.es_laborable_festivo ? 'text-amber-900 dark:text-amber-50' : ''
+                                                        }`}>
                                                         {event.tipo_culto?.nombre}
                                                     </h3>
                                                     <div
@@ -414,37 +435,50 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                     />
                                                 </div>
                                                 <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mb-2">
-                                                    <p className="text-[10px] text-muted-foreground font-bold flex items-center gap-1">
-                                                        <Clock size={12} className="text-primary/60" />
-                                                        {event.hora_inicio.slice(0, 5)}
-                                                        {event.es_laborable_festivo && <AlertCircle size={12} className="text-amber-500" />}
+                                                    <p className={`text-[10px] font-bold flex items-center gap-1 ${status === 'complete' ? 'text-emerald-700 dark:text-emerald-300' :
+                                                        event.es_laborable_festivo ? 'text-amber-700 dark:text-amber-300' :
+                                                            'text-muted-foreground'
+                                                        }`}>
+                                                        <div className="flex items-center gap-1">
+                                                            <Clock size={12} className="opacity-60" />
+                                                            {event.hora_inicio.slice(0, 5)}
+                                                        </div>
+                                                        {event.es_laborable_festivo && (
+                                                            <div className="flex items-center gap-1 bg-amber-500/10 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                                                <AlertCircle size={10} />
+                                                                <span>{t('calendar.festivoLabel')}</span>
+                                                            </div>
+                                                        )}
                                                     </p>
-                                                    <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ${status === 'complete' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                    <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ${status === 'complete' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                                                         {status === 'complete' ? <CheckCircle size={10} /> : <Clock size={10} />}
                                                         {status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}
                                                     </div>
                                                 </div>
                                                 {/* Asignaciones en móvil */}
                                                 {((showIntro && event.usuario_intro) || (showEnsenanza && event.usuario_ensenanza) || (showTestimonios && event.usuario_testimonios) || (showFinal && event.usuario_finalizacion)) && (
-                                                    <div className="space-y-1 pt-2 border-t border-white/10 dark:border-white/5">
+                                                    <div className={`space-y-1 pt-2 border-t ${status === 'complete' ? 'border-emerald-500/10' :
+                                                        event.es_laborable_festivo ? 'border-amber-500/10' :
+                                                            'border-white/10 dark:border-white/5'
+                                                        }`}>
                                                         {showIntro && event.usuario_intro && (
                                                             <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="text-muted-foreground/70">I:</span> <span className="break-words">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
+                                                                <span className="opacity-70">I:</span> <span className="break-words">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
                                                             </div>
                                                         )}
                                                         {showEnsenanza && event.usuario_ensenanza && (
                                                             <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="text-muted-foreground/70">E:</span> <span className="break-words">{event.usuario_ensenanza.nombre} {event.usuario_ensenanza.apellidos}</span>
+                                                                <span className="opacity-70">E:</span> <span className="break-words">{event.usuario_ensenanza.nombre} {event.usuario_ensenanza.apellidos}</span>
                                                             </div>
                                                         )}
                                                         {showTestimonios && event.usuario_testimonios && (
                                                             <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="text-muted-foreground/70">T:</span> <span className="break-words">{event.usuario_testimonios.nombre} {event.usuario_testimonios.apellidos}</span>
+                                                                <span className="opacity-70">T:</span> <span className="break-words">{event.usuario_testimonios.nombre} {event.usuario_testimonios.apellidos}</span>
                                                             </div>
                                                         )}
                                                         {showFinal && event.usuario_finalizacion && (
                                                             <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="text-muted-foreground/70">F:</span> <span className="break-words">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
+                                                                <span className="opacity-70">F:</span> <span className="break-words">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
                                                             </div>
                                                         )}
                                                     </div>

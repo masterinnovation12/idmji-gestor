@@ -19,7 +19,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion'
 import {
     LayoutDashboard,
     Calendar,
@@ -80,27 +80,65 @@ export default function DashboardLayout({
         }
     }, [pathname])
 
-    // Fetch user profile on mount
+    // Fetch user profile on mount & Subscribe to Realtime changes
     useEffect(() => {
-        async function fetchUserProfile() {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('nombre, apellidos, avatar_url, rol')
-                    .eq('id', user.id)
-                    .single()
+        let channel: ReturnType<typeof supabase.channel> | null = null
 
-                setUserProfile({
-                    nombre: profile?.nombre || null,
-                    apellidos: profile?.apellidos || null,
-                    avatar_url: profile?.avatar_url || null,
-                    email: user.email || null,
-                    rol: profile?.rol || null
-                })
+        async function fetchAndSubscribe() {
+            const { data: { user } } = await supabase.auth.getUser()
+
+            if (user) {
+                // 1. Initial Fetch
+                const fetchProfile = async () => {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('nombre, apellidos, avatar_url, rol')
+                        .eq('id', user.id)
+                        .single()
+
+                    if (profile) {
+                        setUserProfile({
+                            nombre: profile.nombre || null,
+                            apellidos: profile.apellidos || null,
+                            avatar_url: profile.avatar_url || null,
+                            email: user.email || null,
+                            rol: profile.rol || null
+                        })
+                    }
+                }
+
+                await fetchProfile()
+
+                // 2. Realtime Subscription
+                channel = supabase
+                    .channel('profile-changes')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'profiles',
+                            filter: `id=eq.${user.id}`
+                        },
+                        (payload) => {
+                            console.log('Profile updated realtime:', payload)
+                            setUserProfile(prev => ({
+                                ...prev,
+                                ...payload.new as { nombre?: string, apellidos?: string, avatar_url?: string, rol?: string },
+                                // Mantener el email ya que no viene en la tabla profiles
+                                email: prev?.email || user.email || null
+                            }))
+                        }
+                    )
+                    .subscribe()
             }
         }
-        fetchUserProfile()
+
+        fetchAndSubscribe()
+
+        return () => {
+            if (channel) supabase.removeChannel(channel)
+        }
     }, [supabase])
 
     // Configuración dinámica de items del sidebar con i18n
@@ -147,59 +185,39 @@ export default function DashboardLayout({
         }
     }, [isMobileMenuOpen])
 
-    // Gestos táctiles para abrir/cerrar sidebar móvil
-    const [touchStartX, setTouchStartX] = useState<number | null>(null)
-    const [touchCurrentX, setTouchCurrentX] = useState<number | null>(null)
-    const [isSwiping, setIsSwiping] = useState(false)
+    // Gestos con Framer Motion (Pan) para rendimiento de 60fps
+    const x = useMotionValue(-300)
+    const opacity = useTransform(x, [-300, 0], [0, 1])
 
-    const minSwipeDistance = 50
-    const edgeThreshold = 30 // Umbral para detectar swipe desde el borde izquierdo
+    // Sincronizar estado visual con reactivo
+    useEffect(() => {
+        if (isMobileMenuOpen) {
+            animate(x, 0, { type: 'spring', damping: 25, stiffness: 200 })
+        } else {
+            animate(x, -300, { type: 'spring', damping: 25, stiffness: 200 })
+        }
+    }, [isMobileMenuOpen, x])
 
-    const handleTouchStart = (e: React.TouchEvent) => {
-        const clientX = e.targetTouches[0].clientX
-        setTouchStartX(clientX)
-        setTouchCurrentX(clientX)
-        
-        // Si tocamos cerca del borde izquierdo y el menú está cerrado, activamos el modo swiping
-        if (clientX < edgeThreshold && !isMobileMenuOpen) {
-            setIsSwiping(true)
-        } else if (isMobileMenuOpen) {
-            // Si el menú ya está abierto, permitimos el swiping para cerrarlo
-            setIsSwiping(true)
+    const handlePanEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+        const threshold = 100
+        const velocityThreshold = 500
+
+        if (isMobileMenuOpen) {
+            // Cerrando
+            if (info.offset.x < -threshold || info.velocity.x < -velocityThreshold) {
+                setIsMobileMenuOpen(false)
+            } else {
+                animate(x, 0) // Rebotar a abierto
+            }
+        } else {
+            // Abriendo
+            if (info.offset.x > threshold || info.velocity.x > velocityThreshold) {
+                setIsMobileMenuOpen(true)
+            } else {
+                animate(x, -300) // Rebotar a cerrado
+            }
         }
     }
-
-    const handleTouchMove = (e: React.TouchEvent) => {
-        setTouchCurrentX(e.targetTouches[0].clientX)
-    }
-
-    const handleTouchEnd = () => {
-        if (!touchStartX || !touchCurrentX) {
-            setIsSwiping(false)
-            return
-        }
-
-        const distanceX = touchCurrentX - touchStartX
-        
-        // Lógica para abrir (swipe de izquierda a derecha)
-        if (!isMobileMenuOpen && distanceX > minSwipeDistance && touchStartX < edgeThreshold) {
-            setIsMobileMenuOpen(true)
-        }
-        
-        // Lógica para cerrar (swipe de derecha a izquierda)
-        if (isMobileMenuOpen && distanceX < -minSwipeDistance) {
-            setIsMobileMenuOpen(false)
-        }
-
-        setIsSwiping(false)
-        setTouchStartX(null)
-        setTouchCurrentX(null)
-    }
-
-    // Calcular el desplazamiento dinámico para el efecto elegante
-    const dragOffset = isSwiping && touchStartX !== null && touchCurrentX !== null
-        ? Math.max(-300, Math.min(0, (isMobileMenuOpen ? 0 : -300) + (touchCurrentX - touchStartX)))
-        : isMobileMenuOpen ? 0 : -300
 
     /**
      * Maneja el cierre de sesión de forma segura
@@ -211,14 +229,32 @@ export default function DashboardLayout({
     }
 
     return (
-        <div 
-            className="min-h-screen bg-background selection:bg-primary/20 selection:text-primary overflow-x-hidden no-scrollbar"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-        >
-            {/* Area de detección de gestos en el borde izquierdo (Trigger Zone) */}
-            <div className="fixed left-0 top-0 w-6 h-full z-[120] md:hidden pointer-events-none" />
+        <div className="min-h-screen bg-background selection:bg-primary/20 selection:text-primary overflow-x-hidden no-scrollbar">
+
+            {/* Gesture Trigger Zone (Left Edge) */}
+            {/* Usamos touch-action: pan-y para bloquear el gesto nativo horizontal (back/forward) del navegador */}
+            {!isMobileMenuOpen && (
+                <motion.div
+                    className="fixed left-0 top-0 w-8 h-full z-[130] md:hidden cursor-grab touch-pan-y"
+                    style={{ x: 0 }}
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 300 }}
+                    dragElastic={0.1}
+                    onDrag={(e, info) => {
+                        // Solo mover si vamos hacia la derecha
+                        if (info.offset.x > 0) x.set(-300 + info.offset.x)
+                    }}
+                    onDragEnd={(e, info) => {
+                        // Si arrastramos suficiente, abrir
+                        if (info.offset.x > 100 || info.velocity.x > 500) {
+                            setIsMobileMenuOpen(true)
+                        } else {
+                            // Si no, resetear
+                            animate(x, -300)
+                        }
+                    }}
+                />
+            )}
 
             {/* Mesh Gradient Background */}
             <div className="fixed inset-0 overflow-hidden -z-10 pointer-events-none">
@@ -228,43 +264,41 @@ export default function DashboardLayout({
 
             {/* Mobile Overlay */}
             <AnimatePresence>
-                {(isMobileMenuOpen || (isSwiping && touchStartX !== null && touchStartX < edgeThreshold)) && (
+                {isMobileMenuOpen && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        style={{ opacity }}
                         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100 md:hidden"
                         onClick={() => setIsMobileMenuOpen(false)}
                     />
                 )}
             </AnimatePresence>
 
-            {/* Sidebars (Mobile & Desktop) */}
-            <AnimatePresence>
-                {(isMobileMenuOpen || isSwiping) && (
-                    <motion.aside
-                        initial={{ x: -300 }}
-                        animate={{ x: dragOffset }}
-                        exit={{ x: -300 }}
-                        transition={isSwiping ? { type: 'tween', duration: 0.1 } : { type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed left-0 top-0 h-full w-[300px] z-110 flex flex-col md:hidden shadow-2xl"
-                    >
-                        <SidebarContent
-                            isSidebarCollapsed={isSidebarCollapsed}
-                            setIsSidebarCollapsed={setIsSidebarCollapsed}
-                            sidebarItems={sidebarItems}
-                            pathname={pathname}
-                            handleSignOut={handleSignOut}
-                            t={t}
-                            language={language}
-                            setLanguage={setLanguage}
-                            isDark={isDark}
-                            toggleTheme={toggleTheme}
-                            userProfile={userProfile}
-                        />
-                    </motion.aside>
-                )}
-            </AnimatePresence>
+            {/* Sidebars (Mobile) */}
+            <motion.aside
+                style={{ x }}
+                className="fixed left-0 top-0 h-full w-[300px] z-110 flex flex-col md:hidden shadow-2xl"
+                drag="x"
+                dragConstraints={{ left: -300, right: 0 }}
+                dragElastic={0.1}
+                onDragEnd={handlePanEnd}
+            >
+                <SidebarContent
+                    isSidebarCollapsed={isSidebarCollapsed}
+                    setIsSidebarCollapsed={setIsSidebarCollapsed}
+                    sidebarItems={sidebarItems}
+                    pathname={pathname}
+                    handleSignOut={handleSignOut}
+                    t={t}
+                    language={language}
+                    setLanguage={setLanguage}
+                    isDark={isDark}
+                    toggleTheme={toggleTheme}
+                    userProfile={userProfile}
+                />
+            </motion.aside>
 
             <motion.aside
                 initial={false}

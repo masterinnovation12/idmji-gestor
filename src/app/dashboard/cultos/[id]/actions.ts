@@ -97,11 +97,16 @@ export async function updateAssignment(
 export async function toggleFestivo(cultoId: string, currentStatus: boolean, currentHora: string) {
     const supabase = await createClient()
 
+    // 1. Obtener la fecha del culto
+    const { data: culto } = await supabase.from('cultos').select('fecha').eq('id', cultoId).single()
+    if (!culto) return { error: 'Culto no encontrado' }
+
     // Calcular nueva hora: -1h si pasa a festivo, +1h si vuelve a normal
     const [h, m] = currentHora.split(':').map(Number)
     const newH = currentStatus ? (h + 1) % 24 : (h - 1 + 24) % 24
     const newHora = `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 
+    // 2. Actualizar el Culto
     const { error } = await supabase
         .from('cultos')
         .update({
@@ -112,6 +117,30 @@ export async function toggleFestivo(cultoId: string, currentStatus: boolean, cur
 
     if (error) {
         return { error: error.message }
+    }
+
+    // 3. Sincronizar con tabla 'festivos'
+    if (!currentStatus) {
+        // Se está MARCANDO como festivo -> Crear entrada en festivos si no existe
+        const { count } = await supabase
+            .from('festivos')
+            .select('*', { count: 'exact', head: true })
+            .eq('fecha', culto.fecha)
+
+        if (count === 0) {
+            await supabase.from('festivos').insert({
+                fecha: culto.fecha,
+                tipo: 'laborable_festivo',
+                descripcion: 'Festivo Laborable (Manual desde Culto)',
+            })
+        }
+    } else {
+        // Se está DESMARCANDO -> Borrar entrada en festivos (solo si es del tipo manual o general)
+        // Eliminamos cualquiera que coincida con la fecha para mantener consistencia simple
+        await supabase
+            .from('festivos')
+            .delete()
+            .eq('fecha', culto.fecha)
     }
 
     // Registrar en movimientos
@@ -127,6 +156,7 @@ export async function toggleFestivo(cultoId: string, currentStatus: boolean, cur
 
     revalidatePath(`/dashboard/cultos/${cultoId}`)
     revalidatePath('/dashboard/cultos')
+    revalidatePath('/dashboard/festivos')
     return { success: true }
 }
 
@@ -179,4 +209,41 @@ export async function getCultoDetails(cultoId: string) {
     }
 
     return { data }
+}
+
+/**
+ * Actualizar protocolo del estudio bíblico (metadata)
+ */
+export async function updateCultoProtocol(
+    cultoId: string,
+    protocol: { oracion_inicio: boolean; congregacion_pie: boolean }
+) {
+    const supabase = await createClient()
+
+    // 1. Obtener metadata actual para no sobrescribir otros campos
+    const { data: culto } = await supabase
+        .from('cultos')
+        .select('meta_data')
+        .eq('id', cultoId)
+        .single()
+
+    const currentMeta = (culto?.meta_data as any) || {}
+
+    // 2. Mezclar con nuevo protocolo
+    const newMeta = {
+        ...currentMeta,
+        protocolo: protocol
+    }
+
+    const { error } = await supabase
+        .from('cultos')
+        .update({ meta_data: newMeta })
+        .eq('id', cultoId)
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    revalidatePath(`/dashboard/cultos/${cultoId}`)
+    return { success: true }
 }

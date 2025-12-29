@@ -17,7 +17,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useTransform, useDragControls } from 'framer-motion'
 import { getHimnos, getCoros } from './actions'
 import { Music, Search, Clock, ChevronLeft, Sparkles, AudioLines, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -40,10 +40,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
     const [searchTerm, setSearchTerm] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [isCalcModalOpen, setIsCalcModalOpen] = useState(false)
-    const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null)
-    const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null)
-    const [dragY, setDragY] = useState(0)
-    const [isDragging, setIsDragging] = useState(false)
+
 
     // Efecto para recarga de datos con debounce
     useEffect(() => {
@@ -85,79 +82,6 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
             return () => {
                 document.body.style.overflow = originalOverflow
             }
-        }
-    }, [isCalcModalOpen])
-
-    // Gestos táctiles mejorados para cerrar modal (swipe down con arrastre visual)
-    const minSwipeDistance = 80 // Aumentado para mejor control
-    const closeThreshold = 150 // Distancia para cerrar automáticamente
-
-    const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
-        if ('touches' in e) {
-            setTouchStart({
-                x: e.touches[0].clientX,
-                y: e.touches[0].clientY
-            })
-        } else {
-            setTouchStart({
-                x: e.clientX,
-                y: e.clientY
-            })
-        }
-        setIsDragging(true)
-        setDragY(0)
-    }
-
-    const handleDragMove = (e: React.TouchEvent | React.MouseEvent) => {
-        if (!touchStart) return
-
-        let currentY: number
-        if ('touches' in e) {
-            currentY = e.touches[0].clientY
-        } else {
-            currentY = e.clientY
-        }
-
-        const deltaY = currentY - touchStart.y
-
-        // Solo permitir arrastre hacia abajo
-        if (deltaY > 0) {
-            setDragY(deltaY)
-            setTouchEnd({
-                x: touchStart.x,
-                y: currentY
-            })
-        }
-    }
-
-    const handleDragEnd = () => {
-        if (!touchStart || !touchEnd) {
-            setIsDragging(false)
-            setDragY(0)
-            return
-        }
-
-        const distanceY = touchEnd.y - touchStart.y
-
-        // Cerrar si se arrastra más del umbral o más del mínimo
-        if (distanceY > closeThreshold || (distanceY > minSwipeDistance && isDragging)) {
-            setIsCalcModalOpen(false)
-        }
-
-        // Resetear estados
-        setIsDragging(false)
-        setDragY(0)
-        setTouchStart(null)
-        setTouchEnd(null)
-    }
-
-    // Resetear drag cuando el modal se cierra
-    useEffect(() => {
-        if (!isCalcModalOpen) {
-            setIsDragging(false)
-            setDragY(0)
-            setTouchStart(null)
-            setTouchEnd(null)
         }
     }, [isCalcModalOpen])
 
@@ -234,7 +158,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 ].map((tab) => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
+                        onClick={() => setActiveTab(tab.id as 'himnos' | 'coros')}
                         className={`flex items-center gap-3 px-6 py-3 rounded-xl font-black transition-all ${activeTab === tab.id
                             ? 'bg-blue-600 text-white shadow-lg'
                             : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
@@ -420,101 +344,81 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                             className="absolute inset-0 bg-black/70 backdrop-blur-md"
                             onClick={() => setIsCalcModalOpen(false)}
                         />
-                        <motion.div
-                            initial={{ y: '100%' }}
-                            animate={{ 
-                                y: isDragging ? dragY : 0,
-                                opacity: isDragging ? 1 - (dragY / 400) : 1
-                            }}
-                            exit={{ y: '100%' }}
-                            transition={{ 
-                                type: isDragging ? 'tween' : 'spring', 
-                                damping: 25, 
-                                stiffness: 200,
-                                duration: isDragging ? 0 : undefined
-                            }}
-                            style={{ 
-                                transform: isDragging ? `translateY(${dragY}px)` : undefined 
-                            }}
-                            className="relative bg-white dark:bg-zinc-900 w-full sm:max-w-xl h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-[2rem] sm:rounded-[2rem] p-5 sm:p-8 shadow-2xl overflow-hidden border border-gray-200 dark:border-zinc-700"
-                            onTouchStart={handleDragStart}
-                            onTouchMove={handleDragMove}
-                            onTouchEnd={handleDragEnd}
-                            onMouseDown={handleDragStart}
-                            onMouseMove={handleDragMove}
-                            onMouseUp={handleDragEnd}
+                        <CalculatorModal
+                            onClose={() => setIsCalcModalOpen(false)}
                         >
-                            {/* Área de arrastre mejorada - toda la parte superior es arrastrable */}
-                            <div 
-                                className="relative sm:hidden"
-                                onTouchStart={handleDragStart}
-                                onTouchMove={handleDragMove}
-                                onTouchEnd={handleDragEnd}
-                                onMouseDown={handleDragStart}
-                                onMouseMove={handleDragMove}
-                                onMouseUp={handleDragEnd}
-                            >
-                                {/* Drag handle mejorado con feedback visual */}
-                                <div 
-                                    className={`mx-auto mb-4 transition-all duration-200 ${
-                                        isDragging ? 'scale-110' : 'scale-100'
-                                    }`}
-                                >
-                                    <div 
-                                        className={`w-12 h-1.5 rounded-full mx-auto cursor-grab active:cursor-grabbing transition-all duration-200 ${
-                                            isDragging 
-                                                ? dragY > closeThreshold 
-                                                    ? 'bg-red-500 w-16 shadow-lg shadow-red-500/50' 
-                                                    : 'bg-blue-500 w-14 shadow-lg shadow-blue-500/50'
-                                                : 'bg-gray-300 dark:bg-zinc-600'
-                                        }`}
-                                    />
-                                </div>
-                                
-                                {/* Indicador visual de arrastre */}
-                                {isDragging && dragY > 20 && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="absolute -top-10 left-1/2 transform -translate-x-1/2 text-xs font-black text-center whitespace-nowrap z-10"
-                                    >
-                                        {dragY > closeThreshold ? (
-                                            <span className="text-red-500 bg-white dark:bg-zinc-900 px-3 py-1 rounded-full shadow-lg">
-                                                Suelta para cerrar
-                                            </span>
-                                        ) : (
-                                            <span className="text-blue-500 bg-white dark:bg-zinc-900 px-3 py-1 rounded-full shadow-lg">
-                                                Sigue arrastrando...
-                                            </span>
-                                        )}
-                                    </motion.div>
-                                )}
-                            </div>
-
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="space-y-1">
-                                    <h2 className="text-xl sm:text-2xl font-black tracking-tighter text-gray-900 dark:text-white uppercase italic">Calculadora</h2>
-                                    <p className="text-[10px] text-gray-500 dark:text-zinc-400 font-black uppercase tracking-widest">Gestión de tiempos</p>
-                                </div>
-                                <button
-                                    onClick={() => setIsCalcModalOpen(false)}
-                                    className="p-2.5 bg-gray-100 dark:bg-zinc-800 rounded-xl text-gray-600 dark:text-zinc-400 hover:bg-red-500 hover:text-white transition-all"
-                                >
-                                    <Plus className="w-5 h-5 rotate-45" />
-                                </button>
-                            </div>
-
                             <div className="overflow-y-auto max-h-[calc(90vh-140px)] sm:max-h-[60vh] no-scrollbar pb-6">
                                 <HimnoCoroSelector
                                     maxHimnos={10}
                                     maxCoros={10}
                                 />
                             </div>
-                        </motion.div>
+                        </CalculatorModal>
                     </div>
                 )}
             </AnimatePresence>
         </div>
+    )
+}
+
+function CalculatorModal({ children, onClose }: { children: React.ReactNode, onClose: () => void }) {
+    const controls = useDragControls()
+    const { t } = useI18n()
+    const y = useMotionValue(0)
+    const opacity = useTransform(y, [0, 200], [1, 0.5])
+    const scale = useTransform(y, [0, 400], [1, 0.95])
+
+    return (
+        <motion.div
+            drag="y"
+            dragControls={controls}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0.1, bottom: 0.8 }}
+            onDragEnd={(e, info) => {
+                if (info.offset.y > 150 || info.velocity.y > 200) {
+                    onClose()
+                }
+            }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            style={{ y, opacity, scale }}
+            className="relative bg-white dark:bg-zinc-900 w-full sm:max-w-xl h-[90vh] sm:h-auto sm:max-h-[85vh] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl overflow-hidden border border-gray-200 dark:border-zinc-700 flex flex-col"
+        >
+            {/* Draggable Header Area */}
+            <div
+                className="pt-5 px-5 sm:px-8 touch-none flex-shrink-0 bg-white dark:bg-zinc-900 z-10"
+                onPointerDown={(e) => controls.start(e)}
+            >
+                {/* Visual Drag Handle */}
+                <div className="mx-auto mb-4 w-full flex justify-center py-2 -mt-2">
+                    <div className="w-12 h-1.5 rounded-full bg-gray-300 dark:bg-zinc-600" />
+                </div>
+
+                <div className="flex items-center justify-between mb-2">
+                    <div className="space-y-1 select-none">
+                        <h2 className="text-xl sm:text-2xl font-black tracking-tighter text-gray-900 dark:text-white uppercase italic">Calculadora</h2>
+                        <p className="text-[10px] text-gray-500 dark:text-zinc-400 font-black uppercase tracking-widest">Gestión de tiempos</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2.5 bg-gray-100 dark:bg-zinc-800 rounded-xl text-gray-600 dark:text-zinc-400 hover:bg-red-500 hover:text-white transition-all"
+                    >
+                        <Plus className="w-5 h-5 rotate-45" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-hidden px-5 sm:px-8 relative">
+                {children}
+            </div>
+
+            {/* Gradient Overlay at bottom for polish */}
+            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-zinc-900 to-transparent pointer-events-none" />
+        </motion.div>
     )
 }
 

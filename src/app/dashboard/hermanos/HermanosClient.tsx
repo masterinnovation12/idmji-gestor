@@ -225,7 +225,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                         {['ALL', 'ADMIN', 'EDITOR'].map((role) => (
                             <button
                                 key={role}
-                                onClick={() => setFilterRole(role as any)}
+                                onClick={() => setFilterRole(role as 'ALL' | 'ADMIN' | 'EDITOR')}
                                 className={cn(
                                     "px-5 py-3 sm:px-4 sm:py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 whitespace-nowrap min-w-[80px] sm:min-w-0 flex items-center justify-center",
                                     filterRole === role

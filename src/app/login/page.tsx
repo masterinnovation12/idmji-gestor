@@ -7,17 +7,17 @@
  * - Toggle modo oscuro
  * - Visibilidad de contraseña
  * - Recordar credenciales (localStorage)
- * - Logo y textos configurables desde Supabase
- * - Diseño glassmorphism con animaciones
+ * - Diseño compacto mobile-first (sin scroll)
+ * - Animación de éxito al iniciar sesión
  */
 
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { Eye, EyeOff, Globe, Moon, Sun, ChevronRight, LogIn } from 'lucide-react'
-import { login, getPublicConfig } from './actions'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Eye, EyeOff, Globe, Moon, Sun, LogIn, CheckCircle, Sparkles } from 'lucide-react'
+import { login } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import Image from 'next/image'
@@ -28,32 +28,13 @@ export default function LoginPage() {
     const { isDark, toggleTheme } = useTheme()
 
     // Estados del formulario
-    const [config, setConfig] = useState({
-        title: 'IDMJI Gestor de Púlpito',
-        subtitle: 'Iglesia de Dios Ministerial de Jesucristo Internacional',
-        location: 'Sabadell, España',
-        colorClass: 'from-primary to-accent'
-    })
-
-    useEffect(() => {
-        getPublicConfig().then(data => {
-            if (data) {
-                setConfig({
-                    title: data.app_name || 'IDMJI Gestor de Púlpito',
-                    subtitle: data.church_name || 'Iglesia de Dios Ministerial de Jesucristo Internacional',
-                    location: data.church_location || 'Sabadell, España',
-                    colorClass: data.login_title_color || 'from-primary to-accent'
-                })
-            }
-        })
-    }, [])
-
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [rememberMe, setRememberMe] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState('')
+    const [loginSuccess, setLoginSuccess] = useState(false)
 
     // Cargar credenciales guardadas al montar
     useEffect(() => {
@@ -83,6 +64,7 @@ export default function LoginPage() {
 
             if (result?.error) {
                 setError(result.error)
+                setIsLoading(false)
             } else if (result?.success) {
                 // Guardar credenciales si "recordar" está activo
                 if (rememberMe) {
@@ -95,114 +77,154 @@ export default function LoginPage() {
                     localStorage.removeItem('idmji_remember')
                 }
 
-                router.push('/dashboard')
-                router.refresh()
+                // Mostrar animación de éxito
+                setLoginSuccess(true)
+
+                // Redirigir después de la animación
+                setTimeout(() => {
+                    router.push('/dashboard')
+                    router.refresh()
+                }, 1500)
             }
         } catch (err) {
             setError('Error al iniciar sesión')
-        } finally {
             setIsLoading(false)
         }
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="min-h-[100dvh] flex items-center justify-center p-3 sm:p-4 relative overflow-hidden">
             {/* Fondo con gradiente animado */}
             <div className="absolute inset-0 gradient-mesh opacity-30" />
             <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-accent/10" />
 
-            {/* Contenedor Principal Centrado (Envuelve controles y card para que estén apilados) */}
-            <div className="flex flex-col items-center w-full max-w-md relative z-10">
+            {/* Animación de éxito al hacer login */}
+            <AnimatePresence>
+                {loginSuccess && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-xl"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                            className="flex flex-col items-center gap-6 p-8"
+                        >
+                            <motion.div
+                                animate={{
+                                    scale: [1, 1.1, 1],
+                                    rotate: [0, 5, -5, 0]
+                                }}
+                                transition={{ repeat: Infinity, duration: 2 }}
+                                className="relative"
+                            >
+                                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-2xl shadow-green-500/40">
+                                    <CheckCircle className="w-12 h-12 text-white" strokeWidth={3} />
+                                </div>
+                                <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-yellow-400 animate-pulse" />
+                            </motion.div>
+                            <div className="text-center">
+                                <h2 className="text-2xl font-black text-foreground mb-1">
+                                    {t('login.success')}
+                                </h2>
+                                <p className="text-sm text-muted-foreground font-medium">
+                                    {t('login.redirecting')}
+                                </p>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-                {/* Controles de idioma y tema (Ahora para todos los dispositivos: Arriba y Centrado) */}
+            {/* Contenedor Principal - Compacto para móvil */}
+            <div className="flex flex-col items-center w-full max-w-sm relative z-10">
+
+                {/* Controles de idioma y tema */}
                 <motion.div
                     initial={{ y: -20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="flex gap-4 mb-6 z-50 pointer-events-auto"
+                    className="flex gap-3 mb-4 z-50"
                 >
                     <motion.button
-                        whileHover={{ scale: 1.05, translateY: -2 }}
+                        whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setLanguage(language === 'es-ES' ? 'ca-ES' : 'es-ES')}
-                        className="glass px-4 py-2.5 rounded-2xl hover:bg-white/30 transition-all font-bold shadow-lg backdrop-blur-md border-white/20 flex items-center gap-2 group text-foreground"
+                        className="glass px-3 py-2 rounded-xl hover:bg-white/30 transition-all font-bold shadow-lg backdrop-blur-md border-white/20 flex items-center gap-2 text-foreground"
                     >
-                        <Globe className="w-5 h-5 group-hover:text-primary transition-colors" />
-                        <span className="text-sm font-black tracking-wide">
+                        <Globe className="w-4 h-4" />
+                        <span className="text-xs font-black tracking-wide">
                             {language === 'es-ES' ? 'ES' : 'CA'}
                         </span>
                     </motion.button>
 
                     <motion.button
-                        whileHover={{ scale: 1.05, translateY: -2 }}
+                        whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={toggleTheme}
-                        className="glass px-4 py-2.5 rounded-2xl hover:bg-white/30 transition-all shadow-lg backdrop-blur-md border-white/20 flex items-center gap-2 group"
+                        className="glass px-3 py-2 rounded-xl hover:bg-white/30 transition-all shadow-lg backdrop-blur-md border-white/20 flex items-center gap-2"
                     >
                         {isDark ? (
-                            <Sun className="w-5 h-5 text-amber-400 group-hover:rotate-90 transition-transform duration-500" />
+                            <Sun className="w-4 h-4 text-amber-400" />
                         ) : (
-                            <Moon className="w-5 h-5 text-indigo-400 group-hover:-rotate-12 transition-transform duration-500" />
+                            <Moon className="w-4 h-4 text-indigo-400" />
                         )}
                     </motion.button>
                 </motion.div>
 
-                {/* Card de login */}
+                {/* Card de login - Más compacto */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="glass rounded-4xl p-8 md:p-12 w-full relative shadow-2xl border-white/20"
+                    className="glass rounded-3xl p-5 sm:p-6 w-full relative shadow-2xl border-white/20"
                 >
-                    {/* Logo más grande */}
+                    {/* Logo más pequeño para móvil */}
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ delay: 0.2, duration: 0.5 }}
-                        className="flex justify-center mb-4"
+                        className="flex justify-center mb-3"
                     >
-                        <div className="relative w-48 h-48">
+                        <div className="relative w-28 h-28 sm:w-36 sm:h-36">
                             <Image
                                 src="/logo.jpg"
                                 alt="Logo IDMJI"
                                 fill
-                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                className="object-contain rounded-2xl"
+                                sizes="(max-width: 768px) 112px, 144px"
+                                className="object-contain rounded-xl"
                                 priority
                             />
                         </div>
                     </motion.div>
 
-
-
-
-                    {/* Título configurable desde Supabase */}
+                    {/* Título - Más compacto y traducido */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="text-center mb-8"
+                        className="text-center mb-4"
                     >
-                        <h1 className={`text-3xl font-bold mb-2 bg-linear-to-r ${config.colorClass} bg-clip-text text-transparent`}>
-                            {config.title}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {config.subtitle}
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-tight">
+                            {t('login.churchName')}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                            {config.location}
+                        <p className="text-[10px] sm:text-xs text-muted-foreground/70 mt-0.5">
+                            {t('login.churchLocation')}
                         </p>
                     </motion.div>
 
-                    {/* Formulario */}
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Formulario - Espaciado reducido */}
+                    <form onSubmit={handleSubmit} className="space-y-3">
                         {/* Email */}
                         <motion.div
                             initial={{ x: -20, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
                             transition={{ delay: 0.4 }}
                         >
-                            <label className="block text-sm font-medium mb-2">
+                            <label className="block text-xs font-medium mb-1.5">
                                 {t('login.email')}
                             </label>
                             <input
@@ -210,7 +232,7 @@ export default function LoginPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                className="w-full bg-background/50 border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                                 placeholder="ejemplo@idmji.org"
                             />
                         </motion.div>
@@ -221,7 +243,7 @@ export default function LoginPage() {
                             animate={{ x: 0, opacity: 1 }}
                             transition={{ delay: 0.5 }}
                         >
-                            <label className="block text-sm font-medium mb-2">
+                            <label className="block text-xs font-medium mb-1.5">
                                 {t('login.password')}
                             </label>
                             <div className="relative">
@@ -230,15 +252,15 @@ export default function LoginPage() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
-                                    className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                    className="w-full bg-background/50 border border-border rounded-xl px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                                     placeholder="••••••••"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-muted rounded-lg transition-colors"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-lg transition-colors"
                                 >
-                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                             </div>
                         </motion.div>
@@ -257,43 +279,56 @@ export default function LoginPage() {
                                 onChange={(e) => setRememberMe(e.target.checked)}
                                 className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50"
                             />
-                            <label htmlFor="remember" className="text-sm cursor-pointer">
-                                Recordar credenciales
+                            <label htmlFor="remember" className="text-xs cursor-pointer">
+                                {t('login.remember')}
                             </label>
                         </motion.div>
 
                         {/* Error */}
-                        {error && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-600 text-sm"
-                            >
-                                {error}
-                            </motion.div>
-                        )}
+                        <AnimatePresence>
+                            {error && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="p-2.5 bg-red-500/10 border border-red-500/30 rounded-xl text-red-600 text-xs"
+                                >
+                                    {error}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
-                        {/* Botón de login */}
+                        {/* Botón de login con efecto de éxito */}
                         <motion.button
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.7 }}
-                            whileHover={{ scale: 1.02, translateY: -2 }}
+                            whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             type="submit"
-                            disabled={isLoading}
-                            className="w-full h-14 relative group overflow-hidden rounded-2xl font-black text-white bg-[#0660c6] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl shadow-blue-500/40 border border-white/20"
+                            disabled={isLoading || loginSuccess}
+                            className={`w-full h-12 relative group overflow-hidden rounded-xl font-black text-white transition-all disabled:cursor-not-allowed shadow-xl border border-white/20 ${loginSuccess
+                                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 shadow-green-500/40'
+                                    : 'bg-[#0660c6] shadow-blue-500/40'
+                                }`}
                         >
-                            <div className="absolute inset-0 bg-linear-to-r from-[#0660c6] via-[#2563eb] to-[#0660c6] bg-size-[200%_100%] group-hover:bg-[100%_0] transition-all duration-700" />
-                            <span className="relative z-10 flex items-center justify-center gap-3 tracking-[0.15em] uppercase text-sm text-white font-black drop-shadow-sm">
-                                {isLoading ? (
+                            {!loginSuccess && (
+                                <div className="absolute inset-0 bg-linear-to-r from-[#0660c6] via-[#2563eb] to-[#0660c6] bg-size-[200%_100%] group-hover:bg-[100%_0] transition-all duration-700" />
+                            )}
+                            <span className="relative z-10 flex items-center justify-center gap-2 tracking-wider uppercase text-xs text-white font-black">
+                                {loginSuccess ? (
                                     <>
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <CheckCircle className="w-4 h-4" />
+                                        {t('login.success')}
+                                    </>
+                                ) : isLoading ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                         {t('common.loading')}
                                     </>
                                 ) : (
                                     <>
-                                        <LogIn className="w-5 h-5" strokeWidth={3} />
+                                        <LogIn className="w-4 h-4" strokeWidth={3} />
                                         {t('login.submit')}
                                     </>
                                 )}

@@ -41,6 +41,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { createClient } from '@/lib/supabase/client'
 
 interface HimnoCoroSelectorProps {
     cultoId?: string // Now optional for calculator mode
@@ -90,9 +91,8 @@ function SortableItem({ item, onRemove, onMoveUp, onMoveDown, isFirst, isLast }:
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: isDragging ? 0.5 : 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className={`flex items-center justify-between p-3 md:p-4 bg-muted/30 dark:bg-white/5 border border-border/50 dark:border-white/10 rounded-2xl shadow-sm transition-all group ${
-                isDragging ? 'ring-2 ring-primary bg-background shadow-xl' : ''
-            }`}
+            className={`flex items-center justify-between p-3 md:p-4 bg-muted/30 dark:bg-white/5 border border-border/50 dark:border-white/10 rounded-2xl shadow-sm transition-all group ${isDragging ? 'ring-2 ring-primary bg-background shadow-xl' : ''
+                }`}
         >
             <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
                 <div className={`w-10 h-10 md:w-11 md:h-11 rounded-xl md:rounded-2xl flex items-center justify-center font-black text-xs md:text-sm shadow-inner shrink-0 ${item.tipo === 'himno'
@@ -106,11 +106,10 @@ function SortableItem({ item, onRemove, onMoveUp, onMoveDown, isFirst, isLast }:
                         #{data?.numero} <span className="text-muted-foreground mx-1">|</span> {data?.titulo}
                     </p>
                     <div className="flex items-center gap-3 mt-2">
-                        <span className={`text-[8px] md:text-[9px] uppercase font-black px-2.5 py-1 rounded-full tracking-wider border shadow-sm ${
-                            item.tipo === 'himno' 
-                                ? 'bg-blue-500/10 border-blue-500/20 text-blue-600' 
-                                : 'bg-purple-500/10 border-purple-500/20 text-purple-600'
-                        }`}>
+                        <span className={`text-[8px] md:text-[9px] uppercase font-black px-2.5 py-1 rounded-full tracking-wider border shadow-sm ${item.tipo === 'himno'
+                            ? 'bg-blue-500/10 border-blue-500/20 text-blue-600'
+                            : 'bg-purple-500/10 border-purple-500/20 text-purple-600'
+                            }`}>
                             {item.tipo === 'himno' ? 'Himno' : 'Coro'}
                         </span>
                         <div className="flex items-center gap-1.5 text-[9px] md:text-[10px] text-muted-foreground/60 font-black uppercase tracking-widest">
@@ -126,11 +125,10 @@ function SortableItem({ item, onRemove, onMoveUp, onMoveDown, isFirst, isLast }:
                 <button
                     onClick={() => onMoveUp(item.id)}
                     disabled={isFirst}
-                    className={`p-1.5 md:p-2 rounded-lg transition-all ${
-                        isFirst
-                            ? 'opacity-20 cursor-not-allowed'
-                            : 'text-primary hover:bg-primary/10 active:scale-90'
-                    }`}
+                    className={`p-1.5 md:p-2 rounded-lg transition-all ${isFirst
+                        ? 'opacity-20 cursor-not-allowed'
+                        : 'text-primary hover:bg-primary/10 active:scale-90'
+                        }`}
                 >
                     <ChevronUp className="w-4 h-4" />
                 </button>
@@ -138,11 +136,10 @@ function SortableItem({ item, onRemove, onMoveUp, onMoveDown, isFirst, isLast }:
                 <button
                     onClick={() => onMoveDown(item.id)}
                     disabled={isLast}
-                    className={`p-1.5 md:p-2 rounded-lg transition-all ${
-                        isLast
-                            ? 'opacity-20 cursor-not-allowed'
-                            : 'text-primary hover:bg-primary/10 active:scale-90'
-                    }`}
+                    className={`p-1.5 md:p-2 rounded-lg transition-all ${isLast
+                        ? 'opacity-20 cursor-not-allowed'
+                        : 'text-primary hover:bg-primary/10 active:scale-90'
+                        }`}
                 >
                     <ChevronDown className="w-4 h-4" />
                 </button>
@@ -190,6 +187,18 @@ export default function HimnoCoroSelector({
         return [...himnos, ...coros]
     }, [selected])
 
+    const supabase = createClient()
+    const [userId, setUserId] = useState<string | null>(null)
+
+    // Fetch User ID on mount
+    useEffect(() => {
+        async function getUser() {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) setUserId(user.id)
+        }
+        getUser()
+    }, [])
+
     // Cargar himnos/coros ya seleccionados si hay cultoId o de localStorage para calculadora
     useEffect(() => {
         async function loadData() {
@@ -201,31 +210,37 @@ export default function HimnoCoroSelector({
                     const coros = data.filter(s => s.tipo === 'coro').sort((a, b) => a.orden - b.orden)
                     setSelected([...himnos, ...coros])
                 }
-            } else {
-                // Cargar listas guardadas de localStorage
-                const saved = localStorage.getItem('idmji_saved_lists')
-                if (saved) setSavedLists(JSON.parse(saved))
+            } else if (userId) {
+                // Cargar listas guardadas de localStorage específicas del usuario
+                const saved = localStorage.getItem(`idmji_saved_lists_${userId}`)
+                if (saved) {
+                    setSavedLists(JSON.parse(saved))
+                } else {
+                    setSavedLists([])
+                }
 
-                // Cargar sesión actual de calculadora
-                const current = localStorage.getItem('idmji_calc_session')
+                // Cargar sesión actual de calculadora del usuario
+                const current = localStorage.getItem(`idmji_calc_session_${userId}`)
                 if (current) {
                     const parsed = JSON.parse(current)
                     // Asegurar ordenamiento
                     const himnos = parsed.filter((s: PlanHimnoCoro) => s.tipo === 'himno').sort((a: PlanHimnoCoro, b: PlanHimnoCoro) => a.orden - b.orden)
                     const coros = parsed.filter((s: PlanHimnoCoro) => s.tipo === 'coro').sort((a: PlanHimnoCoro, b: PlanHimnoCoro) => a.orden - b.orden)
                     setSelected([...himnos, ...coros])
+                } else {
+                    setSelected([])
                 }
             }
         }
         loadData()
-    }, [cultoId])
+    }, [cultoId, userId])
 
     // Guardar sesión actual en cada cambio (modo calculadora)
     useEffect(() => {
-        if (!cultoId) {
-            localStorage.setItem('idmji_calc_session', JSON.stringify(sortedSelected))
+        if (!cultoId && userId) {
+            localStorage.setItem(`idmji_calc_session_${userId}`, JSON.stringify(sortedSelected))
         }
-    }, [sortedSelected, cultoId])
+    }, [sortedSelected, cultoId, userId])
 
     // Buscar himnos/coros
     useEffect(() => {
@@ -379,9 +394,9 @@ export default function HimnoCoroSelector({
             } else {
                 toast.success('Orden actualizado')
             }
-        } else {
+        } else if (userId) {
             // Guardar en localStorage
-            localStorage.setItem('idmji_calc_session', JSON.stringify(updated))
+            localStorage.setItem(`idmji_calc_session_${userId}`, JSON.stringify(updated))
         }
     }
 
@@ -402,6 +417,11 @@ export default function HimnoCoroSelector({
             toast.error('Ponle un nombre a la lista')
             return
         }
+        if (!userId) {
+            toast.error('Error de sesión. Recarga la página.')
+            return
+        }
+
         const newList = {
             id: Date.now().toString(),
             name: listName,
@@ -409,7 +429,7 @@ export default function HimnoCoroSelector({
         }
         const updated = [...savedLists, newList]
         setSavedLists(updated)
-        localStorage.setItem('idmji_saved_lists', JSON.stringify(updated))
+        localStorage.setItem(`idmji_saved_lists_${userId}`, JSON.stringify(updated))
         setListName('')
         setIsSaveModalOpen(false)
         toast.success('Lista guardada correctamente')
@@ -423,9 +443,10 @@ export default function HimnoCoroSelector({
     }
 
     const deleteSavedList = (id: string) => {
+        if (!userId) return
         const updated = savedLists.filter(l => l.id !== id)
         setSavedLists(updated)
-        localStorage.setItem('idmji_saved_lists', JSON.stringify(updated))
+        localStorage.setItem(`idmji_saved_lists_${userId}`, JSON.stringify(updated))
         toast.success('Lista eliminada')
     }
 
