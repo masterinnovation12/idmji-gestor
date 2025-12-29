@@ -22,18 +22,22 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 interface UserSelectorProps {
     selectedUserId: string | null
-    onSelect: (userId: string | null) => void
+    onSelect: (userId: string | null, confirmed?: boolean) => void
     disabled?: boolean
     isEditing?: boolean
     onEditChange?: (isEditing: boolean) => void
+    cultoDate?: string
+    assignmentType?: string
 }
 
-export default function UserSelector({ 
-    selectedUserId, 
-    onSelect, 
-    disabled, 
-    isEditing: externalIsEditing, 
-    onEditChange 
+export default function UserSelector({
+    selectedUserId,
+    onSelect,
+    disabled,
+    isEditing: externalIsEditing,
+    onEditChange,
+    cultoDate,
+    assignmentType
 }: UserSelectorProps) {
     const { t } = useI18n()
     const [id] = useState(() => Math.random().toString(36).substring(2, 9))
@@ -122,15 +126,46 @@ export default function UserSelector({
         }
     }, [showResults])
 
-    const handleSelect = (user: Profile) => {
-        onSelect(user.id)
-        setQuery('')
-        setShowResults(false)
-        setIsEditing(false)
+    // Helper to check availability
+    const isUserAvailable = (user: Profile) => {
+        if (!cultoDate || !assignmentType) return true // If no context, assume available/neutral
+        if (!user.availability) return true // If no availability set, assume available
+
+        const date = new Date(cultoDate)
+        const dayOfWeek = date.getDay() // 0 = Sunday, 1 = Monday...
+        const dayAvailability = user.availability[dayOfWeek]
+
+        if (!dayAvailability) return true // If no setting for this day, assume available
+
+        // Check specific assignment type
+        // Note: The key in availability object matches assignmentType ('intro', 'finalization', etc.)
+        return dayAvailability[assignmentType as keyof typeof dayAvailability] !== false
+    }
+
+    // Sort results: Available first
+    const sortedResults = [...results].sort((a, b) => {
+        const aAvailable = isUserAvailable(a)
+        const bAvailable = isUserAvailable(b)
+        if (aAvailable === bAvailable) return 0
+        return aAvailable ? -1 : 1
+    })
+
+    const handleSelect = (user: Profile, confirmed: boolean = true) => {
+        // If not confirmed (unavailable), we pass false to let parent handle the warning
+        if (confirmed) {
+            onSelect(user.id, true)
+            setQuery('')
+            setShowResults(false)
+            setIsEditing(false)
+        } else {
+            // Parent will handle the modal
+            onSelect(user.id, false)
+            setShowResults(false)
+        }
     }
 
     const handleClear = () => {
-        onSelect(null)
+        onSelect(null, true)
         setQuery('')
         setShowResults(false)
         setIsEditing(true)
@@ -194,7 +229,7 @@ export default function UserSelector({
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
                                 {query ? 'Resultados de búsqueda' : 'Hermanos sugeridos'}
                             </p>
-                            <button 
+                            <button
                                 onClick={() => setShowResults(false)}
                                 className="p-1.5 hover:bg-muted rounded-full transition-colors text-muted-foreground"
                             >
@@ -202,24 +237,34 @@ export default function UserSelector({
                             </button>
                         </div>
                         <div className="overflow-y-auto no-scrollbar p-2 flex-1">
-                            {results.length > 0 ? (
+                            {sortedResults.length > 0 ? (
                                 <div className="grid grid-cols-1 gap-1">
-                                    {results.map((user, idx) => {
+                                    {sortedResults.map((user, idx) => {
                                         const isSelected = selectedUserId === user.id
+                                        const isAvailable = isUserAvailable(user)
+
                                         return (
                                             <button
                                                 key={user.id || `user-result-${idx}`}
-                                                onClick={() => handleSelect(user)}
+                                                onClick={() => {
+                                                    if (!isAvailable) {
+                                                        // If unavailable, we might want to warn
+                                                        // But parent handles the selection, so we pass it up
+                                                        handleSelect(user, false) // false = not confirmed yet
+                                                        return
+                                                    }
+                                                    handleSelect(user, true)
+                                                }}
                                                 className={`
                                                     w-full px-4 py-3.5 text-left transition-all rounded-[1.5rem] flex items-center justify-between group/item relative overflow-hidden
                                                     ${isSelected ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-primary/5 text-foreground'}
+                                                    ${!isAvailable && !isSelected ? 'opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0' : ''}
                                                 `}
                                             >
-                                                <div className="flex items-center gap-4 relative z-10">
+                                                <div className="flex items-center gap-4 relative z-10 min-w-0">
                                                     {/* Avatar o Iniciales */}
-                                                    <div className={`w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover/item:scale-105 group-hover/item:rotate-3 ${
-                                                        isSelected ? 'bg-white/20 border-white/20' : 'bg-primary/5 border-primary/10 text-primary'
-                                                    }`}>
+                                                    <div className={`w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover/item:scale-105 group-hover/item:rotate-3 ${isSelected ? 'bg-white/20 border-white/20' : 'bg-primary/5 border-primary/10 text-primary'
+                                                        }`}>
                                                         {user.avatar_url ? (
                                                             <img src={user.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
                                                         ) : (
@@ -232,8 +277,9 @@ export default function UserSelector({
                                                             {user.nombre} {user.apellidos}
                                                         </p>
                                                         <div className="flex items-center gap-2 mt-0.5">
-                                                            <p className={`text-[10px] uppercase font-black tracking-widest ${isSelected ? 'text-white/60' : 'text-emerald-500'}`}>
-                                                                {isSelected ? 'Seleccionado' : 'Disponible para el púlpito'}
+                                                            <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : isAvailable ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                                                            <p className={`text-[10px] uppercase font-black tracking-widest ${isSelected ? 'text-white/60' : isAvailable ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                                                                {isSelected ? 'Seleccionado' : isAvailable ? 'Disponible' : 'No disponible'}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -283,7 +329,7 @@ export default function UserSelector({
                         {t('hermanos.removeAssignment')}
                     </motion.button>
                 )}
-                
+
                 {selectedUserId && isEditing && !disabled && (
                     <motion.button
                         initial={{ opacity: 0 }}
