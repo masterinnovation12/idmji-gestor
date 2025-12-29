@@ -154,6 +154,18 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
         return true
     })
 
+    const handleViewChange = async (newView: 'month' | 'week' | 'day') => {
+        setView(newView)
+        // User Request: Al filtrar por "día", ir al día actual (Hoy) por defecto
+        if (newView === 'day') {
+            const today = new Date()
+            setSelectedDate(today)
+            // Asegurar que tenemos los datos del mes actual
+            const { data } = await getCultosForMonth(today.getFullYear(), today.getMonth())
+            if (data) setCultos(data)
+        }
+    }
+
     return (
         <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4 md:px-8 relative no-scrollbar">
             {/* Animación de Éxito Premium */}
@@ -250,7 +262,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                             {/* Selector de Vista - Compacto */}
                             <div className="flex bg-muted/40 p-1 rounded-xl border border-border/30 shadow-sm">
                                 <button
-                                    onClick={() => setView('month')}
+                                    onClick={() => handleViewChange('month')}
                                     className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${view === 'month'
                                         ? 'bg-blue-600 text-white shadow-md'
                                         : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
@@ -259,7 +271,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                     Mes
                                 </button>
                                 <button
-                                    onClick={() => setView('week')}
+                                    onClick={() => handleViewChange('week')}
                                     className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${view === 'week'
                                         ? 'bg-blue-600 text-white shadow-md'
                                         : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
@@ -268,7 +280,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                     Semana
                                 </button>
                                 <button
-                                    onClick={() => setView('day')}
+                                    onClick={() => handleViewChange('day')}
                                     className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${view === 'day'
                                         ? 'bg-blue-600 text-white shadow-md'
                                         : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
@@ -404,30 +416,32 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                     />
 
                     {/* Mostrar mensaje si no hay resultados PERO solo si hay filtros activos, para no romper la navegación en meses vacíos */}
-                    {cultos.length > 0 && filteredCultos.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
-                            <p className="text-sm text-muted-foreground font-medium">
-                                No se encontraron eventos con los filtros actuales.
-                            </p>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                    setStatusFilter('all')
-                                    setTypeFilter('all')
-                                    setShowFestivosOnly(false)
-                                    setSelectedHermanos([])
-                                }}
-                            >
-                                Limpiar Filtros
-                            </Button>
-                        </div>
-                    )}
-                </div>
-            </motion.div>
+                    {
+                        cultos.length > 0 && filteredCultos.length === 0 && (
+                            <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
+                                <p className="text-sm text-muted-foreground font-medium">
+                                    No se encontraron eventos con los filtros actuales.
+                                </p>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setStatusFilter('all')
+                                        setTypeFilter('all')
+                                        setShowFestivosOnly(false)
+                                        setSelectedHermanos([])
+                                    }}
+                                >
+                                    Limpiar Filtros
+                                </Button>
+                            </div>
+                        )
+                    }
+                </div >
+            </motion.div >
 
             {/* Grid de Estadísticas con Diseño Premium */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            < div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8" >
                 {
                     [
                         { label: t('calendar.total'), value: totalCultos, icon: CalendarIcon, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
@@ -459,14 +473,15 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                         </motion.div>
                     ))
                 }
-            </div>
+            </div >
 
 
 
             {/* Modal de Selección de Hermanos */}
-            <Modal
+            < Modal
                 isOpen={showHermanosModal}
-                onClose={() => setShowHermanosModal(false)}
+                onClose={() => setShowHermanosModal(false)
+                }
                 title="Filtrar por Hermanos"
                 size="lg"
             >

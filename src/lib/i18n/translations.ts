@@ -57,6 +57,14 @@ export const translations = {
         'culto.testimonios': 'Testimonios',
         'culto.introduccion': 'Introducción del culto',
         'culto.finalizacion': 'Finalización del culto',
+        'culto.protocol.title': 'Protocolo del Estudio',
+        'culto.protocol.desc': 'Configuración específica para este culto',
+        'culto.protocol.prayer': 'Oración Inicio',
+        'culto.protocol.congregation': 'Congregación',
+        'culto.protocol.yesPray': 'SÍ, ORAR',
+        'culto.protocol.noPray': 'NO, ORAR',
+        'culto.protocol.standing': 'DE PIE',
+        'culto.protocol.seated': 'SENTADOS',
 
         // Days
         'day.monday': 'Lunes',
@@ -338,6 +346,14 @@ export const translations = {
         'culto.testimonios': 'Testimonis',
         'culto.introduccion': 'Introducció del culte',
         'culto.finalizacion': 'Finalització del culte',
+        'culto.protocol.title': 'Protocol de l\'Estudi',
+        'culto.protocol.desc': 'Configuració específica per a aquest culte',
+        'culto.protocol.prayer': 'Oració Inici',
+        'culto.protocol.congregation': 'Congregació',
+        'culto.protocol.yesPray': 'SÍ, ORAR',
+        'culto.protocol.noPray': 'NO, ORAR',
+        'culto.protocol.standing': 'DE PEU',
+        'culto.protocol.seated': 'ASSEGUTS',
 
         // Days
         'day.monday': 'Dilluns',
@@ -483,7 +499,7 @@ export const translations = {
         'profile.contactInfo': 'Informació de contacte',
         'profile.contactEmail': 'Email de contacte',
         'profile.phone': 'Telèfon',
-        'profile.contactInfo': 'Informació de Contacte',
+
         'profile.loginEmail': 'Email d\'inici de sessió',
         'profile.account': 'Compte d\'Accés',
         'profile.registeredAt': 'Registrat des de',

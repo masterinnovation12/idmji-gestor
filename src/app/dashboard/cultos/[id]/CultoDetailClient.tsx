@@ -25,12 +25,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import UserSelector from '@/components/UserSelector'
 import HimnoCoroSelector from '@/components/HimnoCoroSelector'
 import BibleReadingManager from '@/components/BibleReadingManager'
-import { updateAssignment, toggleFestivo } from './actions'
+import { updateAssignment, toggleFestivo, updateCultoProtocol } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Culto } from '@/types/database'
+import { Culto, Profile } from '@/types/database'
 
 interface CultoDetailClientProps {
     culto: Culto
@@ -42,18 +42,15 @@ interface CultoDetailClientProps {
  */
 interface AssignmentSectionProps {
     label: string,
-    icon: any,
+    icon: React.ReactNode,
     selectedUserId: string | null,
-    usuarioActual: any,
+    usuarioActual: Partial<Profile> | null | undefined,
     onSelect: (id: string | null) => void,
     disabled: boolean,
-    t: any,
+    t: (key: any) => string,
     cultoId: string,
 }
 
-/**
- * Componente interno para tarjetas de asignación reutilizables con diseño premium
- */
 function AssignmentSection({
     label,
     icon,
@@ -74,7 +71,7 @@ function AssignmentSection({
         >
             <Card className={`h-full w-full min-w-0 border-t-4 border-primary/40 glass group hover:border-primary transition-all duration-500 shadow-xl relative overflow-visible ${isEditing ? 'ring-4 ring-primary/30' : ''}`}>
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
-                
+
                 <CardHeader className="flex flex-row items-start justify-between pb-2 md:pb-3 shrink-0 gap-2">
                     <CardTitle icon={icon} className="text-primary font-black uppercase tracking-widest text-[10px] md:text-[11px] leading-tight">
                         {label}
@@ -102,27 +99,26 @@ function AssignmentSection({
                                 onEditChange={setIsEditing}
                             />
                         </div>
-                        
+
                         <AnimatePresence mode="wait">
                             {usuarioActual ? (
-                                <motion.div 
+                                <motion.div
                                     key={usuarioActual.id || `assigned-${label}`}
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
-                                    className={`flex flex-col gap-3 p-3.5 md:p-4.5 rounded-[1.75rem] border shadow-inner relative overflow-hidden group/assigned transition-all flex-1 min-h-0 ${
-                                        isEditing 
-                                            ? 'bg-muted/50 border-border opacity-60' 
-                                            : 'bg-primary/5 border-primary/10'
-                                    }`}
+                                    className={`flex flex-col gap-3 p-3.5 md:p-4.5 rounded-[1.75rem] border shadow-inner relative overflow-hidden group/assigned transition-all flex-1 min-h-0 ${isEditing
+                                        ? 'bg-muted/50 border-border opacity-60'
+                                        : 'bg-primary/5 border-primary/10'
+                                        }`}
                                 >
                                     <div className="absolute inset-0 bg-linear-to-r from-primary/5 to-transparent opacity-0 group-hover/assigned:opacity-100 transition-opacity" />
-                                    
+
                                     <div className="flex items-center gap-3 relative z-10">
-                                        <div className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-black text-xs md:text-sm lg:text-base border-2 shadow-lg shrink-0 ${
-                                            isEditing ? 'bg-muted border-border text-muted-foreground' : 'bg-primary/20 border-white/20 text-primary'
-                                        }`}>
+                                        <div className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-black text-xs md:text-sm lg:text-base border-2 shadow-lg shrink-0 ${isEditing ? 'bg-muted border-border text-muted-foreground' : 'bg-primary/20 border-white/20 text-primary'
+                                            }`}>
                                             {usuarioActual.avatar_url ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
                                                 <img src={usuarioActual.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
                                             ) : (
                                                 <span className="uppercase tracking-tighter">{usuarioActual.nombre?.[0]}{usuarioActual.apellidos?.[0]}</span>
@@ -154,14 +150,14 @@ function AssignmentSection({
 
                                     {/* Bloque de Lectura Bíblica Integrado (Solo para Introducción) */}
                                     {label === t('culto.introduccion') && !isEditing && (
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             className="relative z-10 mt-1 pt-3 border-t border-primary/10"
                                         >
                                             <BibleReadingManager
                                                 cultoId={cultoId}
-                                                userId={usuarioActual.id}
+                                                userId={usuarioActual?.id || ''}
                                                 config={{
                                                     tiene_lectura_introduccion: true,
                                                     tiene_lectura_finalizacion: false
@@ -189,7 +185,7 @@ function AssignmentSection({
     )
 }
 
-export default function CultoDetailClient({ culto, userId }: CultoDetailClientProps) {
+export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
     const { t, language } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
     const [isUpdating, setIsUpdating] = useState(false)
@@ -205,7 +201,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
             } else {
                 toast.error(result.error || 'Error al cambiar estado festivo')
             }
-        } catch (error) {
+        } catch {
             toast.error('Error de conexión')
         } finally {
             setIsUpdating(false)
@@ -226,7 +222,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
             } else {
                 toast.error(result.error || t('common.error'))
             }
-        } catch (error) {
+        } catch {
             toast.error('Error de conexión')
         } finally {
             setIsUpdating(false)
@@ -250,13 +246,13 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                     </Link>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="glass rounded-[2.5rem] md:rounded-[3rem] p-3 md:p-4 lg:p-6 xl:p-8 shadow-2xl relative overflow-hidden border border-white/20 dark:border-white/5 w-full"
                 >
                     <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl animate-pulse" />
-                    
+
                     <div className="relative z-10">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
                             <div className="space-y-4">
@@ -280,7 +276,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                             </span>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-4 bg-white/40 dark:bg-black/20 backdrop-blur-md px-8 py-4 rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30 font-black">
                                         <Clock className="w-6 h-6 text-primary" />
                                         <div className="flex flex-col">
@@ -297,11 +293,10 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                                         <button
                                             onClick={handleToggleFestivo}
                                             disabled={isUpdating}
-                                            className={`flex items-center gap-4 px-8 py-4 rounded-3xl border transition-all font-black group relative overflow-hidden h-full ${
-                                                culto.es_laborable_festivo 
-                                                    ? 'bg-amber-500 text-white border-amber-600 shadow-xl shadow-amber-500/30 scale-105' 
-                                                    : 'bg-white/40 dark:bg-black/20 backdrop-blur-md text-muted-foreground border-white/20 hover:border-amber-500/50 hover:bg-amber-50/10'
-                                            }`}
+                                            className={`flex items-center gap-4 px-8 py-4 rounded-3xl border transition-all font-black group relative overflow-hidden h-full ${culto.es_laborable_festivo
+                                                ? 'bg-amber-500 text-white border-amber-600 shadow-xl shadow-amber-500/30 scale-105'
+                                                : 'bg-white/40 dark:bg-black/20 backdrop-blur-md text-muted-foreground border-white/20 hover:border-amber-500/50 hover:bg-amber-50/10'
+                                                }`}
                                         >
                                             <div className={`absolute inset-0 bg-linear-to-r from-white/20 to-transparent -translate-x-full transition-transform duration-1000 ${culto.es_laborable_festivo ? 'group-hover:translate-x-full' : ''}`} />
                                             <div className={`p-2 rounded-xl transition-colors ${culto.es_laborable_festivo ? 'bg-white/20' : 'bg-amber-500/10'}`}>
@@ -335,6 +330,97 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                     </div>
                 </motion.div>
             </div>
+
+            {/* Protocol Configuration (Solo Estudio Bíblico) */}
+            {(tipoCulto.toLowerCase().includes('estudio') || tipoCulto.toLowerCase().includes('biblico')) && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full"
+                >
+                    <div className="glass rounded-[2rem] p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+                                    <Sparkles className="w-6 h-6 text-indigo-500" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
+                                        {t('culto.protocol.title')}
+                                    </h3>
+                                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                                        {t('culto.protocol.desc')}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-4 w-full md:w-auto">
+                                {/* Switch Oración */}
+                                <button
+                                    onClick={async () => {
+                                        const current = culto.meta_data?.protocolo?.oracion_inicio ?? true
+                                        await updateCultoProtocol(culto.id, {
+                                            oracion_inicio: !current,
+                                            congregacion_pie: culto.meta_data?.protocolo?.congregacion_pie ?? false
+                                        })
+                                        toast.success(!current ? 'Oración activada' : 'Oración desactivada')
+                                    }}
+                                    className={`flex items-center justify-between gap-4 px-5 py-3 rounded-2xl border-2 transition-all flex-1 md:flex-none cursor-pointer ${(culto.meta_data?.protocolo?.oracion_inicio ?? true)
+                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                                        : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'
+                                        }`}
+                                >
+                                    <div className="flex flex-col items-start min-w-[100px]">
+                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-70 leading-none mb-1">{t('culto.protocol.prayer')}</span>
+                                        <span className={`text-xs font-black uppercase tracking-tight ${(culto.meta_data?.protocolo?.oracion_inicio ?? true) ? '' : 'text-slate-400 dark:text-slate-500'
+                                            }`}>
+                                            {(culto.meta_data?.protocolo?.oracion_inicio ?? true) ? t('culto.protocol.yesPray') : t('culto.protocol.noPray')}
+                                        </span>
+                                    </div>
+                                    <div className={`w-12 h-7 rounded-full p-1 transition-colors border ${(culto.meta_data?.protocolo?.oracion_inicio ?? true)
+                                        ? 'bg-emerald-500 border-emerald-600'
+                                        : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
+                                        }`}>
+                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${(culto.meta_data?.protocolo?.oracion_inicio ?? true) ? 'translate-x-5' : 'translate-x-0'
+                                            }`} />
+                                    </div>
+                                </button>
+
+                                {/* Switch Congregación */}
+                                <button
+                                    onClick={async () => {
+                                        const current = culto.meta_data?.protocolo?.congregacion_pie ?? false
+                                        await updateCultoProtocol(culto.id, {
+                                            oracion_inicio: culto.meta_data?.protocolo?.oracion_inicio ?? true,
+                                            congregacion_pie: !current
+                                        })
+                                        toast.success(!current ? 'Congregación de pie' : 'Congregación sentada')
+                                    }}
+                                    className={`flex items-center justify-between gap-4 px-5 py-3 rounded-2xl border-2 transition-all flex-1 md:flex-none cursor-pointer ${(culto.meta_data?.protocolo?.congregacion_pie ?? false)
+                                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300'
+                                        : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'
+                                        }`}
+                                >
+                                    <div className="flex flex-col items-start min-w-[100px]">
+                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-70 leading-none mb-1">{t('culto.protocol.congregation')}</span>
+                                        <span className={`text-xs font-black uppercase tracking-tight ${(culto.meta_data?.protocolo?.congregacion_pie ?? false) ? '' : 'text-slate-400 dark:text-slate-500'
+                                            }`}>
+                                            {(culto.meta_data?.protocolo?.congregacion_pie ?? false) ? t('culto.protocol.standing') : t('culto.protocol.seated')}
+                                        </span>
+                                    </div>
+                                    <div className={`w-12 h-7 rounded-full p-1 transition-colors border ${(culto.meta_data?.protocolo?.congregacion_pie ?? false)
+                                        ? 'bg-blue-500 border-blue-600'
+                                        : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
+                                        }`}>
+                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${(culto.meta_data?.protocolo?.congregacion_pie ?? false) ? 'translate-x-5' : 'translate-x-0'
+                                            }`} />
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
 
             {/* Cuadrícula de Contenido Responsiva */}
             <div className="space-y-6 md:space-y-8 w-full">
@@ -405,10 +491,10 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
                 <div className="grid gap-4 md:gap-6 lg:gap-8 lg:grid-cols-12 w-full items-start">
                     {/* Columna Derecha: Música (Bloque principal más grande y detallado) */}
                     {config.tiene_himnos_y_coros && (
-                        <motion.div 
-                            initial={{ opacity: 0, x: 20 }} 
-                            animate={{ opacity: 1, x: 0 }} 
-                            transition={{ delay: 0.3 }} 
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.3 }}
                             className="lg:col-span-12 w-full"
                         >
                             <Card className="glass rounded-[2.5rem] border border-white/20 shadow-2xl w-full">
@@ -434,7 +520,7 @@ export default function CultoDetailClient({ culto, userId }: CultoDetailClientPr
             </div>
 
             {/* Botón Finalizar Edición */}
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}

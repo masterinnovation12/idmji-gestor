@@ -1,4 +1,5 @@
 'use client'
+// Force HMR update
 
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { translations, type Language, type TranslationKey } from './translations'

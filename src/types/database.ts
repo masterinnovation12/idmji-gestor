@@ -57,6 +57,14 @@ export interface Culto {
     usuario_finalizacion?: Partial<Profile> | null
     usuario_ensenanza?: Partial<Profile> | null
     usuario_testimonios?: Partial<Profile> | null
+
+    // Metadatos flexibles
+    meta_data?: {
+        protocolo?: {
+            oracion_inicio: boolean
+            congregacion_pie: boolean
+        }
+    }
 }
 
 export interface LecturaBiblica {
