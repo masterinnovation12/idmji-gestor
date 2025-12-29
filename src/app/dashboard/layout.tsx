@@ -241,8 +241,11 @@ export default function DashboardLayout({
                     dragConstraints={{ left: 0, right: 300 }}
                     dragElastic={0.1}
                     onDrag={(e, info) => {
-                        // Solo mover si vamos hacia la derecha
-                        if (info.offset.x > 0) x.set(-300 + info.offset.x)
+                        // Solo mover si vamos hacia la derecha y limitar a 0
+                        if (info.offset.x > 0) {
+                            const newX = -300 + info.offset.x
+                            x.set(Math.min(0, newX))
+                        }
                     }}
                     onDragEnd={(e, info) => {
                         // Si arrastramos suficiente, abrir

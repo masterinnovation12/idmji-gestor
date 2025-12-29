@@ -17,9 +17,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useTransform, useDragControls } from 'framer-motion'
 import { getHimnos, getCoros } from './actions'
-import { Music, Search, Clock, ChevronLeft, Sparkles, AudioLines } from 'lucide-react'
+import { Music, Search, Clock, ChevronLeft, Sparkles, AudioLines, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
@@ -39,6 +39,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
     const [activeTab, setActiveTab] = useState<'himnos' | 'coros'>('himnos')
     const [searchTerm, setSearchTerm] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [isCalcModalOpen, setIsCalcModalOpen] = useState(false)
 
 
     // Efecto para recarga de datos con debounce
@@ -72,6 +73,17 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
         }, 300)
         return () => clearTimeout(timer)
     }, [searchTerm, activeTab, himnos.length, coros.length, initialHimnos.length, initialCoros.length])
+
+    // Bloquear scroll del body cuando modal de calculadora está abierto
+    useEffect(() => {
+        if (isCalcModalOpen && window.innerWidth < 1024) {
+            const originalOverflow = document.body.style.overflow
+            document.body.style.overflow = 'hidden'
+            return () => {
+                document.body.style.overflow = originalOverflow
+            }
+        }
+    }, [isCalcModalOpen])
 
 
 
@@ -166,25 +178,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 ))}
             </div>
 
-            {/* Mobile Calculator (Inline - Visible by Default) */}
-            <div className="lg:hidden">
-                <Card className="rounded-[2rem] border-none shadow-xl bg-linear-to-br from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-slate-900 border-2 border-blue-100 dark:border-slate-800">
-                    <CardContent className="p-6 space-y-6">
-                        <div className="space-y-2">
-                            <h3 className="text-lg font-black tracking-tighter flex items-center gap-2 text-blue-700 dark:text-blue-400 uppercase italic">
-                                <Clock className="w-5 h-5" />
-                                {t('himnario.calculator')}
-                            </h3>
-                        </div>
 
-                        <HimnoCoroSelector
-                            maxHimnos={10}
-                            maxCoros={10}
-                            className="bg-transparent"
-                        />
-                    </CardContent>
-                </Card>
-            </div>
 
             <div className="grid lg:grid-cols-12 gap-8">
                 {/* List Table */}
@@ -327,7 +321,92 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                     </div>
                 </div>
             </div>
+
+            {/* Mobile Calculator FAB */}
+            <motion.button
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setIsCalcModalOpen(true)}
+                className="lg:hidden fixed bottom-6 right-6 w-16 h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-2xl shadow-blue-500/40 flex items-center justify-center z-50 border-2 border-white/30"
+            >
+                <div className="relative">
+                    <Clock className="w-7 h-7" />
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white animate-pulse" />
+                </div>
+            </motion.button>
+
+            {/* Mobile Calculator Modal */}
+            <AnimatePresence>
+                {isCalcModalOpen && (
+                    <div className="fixed inset-0 z-[110] lg:hidden flex items-end justify-center">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            onClick={() => setIsCalcModalOpen(false)}
+                        />
+                        <CalculatorModal
+                            onClose={() => setIsCalcModalOpen(false)}
+                        >
+                            <div className="overflow-y-auto max-h-[80vh] no-scrollbar pb-6 px-1">
+                                <HimnoCoroSelector
+                                    maxHimnos={10}
+                                    maxCoros={10}
+                                />
+                            </div>
+                        </CalculatorModal>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
+    )
+}
+
+function CalculatorModal({ children, onClose }: { children: React.ReactNode, onClose: () => void }) {
+    const controls = useDragControls()
+    const y = useMotionValue(0)
+
+    return (
+        <motion.div
+            drag="y"
+            dragControls={controls}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.5 }}
+            onDragEnd={(e, info) => {
+                if (info.offset.y > 100 || info.velocity.y > 500) {
+                    onClose()
+                }
+            }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            style={{ y }}
+            className="relative bg-white dark:bg-zinc-900 w-full rounded-t-[2rem] shadow-2xl overflow-hidden border-t border-white/20 z-10"
+        >
+            {/* Handle */}
+            <div
+                className="pt-4 pb-2 w-full flex justify-center touch-none cursor-grab active:cursor-grabbing bg-white dark:bg-zinc-900"
+                onPointerDown={(e) => controls.start(e)}
+            >
+                <div className="w-12 h-1.5 rounded-full bg-gray-300 dark:bg-zinc-700" />
+            </div>
+
+            {/* Content */}
+            <div className="px-6 pb-8">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-black italic uppercase tracking-tight">Calculadora</h2>
+                    <button onClick={onClose} className="p-2 bg-gray-100 dark:bg-zinc-800 rounded-full">
+                        <Plus className="w-5 h-5 rotate-45 text-gray-500" />
+                    </button>
+                </div>
+                {children}
+            </div>
+        </motion.div>
     )
 }
 
