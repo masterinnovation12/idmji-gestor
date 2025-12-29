@@ -285,10 +285,10 @@ export default function DashboardLayout({
             {/* Sidebars (Mobile) */}
             <motion.aside
                 style={{ x }}
-                className="fixed left-0 top-0 h-full w-[300px] z-110 flex flex-col md:hidden shadow-2xl"
+                className="fixed left-0 top-0 h-full w-[300px] z-110 flex flex-col md:hidden shadow-2xl touch-pan-y will-change-transform"
                 drag="x"
                 dragConstraints={{ left: -300, right: 0 }}
-                dragElastic={0.1}
+                dragElastic={0.05}
                 onDragEnd={handlePanEnd}
             >
                 <SidebarContent
