@@ -273,7 +273,7 @@ export default function DashboardLayout({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         style={{ opacity }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100 md:hidden touch-none"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] md:hidden touch-none"
                         onClick={() => setIsMobileMenuOpen(false)}
                         onPan={(e, info) => {
                             // Arrastrar el overlay cierra el menú
@@ -288,7 +288,7 @@ export default function DashboardLayout({
             {/* Sidebars (Mobile) */}
             <motion.aside
                 style={{ x }}
-                className="fixed left-0 top-0 h-full w-[300px] z-110 flex flex-col md:hidden shadow-2xl touch-pan-y will-change-transform"
+                className="fixed left-0 top-0 h-full w-[300px] z-[110] flex flex-col md:hidden shadow-2xl touch-pan-y will-change-transform"
                 drag="x"
                 dragConstraints={{ left: -300, right: 0 }}
                 dragElastic={0.05}
@@ -306,6 +306,7 @@ export default function DashboardLayout({
                     isDark={isDark}
                     toggleTheme={toggleTheme}
                     userProfile={userProfile}
+                    onMobileNav={() => setIsMobileMenuOpen(false)}
                 />
             </motion.aside>
 
@@ -404,6 +405,7 @@ interface SidebarContentProps {
         email: string | null
         rol: string | null
     } | null
+    onMobileNav?: () => void
 }
 
 function SidebarContent({
@@ -417,7 +419,8 @@ function SidebarContent({
     setLanguage,
     isDark,
     toggleTheme,
-    userProfile
+    userProfile,
+    onMobileNav
 }: SidebarContentProps) {
     return (
         <div className="flex flex-col h-full bg-[#063b7a] dark:bg-black/95 backdrop-blur-xl border-r border-white/10">
@@ -524,6 +527,7 @@ function SidebarContent({
                         >
                             <Link
                                 href={item.href}
+                                onClick={onMobileNav}
                                 className={`flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-300 group relative overflow-hidden ${isActive
                                     ? 'text-black shadow-2xl shadow-black/10'
                                     : 'text-white/60 hover:text-white'
@@ -572,6 +576,7 @@ function SidebarContent({
                 {userProfile && (
                     <Link
                         href="/dashboard/profile"
+                        onClick={onMobileNav}
                         className={`flex items-center gap-3 p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-all ${isSidebarCollapsed ? 'justify-center' : ''}`}
                     >
                         {userProfile.avatar_url ? (
