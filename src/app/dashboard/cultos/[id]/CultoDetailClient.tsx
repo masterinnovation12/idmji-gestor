@@ -18,7 +18,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, Clock, User, BookOpen, Music, ChevronLeft, AlertCircle, CheckCircle, Sparkles } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Calendar, Clock, User, BookOpen, Music, ChevronLeft, AlertCircle, CheckCircle, Sparkles, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -45,10 +46,12 @@ interface AssignmentSectionProps {
     icon: React.ReactNode,
     selectedUserId: string | null,
     usuarioActual: Partial<Profile> | null | undefined,
-    onSelect: (id: string | null) => void,
+    onSelect: (id: string | null, confirmed?: boolean) => void,
     disabled: boolean,
     t: (key: any) => string,
     cultoId: string,
+    cultoDate?: string,
+    assignmentType?: string
 }
 
 function AssignmentSection({
@@ -60,6 +63,8 @@ function AssignmentSection({
     disabled,
     t,
     cultoId,
+    cultoDate,
+    assignmentType
 }: AssignmentSectionProps) {
     const [isEditing, setIsEditing] = useState(!selectedUserId)
 
@@ -90,13 +95,19 @@ function AssignmentSection({
                         <div className="shrink-0 relative z-[110]">
                             <UserSelector
                                 selectedUserId={selectedUserId}
-                                onSelect={(id) => {
-                                    onSelect(id)
-                                    if (id) setIsEditing(false)
+                                onSelect={(id, confirmed) => {
+                                    if (id && confirmed === false) {
+                                        onSelect(id, false)
+                                    } else {
+                                        onSelect(id, true)
+                                        if (id) setIsEditing(false)
+                                    }
                                 }}
                                 disabled={disabled}
                                 isEditing={isEditing}
                                 onEditChange={setIsEditing}
+                                cultoDate={cultoDate}
+                                assignmentType={assignmentType}
                             />
                         </div>
 
@@ -189,6 +200,8 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
     const { t, language } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
     const [isUpdating, setIsUpdating] = useState(false)
+    const [pendingAssignment, setPendingAssignment] = useState<{ type: 'introduccion' | 'finalizacion' | 'ensenanza' | 'testimonios', userId: string } | null>(null)
+    const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false)
 
     const handleToggleFestivo = async () => {
         setIsUpdating(true)
@@ -208,10 +221,24 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
         }
     }
 
+    const handleConfirmAssignment = async () => {
+        if (!pendingAssignment) return
+        setIsConflictDialogOpen(false)
+        await handleAssignment(pendingAssignment.type, pendingAssignment.userId, true)
+        setPendingAssignment(null)
+    }
+
     const handleAssignment = async (
         tipo: 'introduccion' | 'finalizacion' | 'ensenanza' | 'testimonios',
-        selectedUserId: string | null
+        selectedUserId: string | null,
+        confirmed: boolean = true
     ) => {
+        if (selectedUserId && !confirmed) {
+            setPendingAssignment({ type: tipo, userId: selectedUserId })
+            setIsConflictDialogOpen(true)
+            return
+        }
+
         setIsUpdating(true)
         try {
             const result = await updateAssignment(culto.id, tipo, selectedUserId)
@@ -433,10 +460,12 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 icon={<User className="w-5 h-5" />}
                                 selectedUserId={culto.id_usuario_intro}
                                 usuarioActual={culto.usuario_intro}
-                                onSelect={(id) => handleAssignment('introduccion', id)}
+                                onSelect={(id, confirmed) => handleAssignment('introduccion', id, confirmed)}
                                 disabled={isUpdating}
                                 t={t}
                                 cultoId={culto.id}
+                                cultoDate={culto.fecha}
+                                assignmentType="introduccion"
                             />
                         </div>
                     )}
@@ -448,10 +477,12 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 icon={<BookOpen className="w-5 h-5" />}
                                 selectedUserId={culto.id_usuario_ensenanza}
                                 usuarioActual={culto.usuario_ensenanza}
-                                onSelect={(id) => handleAssignment('ensenanza', id)}
+                                onSelect={(id, confirmed) => handleAssignment('ensenanza', id, confirmed)}
                                 disabled={isUpdating}
                                 t={t}
                                 cultoId={culto.id}
+                                cultoDate={culto.fecha}
+                                assignmentType="ensenanza"
                             />
                         </div>
                     )}
@@ -463,10 +494,12 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 icon={<User className="w-5 h-5" />}
                                 selectedUserId={culto.id_usuario_testimonios}
                                 usuarioActual={culto.usuario_testimonios}
-                                onSelect={(id) => handleAssignment('testimonios', id)}
+                                onSelect={(id, confirmed) => handleAssignment('testimonios', id, confirmed)}
                                 disabled={isUpdating}
                                 t={t}
                                 cultoId={culto.id}
+                                cultoDate={culto.fecha}
+                                assignmentType="testimonios"
                             />
                         </div>
                     )}
@@ -478,14 +511,69 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 icon={<User className="w-5 h-5" />}
                                 selectedUserId={culto.id_usuario_finalizacion}
                                 usuarioActual={culto.usuario_finalizacion}
-                                onSelect={(id) => handleAssignment('finalizacion', id)}
+                                onSelect={(id, confirmed) => handleAssignment('finalizacion', id, confirmed)}
                                 disabled={isUpdating}
                                 t={t}
                                 cultoId={culto.id}
+                                cultoDate={culto.fecha}
+                                assignmentType="finalizacion"
                             />
                         </div>
                     )}
                 </div>
+
+                {/* Conflict Confirmation Dialog Portal */}
+                {isConflictDialogOpen && createPortal(
+                    <AnimatePresence>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[2.5rem] shadow-2xl border border-white/20 dark:border-white/10 overflow-hidden relative"
+                            >
+                                <div className="absolute top-0 left-0 w-full h-32 bg-amber-500/10" />
+                                <div className="p-8 relative z-10 text-center">
+                                    <div className="w-20 h-20 bg-amber-100 dark:bg-amber-500/20 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-xl shadow-amber-500/20">
+                                        <AlertTriangle className="w-10 h-10 text-amber-600 dark:text-amber-500" />
+                                    </div>
+
+                                    <h3 className="text-2xl font-black uppercase tracking-tight mb-3">
+                                        Usuario No Disponible
+                                    </h3>
+
+                                    <p className="text-muted-foreground font-medium leading-relaxed mb-8">
+                                        Este hermano ha indicado que no está disponible para esta fecha o tipo de asignación. ¿Deseas asignarlo de todos modos?
+                                    </p>
+
+                                    <div className="flex flex-col gap-3">
+                                        <button
+                                            onClick={handleConfirmAssignment}
+                                            className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm transition-all shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98]"
+                                        >
+                                            Asignar de todos modos
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setIsConflictDialogOpen(false)
+                                                setPendingAssignment(null)
+                                            }}
+                                            className="w-full py-4 bg-muted hover:bg-muted/80 text-foreground/70 hover:text-foreground rounded-2xl font-black uppercase tracking-widest text-sm transition-all"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    </AnimatePresence>,
+                    document.body
+                )}
 
                 {/* Fila 2: Lecturas y Música */}
                 <div className="grid gap-4 md:gap-6 lg:gap-8 lg:grid-cols-12 w-full items-start">

@@ -19,9 +19,9 @@
 
 import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { 
-    User, Mail, Phone, Shield, Moon, Globe, Sun, 
-    Camera, Loader2, Sparkles, UserCircle, 
+import {
+    User, Mail, Phone, Shield, Moon, Globe, Sun,
+    Camera, Loader2, Sparkles, UserCircle,
     Calendar, Save, AlertCircle, Trash2
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -45,13 +45,14 @@ interface ProfileClientProps {
 export default function ProfileClient({ profile, email }: ProfileClientProps) {
     const { t, language, setLanguage } = useI18n()
     const { isDark, toggleTheme } = useTheme()
-    
+
     // Form States
     const [formData, setFormData] = useState({
         nombre: profile?.nombre || '',
         apellidos: profile?.apellidos || '',
         email_contacto: profile?.email_contacto || '',
-        telefono: profile?.telefono || ''
+        telefono: profile?.telefono || '',
+        availability: profile?.availability || {}
     })
     const [isLoading, setIsLoading] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
@@ -84,7 +85,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
         try {
             const data = new FormData()
             data.append('avatar', croppedBlob, 'avatar.jpg')
-            
+
             const result = await uploadAvatar(data)
             if (result.success && result.data) {
                 setAvatarPreview(result.data)
@@ -104,7 +105,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
 
     const handleDeleteAvatar = async () => {
         if (!avatarPreview) return
-        
+
         setIsDeleteDialogOpen(false)
         setIsLoading(true)
         try {
@@ -126,7 +127,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsSaving(true)
-        
+
         try {
             const result = await updateProfile(formData)
             if (result.success) {
@@ -146,7 +147,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
         <div className="max-w-5xl mx-auto space-y-8 pb-12 px-4 no-scrollbar">
             {/* Header con Animación */}
             <div className="space-y-2">
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex items-center gap-3"
@@ -158,7 +159,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                         {t('profile.title')}
                     </h1>
                 </motion.div>
-                <motion.p 
+                <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1 }}
@@ -182,7 +183,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                             {/* Avatar Editable */}
                             <div className="relative mx-auto w-44 h-44 group/avatar">
                                 <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl group-hover/avatar:bg-primary/40 transition-all" />
-                                <div 
+                                <div
                                     className="relative w-full h-full rounded-full bg-gradient-to-br from-primary via-accent to-primary p-1 shadow-xl cursor-pointer hover:scale-105 transition-transform"
                                     onClick={() => fileInputRef.current?.click()}
                                 >
@@ -196,13 +197,13 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                                 </span>
                                             </div>
                                         )}
-                                        
+
                                         {/* Overlay de Edición */}
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center transition-opacity">
                                             <Camera className="w-8 h-8 text-white mb-2" />
                                             <span className="text-[10px] font-black text-white uppercase tracking-widest">{t('users.form.change')}</span>
                                         </div>
-                                        
+
                                         {isLoading && (
                                             <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                                                 <Loader2 className="w-8 h-8 text-white animate-spin" />
@@ -210,14 +211,14 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                         )}
                                     </div>
                                 </div>
-                                <input 
+                                <input
                                     ref={fileInputRef}
                                     type="file"
                                     accept="image/*"
                                     className="hidden"
                                     onChange={handleFileChange}
                                 />
-                                
+
                                 {/* Botón Eliminar Avatar - Solo visible cuando hay avatar */}
                                 {avatarPreview && !isLoading && (
                                     <button
@@ -310,15 +311,15 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                 </div>
                             </div>
 
-                                {/* Sección de Contacto */}
-                                <div className="pt-4 space-y-6">
-                                    <div className="flex items-center gap-2 px-2">
-                                        <div className="h-px flex-1 bg-white/5" />
-                                        <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">
-                                            {t('profile.contactInfo')}
-                                        </span>
-                                        <div className="h-px flex-1 bg-white/5" />
-                                    </div>
+                            {/* Sección de Contacto */}
+                            <div className="pt-4 space-y-6">
+                                <div className="flex items-center gap-2 px-2">
+                                    <div className="h-px flex-1 bg-white/5" />
+                                    <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">
+                                        {t('profile.contactInfo')}
+                                    </span>
+                                    <div className="h-px flex-1 bg-white/5" />
+                                </div>
 
                                 <div className="grid gap-6 md:grid-cols-2">
                                     <div className="space-y-2">
@@ -359,14 +360,13 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
 
                                 {/* Botón Guardar Centrado */}
                                 <div className="flex justify-center pt-6">
-                                    <Button 
-                                        type="submit" 
+                                    <Button
+                                        type="submit"
                                         disabled={isSaving}
-                                        className={`rounded-2xl px-8 py-3 font-black uppercase tracking-widest text-xs h-12 shadow-xl border-2 text-white hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
-                                            isDark 
-                                                ? 'bg-primary border-primary/50 hover:bg-primary/90 shadow-primary/40' 
-                                                : 'bg-blue-600 border-blue-700 hover:bg-blue-700 shadow-blue-500/50'
-                                        }`}
+                                        className={`rounded-2xl px-8 py-3 font-black uppercase tracking-widest text-xs h-12 shadow-xl border-2 text-white hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark
+                                            ? 'bg-primary border-primary/50 hover:bg-primary/90 shadow-primary/40'
+                                            : 'bg-blue-600 border-blue-700 hover:bg-blue-700 shadow-blue-500/50'
+                                            }`}
                                     >
                                         {isSaving ? <Loader2 className="w-5 h-5 animate-spin mr-2 text-white" /> : <Save className="w-5 h-5 mr-2 text-white" />}
                                         <span className="text-white font-black">{t('common.save')}</span>
@@ -398,7 +398,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                         </Label>
                                         <p className="font-bold text-sm truncate mt-1">{email}</p>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-2 p-3 bg-blue-500/5 rounded-2xl border border-blue-500/10 text-blue-600 dark:text-blue-400">
                                         <AlertCircle className="w-4 h-4 shrink-0" />
                                         <p className="text-[10px] font-bold leading-tight">
@@ -456,30 +456,28 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                             <button
                                                 type="button"
                                                 onClick={() => setLanguage('es-ES')}
-                                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
-                                                    language === 'es-ES' 
-                                                        ? isDark 
-                                                            ? 'bg-primary text-white shadow-lg shadow-primary/40' 
-                                                            : 'bg-blue-600 text-white shadow-lg shadow-blue-500/40'
-                                                        : isDark
-                                                            ? 'bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                                                            : 'bg-white text-foreground hover:bg-muted/50 shadow-sm'
-                                                }`}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${language === 'es-ES'
+                                                    ? isDark
+                                                        ? 'bg-primary text-white shadow-lg shadow-primary/40'
+                                                        : 'bg-blue-600 text-white shadow-lg shadow-blue-500/40'
+                                                    : isDark
+                                                        ? 'bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                                        : 'bg-white text-foreground hover:bg-muted/50 shadow-sm'
+                                                    }`}
                                             >
                                                 ES
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => setLanguage('ca-ES')}
-                                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
-                                                    language === 'ca-ES' 
-                                                        ? isDark 
-                                                            ? 'bg-primary text-white shadow-lg shadow-primary/40' 
-                                                            : 'bg-blue-600 text-white shadow-lg shadow-blue-500/40'
-                                                        : isDark
-                                                            ? 'bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                                                            : 'bg-white text-foreground hover:bg-muted/50 shadow-sm'
-                                                }`}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${language === 'ca-ES'
+                                                    ? isDark
+                                                        ? 'bg-primary text-white shadow-lg shadow-primary/40'
+                                                        : 'bg-blue-600 text-white shadow-lg shadow-blue-500/40'
+                                                    : isDark
+                                                        ? 'bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                                        : 'bg-white text-foreground hover:bg-muted/50 shadow-sm'
+                                                    }`}
                                             >
                                                 CA
                                             </button>
@@ -498,6 +496,34 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                     </Card> */}
                 </motion.div>
             </form>
+
+            <div className="mt-8 space-y-6">
+                {/* Availability Manager */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                >
+                    <AvailabilityManager
+                        value={formData.availability}
+                        onChange={(newAvailability) => setFormData(prev => ({ ...prev, availability: newAvailability }))}
+                        isDark={isDark}
+                    />
+                    <div className="flex justify-center pt-6">
+                        <Button
+                            onClick={handleSubmit}
+                            disabled={isSaving}
+                            className={`rounded-2xl px-12 py-4 font-black uppercase tracking-widest text-sm h-14 shadow-xl border-2 text-white hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark
+                                ? 'bg-emerald-600 border-emerald-500/50 hover:bg-emerald-500/90 shadow-emerald-500/40'
+                                : 'bg-emerald-600 border-emerald-700 hover:bg-emerald-700 shadow-emerald-500/50'
+                                }`}
+                        >
+                            {isSaving ? <Loader2 className="w-5 h-5 animate-spin mr-2 text-white" /> : <Save className="w-5 h-5 mr-2 text-white" />}
+                            <span className="text-white font-black">{t('common.save')}</span>
+                        </Button>
+                    </div>
+                </motion.div>
+            </div>
 
             {/* Modal de Edición de Avatar */}
             {tempImageSrc && (

@@ -25,7 +25,13 @@ const updateProfileSchema = z.object({
     nombre: z.string().min(1, 'El nombre es obligatorio'),
     apellidos: z.string().min(1, 'Los apellidos son obligatorios'),
     email_contacto: z.string().email('Email de contacto inválido').optional().or(z.literal('')).nullable(),
-    telefono: z.string().optional().or(z.literal('')).nullable()
+    telefono: z.string().optional().or(z.literal('')).nullable(),
+    availability: z.record(z.object({
+        intro: z.boolean().optional(),
+        finalization: z.boolean().optional(),
+        teaching: z.boolean().optional(),
+        testimonies: z.boolean().optional()
+    })).optional()
 })
 
 /**
@@ -36,11 +42,12 @@ const updateProfileSchema = z.object({
  * @returns Promesa con la respuesta de la acción
  */
 export async function updateProfile(
-    updates: { 
-        nombre: string, 
-        apellidos: string, 
-        email_contacto?: string | null, 
-        telefono?: string | null 
+    updates: {
+        nombre: string,
+        apellidos: string,
+        email_contacto?: string | null,
+        telefono?: string | null,
+        availability?: Record<string, any>
     }
 ): Promise<ActionResponse<void>> {
     try {
@@ -62,17 +69,18 @@ export async function updateProfile(
                 nombre: updates.nombre,
                 apellidos: updates.apellidos,
                 email_contacto: updates.email_contacto || null,
-                telefono: updates.telefono || null
+                telefono: updates.telefono || null,
+                availability: updates.availability || {}
             })
             .eq('id', user.id)
 
         if (error) throw error
 
         const fullName = `${updates.nombre} ${updates.apellidos}`.trim()
-        
+
         // Actualizar metadatos del usuario en Auth
         await supabase.auth.updateUser({
-            data: { 
+            data: {
                 nombre: updates.nombre,
                 apellidos: updates.apellidos,
                 full_name: fullName,
@@ -122,7 +130,7 @@ export async function uploadAvatar(formData: FormData): Promise<ActionResponse<s
 
         const { error: uploadError } = await supabase.storage
             .from('avatars')
-            .upload(filePath, file, { 
+            .upload(filePath, file, {
                 upsert: true,
                 contentType: file.type
             })
@@ -138,7 +146,7 @@ export async function uploadAvatar(formData: FormData): Promise<ActionResponse<s
             try {
                 const urlParts = profile.avatar_url.split('/')
                 const oldFileName = urlParts[urlParts.length - 1]
-                
+
                 // Solo borrar si el nombre del archivo es diferente al nuevo
                 if (oldFileName && oldFileName !== fileName) {
                     await supabase.storage

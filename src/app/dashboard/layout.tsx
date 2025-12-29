@@ -270,8 +270,14 @@ export default function DashboardLayout({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         style={{ opacity }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100 md:hidden"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100 md:hidden touch-none"
                         onClick={() => setIsMobileMenuOpen(false)}
+                        onPan={(e, info) => {
+                            // Arrastrar el overlay cierra el menú
+                            const newX = Math.max(-300, Math.min(0, 0 + info.offset.x))
+                            x.set(newX)
+                        }}
+                        onPanEnd={handlePanEnd}
                     />
                 )}
             </AnimatePresence>
