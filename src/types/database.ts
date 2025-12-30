@@ -20,12 +20,20 @@ export interface Profile {
     rol: UserRole
     avatar_url: string | null
     pulpito: boolean
-    availability?: Record<string, {
-        intro?: boolean
-        finalization?: boolean
-        teaching?: boolean
-        testimonies?: boolean
-    }>
+    availability?: {
+        template?: Record<string, {
+            intro?: boolean
+            finalization?: boolean
+            teaching?: boolean
+            testimonies?: boolean
+        }>
+        exceptions?: Record<string, {
+            intro?: boolean
+            finalization?: boolean
+            teaching?: boolean
+            testimonies?: boolean
+        }>
+    }
     created_at: string
 }
 

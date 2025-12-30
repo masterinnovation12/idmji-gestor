@@ -28,6 +28,7 @@ interface UserSelectorProps {
     onEditChange?: (isEditing: boolean) => void
     cultoDate?: string
     assignmentType?: string
+    isFestivo?: boolean
 }
 
 export default function UserSelector({
@@ -37,7 +38,8 @@ export default function UserSelector({
     isEditing: externalIsEditing,
     onEditChange,
     cultoDate,
-    assignmentType
+    assignmentType,
+    isFestivo
 }: UserSelectorProps) {
     const { t } = useI18n()
     const [id] = useState(() => Math.random().toString(36).substring(2, 9))
@@ -128,18 +130,55 @@ export default function UserSelector({
 
     // Helper to check availability
     const isUserAvailable = (user: Profile) => {
-        if (!cultoDate || !assignmentType) return true // If no context, assume available/neutral
-        if (!user.availability) return true // If no availability set, assume available
+        if (!cultoDate || !assignmentType) return true // If no context, assume available
+
+        // Handle legacy availability (simple array/object) vs new structure (template/exceptions)
+        const availabilityFn = user.availability as any
+
+        if (!availabilityFn) return true // Default available if no constraints set
+
+        // Helper to check specific assignment in an availability object
+        const checkType = (availObj: any) => {
+            // Supports both boolean (legacy) and object check
+            if (!availObj) return false
+            return availObj[assignmentType] !== false
+        }
 
         const date = new Date(cultoDate)
-        const dayOfWeek = date.getDay() // 0 = Sunday, 1 = Monday...
-        const dayAvailability = user.availability[dayOfWeek]
+        const dateStr = date.toISOString().split('T')[0] // YYYY-MM-DD
+        const dayOfWeek = date.getDay() // 0-6
 
-        if (!dayAvailability) return true // If no setting for this day, assume available
+        // 1. Check Exceptions (Highest Priority)
+        // New structure: availability.exceptions['YYYY-MM-DD']
+        if (availabilityFn.exceptions && availabilityFn.exceptions[dateStr]) {
+            const exception = availabilityFn.exceptions[dateStr]
+            // If exception exists for this date, IT RULES.
+            return exception[assignmentType] === true // Must be explicitly true
+        }
 
-        // Check specific assignment type
-        // Note: The key in availability object matches assignmentType ('intro', 'finalization', etc.)
-        return dayAvailability[assignmentType as keyof typeof dayAvailability] !== false
+        // 2. Check Template (Standard Priority)
+        // New structure: availability.template['0'...'6']
+        if (availabilityFn.template) {
+            const dayTemplate = availabilityFn.template[dayOfWeek.toString()]
+            if (dayTemplate) {
+                return dayTemplate[assignmentType] === true
+            }
+            // If no template for this day, assume unavailable? 
+            // Or available? Usually 'template' defines availability. Defaults to false.
+            return false
+        }
+
+        // 3. Fallback to Legacy/Old Structure (if exists)
+        // old: availability[dayOfWeek] = { assignments... }
+        if (availabilityFn[dayOfWeek]) {
+            return availabilityFn[dayOfWeek][assignmentType] !== false
+        }
+
+        // If structure exists but no matching rule found, assume unavailable to be safe? 
+        // Or if 'availability' is empty object?
+        // Let's assume unavailable if they have availability set up but no match.
+        // But if availability is completely null (handled at top), they are available.
+        return false
     }
 
     // Sort results: Available first
@@ -210,7 +249,7 @@ export default function UserSelector({
 
             {/* Dropdown de Resultados con PORTAL */}
             {mounted && showResults && dropdownRect && createPortal(
-                <div key={`user-selector-portal-${id}`} className="fixed inset-0 z-[9998]" onClick={() => setShowResults(false)}>
+                <div key={`user-selector-portal-${id}`} className="fixed inset-0 z-9998" onClick={() => setShowResults(false)}>
                     <motion.div
                         key={`user-selector-dropdown-${id}`}
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -256,7 +295,7 @@ export default function UserSelector({
                                                     handleSelect(user, true)
                                                 }}
                                                 className={`
-                                                    w-full px-4 py-3.5 text-left transition-all rounded-[1.5rem] flex items-center justify-between group/item relative overflow-hidden
+                                                    w-full px-4 py-3.5 text-left transition-all rounded-3xl flex items-center justify-between group/item relative overflow-hidden
                                                     ${isSelected ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-primary/5 text-foreground'}
                                                     ${!isAvailable && !isSelected ? 'opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0' : ''}
                                                 `}

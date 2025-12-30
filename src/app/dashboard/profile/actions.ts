@@ -26,12 +26,20 @@ const updateProfileSchema = z.object({
     apellidos: z.string().min(1, 'Los apellidos son obligatorios'),
     email_contacto: z.string().email('Email de contacto inválido').optional().or(z.literal('')).nullable(),
     telefono: z.string().optional().or(z.literal('')).nullable(),
-    availability: z.record(z.object({
-        intro: z.boolean().optional(),
-        finalization: z.boolean().optional(),
-        teaching: z.boolean().optional(),
-        testimonies: z.boolean().optional()
-    })).optional()
+    availability: z.object({
+        template: z.record(z.string(), z.object({
+            intro: z.boolean().optional(),
+            finalization: z.boolean().optional(),
+            teaching: z.boolean().optional(),
+            testimonies: z.boolean().optional()
+        })).optional(),
+        exceptions: z.record(z.string(), z.object({
+            intro: z.boolean().optional(),
+            finalization: z.boolean().optional(),
+            teaching: z.boolean().optional(),
+            testimonies: z.boolean().optional()
+        })).optional()
+    }).optional()
 })
 
 /**
@@ -59,7 +67,7 @@ export async function updateProfile(
         // Validar datos con Zod
         const parsed = updateProfileSchema.safeParse(updates)
         if (!parsed.success) {
-            const errorMsg = parsed.error.errors[0]?.message || 'Datos inválidos'
+            const errorMsg = (parsed as any).error.issues[0]?.message || 'Datos inválidos'
             return { success: false, error: errorMsg }
         }
 

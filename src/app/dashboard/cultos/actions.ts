@@ -193,3 +193,35 @@ export async function getUserAssignments(userId: string, startStr: string, endSt
 
     return { data }
 }
+
+/**
+ * Obtiene los cultos en un rango de fechas para el gestor de disponibilidad.
+ */
+export async function getCultosForRange(startDate: string, endDate: string) {
+    const supabase = await createClient()
+
+    try {
+        const { data, error } = await supabase
+            .from('cultos')
+            .select(`
+                id,
+                fecha,
+                tipo_culto:culto_types(
+                    nombre,
+                    tiene_ensenanza,
+                    tiene_testimonios,
+                    tiene_lectura_introduccion,
+                    tiene_lectura_finalizacion
+                )
+            `)
+            .gte('fecha', startDate)
+            .lte('fecha', endDate)
+
+        if (error) throw error
+
+        return { success: true, data }
+    } catch (error) {
+        console.error('Error fetching cultos range:', error)
+        return { success: false, error: 'Error al cargar cultos' }
+    }
+}

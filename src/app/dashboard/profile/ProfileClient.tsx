@@ -47,13 +47,20 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
     const { t, language, setLanguage } = useI18n()
     const { isDark, toggleTheme } = useTheme()
 
+    // Detectar si es el formato antiguo (sin template/exceptions) y migrar
+    const initialAvailability = profile?.availability
+        ? ('template' in profile.availability)
+            ? profile.availability
+            : { template: profile.availability, exceptions: {} }
+        : { template: {}, exceptions: {} }
+
     // Form States
     const [formData, setFormData] = useState({
         nombre: profile?.nombre || '',
         apellidos: profile?.apellidos || '',
         email_contacto: profile?.email_contacto || '',
         telefono: profile?.telefono || '',
-        availability: profile?.availability || {}
+        availability: initialAvailability
     })
     const [isLoading, setIsLoading] = useState(false)
     const [isSaving, setIsSaving] = useState(false)

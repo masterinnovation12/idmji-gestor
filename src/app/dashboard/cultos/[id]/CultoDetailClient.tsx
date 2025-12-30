@@ -51,7 +51,8 @@ interface AssignmentSectionProps {
     t: (key: any) => string,
     cultoId: string,
     cultoDate?: string,
-    assignmentType?: string
+    assignmentType?: string,
+    isFestivo?: boolean
 }
 
 function AssignmentSection({
@@ -64,7 +65,8 @@ function AssignmentSection({
     t,
     cultoId,
     cultoDate,
-    assignmentType
+    assignmentType,
+    isFestivo
 }: AssignmentSectionProps) {
     const [isEditing, setIsEditing] = useState(!selectedUserId)
 
@@ -108,6 +110,7 @@ function AssignmentSection({
                                 onEditChange={setIsEditing}
                                 cultoDate={cultoDate}
                                 assignmentType={assignmentType}
+                                isFestivo={isFestivo}
                             />
                         </div>
 
@@ -466,6 +469,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 cultoId={culto.id}
                                 cultoDate={culto.fecha}
                                 assignmentType="introduccion"
+                                isFestivo={culto.es_laborable_festivo}
                             />
                         </div>
                     )}
@@ -483,6 +487,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 cultoId={culto.id}
                                 cultoDate={culto.fecha}
                                 assignmentType="ensenanza"
+                                isFestivo={culto.es_laborable_festivo}
                             />
                         </div>
                     )}
@@ -500,6 +505,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 cultoId={culto.id}
                                 cultoDate={culto.fecha}
                                 assignmentType="testimonios"
+                                isFestivo={culto.es_laborable_festivo}
                             />
                         </div>
                     )}
@@ -517,6 +523,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 cultoId={culto.id}
                                 cultoDate={culto.fecha}
                                 assignmentType="finalizacion"
+                                isFestivo={culto.es_laborable_festivo}
                             />
                         </div>
                     )}
