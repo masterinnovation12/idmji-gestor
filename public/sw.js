@@ -11,7 +11,7 @@
  * - Stale-while-revalidate: Para recursos que cambian ocasionalmente
  */
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = `idmji-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `idmji-dynamic-${CACHE_VERSION}`;
 
@@ -103,6 +103,13 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Estrategia Especial: Navegación (HTML) siempre Network First
+    // Evita servir HTML viejo que apunte a JS/CSS inexistentes (404)
+    if (request.mode === 'navigate') {
+        event.respondWith(networkFirst(request));
+        return;
+    }
+
     // Determinar estrategia de caché
     const isCacheFirst = CACHE_FIRST_PATTERNS.some(pattern => pattern.test(url.pathname) || pattern.test(url.href));
     const isNetworkFirst = NETWORK_FIRST_PATTERNS.some(pattern => pattern.test(url.pathname) || pattern.test(url.href));
@@ -114,7 +121,7 @@ self.addEventListener('fetch', (event) => {
         // NETWORK FIRST: Para APIs y contenido dinámico
         event.respondWith(networkFirst(request));
     } else {
-        // STALE WHILE REVALIDATE: Para todo lo demás (páginas de navegación)
+        // STALE WHILE REVALIDATE: Para todo lo demás
         event.respondWith(staleWhileRevalidate(request));
     }
 });
