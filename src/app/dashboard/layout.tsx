@@ -235,7 +235,7 @@ export default function DashboardLayout({
             {/* Usamos touch-action: pan-y para bloquear el gesto nativo horizontal (back/forward) del navegador */}
             {!isMobileMenuOpen && (
                 <motion.div
-                    className="fixed left-0 top-0 w-8 h-full z-[130] md:hidden cursor-grab touch-pan-y"
+                    className="fixed left-0 top-0 w-8 h-full z-130 md:hidden cursor-grab touch-pan-y"
                     style={{ x: 0 }}
                     drag="x"
                     dragConstraints={{ left: 0, right: 300 }}
@@ -273,7 +273,7 @@ export default function DashboardLayout({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         style={{ opacity }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] md:hidden touch-none"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100 md:hidden touch-none"
                         onClick={() => setIsMobileMenuOpen(false)}
                         onPan={(e, info) => {
                             // Arrastrar el overlay cierra el menú
@@ -288,7 +288,7 @@ export default function DashboardLayout({
             {/* Sidebars (Mobile) */}
             <motion.aside
                 style={{ x }}
-                className="fixed left-0 top-0 h-full w-[300px] z-[110] flex flex-col md:hidden shadow-2xl touch-pan-y will-change-transform"
+                className="fixed left-0 top-0 h-full w-[300px] z-110 flex flex-col md:hidden shadow-2xl touch-pan-y will-change-transform"
                 drag="x"
                 dragConstraints={{ left: -300, right: 0 }}
                 dragElastic={0.05}

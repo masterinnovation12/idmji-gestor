@@ -35,6 +35,7 @@ import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogD
 import { toast } from 'sonner'
 import { updateProfile, uploadAvatar, deleteAvatar } from './actions'
 import AvatarEditor from '@/components/AvatarEditor'
+import AvailabilityManager from '@/components/AvailabilityManager'
 import { obtenerIniciales } from '@/lib/helpers'
 
 interface ProfileClientProps {
