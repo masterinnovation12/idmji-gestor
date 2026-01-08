@@ -307,6 +307,7 @@ export default function DashboardLayout({
                     toggleTheme={toggleTheme}
                     userProfile={userProfile}
                     onMobileNav={() => setIsMobileMenuOpen(false)}
+                    isMobile={true}
                 />
             </motion.aside>
 
@@ -406,6 +407,7 @@ interface SidebarContentProps {
         rol: string | null
     } | null
     onMobileNav?: () => void
+    isMobile?: boolean
 }
 
 function SidebarContent({
@@ -420,7 +422,8 @@ function SidebarContent({
     isDark,
     toggleTheme,
     userProfile,
-    onMobileNav
+    onMobileNav,
+    isMobile = false
 }: SidebarContentProps) {
     return (
         <div className="flex flex-col h-full bg-[#063b7a] dark:bg-black/95 backdrop-blur-xl border-r border-white/10">
@@ -528,7 +531,7 @@ function SidebarContent({
                             <Link
                                 href={item.href}
                                 onClick={onMobileNav}
-                                className={`flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-300 group relative overflow-hidden ${isActive
+                                className={`flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-300 group relative ${isActive
                                     ? 'text-black shadow-2xl shadow-black/10'
                                     : 'text-white/60 hover:text-white'
                                     }`}
@@ -536,31 +539,38 @@ function SidebarContent({
                                 {/* Active background with Glow */}
                                 {isActive && (
                                     <motion.div
-                                        layoutId="activeTab"
-                                        className="absolute inset-0 bg-white/95 backdrop-blur-md -z-10"
-                                        initial={false}
+                                        layoutId={isMobile ? undefined : "activeTab-desktop"}
+                                        className="absolute inset-0 bg-white rounded-[1.25rem]"
+                                        initial={isMobile ? { opacity: 0, scale: 0.9 } : false}
+                                        animate={isMobile ? { opacity: 1, scale: 1 } : undefined}
                                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                                        style={{ zIndex: 0 }}
                                     />
                                 )}
 
                                 {/* Hover effect for non-active */}
                                 {!isActive && (
-                                    <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity -z-10 blur-xl" />
+                                    <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-[1.25rem] blur-xl" style={{ zIndex: 0 }} />
                                 )}
 
                                 <item.icon
                                     size={22}
-                                    className={`${isActive ? 'text-black scale-110' : 'group-hover:text-white group-hover:scale-110 transition-all duration-300'}`}
+                                    className={`relative z-10 ${isActive ? 'text-black scale-110' : 'group-hover:text-white group-hover:scale-110 transition-all duration-300'}`}
                                 />
 
                                 {!isSidebarCollapsed && (
-                                    <span className={`font-black text-xs tracking-widest uppercase flex-1 ${isActive ? 'text-black' : ''}`}>
+                                    <span className={`relative z-10 font-black text-xs tracking-widest uppercase flex-1 ${isActive ? 'text-black' : ''}`}>
                                         {item.label}
                                     </span>
                                 )}
 
                                 {isActive && !isSidebarCollapsed && (
-                                    <motion.div layoutId="arrow" initial={{ x: -10 }} animate={{ x: 0 }}>
+                                    <motion.div
+                                        className="relative z-10"
+                                        layoutId={isMobile ? undefined : "arrow-desktop"}
+                                        initial={isMobile ? { opacity: 0, x: -5 } : { x: -10 }}
+                                        animate={{ x: 0, opacity: 1 }}
+                                    >
                                         <ChevronRight size={16} className="text-black/50" />
                                     </motion.div>
                                 )}
