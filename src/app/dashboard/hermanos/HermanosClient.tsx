@@ -17,9 +17,9 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Search, Users, ChevronLeft, ShieldCheck, Mail, Sparkles, Award, CheckCircle2, XCircle, X } from 'lucide-react'
+import { Search, Users, ShieldCheck, Mail, Sparkles, Award, CheckCircle2, XCircle, X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import Link from 'next/link'
+import BackButton from '@/components/BackButton'
 import { Profile } from '@/types/database'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -152,13 +152,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                 animate={{ opacity: 1, x: 0 }}
                 className="flex items-center justify-between"
             >
-                <Link
-                    href="/dashboard"
-                    className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-primary transition-all group px-4 py-2 rounded-xl hover:bg-primary/5"
-                >
-                    <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    {t('dashboard.title')}
-                </Link>
+                <BackButton fallbackUrl="/dashboard" />
 
                 <div className="hidden sm:flex items-center gap-2 text-xs font-black text-muted-foreground/40 uppercase tracking-[0.2em]">
                     <Sparkles className="w-3 h-3 text-primary" />

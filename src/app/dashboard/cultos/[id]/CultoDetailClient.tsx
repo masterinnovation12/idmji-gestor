@@ -19,7 +19,7 @@
 
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Calendar, Clock, User, BookOpen, Music, ChevronLeft, AlertCircle, CheckCircle, Sparkles, AlertTriangle } from 'lucide-react'
+import { Calendar, Clock, User, BookOpen, Music, AlertCircle, CheckCircle, Sparkles, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -28,7 +28,7 @@ import HimnoCoroSelector from '@/components/HimnoCoroSelector'
 import BibleReadingManager from '@/components/BibleReadingManager'
 import { updateAssignment, toggleFestivo, updateCultoProtocol } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import Link from 'next/link'
+import BackButton from '@/components/BackButton'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Culto, Profile } from '@/types/database'
@@ -271,15 +271,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
         <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto space-y-4 md:space-y-6 lg:space-y-8 pb-20 px-4 md:px-8 no-scrollbar w-full">
             {/* Header / Breadcrumb */}
             <div className="space-y-4 md:space-y-6 w-full">
-                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-                    <Link
-                        href="/dashboard/cultos"
-                        className="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-muted/50 text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all font-black uppercase tracking-widest group border border-border/50 shadow-sm"
-                    >
-                        <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                        {t('dashboard.calendar')}
-                    </Link>
-                </motion.div>
+                <BackButton fallbackUrl="/dashboard/cultos" />
 
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -626,13 +618,11 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                 transition={{ delay: 0.4 }}
                 className="flex justify-center pt-8"
             >
-                <Link
-                    href="/dashboard/cultos"
-                    className="h-16 px-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-2xl shadow-blue-500/30 flex items-center justify-center gap-3 transition-all hover:scale-[1.05] active:scale-[0.95] border-b-4 border-blue-800"
-                >
-                    <CheckCircle className="w-5 h-5" />
-                    Finalizar y Guardar
-                </Link>
+                <BackButton
+                    fallbackUrl="/dashboard/cultos"
+                    label="Finalizar y Guardar"
+                    className="h-16 px-12 bg-blue-600 hover:bg-blue-700 text-white shadow-2xl shadow-blue-500/30 hover:scale-105 active:scale-95 border-b-4 border-blue-800"
+                />
             </motion.div>
         </div>
     )

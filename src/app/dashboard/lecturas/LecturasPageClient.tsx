@@ -25,7 +25,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { LecturaBiblica } from '@/types/database'
-import Link from 'next/link'
+import BackButton from '@/components/BackButton'
 
 // Extendemos el tipo para incluir los JOINS de la consulta
 interface LecturaExt extends LecturaBiblica {
@@ -115,12 +115,7 @@ export default function LecturasPageClient({
                 <div className="space-y-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <Link
-                                href="/dashboard"
-                                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors ring-1 ring-white/10"
-                            >
-                                <ChevronLeft className="w-5 h-5" />
-                            </Link>
+                            <BackButton fallbackUrl="/dashboard" />
                             <div>
                                 <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
                                     {t('lecturas.title')}

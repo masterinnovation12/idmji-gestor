@@ -19,10 +19,10 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useMotionValue, useDragControls } from 'framer-motion'
 import { getHimnos, getCoros } from './actions'
-import { Music, Search, Clock, ChevronLeft, Sparkles, AudioLines, Plus } from 'lucide-react'
+import { Music, Search, Clock, Sparkles, AudioLines, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import Link from 'next/link'
+import BackButton from '@/components/BackButton'
 import { Himno, Coro } from '@/types/database'
 import HimnoCoroSelector from '@/components/HimnoCoroSelector'
 
@@ -118,13 +118,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
         <div className="max-w-6xl mx-auto space-y-8 pb-12 px-4">
             {/* Breadcrumb y Header */}
             <div className="space-y-4">
-                <Link
-                    href="/dashboard"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors font-bold group"
-                >
-                    <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    {t('dashboard.title')}
-                </Link>
+                <BackButton fallbackUrl="/dashboard" />
 
                 <div className="flex flex-col lg:flex-row gap-8 justify-between items-start lg:items-center">
                     <div className="space-y-2">

@@ -27,10 +27,10 @@ import { getHermanos } from '../hermanos/actions'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
-import { Check, Calendar as CalendarIcon, CheckCircle, Clock, Sparkles, LayoutDashboard, AlertCircle, Users, Search, X } from 'lucide-react'
+import { Check, Calendar as CalendarIcon, CheckCircle, Clock, Sparkles, AlertCircle, Users, Search, X } from 'lucide-react'
 import { getCultoStatus } from '@/lib/utils/culto-helpers'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import Link from 'next/link'
+import BackButton from '@/components/BackButton'
 import { Culto } from '@/types/database'
 import type { HermanoData } from '../hermanos/actions'
 
@@ -210,18 +210,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
 
             {/* Header / Breadcrumb */}
             <div className="space-y-6">
-                <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                >
-                    <Link
-                        href="/dashboard"
-                        className="inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-muted/50 text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all font-black uppercase tracking-widest group border border-border/50"
-                    >
-                        <LayoutDashboard className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                        {t('nav.dashboard')}
-                    </Link>
-                </motion.div>
+                <BackButton fallbackUrl="/dashboard" />
 
                 <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
                     <div className="space-y-2">
