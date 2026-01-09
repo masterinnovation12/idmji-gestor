@@ -18,6 +18,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { Calendar, Clock, User, BookOpen, Music, AlertCircle, CheckCircle, Sparkles, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
@@ -205,6 +206,7 @@ function AssignmentSection({
 }
 
 export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
+    const router = useRouter()
     const { t, language } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
     const [isUpdating, setIsUpdating] = useState(false)
@@ -618,11 +620,13 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                 transition={{ delay: 0.4 }}
                 className="flex justify-center pt-8"
             >
-                <BackButton
-                    fallbackUrl="/dashboard/cultos"
-                    label="Finalizar y Guardar"
-                    className="h-16 px-12 bg-blue-600 hover:bg-blue-700 text-white shadow-2xl shadow-blue-500/30 hover:scale-105 active:scale-95 border-b-4 border-blue-800"
-                />
+                <button
+                    onClick={() => router.back()}
+                    className="h-16 px-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-2xl shadow-blue-500/30 flex items-center justify-center gap-3 transition-all hover:scale-[1.05] active:scale-[0.95] border-b-4 border-blue-800"
+                >
+                    <CheckCircle className="w-5 h-5" />
+                    Finalizar y Guardar
+                </button>
             </motion.div>
         </div>
     )
