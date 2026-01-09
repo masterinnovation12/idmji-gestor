@@ -55,7 +55,7 @@ export async function updateProfile(
         apellidos: string,
         email_contacto?: string | null,
         telefono?: string | null,
-        availability?: Record<string, any>
+        availability?: Record<string, unknown>
     }
 ): Promise<ActionResponse<void>> {
     try {
@@ -67,7 +67,7 @@ export async function updateProfile(
         // Validar datos con Zod
         const parsed = updateProfileSchema.safeParse(updates)
         if (!parsed.success) {
-            const errorMsg = (parsed as any).error.issues[0]?.message || 'Datos inválidos'
+            const errorMsg = (parsed as { error: { issues: { message: string }[] } }).error.issues[0]?.message || 'Datos inválidos'
             return { success: false, error: errorMsg }
         }
 
@@ -102,9 +102,9 @@ export async function updateProfile(
         revalidatePath('/dashboard/admin/users')
 
         return { success: true }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error updating profile:', error)
-        return { success: false, error: error.message || 'Error al actualizar perfil' }
+        return { success: false, error: (error as Error).message || 'Error al actualizar perfil' }
     }
 }
 
@@ -186,9 +186,9 @@ export async function uploadAvatar(formData: FormData): Promise<ActionResponse<s
         revalidatePath('/dashboard/admin/users')
 
         return { success: true, data: publicUrl }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error uploading avatar:', error)
-        return { success: false, error: error.message || 'Error al subir avatar' }
+        return { success: false, error: (error as Error).message || 'Error al subir avatar' }
     }
 }
 
@@ -252,8 +252,8 @@ export async function deleteAvatar(): Promise<ActionResponse<void>> {
         revalidatePath('/dashboard/admin/users')
 
         return { success: true }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error deleting avatar:', error)
-        return { success: false, error: error.message || 'Error al eliminar avatar' }
+        return { success: false, error: (error as Error).message || 'Error al eliminar avatar' }
     }
 }

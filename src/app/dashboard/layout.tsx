@@ -13,7 +13,6 @@
  * @author Antigravity AI
  * @date 2024-12-18
  */
-
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -42,7 +41,7 @@ import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { TranslationKey, Language } from '@/lib/i18n/translations'
-import Image from 'next/image'
+import NextImage from 'next/image'
 
 export default function DashboardLayout({
     children,
@@ -161,9 +160,10 @@ export default function DashboardLayout({
 
     // Cerrar menú móvil al cambiar de ruta
     useEffect(() => {
-        if (isMobileMenuOpen) {
+        const timer = setTimeout(() => {
             setIsMobileMenuOpen(false)
-        }
+        }, 0)
+        return () => clearTimeout(timer)
     }, [pathname])
 
     // Cerrar menú móvil al redimensionar a desktop
@@ -350,7 +350,7 @@ export default function DashboardLayout({
                         </button>
                         <div className="flex items-center gap-2">
                             <div className="relative w-8 h-8 rounded-xl overflow-hidden shadow-lg border border-white/20">
-                                <Image
+                                <NextImage
                                     src="/logo.jpg"
                                     alt="IDMJI Logo"
                                     width={32}
@@ -442,7 +442,7 @@ function SidebarContent({
                     >
                         <div className="relative w-12 h-12">
                             <div className="absolute inset-0 bg-primary/20 blur-lg rounded-2xl animate-pulse" />
-                            <Image
+                            <NextImage
                                 src="/logo.jpg"
                                 alt="IDMJI Logo"
                                 width={48}
@@ -460,7 +460,7 @@ function SidebarContent({
                         </div>
                     </motion.div>
                 ) : (
-                    <Image
+                    <NextImage
                         src="/logo.jpg"
                         alt="IDMJI Logo"
                         width={44}
@@ -543,36 +543,35 @@ function SidebarContent({
                                 {isActive && (
                                     <motion.div
                                         layoutId={isMobile ? undefined : "activeTab-desktop"}
-                                        className="absolute inset-0 bg-white rounded-[1.25rem]"
-                                        initial={isMobile ? { opacity: 0, scale: 0.9 } : false}
+                                        className="absolute inset-0 bg-white/90 backdrop-blur-md rounded-[1.25rem] -z-10"
+                                        initial={isMobile ? { opacity: 0, scale: 0.95 } : false}
                                         animate={isMobile ? { opacity: 1, scale: 1 } : undefined}
-                                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                                        style={{ zIndex: 0 }}
+                                        transition={{ type: 'spring', stiffness: 350, damping: 25 }}
                                     />
                                 )}
 
                                 {/* Hover effect for non-active */}
                                 {!isActive && (
-                                    <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-[1.25rem] blur-xl" style={{ zIndex: 0 }} />
+                                    <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-[1.25rem] -z-10" />
                                 )}
 
                                 <item.icon
                                     size={22}
-                                    className={`relative z-10 ${isActive ? 'text-black scale-110' : 'group-hover:text-white group-hover:scale-110 transition-all duration-300'}`}
+                                    className={`${isActive ? 'text-black scale-110' : 'text-white/60 group-hover:text-white group-hover:scale-110'} relative z-10 transition-all duration-300`}
                                 />
 
                                 {!isSidebarCollapsed && (
-                                    <span className={`relative z-10 font-black text-xs tracking-widest uppercase flex-1 ${isActive ? 'text-black' : ''}`}>
+                                    <span className={`flex-1 font-black text-xs tracking-widest uppercase relative z-10 ${isActive ? 'text-black' : 'text-white/60 group-hover:text-white'} transition-colors`}>
                                         {item.label}
                                     </span>
                                 )}
 
                                 {isActive && !isSidebarCollapsed && (
                                     <motion.div
-                                        className="relative z-10"
                                         layoutId={isMobile ? undefined : "arrow-desktop"}
                                         initial={isMobile ? { opacity: 0, x: -5 } : { x: -10 }}
                                         animate={{ x: 0, opacity: 1 }}
+                                        className="relative z-10"
                                     >
                                         <ChevronRight size={16} className="text-black/50" />
                                     </motion.div>
@@ -593,11 +592,14 @@ function SidebarContent({
                         className={`flex items-center gap-3 p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-all ${isSidebarCollapsed ? 'justify-center' : ''}`}
                     >
                         {userProfile.avatar_url ? (
-                            <img
-                                src={userProfile.avatar_url}
-                                alt=""
-                                className="w-10 h-10 rounded-xl object-cover border-2 border-white/20"
-                            />
+                            <div className="relative w-10 h-10 rounded-xl overflow-hidden border-2 border-white/20">
+                                <NextImage
+                                    src={userProfile.avatar_url}
+                                    alt={userProfile.nombre || 'Avatar'}
+                                    fill
+                                    className="object-cover"
+                                />
+                            </div>
                         ) : (
                             <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold text-sm border-2 border-white/20">
                                 {userProfile.nombre?.[0]}{userProfile.apellidos?.[0]}

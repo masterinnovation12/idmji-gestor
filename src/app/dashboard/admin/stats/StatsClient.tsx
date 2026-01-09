@@ -5,6 +5,7 @@ import { UserStats, getParticipationStats, getBibleReadingStats, ReadingStats } 
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { BarChart, Search, ArrowUpDown, BookOpen, PieChart as PieChartIcon } from 'lucide-react'
+import NextImage from 'next/image'
 import {
     BarChart as ReBarChart,
     Bar,
@@ -188,7 +189,14 @@ export default function StatsClient({ initialStats, currentYear }: StatsClientPr
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-3">
                                                         {stat.user.avatar_url ? (
-                                                            <img src={stat.user.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                                                            <div className="relative w-8 h-8 rounded-full overflow-hidden">
+                                                                <NextImage
+                                                                    src={stat.user.avatar_url}
+                                                                    alt=""
+                                                                    fill
+                                                                    className="object-cover"
+                                                                />
+                                                            </div>
                                                         ) : (
                                                             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
                                                                 {stat.user.nombre?.[0]}{stat.user.apellidos?.[0]}

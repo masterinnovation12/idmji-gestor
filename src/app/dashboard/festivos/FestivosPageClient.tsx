@@ -18,16 +18,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2, Calendar, ChevronLeft, Info } from 'lucide-react'
+import { Plus, Trash2, Calendar, Info } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { createFestivo, deleteFestivo, seedRandomFestivos } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import Link from 'next/link'
 import { toast } from 'sonner'
 import { Festivo } from '@/types/database'
 
@@ -297,10 +295,10 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
                                                     </div>
 
                                                     {/* Mostrar Culto Asociado si existe */}
-                                                    {(festivo as any).culto && (
+                                                    {(festivo as Festivo & { culto?: { id: number; hora: string; tipo: string } }).culto && (
                                                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border bg-primary/5 text-primary border-primary/20">
                                                             <Calendar className="w-3 h-3" />
-                                                            {(festivo as any).culto.tipo}
+                                                            {(festivo as Festivo & { culto?: { id: number; hora: string; tipo: string } }).culto?.tipo}
                                                         </div>
                                                     )}
                                                 </div>

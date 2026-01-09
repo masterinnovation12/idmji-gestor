@@ -200,7 +200,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
 
             {/* Calendar Grid (Desktop) */}
             <div className="hidden xl:block">
-                <div className={`grid ${view === 'day' ? 'grid-cols-1' : 'grid-cols-7'} gap-px bg-border/20 rounded-[2rem] overflow-hidden border border-border/50 shadow-2xl`}>
+                <div className={`grid ${view === 'day' ? 'grid-cols-1' : 'grid-cols-7'} gap-px bg-border/20 rounded-4xl overflow-hidden border border-border/50 shadow-2xl`}>
                     {view !== 'day' && weekDays.map(day => (
                         <div key={day} className="bg-muted/30 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground py-4 border-b border-border/50">
                             {day}
@@ -265,9 +265,9 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                 </div>
 
                                 {event ? (
-                                    <Link href={`/dashboard/cultos/${event.id}`} className="flex-1 min-h-0 w-full h-full">
+                                    <Link href={`/dashboard/cultos/${event.id}`} className="flex-1">
                                         <div className={`
-                                            w-full h-full p-3 md:p-4 rounded-[1.5rem] md:rounded-[2rem] transition-all cursor-pointer border shadow-md flex flex-col justify-between text-center overflow-hidden
+                                            w-full h-full p-3 md:p-4 rounded-3xl md:rounded-4xl transition-all cursor-pointer border shadow-md flex flex-col justify-between text-center overflow-hidden
                                             ${status === 'complete'
                                                 ? (isDark ? 'bg-emerald-900/30 border-emerald-500/40 hover:bg-emerald-900/40' : 'bg-emerald-100 border-emerald-300 hover:bg-emerald-200 shadow-lg shadow-emerald-200/20')
                                                 : event.es_laborable_festivo
@@ -306,22 +306,22 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                         <div className="space-y-0.5">
                                                             {showIntro && event.usuario_intro && (
                                                                 <div className="text-[10px] font-bold px-1 leading-snug text-left">
-                                                                    <span className="text-muted-foreground/70">I:</span> <span className="break-words">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
+                                                                    <span className="text-muted-foreground/70">I:</span> <span className="wrap-break-word">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
                                                                 </div>
                                                             )}
                                                             {showEnsenanza && event.usuario_ensenanza && (
                                                                 <div className="text-[10px] font-bold px-1 leading-snug text-left">
-                                                                    <span className="text-muted-foreground/70">E:</span> <span className="break-words">{event.usuario_ensenanza.nombre} {event.usuario_ensenanza.apellidos}</span>
+                                                                    <span className="text-muted-foreground/70">E:</span> <span className="wrap-break-word">{event.usuario_ensenanza.nombre} {event.usuario_ensenanza.apellidos}</span>
                                                                 </div>
                                                             )}
                                                             {showTestimonios && event.usuario_testimonios && (
                                                                 <div className="text-[10px] font-bold px-1 leading-snug text-left">
-                                                                    <span className="text-muted-foreground/70">T:</span> <span className="break-words">{event.usuario_testimonios.nombre} {event.usuario_testimonios.apellidos}</span>
+                                                                    <span className="text-muted-foreground/70">T:</span> <span className="wrap-break-word">{event.usuario_testimonios.nombre} {event.usuario_testimonios.apellidos}</span>
                                                                 </div>
                                                             )}
                                                             {showFinal && event.usuario_finalizacion && (
                                                                 <div className="text-[10px] font-bold px-1 leading-snug text-left">
-                                                                    <span className="text-muted-foreground/70">F:</span> <span className="break-words">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
+                                                                    <span className="text-muted-foreground/70">F:</span> <span className="wrap-break-word">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -405,7 +405,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: idx * 0.05 }}
                                             className={`
-                                                glass rounded-[2rem] p-5 flex items-start gap-4 border active:scale-[0.98] transition-all shadow-xl shadow-black/5 min-h-[140px]
+                                                glass rounded-4xl p-5 flex items-start gap-4 border active:scale-[0.98] transition-all shadow-xl shadow-black/5 min-h-[140px]
                                                 ${status === 'complete'
                                                     ? (isDark ? 'bg-emerald-900/30 border-emerald-500/40' : 'bg-emerald-50 border-emerald-200 shadow-emerald-500/10')
                                                     : event.es_laborable_festivo
@@ -436,7 +436,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
 
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-2 mb-2">
-                                                    <h3 className={`font-black text-sm uppercase tracking-tight leading-tight break-words flex-1 ${status === 'complete' ? 'text-emerald-900 dark:text-emerald-50' :
+                                                    <h3 className={`font-black text-sm uppercase tracking-tight leading-tight wrap-break-word flex-1 ${status === 'complete' ? 'text-emerald-900 dark:text-emerald-50' :
                                                         event.es_laborable_festivo ? 'text-amber-900 dark:text-amber-50' : ''
                                                         }`}>
                                                         {event.tipo_culto?.nombre}
@@ -475,22 +475,22 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                         }`}>
                                                         {showIntro && event.usuario_intro && (
                                                             <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="opacity-70">I:</span> <span className="break-words">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
+                                                                <span className="opacity-70">I:</span> <span className="wrap-break-word">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
                                                             </div>
                                                         )}
                                                         {showEnsenanza && event.usuario_ensenanza && (
                                                             <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="opacity-70">E:</span> <span className="break-words">{event.usuario_ensenanza.nombre} {event.usuario_ensenanza.apellidos}</span>
+                                                                <span className="opacity-70">E:</span> <span className="wrap-break-word">{event.usuario_ensenanza.nombre} {event.usuario_ensenanza.apellidos}</span>
                                                             </div>
                                                         )}
                                                         {showTestimonios && event.usuario_testimonios && (
                                                             <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="opacity-70">T:</span> <span className="break-words">{event.usuario_testimonios.nombre} {event.usuario_testimonios.apellidos}</span>
+                                                                <span className="opacity-70">T:</span> <span className="wrap-break-word">{event.usuario_testimonios.nombre} {event.usuario_testimonios.apellidos}</span>
                                                             </div>
                                                         )}
                                                         {showFinal && event.usuario_finalizacion && (
                                                             <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="opacity-70">F:</span> <span className="break-words">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
+                                                                <span className="opacity-70">F:</span> <span className="wrap-break-word">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -524,7 +524,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
             </div>
 
             {/* Leyenda y Notas */}
-            <div className="flex flex-wrap items-center justify-center gap-6 px-4 py-6 glass rounded-[2rem] border border-white/10">
+            <div className="flex flex-wrap items-center justify-center gap-6 px-4 py-6 glass rounded-4xl border border-white/10">
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/20" />
                     <span className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('calendar.legend.estudio')}</span>

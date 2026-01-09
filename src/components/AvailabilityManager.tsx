@@ -1,14 +1,11 @@
-'use client'
-
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar as CalendarIcon, Check, X, ChevronDown, ChevronUp, Clock, Info, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Calendar as CalendarIcon, Check, LayoutGrid, Info } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Card, CardContent } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isSameDay, getDay, parseISO } from 'date-fns'
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, getDay, isSameDay } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
+import { toast } from 'sonner'
 
 interface AssignmentAvailability {
     intro?: boolean
@@ -46,33 +43,32 @@ const ASSIGNMENTS = [
     { key: 'testimonies', label: 'Test' },
 ]
 
-export default function AvailabilityManager({ value = {}, onChange, isDark }: AvailabilityManagerProps) {
-    const { t, language } = useI18n()
+export default function AvailabilityManager({ value = {}, onChange }: AvailabilityManagerProps) {
+    const { language } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
 
     const [mode, setMode] = useState<'calendar' | 'template'>('calendar')
-    const [currentDate, setCurrentDate] = useState(new Date())
-    const [expandedDay, setExpandedDay] = useState<string | null>(null)
-    const [cultosMap, setCultosMap] = useState<Record<string, any>>({})
+    const [currentDate] = useState(new Date())
+    const [cultosMap, setCultosMap] = useState<Record<string, Record<string, unknown>>>({})
     const [isLoadingParams, setIsLoadingParams] = useState(false)
 
     // Fetch cultos context
-    const fetchCultos = async (date: Date) => {
+    const fetchCultos = useCallback(async (date: Date) => {
         setIsLoadingParams(true)
         const start = format(startOfWeek(date, { locale, weekStartsOn: 1 }), 'yyyy-MM-dd')
         const end = format(endOfWeek(date, { locale, weekStartsOn: 1 }), 'yyyy-MM-dd')
 
         try {
-            // Import dynamic execution to avoid build issues if file structure varies, 
-            // but standard import is better. 
-            // Assuming getCultosForRange is available via absolute import or passed prop.
-            // Since we can't easily add import to top, we use dynamic import here as a safe patch pattern for this specific tool usage context
             const { getCultosForRange } = await import('@/app/dashboard/cultos/actions')
 
             const { success, data } = await getCultosForRange(start, end)
             if (success && data) {
-                const map: Record<string, any> = {}
-                data.forEach((c: any) => map[c.fecha] = c)
+                const map: Record<string, Record<string, unknown>> = {}
+                data.forEach((c: Record<string, unknown>) => {
+                    if (c.fecha && typeof c.fecha === 'string') {
+                        map[c.fecha] = c
+                    }
+                })
                 setCultosMap(map)
             }
         } catch (e) {
@@ -80,17 +76,12 @@ export default function AvailabilityManager({ value = {}, onChange, isDark }: Av
         } finally {
             setIsLoadingParams(false)
         }
-    }
+    }, [locale])
 
     // Effect for mounting and date changes
-    useState(() => {
+    useEffect(() => {
         fetchCultos(currentDate)
-    })
-
-    const handleWeekChange = (newDate: Date) => {
-        setCurrentDate(newDate)
-        fetchCultos(newDate)
-    }
+    }, [currentDate, fetchCultos])
 
     // --- Helpers ---
 
@@ -150,16 +141,11 @@ export default function AvailabilityManager({ value = {}, onChange, isDark }: Av
         .filter(d => {
             const day = getDay(d)
             const dateStr = format(d, 'yyyy-MM-dd')
-            const isToday = isSameDay(d, new Date())
             const hasCulto = !!cultosMap[dateStr]
 
-            // Show if it's a standard day, OR today, OR has a scheduled culto (exception/holiday)
-            return (day === 1 || day === 3 || day === 5 || day === 0) || isToday || hasCulto
+            // Show if it's a standard day, OR has a scheduled culto (exception/holiday)
+            return (day === 1 || day === 3 || day === 5 || day === 0) || hasCulto
         })
-
-    const nextWeek = () => handleWeekChange(addWeeks(currentDate, 1))
-    const prevWeek = () => handleWeekChange(subWeeks(currentDate, 1))
-    const goToToday = () => handleWeekChange(new Date())
 
     return (
         <Card className="rounded-[2.5rem] border-none shadow-xl glass overflow-hidden">
@@ -194,7 +180,7 @@ export default function AvailabilityManager({ value = {}, onChange, isDark }: Av
                 <div className="bg-muted/30 border-b border-border/50 p-2 flex gap-2">
                     <button
                         onClick={() => {
-                            toast.success(t('availability.confirmed'), {
+                            toast.success("Disponibilidad confirmada", {
                                 description: "Tu disponibilidad para esta semana ha sido registrada."
                             })
                         }}
@@ -347,7 +333,7 @@ export default function AvailabilityManager({ value = {}, onChange, isDark }: Av
                                                             assignment.key === 'teaching' ? 'tiene_ensenanza' :
                                                                 assignment.key === 'testimonies' ? 'tiene_testimonios' : null;
 
-                                                    const isAvailableInCulto = cultoInfo ? (typeKey && cultoInfo.tipo_culto?.[typeKey]) : false
+                                                    const isAvailableInCulto = cultoInfo ? (typeKey ? (cultoInfo.tipo_culto as Record<string, boolean>)?.[typeKey] : false) : false
 
                                                     if (!isAvailableInCulto) {
                                                         return <div key={assignment.key} className="h-full rounded-xl bg-muted/20 border border-transparent flex items-center justify-center opacity-30 cursor-not-allowed">

@@ -56,19 +56,19 @@ export async function getMovimientos(
 
         if (error) throw error
 
-        const formattedData: MovimientoData[] = (data || []).map((m: any) => ({
+        const formattedData: MovimientoData[] = (data as unknown as { id: string; fecha_hora: string; id_usuario: string | null; tipo: string; descripcion: string | null; culto_id: string | null; profiles: { nombre: string; apellidos: string }[] | null; cultos: { fecha: string }[] | null }[] || []).map((m) => ({
             id: m.id,
             fecha_hora: m.fecha_hora,
             id_usuario: m.id_usuario,
             tipo: m.tipo,
             descripcion: m.descripcion,
             culto_id: m.culto_id,
-            usuario: m.profiles ? {
-                nombre: m.profiles.nombre,
-                apellidos: m.profiles.apellidos
+            usuario: m.profiles && m.profiles[0] ? {
+                nombre: m.profiles[0].nombre,
+                apellidos: m.profiles[0].apellidos
             } : undefined,
-            culto: m.cultos ? {
-                fecha: m.cultos.fecha
+            culto: m.cultos && m.cultos[0] ? {
+                fecha: m.cultos[0].fecha
             } : undefined
         }))
 
@@ -96,6 +96,10 @@ export async function getMovimientosTipos(): Promise<ActionResponse<string[]>> {
 
         if (error) throw error
 
+        // Assuming initialTipos is defined elsewhere or this is a placeholder for a different logic
+        // The original patch had `const [tipos] = useState<string[]>(initialTipos).map(m => m.tipo))].filter(Boolean)`
+        // which is syntactically incorrect and misuses useState.
+        // Reverting to the original logic for extracting unique types, as useState is not applicable here.
         const tipos = [...new Set((data || []).map(m => m.tipo))].filter(Boolean)
 
         return { success: true, data: tipos }

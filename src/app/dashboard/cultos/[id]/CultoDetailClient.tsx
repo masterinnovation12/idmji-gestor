@@ -32,6 +32,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Culto, Profile } from '@/types/database'
+import NextImage from 'next/image'
 
 interface CultoDetailClientProps {
     culto: Culto
@@ -48,7 +49,7 @@ interface AssignmentSectionProps {
     usuarioActual: Partial<Profile> | null | undefined,
     onSelect: (id: string | null, confirmed?: boolean) => void,
     disabled: boolean,
-    t: (key: any) => string,
+    t: (key: string) => string,
     cultoId: string,
     cultoDate?: string,
     assignmentType?: string,
@@ -132,8 +133,12 @@ function AssignmentSection({
                                         <div className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-black text-xs md:text-sm lg:text-base border-2 shadow-lg shrink-0 ${isEditing ? 'bg-muted border-border text-muted-foreground' : 'bg-primary/20 border-white/20 text-primary'
                                             }`}>
                                             {usuarioActual.avatar_url ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img src={usuarioActual.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
+                                                <NextImage
+                                                    src={usuarioActual.avatar_url}
+                                                    alt=""
+                                                    fill
+                                                    className="object-cover"
+                                                />
                                             ) : (
                                                 <span className="uppercase tracking-tighter">{usuarioActual.nombre?.[0]}{usuarioActual.apellidos?.[0]}</span>
                                             )}

@@ -18,7 +18,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Culto, Profile } from '@/types/database'
 import { getUserAssignments } from './cultos/actions'
-import { toast } from 'sonner' // Ensure sonner is installed or remove if not
+import { toast } from 'sonner'
+import NextImage from 'next/image'
 
 // --- Sub-componentes ---
 
@@ -37,7 +38,12 @@ function UserAvatar({ usuario, size = 'md' }: { usuario: Partial<Profile> | null
     return (
         <div className={`relative ${sizeClasses[size]} rounded-full overflow-hidden shadow-md ring-2 ring-white/20 flex-shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold`}>
             {usuario.avatar_url ? (
-                <img src={usuario.avatar_url} alt={initials} className="w-full h-full object-cover" />
+                <NextImage
+                    src={usuario.avatar_url}
+                    alt={initials}
+                    fill
+                    className="object-cover"
+                />
             ) : (
                 <span>{initials}</span>
             )}
@@ -96,8 +102,7 @@ export default function DashboardClient({ user, culto, esHoy, initialAssignments
                 format(end, 'yyyy-MM-dd')
             )
             if (data) setAssignments(data)
-        } catch (error) {
-            console.error(error)
+        } catch {
             toast.error("Error al cargar asignaciones")
         } finally {
             setIsLoadingAssignments(false)

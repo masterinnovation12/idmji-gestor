@@ -33,7 +33,7 @@ export async function createFestivo(formData: FormData) {
             // Calcular nueva hora: -1h (lógica de festivo)
             const [h, m] = culto.hora_inicio.split(':').map(Number)
             const newH = (h - 1 + 24) % 24
-            const newHora = `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+            const newHora = `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')} `
 
             await supabase
                 .from('cultos')
@@ -91,7 +91,7 @@ export async function deleteFestivo(id: number) {
                 // Calcular nueva hora: +1h (restaurar horario normal)
                 const [h, m] = culto.hora_inicio.split(':').map(Number)
                 const newH = (h + 1) % 24
-                const newHora = `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+                const newHora = `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')} `
 
                 await supabase
                     .from('cultos')
@@ -120,7 +120,7 @@ export async function getFestivos(year?: number) {
     if (year) {
         query = query
             .gte('fecha', `${year}-01-01`)
-            .lte('fecha', `${year}-12-31`)
+            .lte('fecha', `${year} -12 - 31`)
     }
 
     const { data: festivosData, error: festivosError } = await query
@@ -130,23 +130,23 @@ export async function getFestivos(year?: number) {
     }
 
     // Obtener fechas para buscar cultos asociados
-    const fechas = festivosData.map((f: any) => f.fecha)
+    const fechas = festivosData.map((f: { fecha: string }) => f.fecha)
 
-    let cultosMap: Record<string, any> = {}
+    const cultosMap: Record<string, { id: string; fecha: string; hora_inicio: string; tipo_culto: { nombre: string } }> = {}
 
     if (fechas.length > 0) {
         const { data: cultosData } = await supabase
             .from('cultos')
             .select(`
-                id, 
-                fecha,
-                hora_inicio, 
-                tipo_culto:culto_types(nombre)
+id,
+    fecha,
+    hora_inicio,
+    tipo_culto: culto_types(nombre)
             `)
             .in('fecha', fechas)
 
         if (cultosData) {
-            cultosData.forEach((c: any) => {
+            (cultosData as unknown as { id: string; fecha: string; hora_inicio: string; tipo_culto: { nombre: string } }[]).forEach((c) => {
                 // Si hay múltiples cultos, cogemos el primero (o podríamos listar todos)
                 if (!cultosMap[c.fecha]) {
                     cultosMap[c.fecha] = c
@@ -156,7 +156,7 @@ export async function getFestivos(year?: number) {
     }
 
     // Combinar datos
-    const formattedData = festivosData.map((festivo: any) => {
+    const formattedData = (festivosData as unknown as { id: number; fecha: string; tipo: string; descripcion: string | null }[]).map((festivo) => {
         const culto = cultosMap[festivo.fecha]
         return {
             ...festivo,
@@ -178,14 +178,14 @@ export async function seedRandomFestivos(year: number) {
     const randomDays = Array.from({ length: 5 }, () => {
         const month = Math.floor(Math.random() * 12) + 1
         const day = Math.floor(Math.random() * 28) + 1
-        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        return `${year} -${String(month).padStart(2, '0')} -${String(day).padStart(2, '0')} `
     })
 
     const tipos = ['nacional', 'autonomico', 'local', 'laborable_festivo']
 
     for (const fecha of randomDays) {
         const tipo = tipos[Math.floor(Math.random() * tipos.length)]
-        const { error } = await supabase.from('festivos').insert({
+        await supabase.from('festivos').insert({
             fecha,
             tipo,
             descripcion: 'Festivo de Prueba (Aleatorio)',

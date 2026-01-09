@@ -11,12 +11,13 @@
 
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, X, User, Check, Loader2, ChevronDown } from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
 import { searchProfiles } from '@/app/dashboard/cultos/[id]/actions'
 import { Profile } from '@/types/database'
+import Image from 'next/image'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { motion } from 'framer-motion'
 
@@ -58,10 +59,10 @@ export default function UserSelector({
 
     // Sync with external editing state if provided
     const isEditing = externalIsEditing !== undefined ? externalIsEditing : internalIsEditing
-    const setIsEditing = (val: boolean) => {
+    const setIsEditing = useCallback((val: boolean) => {
         if (onEditChange) onEditChange(val)
         else setInternalIsEditing(val)
-    }
+    }, [onEditChange])
 
     const debouncedQuery = useDebounce(query, 300)
 
@@ -70,7 +71,7 @@ export default function UserSelector({
         if (!selectedUserId) {
             setIsEditing(true)
         }
-    }, [selectedUserId])
+    }, [selectedUserId, setIsEditing])
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -101,7 +102,7 @@ export default function UserSelector({
         }
 
         search()
-    }, [debouncedQuery])
+    }, [debouncedQuery, showResults])
 
     // Posicionamiento dinámico para el dropdown fixed
     const updatePosition = () => {
@@ -300,7 +301,14 @@ export default function UserSelector({
                                                     <div className={`w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover/item:scale-105 group-hover/item:rotate-3 ${isSelected ? 'bg-white/20 border-white/20' : 'bg-primary/5 border-primary/10 text-primary'
                                                         }`}>
                                                         {user.avatar_url ? (
-                                                            <img src={user.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
+                                                            <div className="relative w-full h-full">
+                                                                <Image
+                                                                    src={user.avatar_url}
+                                                                    alt={user.nombre || ''}
+                                                                    fill
+                                                                    className="object-cover rounded-2xl"
+                                                                />
+                                                            </div>
                                                         ) : (
                                                             <span className="uppercase">{user.nombre?.[0]}{user.apellidos?.[0]}</span>
                                                         )}

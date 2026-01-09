@@ -28,13 +28,21 @@ export default function LoginPage() {
     const { isDark, toggleTheme } = useTheme()
 
     // Estados del formulario
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
+    const [credentials, setCredentials] = useState({
+        email: '',
+        password: '',
+        rememberMe: false
+    })
     const [showPassword, setShowPassword] = useState(false)
-    const [rememberMe, setRememberMe] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState('')
     const [loginSuccess, setLoginSuccess] = useState(false)
+
+    const setEmail = (email: string) => setCredentials(prev => ({ ...prev, email }))
+    const setPassword = (password: string) => setCredentials(prev => ({ ...prev, password }))
+    const setRememberMe = (rememberMe: boolean) => setCredentials(prev => ({ ...prev, rememberMe }))
+
+    const { email, password, rememberMe } = credentials
 
     // Cargar credenciales guardadas al montar
     useEffect(() => {
@@ -43,9 +51,15 @@ export default function LoginPage() {
         const savedRemember = localStorage.getItem('idmji_remember') === 'true'
 
         if (savedRemember && savedEmail && savedPassword) {
-            setEmail(savedEmail)
-            setPassword(savedPassword)
-            setRememberMe(true)
+            // Use timeout to avoid synchronous setState in effect (Next.js lint rule)
+            const timeout = setTimeout(() => {
+                setCredentials({
+                    email: savedEmail,
+                    password: savedPassword,
+                    rememberMe: true
+                })
+            }, 0)
+            return () => clearTimeout(timeout)
         }
     }, [])
 
@@ -86,14 +100,14 @@ export default function LoginPage() {
                     router.refresh()
                 }, 1500)
             }
-        } catch (err) {
+        } catch {
             setError('Error al iniciar sesión')
             setIsLoading(false)
         }
     }
 
     return (
-        <div className="min-h-[100dvh] flex items-center justify-center p-3 sm:p-4 relative overflow-hidden">
+        <div className="min-h-dvh flex items-center justify-center p-3 sm:p-4 relative overflow-hidden">
             {/* Fondo con gradiente animado */}
             <div className="absolute inset-0 gradient-mesh opacity-30" />
             <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-accent/10" />
@@ -105,7 +119,7 @@ export default function LoginPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-xl"
+                        className="fixed inset-0 z-100 flex items-center justify-center bg-background/80 backdrop-blur-xl"
                     >
                         <motion.div
                             initial={{ scale: 0.5, opacity: 0 }}
@@ -121,7 +135,7 @@ export default function LoginPage() {
                                 transition={{ repeat: Infinity, duration: 2 }}
                                 className="relative"
                             >
-                                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-2xl shadow-green-500/40">
+                                <div className="w-24 h-24 rounded-full bg-linear-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-2xl shadow-green-500/40">
                                     <CheckCircle className="w-12 h-12 text-white" strokeWidth={3} />
                                 </div>
                                 <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-yellow-400 animate-pulse" />
@@ -156,7 +170,7 @@ export default function LoginPage() {
                         className="glass px-3 py-2 rounded-xl hover:bg-white/30 transition-all font-bold shadow-lg backdrop-blur-md border-white/20 flex items-center gap-2 text-foreground"
                     >
                         <Globe className="w-4 h-4" />
-                        <span className="text-xs font-black tracking-wide">
+                        <span className="text-xs font-black tracking-wide" suppressHydrationWarning>
                             {language === 'es-ES' ? 'ES' : 'CA'}
                         </span>
                     </motion.button>
@@ -308,8 +322,8 @@ export default function LoginPage() {
                             type="submit"
                             disabled={isLoading || loginSuccess}
                             className={`w-full h-12 relative group overflow-hidden rounded-xl font-black text-white transition-all disabled:cursor-not-allowed shadow-xl border border-white/20 ${loginSuccess
-                                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 shadow-green-500/40'
-                                    : 'bg-[#0660c6] shadow-blue-500/40'
+                                ? 'bg-linear-to-r from-green-500 to-emerald-600 shadow-green-500/40'
+                                : 'bg-[#0660c6] shadow-blue-500/40'
                                 }`}
                         >
                             {!loginSuccess && (

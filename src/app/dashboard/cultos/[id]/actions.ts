@@ -71,7 +71,7 @@ export async function updateAssignment(
 
             if (culto) {
                 const fechaFormateada = format(new Date(culto.fecha), "EEEE d 'de' MMMM", { locale: es })
-                const tipoCulto = (culto.tipo_culto as any)?.nombre || 'Culto'
+                const tipoCulto = (culto.tipo_culto as unknown as { nombre: string })?.nombre || 'Culto'
                 const tipoLabel = tipoAsignacionLabels[tipoAsignacion] || tipoAsignacion
 
                 await sendNotificationToUser(
@@ -227,7 +227,7 @@ export async function updateCultoProtocol(
         .eq('id', cultoId)
         .single()
 
-    const currentMeta = (culto?.meta_data as any) || {}
+    const currentMeta = (culto?.meta_data as Record<string, unknown>) || {}
 
     // 2. Mezclar con nuevo protocolo
     const newMeta = {

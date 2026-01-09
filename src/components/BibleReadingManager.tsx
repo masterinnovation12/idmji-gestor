@@ -17,7 +17,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { BookOpen, AlertCircle, History, Plus, Edit2, Trash2, CheckCircle2, Loader2 } from 'lucide-react'
+import { BookOpen, AlertCircle, Plus, Edit2, Trash2, CheckCircle2, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -46,7 +46,7 @@ interface RepetitionData {
     originalId: string
     existingReading: {
         fecha: string
-        [key: string]: any
+        [key: string]: unknown
     }
 }
 
@@ -63,19 +63,17 @@ function ReadingItem({ lectura, onEdit, onDelete }: ReadingItemProps) {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className={`p-3.5 md:p-4.5 rounded-[1.75rem] border shadow-inner relative overflow-hidden group/reading transition-all ${
-                lectura.es_repetida
-                    ? 'bg-red-500/5 border-red-500/20'
-                    : 'bg-primary/5 border-primary/10'
-            }`}
+            className={`p-3.5 md:p-4.5 rounded-[1.75rem] border shadow-inner relative overflow-hidden group/reading transition-all ${lectura.es_repetida
+                ? 'bg-red-500/5 border-red-500/20'
+                : 'bg-primary/5 border-primary/10'
+                }`}
         >
             <div className="absolute inset-0 bg-linear-to-r from-primary/5 to-transparent opacity-0 group-hover/reading:opacity-100 transition-opacity" />
-            
+
             <div className="flex flex-col gap-3 relative z-10">
                 <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center border-2 shadow-lg shrink-0 ${
-                        lectura.es_repetida ? 'bg-red-500/20 border-white/20 text-red-600' : 'bg-primary/20 border-white/20 text-primary'
-                    }`}>
+                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center border-2 shadow-lg shrink-0 ${lectura.es_repetida ? 'bg-red-500/20 border-white/20 text-red-600' : 'bg-primary/20 border-white/20 text-primary'
+                        }`}>
                         <BookOpen className="w-5 h-5 md:w-6 md:h-6" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -113,10 +111,10 @@ function ReadingItem({ lectura, onEdit, onDelete }: ReadingItemProps) {
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-primary/10">
                     <button
-                        onClick={(e) => { e.stopPropagation(); onEdit(lectura.tipo_lectura as any); }}
+                        onClick={(e) => { e.stopPropagation(); onEdit(lectura.tipo_lectura as 'introduccion' | 'finalizacion'); }}
                         className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white dark:bg-slate-800 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all shadow-sm border border-border/50 group/btn"
                     >
                         <Edit2 className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
@@ -221,7 +219,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
             } else if (result.error) {
                 toast.error(result.error)
             }
-        } catch (error) {
+        } catch {
             toast.error('Error al guardar la lectura')
         } finally {
             setIsActionLoading(false)
@@ -263,7 +261,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
             } else {
                 toast.error(result.error || 'Error al confirmar')
             }
-        } catch (error) {
+        } catch {
             toast.error('Error de conexión')
         } finally {
             setIsActionLoading(false)
@@ -276,9 +274,9 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
             // Optimismo: Eliminar de la UI primero para evitar el "flash"
             const currentLecturas = [...lecturas]
             setLecturas(prev => prev.filter(l => l.id !== id))
-            
+
             const result = await deleteLectura(id, cultoId)
-            
+
             if (result.success) {
                 toast.success('Lectura eliminada')
                 // No llamamos a loadLecturas() inmediatamente para evitar el flash
@@ -288,7 +286,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                 setLecturas(currentLecturas)
                 toast.error(result.error || 'Error al eliminar')
             }
-        } catch (error) {
+        } catch {
             toast.error('Error de conexión')
         } finally {
             setIsActionLoading(false)
@@ -309,9 +307,9 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                     <div className="grid gap-4 grid-cols-1">
                         <AnimatePresence mode="popLayout">
                             {lecturas.map((lectura, idx) => (
-                                <ReadingItem 
-                                    key={lectura.id || `lectura-${lectura.tipo_lectura}-${idx}`} 
-                                    lectura={lectura} 
+                                <ReadingItem
+                                    key={lectura.id || `lectura-${lectura.tipo_lectura}-${idx}`}
+                                    lectura={lectura}
                                     onEdit={(tipo) => { setActiveTipo(tipo); setIsModalOpen(true); }}
                                     onDelete={(id) => setDeleteConfirmId(id)}
                                 />

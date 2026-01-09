@@ -47,7 +47,9 @@ export async function saveLectura(
             requiresConfirmation: true,
             existingReading: {
                 id: existenteCita.id,
-                fecha: Array.isArray(existenteCita.cultos) ? existenteCita.cultos[0]?.fecha : (existenteCita.cultos as any)?.fecha,
+                fecha: Array.isArray(existenteCita.cultos)
+                    ? (existenteCita.cultos[0] as unknown as { fecha: string })?.fecha
+                    : (existenteCita.cultos as unknown as { fecha: string })?.fecha,
                 lector: existenteCita.id_usuario_lector,
             }
         }
@@ -279,7 +281,7 @@ export async function getAllLecturas(
 export async function getBibliaLibros() {
     try {
         const supabase = await createClient()
-        let allRows: any[] = []
+        let allRows: Record<string, unknown>[] = []
         let hasMore = true
         let from = 0
         const step = 400 // Paso pequeño para asegurar bypass de límites
@@ -318,25 +320,31 @@ export async function getBibliaLibros() {
         }
 
         // Agregamos por libro de forma robusta
-        const booksMap = new Map<string, any>()
+        const booksMap = new Map<string, {
+            id: number
+            nombre: string
+            testamento: string
+            abreviatura: string
+            capitulos: { n: number; v: number }[]
+        }>()
 
         allRows.forEach((row) => {
-            const libroNombre = row.libro.trim()
+            const libroNombre = (row.libro as string).trim()
             if (!booksMap.has(libroNombre)) {
                 booksMap.set(libroNombre, {
-                    id: row.orden,
+                    id: row.orden as number,
                     nombre: libroNombre,
-                    testamento: row.testamento,
-                    abreviatura: row.abreviatura,
+                    testamento: row.testamento as string,
+                    abreviatura: row.abreviatura as string,
                     capitulos: []
                 })
             }
 
-            const book = booksMap.get(libroNombre)
-            if (!book.capitulos.some((c: any) => c.n === row.capitulo)) {
+            const book = booksMap.get(libroNombre)!
+            if (!book.capitulos.some((c) => c.n === row.capitulo)) {
                 book.capitulos.push({
-                    n: row.capitulo,
-                    v: row.num_versiculos
+                    n: row.capitulo as number,
+                    v: row.num_versiculos as number
                 })
             }
         })

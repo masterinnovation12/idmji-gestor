@@ -19,9 +19,9 @@ export default function AvatarEditor({ imageSrc, isOpen, onClose, onSave }: Avat
     const [crop, setCrop] = useState({ x: 0, y: 0 })
     const [zoom, setZoom] = useState(1)
     const [rotation, setRotation] = useState(0)
-    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ x: number, y: number, width: number, height: number } | null>(null)
 
-    const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+    const onCropComplete = useCallback((_croppedArea: unknown, croppedAreaPixels: { x: number, y: number, width: number, height: number }) => {
         setCroppedAreaPixels(croppedAreaPixels)
     }, [])
 

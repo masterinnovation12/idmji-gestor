@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import AvatarEditor from '@/components/AvatarEditor'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/I18nProvider'
+import NextImage from 'next/image'
 
 interface UsersClientProps {
     initialUsers: UserData[]
@@ -150,9 +151,10 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
             } else {
                 toast.error(result.error)
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('handleSubmit error', err)
-            toast.error(err?.message || t('users.error.unexpectedSave'))
+            const errorMessage = err instanceof Error ? err.message : String(err)
+            toast.error(errorMessage || t('users.error.unexpectedSave'))
         } finally {
             setIsLoading(false)
         }
@@ -181,9 +183,10 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                 console.error('deleteUser failed:', result.error)
                 toast.error(result.error || t('users.error.deleteFailed'))
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Exception in handleDelete:', error)
-            toast.error(error?.message || t('users.error.unexpectedDelete'))
+            const errorMessage = error instanceof Error ? error.message : String(error)
+            toast.error(errorMessage || t('users.error.unexpectedDelete'))
         } finally {
             setIsLoading(false)
         }
@@ -270,7 +273,14 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                                     {user.avatar_url ? (
-                                        <img src={user.avatar_url} alt="" className="relative w-24 h-24 rounded-full object-cover border-4 border-card group-hover:border-blue-500/20 transition-colors shadow-xl" />
+                                        <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-card group-hover:border-blue-500/20 transition-colors shadow-xl">
+                                            <NextImage
+                                                src={user.avatar_url}
+                                                alt=""
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        </div>
                                     ) : (
                                         <div className="relative w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl font-black text-muted-foreground border-4 border-card group-hover:border-blue-500/20 transition-colors shadow-xl">
                                             {user.nombre?.[0]}{user.apellidos?.[0]}
@@ -309,7 +319,8 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                                 </div>
                             </div>
                         </motion.div>
-                    ))}
+                    ))
+                    }
                 </AnimatePresence>
             </div>
 
@@ -344,7 +355,12 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                                     onClick={() => fileInputRef.current?.click()}
                                 >
                                     {avatarPreview ? (
-                                        <img src={avatarPreview} className="w-full h-full object-cover" />
+                                        <NextImage
+                                            src={avatarPreview}
+                                            alt="Preview"
+                                            fill
+                                            className="object-cover"
+                                        />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors">
                                             <Camera className="w-10 h-10" />
@@ -543,7 +559,7 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
             </Dialog>
 
             {/* Confirm Delete Modal - LIGHT THEME */}
-            <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+            <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen} >
                 <DialogContent className="max-w-md bg-white border-zinc-200 rounded-3xl shadow-2xl text-zinc-900 overflow-hidden [&>*]:no-scrollbar">
                     <DialogHeader>
                         <DialogTitle className="text-red-600 flex items-center gap-2">
@@ -566,14 +582,16 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
             </Dialog>
 
             {/* Avatar Editor Modal */}
-            {tempImageSrc && (
-                <AvatarEditor
-                    imageSrc={tempImageSrc}
-                    isOpen={isCropOpen}
-                    onClose={() => { setIsCropOpen(false); setTempImageSrc(null) }}
-                    onSave={handleCropSave}
-                />
-            )}
+            {
+                tempImageSrc && (
+                    <AvatarEditor
+                        imageSrc={tempImageSrc}
+                        isOpen={isCropOpen}
+                        onClose={() => { setIsCropOpen(false); setTempImageSrc(null) }}
+                        onSave={handleCropSave}
+                    />
+                )
+            }
         </div>
     )
 }

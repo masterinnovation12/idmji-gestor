@@ -18,7 +18,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getMovimientos, MovimientoData } from './actions'
-import { FileText, ChevronLeft, ChevronRight, Calendar, User, Search, Download, RefreshCcw, LayoutList, Filter } from 'lucide-react'
+import { FileText, ChevronLeft, ChevronRight, Calendar, Search, Download, RefreshCcw, LayoutList, Filter } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -37,7 +37,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
     const { t, language } = useI18n()
     const [movimientos, setMovimientos] = useState<MovimientoData[]>(initialData)
     const [total, setTotal] = useState(initialTotal)
-    const [tipos, setTipos] = useState<string[]>(initialTipos)
+    const [tipos] = useState<string[]>(initialTipos)
     const [page, setPage] = useState(1)
     const [tipoFilter, setTipoFilter] = useState<string>('')
     const [searchQuery, setSearchQuery] = useState('')
@@ -59,12 +59,18 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
     }, [page, limit, tipoFilter, debouncedSearch])
 
     useEffect(() => {
-        loadData()
+        const timer = setTimeout(() => {
+            loadData()
+        }, 0)
+        return () => clearTimeout(timer)
     }, [loadData])
 
     // Reiniciar página al filtrar o buscar
     useEffect(() => {
-        setPage(1)
+        const timer = setTimeout(() => {
+            setPage(1)
+        }, 0)
+        return () => clearTimeout(timer)
     }, [tipoFilter, debouncedSearch])
 
     function getTipoColor(tipo: string): string {
@@ -95,7 +101,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
         const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows])
         const workbook = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(workbook, worksheet, "Auditoría")
-        
+
         // Ajustar anchos de columna
         const wscols = [
             { wch: 20 },
@@ -112,13 +118,13 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
     return (
         <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
             {/* Header con estilo Premium */}
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="glass rounded-[2.5rem] p-8 md:p-10 flex flex-col lg:flex-row gap-8 justify-between items-center shadow-2xl relative overflow-visible z-50"
             >
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
-                
+
                 <div className="flex items-center gap-6 relative z-10">
                     <div className="p-5 bg-gradient-to-br from-primary/20 to-accent/20 rounded-[1.5rem] shadow-inner-white">
                         <FileText className="w-8 h-8 text-primary" />
@@ -146,7 +152,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
 
             {/* Filtros y Búsqueda */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 relative z-40">
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 }}
@@ -162,7 +168,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    
+
                     <div className="relative min-w-[240px] group">
                         <div className="absolute left-5 top-1/2 -translate-y-1/2 p-2 bg-primary/10 rounded-xl pointer-events-none group-focus-within:bg-primary/20 transition-all">
                             <Filter className="text-primary w-4 h-4" />
@@ -170,7 +176,10 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                         <select
                             className="w-full pl-16 pr-10 h-14 bg-white/80 dark:bg-muted/20 backdrop-blur-md rounded-2xl border-2 border-primary/20 outline-none appearance-none cursor-pointer focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all font-black uppercase tracking-widest text-[11px] text-primary shadow-sm"
                             value={tipoFilter}
-                            onChange={(e) => setPage(1) || setTipoFilter(e.target.value)}
+                            onChange={(e) => {
+                                setPage(1)
+                                setTipoFilter(e.target.value)
+                            }}
                         >
                             <option value="" className="font-bold text-foreground">{t('audit.filterType')}</option>
                             {tipos.map(t => (
@@ -183,7 +192,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                     </div>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
@@ -204,7 +213,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
             </div>
 
             {/* Tabla de Resultados */}
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
@@ -224,7 +233,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                         <tbody className="divide-y divide-border/10">
                             <AnimatePresence mode="popLayout">
                                 {isLoading ? (
-                                    <motion.tr 
+                                    <motion.tr
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
@@ -237,7 +246,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                                         </td>
                                     </motion.tr>
                                 ) : movimientos.length === 0 ? (
-                                    <motion.tr 
+                                    <motion.tr
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
@@ -251,7 +260,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                                     </motion.tr>
                                 ) : (
                                     movimientos.map((m, index) => (
-                                        <motion.tr 
+                                        <motion.tr
                                             key={m.id}
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}

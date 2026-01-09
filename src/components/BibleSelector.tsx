@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
+import { useState, useEffect, useRef, useSyncExternalStore, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, ChevronDown, BookOpen, AlertCircle, X, ArrowLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getBibliaLibros } from '@/app/dashboard/lecturas/actions'
-import { useI18n } from '@/lib/i18n/I18nProvider'
 
 interface Chapter {
     n: number
@@ -35,7 +34,6 @@ function getMountedServerSnapshot() {
 }
 
 export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps) {
-    const { t } = useI18n()
     const [id] = useState(() => Math.random().toString(36).substring(2, 9))
     const [libros, setLibros] = useState<BibleBook[]>([])
     const [searchQuery, setSearchQuery] = useState('')
@@ -48,9 +46,40 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
     const [isMobileSearchActive, setIsMobileSearchActive] = useState(false)
     const [dropdownRect, setDropdownRect] = useState<{ top: number, left: number, width: number } | null>(null)
     const mounted = useSyncExternalStore(subscribeToNothing, getMountedSnapshot, getMountedServerSnapshot)
-    const [error, setError] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
     const dropdownRef = useRef<HTMLDivElement>(null)
+
+    // Validation logic derived from state
+    const validationError = useMemo(() => {
+        if (!selectedLibroObj) return null
+
+        if (capituloInicio !== '') {
+            const maxCaps = selectedLibroObj.capitulos.length
+            if (capituloInicio > maxCaps) {
+                return `El libro ${selectedLibroObj.nombre} solo tiene ${maxCaps} capítulos.`
+            }
+
+            const maxVers = (() => {
+                const cap = selectedLibroObj.capitulos.find(c => c.n === Number(capituloInicio))
+                return cap ? cap.v : 0
+            })()
+
+            if (versiculoInicio !== '' && Number(versiculoInicio) > maxVers) {
+                return `El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${maxVers} versículos.`
+            }
+            if (versiculoFin !== '' && Number(versiculoFin) > maxVers) {
+                return `El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${maxVers} versículos.`
+            }
+            if (versiculoInicio !== '' && versiculoFin !== '' && Number(versiculoFin) < Number(versiculoInicio)) {
+                return `El versículo de fin no puede ser menor al de inicio.`
+            }
+        }
+
+        return null
+    }, [selectedLibroObj, capituloInicio, versiculoInicio, versiculoFin])
+
+    const [submitError, setSubmitError] = useState<string | null>(null)
+    const error = validationError || submitError
 
     useEffect(() => {
         const checkMobile = () => {
@@ -127,7 +156,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         setCapituloInicio('')
         setVersiculoInicio('')
         setVersiculoFin('')
-        setError(null)
+        setSubmitError(null)
         setShowDropdown(false)
         setIsMobileSearchActive(false)
     }
@@ -139,65 +168,30 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         return cap ? cap.v : 0
     }
 
-    // Validación instantánea para capítulo
-    useEffect(() => {
-        if (selectedLibroObj && capituloInicio !== '') {
-            const max = getMaxChapters()
-            if (capituloInicio > max) {
-                setError(`El libro ${selectedLibroObj.nombre} solo tiene ${max} capítulos.`)
-            } else if (error?.includes('capítulos')) {
-                setError(null)
-            }
-        }
-    }, [capituloInicio, selectedLibroObj])
 
-    // Validación instantánea para versículos
-    useEffect(() => {
-        if (selectedLibroObj && capituloInicio !== '') {
-            const max = getMaxVerses(Number(capituloInicio))
-            if (versiculoInicio !== '' && versiculoInicio > max) {
-                setError(`El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${max} versículos.`)
-            } else if (versiculoFin !== '' && versiculoFin > max) {
-                setError(`El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${max} versículos.`)
-            } else if (versiculoInicio !== '' && versiculoFin !== '' && Number(versiculoFin) < Number(versiculoInicio)) {
-                setError(`El versículo de fin no puede ser menor al de inicio.`)
-            } else if (error && (error.includes('versículos') || error.includes('menor'))) {
-                setError(null)
-            }
-        }
-    }, [versiculoInicio, versiculoFin, capituloInicio, selectedLibroObj])
 
     const handleSubmit = () => {
         if (!selectedLibroObj || !capituloInicio || !versiculoInicio) {
-            setError("Por favor, selecciona un libro, capítulo y versículo.")
+            setSubmitError("Por favor, selecciona un libro, capítulo y versículo.")
             return
         }
+
+        if (validationError) return // Don't submit if there's a validation error
 
         // Re-validación final antes de enviar
         const maxCaps = getMaxChapters()
         if (capituloInicio > maxCaps) {
-            setError(`El libro ${selectedLibroObj.nombre} solo tiene ${maxCaps} capítulos.`)
+            setSubmitError(`El libro ${selectedLibroObj.nombre} solo tiene ${maxCaps} capítulos.`)
             return
         }
 
         const maxVers = getMaxVerses(Number(capituloInicio))
         if (versiculoInicio > maxVers) {
-            setError(`El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${maxVers} versículos.`)
+            setSubmitError(`El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${maxVers} versículos.`)
             return
         }
 
-        if (versiculoFin) {
-            if (versiculoFin > maxVers) {
-                setError(`El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${maxVers} versículos.`)
-                return
-            }
-            if (Number(versiculoFin) < Number(versiculoInicio)) {
-                setError(`El versículo de fin no puede ser menor al de inicio.`)
-                return
-            }
-        }
-
-        setError(null)
+        setSubmitError(null)
         onSelect(
             selectedLibroObj.nombre,
             Number(capituloInicio),
@@ -280,8 +274,8 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                                         <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors" />
                                                         <div className="flex items-center gap-4 relative z-10">
                                                             <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover:scale-105 group-hover:rotate-3 ${libro.testamento === 'AT'
-                                                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
-                                                                    : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
+                                                                ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
+                                                                : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
                                                                 }`}>
                                                                 {libro.abreviatura.slice(0, 2)}
                                                             </div>
@@ -289,8 +283,8 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                                                 <p className="font-black text-sm md:text-base group-hover:text-primary transition-colors uppercase tracking-tight">{libro.nombre}</p>
                                                                 <div className="flex items-center gap-2 mt-0.5">
                                                                     <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border ${libro.testamento === 'AT'
-                                                                            ? 'bg-amber-500/5 border-amber-500/20 text-amber-600'
-                                                                            : 'bg-blue-500/5 border-blue-500/20 text-blue-600'
+                                                                        ? 'bg-amber-500/5 border-amber-500/20 text-amber-600'
+                                                                        : 'bg-blue-500/5 border-blue-500/20 text-blue-600'
                                                                         }`}>
                                                                         {libro.testamento === 'AT' ? 'Antiguo Testamento' : 'Nuevo Testamento'}
                                                                     </span>
@@ -412,7 +406,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                             value={capituloInicio}
                             onChange={(e) => {
                                 setCapituloInicio(e.target.value === '' ? '' : Number(e.target.value))
-                                setError(null)
+                                setSubmitError(null)
                             }}
                             placeholder="Ej: 1"
                             disabled={disabled || !selectedLibroObj}
@@ -437,7 +431,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                     value={versiculoInicio}
                                     onChange={(e) => {
                                         setVersiculoInicio(e.target.value === '' ? '' : Number(e.target.value))
-                                        setError(null)
+                                        setSubmitError(null)
                                     }}
                                     placeholder="Inicio"
                                     disabled={disabled || !selectedLibroObj || capituloInicio === ''}
@@ -455,7 +449,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                     value={versiculoFin}
                                     onChange={(e) => {
                                         setVersiculoFin(e.target.value === '' ? '' : Number(e.target.value))
-                                        setError(null)
+                                        setSubmitError(null)
                                     }}
                                     placeholder="Fin"
                                     disabled={disabled || !selectedLibroObj || capituloInicio === ''}

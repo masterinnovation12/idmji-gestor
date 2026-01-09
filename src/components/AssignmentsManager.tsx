@@ -4,13 +4,14 @@ import UserSelector from '@/components/UserSelector'
 import { updateAssignment } from '@/app/dashboard/cultos/[id]/actions'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Profile } from '@/types/database'
 
 interface AssignmentsManagerProps {
     cultoId: string
     assignments: {
-        intro: any
-        ensenanza: any
-        finalizacion: any
+        intro: Profile | null
+        ensenanza: Profile | null
+        finalizacion: Profile | null
     }
 }
 

@@ -12,7 +12,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { eachDayOfInterval, endOfMonth, getDay, startOfMonth, format, isWithinInterval } from 'date-fns'
+import { eachDayOfInterval, endOfMonth, getDay, startOfMonth, format } from 'date-fns'
 
 /**
  * Genera automáticamente los cultos de un mes basándose en el calendario semanal
@@ -58,7 +58,7 @@ export async function generateCultosForMonth(date: Date) {
     for (const day of days) {
         const dayOfWeek = getDay(day) // 0=Dom, 1=Lun...
         const fechaStr = format(day, 'yyyy-MM-dd')
-        const schedule = scheduleMap.get(dayOfWeek as any)
+        const schedule = scheduleMap.get(dayOfWeek)
 
         if (schedule) {
             let horaInicio = schedule.default_time.slice(0, 5) // HH:mm

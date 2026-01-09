@@ -159,8 +159,14 @@ export async function getHimnosCorosByCulto(cultoId: string): Promise<ActionResp
         return { error: error.message }
     }
 
+    interface PlanItemMap {
+        tipo: 'himno' | 'coro';
+        himno?: { id: number };
+        coro?: { id: number };
+    }
+
     // Mapear para mantener compatibilidad con la interfaz item_id
-    const mappedData = (data as any[])?.map(item => ({
+    const mappedData = (data as unknown as PlanItemMap[])?.map(item => ({
         ...item,
         item_id: item.tipo === 'himno' ? item.himno?.id : item.coro?.id
     }))

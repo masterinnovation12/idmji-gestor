@@ -160,8 +160,8 @@ export default function LecturasPageClient({
                         <button
                             onClick={() => updateFilter(!soloRepetidas)}
                             className={`relative overflow-hidden h-12 px-6 rounded-xl border font-bold text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-2 group md:w-auto w-full ${soloRepetidas
-                                    ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20'
-                                    : 'bg-card hover:bg-accent/50 border-white/10 text-muted-foreground hover:text-foreground hover:border-white/20'
+                                ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20'
+                                : 'bg-card hover:bg-accent/50 border-white/10 text-muted-foreground hover:text-foreground hover:border-white/20'
                                 }`}
                         >
                             <span className={`flex items-center justify-center w-5 h-5 rounded-full ${soloRepetidas ? 'bg-white/20' : 'bg-muted/50'} group-hover:scale-110 transition-transform`}>
@@ -315,13 +315,7 @@ export default function LecturasPageClient({
     )
 }
 
-function SearchXIcon({ className }: { className?: string }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
-        </svg>
-    )
-}
+
 
 function UserIcon({ className }: { className?: string }) {
     return (

@@ -17,7 +17,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence, useMotionValue, useTransform, useDragControls } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useDragControls } from 'framer-motion'
 import { getHimnos, getCoros } from './actions'
 import { Music, Search, Clock, ChevronLeft, Sparkles, AudioLines, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -248,7 +248,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                                                 {item.numero}
                                                             </div>
                                                         </td>
-                                                        <td className="px-6 sm:px-8 py-5 sm:py-6 break-words">
+                                                        <td className="px-6 sm:px-8 py-5 sm:py-6 wrap-break-word">
                                                             <div className="flex flex-col gap-1 max-w-full">
                                                                 <div className="flex items-center gap-2 sm:hidden mb-1">
                                                                     <span className="text-[10px] font-black tracking-widest text-white bg-blue-500 px-2 py-0.5 rounded-full uppercase">

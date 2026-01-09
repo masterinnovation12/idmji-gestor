@@ -18,13 +18,13 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Search, Users, ChevronLeft, ShieldCheck, Mail, Sparkles, Award, CheckCircle2, XCircle, X } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/Card'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import Link from 'next/link'
 import { Profile } from '@/types/database'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/Dialog'
+import { Dialog, DialogContent } from '@/components/ui/Dialog'
+import NextImage from 'next/image'
 
 interface HermanosClientProps {
     initialHermanos: Profile[]
@@ -76,10 +76,11 @@ function HermanoAvatar({ hermano, size = "md" }: { hermano: Profile, size?: "sm"
                 !hermano.avatar_url && "bg-gradient-to-br " + gradientClass
             )}>
                 {hermano.avatar_url ? (
-                    <img
+                    <NextImage
                         src={hermano.avatar_url}
                         alt={hermano.nombre || 'Avatar'}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
                     />
                 ) : (
                     <span className={cn(
@@ -98,7 +99,6 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
     const { t } = useI18n()
     const [hermanos, setHermanos] = useState<Profile[]>(initialHermanos)
     const [searchTerm, setSearchTerm] = useState('')
-    const [isLoading, setIsLoading] = useState(false)
     const [filterRole, setFilterRole] = useState<'ALL' | 'ADMIN' | 'EDITOR' | 'VIEWER'>('ALL')
     const [selectedHermano, setSelectedHermano] = useState<Profile | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)

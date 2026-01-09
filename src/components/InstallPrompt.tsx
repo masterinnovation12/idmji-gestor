@@ -21,7 +21,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Download, X, Share, Plus } from 'lucide-react'
+import { Download, Plus, Share, X } from 'lucide-react'
+import Image from 'next/image'
 import { Button } from './ui/Button'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -198,13 +199,12 @@ export function InstallPrompt() {
                             <div className="flex items-start gap-4">
                                 <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${isDark ? 'bg-blue-500/20' : 'bg-blue-50'
                                     }`}>
-                                    <img
+                                    <Image
                                         src="/icons/icon-192x192.png"
                                         alt="IDMJI"
-                                        className="w-10 h-10 rounded-lg"
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).src = '/logo.jpg'
-                                        }}
+                                        width={40}
+                                        height={40}
+                                        className="rounded-lg"
                                     />
                                 </div>
                                 <div className="flex-1 min-w-0 pr-6">

@@ -24,6 +24,7 @@ import {
     Camera, Loader2, Sparkles, UserCircle,
     Calendar, Save, AlertCircle, Trash2
 } from 'lucide-react'
+import NextImage from 'next/image'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { Profile } from '@/types/database'
@@ -197,7 +198,12 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                 >
                                     <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden border-4 border-background relative">
                                         {avatarPreview ? (
-                                            <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                                            <NextImage
+                                                src={avatarPreview}
+                                                alt="Avatar"
+                                                fill
+                                                className="object-cover"
+                                            />
                                         ) : (
                                             <div className={`w-full h-full flex flex-col items-center justify-center ${isDark ? 'bg-gradient-to-br from-primary via-accent to-primary' : 'bg-gradient-to-br from-blue-200 via-blue-100 to-blue-200'}`}>
                                                 <span className={`text-5xl font-black tracking-tighter drop-shadow-sm ${isDark ? 'text-white' : 'text-black'}`}>

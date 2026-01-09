@@ -17,7 +17,7 @@ export default async function LecturasPage({ searchParams }: Props) {
     const soloRepetidas = params['soloRepetidas'] === 'true'
     const search = typeof params['search'] === 'string' ? params['search'] : undefined
 
-    const { data: lecturas, count, totalPages } = await getAllLecturas(page, 20, {
+    const { data: lecturas, totalPages } = await getAllLecturas(page, 20, {
         soloRepetidas,
         search
     })

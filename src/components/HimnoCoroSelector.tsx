@@ -196,7 +196,7 @@ export default function HimnoCoroSelector({
             if (user) setUserId(user.id)
         }
         getUser()
-    }, [])
+    }, [supabase.auth])
 
     // Cargar himnos/coros ya seleccionados si hay cultoId o de localStorage para calculadora
     useEffect(() => {
