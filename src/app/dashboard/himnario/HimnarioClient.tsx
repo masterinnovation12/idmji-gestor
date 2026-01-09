@@ -380,7 +380,7 @@ function CalculatorModal({ children, onClose }: { children: React.ReactNode, onC
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             style={{ y }}
-            className="relative bg-white dark:bg-zinc-900 w-full rounded-t-[2rem] shadow-2xl overflow-hidden border-t border-white/20 z-10"
+            className="relative bg-white dark:bg-zinc-900 w-full rounded-t-4xl shadow-2xl overflow-hidden border-t border-white/20 z-10"
         >
             {/* Handle */}
             <div

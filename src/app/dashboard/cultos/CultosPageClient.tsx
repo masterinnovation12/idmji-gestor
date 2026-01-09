@@ -175,7 +175,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[1000] flex items-center justify-center bg-background/60 backdrop-blur-2xl pointer-events-none"
+                        className="fixed inset-0 z-1000 flex items-center justify-center bg-background/60 backdrop-blur-2xl pointer-events-none"
                     >
                         <motion.div
                             initial={{ scale: 0.5, rotate: -15, y: 50 }}
@@ -442,7 +442,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 + idx * 0.1 }}
-                            className={`glass rounded-[2rem] p-8 border ${stat.border} group hover:scale-[1.02] transition-all shadow-xl relative overflow-hidden`}
+                            className={`glass rounded-4xl p-8 border ${stat.border} group hover:scale-[1.02] transition-all shadow-xl relative overflow-hidden`}
                         >
                             <div className={`absolute top-0 right-0 w-32 h-32 ${stat.bg} rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700`} />
 

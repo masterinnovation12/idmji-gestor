@@ -166,7 +166,7 @@ export default function LecturasPageClient({
 
                             {/* Indicador de estado */}
                             {soloRepetidas && (
-                                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] animate-[shimmer_2s_infinite]" />
+                                <span className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
                             )}
                         </button>
                     </div>
@@ -175,7 +175,7 @@ export default function LecturasPageClient({
 
             {/* Listado Principal */}
             <Card className="mx-2 md:mx-6 overflow-hidden border border-white/5 shadow-2xl bg-card/40 backdrop-blur-xl ring-1 ring-white/5 rounded-3xl">
-                <CardHeader className="border-b border-white/5 bg-white/[0.02] py-6 px-6 md:px-8">
+                <CardHeader className="border-b border-white/5 bg-white/2 py-6 px-6 md:px-8">
                     <CardTitle className="text-xl md:text-2xl flex items-center gap-3">
                         <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500">
                             <History className="w-6 h-6" />
@@ -219,7 +219,7 @@ export default function LecturasPageClient({
                             initialLecturas.map((lectura: LecturaExt) => (
                                 <div
                                     key={lectura.id}
-                                    className={`group relative p-6 transition-all hover:bg-muted/30 ${lectura.es_repetida ? 'bg-red-500/[0.03]' : ''
+                                    className={`group relative p-6 transition-all hover:bg-muted/30 ${lectura.es_repetida ? 'bg-red-500/3' : ''
                                         }`}
                                 >
                                     {/* Indicador de repetida lateral */}

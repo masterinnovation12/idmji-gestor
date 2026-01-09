@@ -50,7 +50,8 @@ interface AssignmentSectionProps {
     usuarioActual: Partial<Profile> | null | undefined,
     onSelect: (id: string | null, confirmed?: boolean) => void,
     disabled: boolean,
-    t: (key: string) => string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    t: (key: any) => string,
     cultoId: string,
     cultoDate?: string,
     assignmentType?: string,
@@ -76,7 +77,7 @@ function AssignmentSection({
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`h-full w-full min-w-0 ${isEditing ? 'relative z-[100]' : 'relative z-10'}`}
+            className={`h-full w-full min-w-0 ${isEditing ? 'relative z-100' : 'relative z-10'}`}
         >
             <Card className={`h-full w-full min-w-0 border-t-4 border-primary/40 glass group hover:border-primary transition-all duration-500 shadow-xl relative overflow-visible ${isEditing ? 'ring-4 ring-primary/30' : ''}`}>
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
@@ -96,7 +97,7 @@ function AssignmentSection({
                 </CardHeader>
                 <CardContent className="p-2.5 md:p-3.5 flex-1 flex flex-col overflow-visible">
                     <div className="space-y-2.5 md:space-y-3.5 flex-1 flex flex-col overflow-visible">
-                        <div className="shrink-0 relative z-[110]">
+                        <div className="shrink-0 relative z-110">
                             <UserSelector
                                 selectedUserId={selectedUserId}
                                 onSelect={(id, confirmed) => {
@@ -191,7 +192,7 @@ function AssignmentSection({
                                     key="unassigned"
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    className="p-4 border-2 border-dashed border-muted-foreground/10 rounded-[1.5rem] flex flex-col items-center justify-center gap-2 opacity-50"
+                                    className="p-4 border-2 border-dashed border-muted-foreground/10 rounded-3xl flex flex-col items-center justify-center gap-2 opacity-50"
                                 >
                                     <User className="w-6 h-6 text-muted-foreground/30" />
                                     <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 text-center">Pendiente de asignar</p>
@@ -367,7 +368,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full"
                 >
-                    <div className="glass rounded-[2rem] p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                    <div className="glass rounded-4xl p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
                         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
@@ -535,7 +536,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                            className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
                         >
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}

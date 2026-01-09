@@ -68,12 +68,12 @@ function HermanoAvatar({ hermano, size = "md" }: { hermano: Profile, size?: "sm"
             <div className={cn(
                 "absolute inset-0 blur-md opacity-0 group-hover/avatar:opacity-40 transition-opacity",
                 sizeClasses[size],
-                hermano.avatar_url ? "bg-primary" : "bg-gradient-to-br " + gradientClass
+                hermano.avatar_url ? "bg-primary" : "bg-linear-to-br " + gradientClass
             )} />
             <div className={cn(
                 "relative border-2 border-white/20 overflow-hidden flex items-center justify-center shadow-lg transition-transform duration-300 group-hover/avatar:scale-105",
                 sizeClasses[size],
-                !hermano.avatar_url && "bg-gradient-to-br " + gradientClass
+                !hermano.avatar_url && "bg-linear-to-br " + gradientClass
             )}>
                 {hermano.avatar_url ? (
                     <NextImage
@@ -169,7 +169,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                         className="text-5xl md:text-7xl font-black tracking-tight leading-none"
                     >
                         {t('hermanos.title').split(' ')[0]}
-                        <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary animate-gradient-x">
+                        <span className="block text-transparent bg-clip-text bg-linear-to-r from-primary via-accent to-primary animate-gradient-x">
                             {t('hermanos.title').split(' ').slice(1).join(' ')}
                         </span>
                     </motion.h1>
@@ -270,11 +270,11 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                 >
                                     {/* Fondo de tarjeta con hover glow */}
                                     <div className={cn(
-                                        "absolute inset-0 rounded-[2rem] blur-xl transition-all opacity-0 group-hover:opacity-10",
+                                        "absolute inset-0 rounded-4xl blur-xl transition-all opacity-0 group-hover:opacity-10",
                                         hermano.rol === 'ADMIN' ? 'bg-red-500' : 'bg-primary'
                                     )} />
 
-                                    <div className="relative h-full glass border border-white/10 rounded-[2rem] p-5 hover:bg-white/5 dark:hover:bg-muted/30 transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 flex flex-col items-center text-center overflow-hidden">
+                                    <div className="relative h-full glass border border-white/10 rounded-4xl p-5 hover:bg-white/5 dark:hover:bg-muted/30 transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 flex flex-col items-center text-center overflow-hidden">
 
                                         {/* Decoración superior */}
                                         <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
@@ -468,7 +468,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                     </div>
                 </div>
 
-                <div className="w-[1px] h-10 bg-white/10" />
+                <div className="w-px h-10 bg-white/10" />
 
                 <div className="flex items-center gap-4 group cursor-default">
                     <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
