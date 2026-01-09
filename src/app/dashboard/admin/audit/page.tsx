@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { getMovimientos, getMovimientosTipos } from './actions'
 import AuditClient from './AuditClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AuditPage() {
     const supabase = await createClient()
 
