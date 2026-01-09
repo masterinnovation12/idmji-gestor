@@ -18,7 +18,7 @@ import { useDebounce } from '@/hooks/use-debounce'
 import { searchProfiles } from '@/app/dashboard/cultos/[id]/actions'
 import { Profile } from '@/types/database'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 interface UserSelectorProps {
     selectedUserId: string | null
@@ -39,7 +39,6 @@ export default function UserSelector({
     onEditChange,
     cultoDate,
     assignmentType,
-    isFestivo
 }: UserSelectorProps) {
     const { t } = useI18n()
     const [id] = useState(() => Math.random().toString(36).substring(2, 9))
@@ -133,16 +132,9 @@ export default function UserSelector({
         if (!cultoDate || !assignmentType) return true // If no context, assume available
 
         // Handle legacy availability (simple array/object) vs new structure (template/exceptions)
-        const availabilityFn = user.availability as any
+        const availabilityData = user.availability as Record<string, unknown> | null
 
-        if (!availabilityFn) return true // Default available if no constraints set
-
-        // Helper to check specific assignment in an availability object
-        const checkType = (availObj: any) => {
-            // Supports both boolean (legacy) and object check
-            if (!availObj) return false
-            return availObj[assignmentType] !== false
-        }
+        if (!availabilityData) return true // Default available if no constraints set
 
         const date = new Date(cultoDate)
         const dateStr = date.toISOString().split('T')[0] // YYYY-MM-DD
@@ -150,16 +142,18 @@ export default function UserSelector({
 
         // 1. Check Exceptions (Highest Priority)
         // New structure: availability.exceptions['YYYY-MM-DD']
-        if (availabilityFn.exceptions && availabilityFn.exceptions[dateStr]) {
-            const exception = availabilityFn.exceptions[dateStr]
+        const exceptions = availabilityData.exceptions as Record<string, Record<string, boolean>> | undefined
+        if (exceptions && exceptions[dateStr]) {
+            const exception = exceptions[dateStr]
             // If exception exists for this date, IT RULES.
             return exception[assignmentType] === true // Must be explicitly true
         }
 
         // 2. Check Template (Standard Priority)
         // New structure: availability.template['0'...'6']
-        if (availabilityFn.template) {
-            const dayTemplate = availabilityFn.template[dayOfWeek.toString()]
+        const template = availabilityData.template as Record<string, Record<string, boolean>> | undefined
+        if (template) {
+            const dayTemplate = template[dayOfWeek.toString()]
             if (dayTemplate) {
                 return dayTemplate[assignmentType] === true
             }
@@ -170,8 +164,9 @@ export default function UserSelector({
 
         // 3. Fallback to Legacy/Old Structure (if exists)
         // old: availability[dayOfWeek] = { assignments... }
-        if (availabilityFn[dayOfWeek]) {
-            return availabilityFn[dayOfWeek][assignmentType] !== false
+        const legacyDay = availabilityData[dayOfWeek] as Record<string, boolean> | undefined
+        if (legacyDay) {
+            return legacyDay[assignmentType] !== false
         }
 
         // If structure exists but no matching rule found, assume unavailable to be safe? 
@@ -341,7 +336,7 @@ export default function UserSelector({
                                             Sin resultados
                                         </p>
                                         <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                                            No se encontró ningún hermano con "{query}"
+                                            No se encontró ningún hermano con &quot;{query}&quot;
                                         </p>
                                     </div>
                                 )

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, ChevronDown, BookOpen, AlertCircle, X, ArrowLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -23,6 +23,17 @@ interface BibleSelectorProps {
     disabled?: boolean
 }
 
+// Helper for detecting mounted state without setState in useEffect
+function subscribeToNothing() {
+    return () => { }
+}
+function getMountedSnapshot() {
+    return true
+}
+function getMountedServerSnapshot() {
+    return false
+}
+
 export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps) {
     const { t } = useI18n()
     const [id] = useState(() => Math.random().toString(36).substring(2, 9))
@@ -36,15 +47,10 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
     const [isMobile, setIsMobile] = useState(false)
     const [isMobileSearchActive, setIsMobileSearchActive] = useState(false)
     const [dropdownRect, setDropdownRect] = useState<{ top: number, left: number, width: number } | null>(null)
-    const [mounted, setMounted] = useState(false)
+    const mounted = useSyncExternalStore(subscribeToNothing, getMountedSnapshot, getMountedServerSnapshot)
     const [error, setError] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
     const dropdownRef = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        setMounted(true)
-        return () => setMounted(false)
-    }, [])
 
     useEffect(() => {
         const checkMobile = () => {
@@ -57,7 +63,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && 
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
                 inputRef.current && !inputRef.current.contains(event.target as Node)) {
                 setShowDropdown(false)
             }
@@ -238,7 +244,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                     <AnimatePresence>
                         {mounted && !isMobile && showDropdown && dropdownRect && createPortal(
                             <div key={`bible-selector-portal-${id}`} className="fixed inset-0 z-[9998]" onClick={() => setShowDropdown(false)}>
-                                <motion.div 
+                                <motion.div
                                     key={`bible-selector-dropdown-${id}`}
                                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -255,7 +261,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                 >
                                     <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between shrink-0">
                                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Resultados de búsqueda</p>
-                                        <button 
+                                        <button
                                             onClick={() => setShowDropdown(false)}
                                             className="p-1.5 hover:bg-muted rounded-full transition-colors"
                                         >
@@ -273,21 +279,19 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                                     >
                                                         <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors" />
                                                         <div className="flex items-center gap-4 relative z-10">
-                                                            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover:scale-105 group-hover:rotate-3 ${
-                                                                libro.testamento === 'AT' 
-                                                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' 
+                                                            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover:scale-105 group-hover:rotate-3 ${libro.testamento === 'AT'
+                                                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
                                                                     : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
-                                                            }`}>
+                                                                }`}>
                                                                 {libro.abreviatura.slice(0, 2)}
                                                             </div>
                                                             <div>
                                                                 <p className="font-black text-sm md:text-base group-hover:text-primary transition-colors uppercase tracking-tight">{libro.nombre}</p>
                                                                 <div className="flex items-center gap-2 mt-0.5">
-                                                                    <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border ${
-                                                                        libro.testamento === 'AT' 
-                                                                            ? 'bg-amber-500/5 border-amber-500/20 text-amber-600' 
+                                                                    <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border ${libro.testamento === 'AT'
+                                                                            ? 'bg-amber-500/5 border-amber-500/20 text-amber-600'
                                                                             : 'bg-blue-500/5 border-blue-500/20 text-blue-600'
-                                                                    }`}>
+                                                                        }`}>
                                                                         {libro.testamento === 'AT' ? 'Antiguo Testamento' : 'Nuevo Testamento'}
                                                                     </span>
                                                                     <span className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-widest">•</span>
@@ -306,7 +310,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                         ) : (
                                             <div className="p-10 text-center">
                                                 <BookOpen className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
-                                                <p className="text-xs font-black text-muted-foreground/40 uppercase tracking-widest">No hay resultados para "{searchQuery}"</p>
+                                                <p className="text-xs font-black text-muted-foreground/40 uppercase tracking-widest">No hay resultados para &quot;{searchQuery}&quot;</p>
                                             </div>
                                         )}
                                     </div>
@@ -332,7 +336,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                     >
                         {/* Search Header */}
                         <div className="flex items-center gap-4 p-4 border-b border-border/50">
-                            <button 
+                            <button
                                 onClick={() => setIsMobileSearchActive(false)}
                                 className="p-2 hover:bg-muted rounded-xl transition-colors"
                             >
@@ -349,7 +353,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                     className="w-full bg-muted/50 rounded-2xl pl-12 pr-10 py-3.5 outline-none focus:ring-2 focus:ring-primary/20 font-bold text-base"
                                 />
                                 {searchQuery && (
-                                    <button 
+                                    <button
                                         onClick={() => setSearchQuery('')}
                                         className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-muted-foreground/10 rounded-full"
                                     >
@@ -368,9 +372,8 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                         onClick={() => handleSelectLibro(libro)}
                                         className="w-full p-4 text-left bg-muted/20 hover:bg-primary/5 active:bg-primary/10 rounded-2xl transition-all border border-border/10 flex items-center gap-4 group"
                                     >
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm border shadow-sm ${
-                                            libro.testamento === 'AT' ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
-                                        }`}>
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm border shadow-sm ${libro.testamento === 'AT' ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
+                                            }`}>
                                             {libro.abreviatura.slice(0, 2)}
                                         </div>
                                         <div>
@@ -413,9 +416,8 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                             }}
                             placeholder="Ej: 1"
                             disabled={disabled || !selectedLibroObj}
-                            className={`w-full h-14 bg-muted/30 border rounded-2xl px-5 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${
-                                error && (error.includes('capítulos') || (capituloInicio !== '' && Number(capituloInicio) > getMaxChapters())) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
-                            }`}
+                            className={`w-full h-14 bg-muted/30 border rounded-2xl px-5 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${error && (error.includes('capítulos') || (capituloInicio !== '' && Number(capituloInicio) > getMaxChapters())) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
+                                }`}
                         />
                     </div>
                     <div className="space-y-2">
@@ -439,9 +441,8 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                     }}
                                     placeholder="Inicio"
                                     disabled={disabled || !selectedLibroObj || capituloInicio === ''}
-                                    className={`w-full h-14 bg-muted/30 border rounded-2xl pl-8 pr-2 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${
-                                        error && (error.includes('versículos') && versiculoInicio !== '' && Number(versiculoInicio) > getMaxVerses(Number(capituloInicio))) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
-                                    }`}
+                                    className={`w-full h-14 bg-muted/30 border rounded-2xl pl-8 pr-2 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${error && (error.includes('versículos') && versiculoInicio !== '' && Number(versiculoInicio) > getMaxVerses(Number(capituloInicio))) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
+                                        }`}
                                 />
                             </div>
                             <span className="text-muted-foreground font-black">—</span>
@@ -458,9 +459,8 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                     }}
                                     placeholder="Fin"
                                     disabled={disabled || !selectedLibroObj || capituloInicio === ''}
-                                    className={`w-full h-14 bg-muted/30 border rounded-2xl pl-10 pr-2 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${
-                                        error && (error.includes('versículos') && versiculoFin !== '' && Number(versiculoFin) > getMaxVerses(Number(capituloInicio))) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
-                                    }`}
+                                    className={`w-full h-14 bg-muted/30 border rounded-2xl pl-10 pr-2 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${error && (error.includes('versículos') && versiculoFin !== '' && Number(versiculoFin) > getMaxVerses(Number(capituloInicio))) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
+                                        }`}
                                 />
                             </div>
                         </div>
@@ -470,7 +470,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
 
             {/* Error Message */}
             {error && (
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex gap-x-3 items-center text-red-600 text-xs font-bold shadow-sm"
@@ -485,7 +485,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
             {/* Preview */}
             <AnimatePresence>
                 {selectedLibroObj && capituloInicio && versiculoInicio && !error && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="p-5 bg-primary/5 rounded-[2rem] border border-primary/10 shadow-inner relative overflow-hidden"

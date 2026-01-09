@@ -3,7 +3,6 @@
 import * as React from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface DialogProps {
@@ -22,12 +21,12 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
     React.useEffect(() => {
         if (open) {
             const originalOverflow = document.body.style.overflow
-            
+
             if (originalOverflow !== 'hidden') {
-            document.body.style.overflow = 'hidden'
-        }
-            
-        return () => {
+                document.body.style.overflow = 'hidden'
+            }
+
+            return () => {
                 if (originalOverflow !== 'hidden') {
                     document.body.style.overflow = originalOverflow
                 }

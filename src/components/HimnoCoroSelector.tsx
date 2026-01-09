@@ -18,7 +18,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Search, Plus, Trash2, Music, Clock, ChevronUp, ChevronDown, GripVertical } from 'lucide-react'
+import { Search, Plus, Trash2, Music, Clock, ChevronUp, ChevronDown } from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
 import { searchHimnos, searchCoros, addHimnoCoro, removeHimnoCoro, getHimnosCorosByCulto, updateHimnosCorosOrder } from '@/app/dashboard/himnos/actions'
 import { Himno, Coro, PlanHimnoCoro } from '@/types/database'
@@ -165,7 +165,6 @@ export default function HimnoCoroSelector({
     const [query, setQuery] = useState('')
     const [results, setResults] = useState<(Himno | Coro)[]>([])
     const [selected, setSelected] = useState<PlanHimnoCoro[]>([])
-    const [isSearching, setIsSearching] = useState(false)
     const [savedLists, setSavedLists] = useState<{ id: string, name: string, items: PlanHimnoCoro[] }[]>([])
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
     const [listName, setListName] = useState('')
@@ -250,11 +249,9 @@ export default function HimnoCoroSelector({
                 return
             }
 
-            setIsSearching(true)
             const searchFn = tipo === 'himno' ? searchHimnos : searchCoros
             const { data } = await searchFn(debouncedQuery)
             setResults(data || [])
-            setIsSearching(false)
         }
         search()
     }, [debouncedQuery, tipo])
@@ -308,7 +305,7 @@ export default function HimnoCoroSelector({
             const orden = lastOfType.length > 0 ? Math.max(...lastOfType.map(s => s.orden)) + 1 : 1
 
             const newItem: PlanHimnoCoro = {
-                id: Math.random().toString(), // Temp ID
+                id: crypto.randomUUID(), // Unique temp ID
                 culto_id: 'temp',
                 tipo,
                 item_id: item.id,

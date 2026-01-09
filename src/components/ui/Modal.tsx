@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -13,21 +13,27 @@ interface ModalProps {
     keyPrefix?: string
 }
 
+// Helper to detect if we're on the client
+function subscribe() { return () => { } }
+function getSnapshot() { return true }
+function getServerSnapshot() { return false }
+
 export function Modal({ isOpen, onClose, title, children, size = 'md', keyPrefix = 'modal' }: ModalProps) {
-    const [mounted, setMounted] = useState(false)
+    const isClient = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+    const previousOverflow = useRef<string>('')
 
     useEffect(() => {
-        setMounted(true)
         // Prevent body scroll when modal is open
         if (isOpen) {
+            previousOverflow.current = document.body.style.overflow
             document.body.style.overflow = 'hidden'
         } else {
-            document.body.style.overflow = 'unset'
+            document.body.style.overflow = previousOverflow.current || 'unset'
         }
-        return () => { document.body.style.overflow = 'unset' }
+        return () => { document.body.style.overflow = previousOverflow.current || 'unset' }
     }, [isOpen])
 
-    if (!mounted) return null
+    if (!isClient) return null
 
     const sizes = {
         sm: 'max-w-md',

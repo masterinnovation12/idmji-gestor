@@ -16,8 +16,8 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertCircle, CheckCircle, Clock, BookOpen } from 'lucide-react'
+import { useState, useSyncExternalStore } from 'react'
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertCircle, CheckCircle, Clock } from 'lucide-react'
 import {
     startOfMonth,
     endOfMonth,
@@ -51,13 +51,25 @@ interface CalendarProps {
     onDateSelect?: (date: Date) => void
 }
 
+// Helper for dark mode detection without setState in useEffect
+function subscribeToDarkMode(callback: () => void) {
+    const observer = new MutationObserver(callback)
+    if (typeof document !== 'undefined') {
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    }
+    return () => observer.disconnect()
+}
+function getDarkModeSnapshot() {
+    if (typeof document === 'undefined') return false
+    return document.documentElement.classList.contains('dark')
+}
+function getDarkModeServerSnapshot() {
+    return false
+}
+
 export default function Calendar({ events, onMonthChange, view = 'month', selectedDate, onDateSelect }: CalendarProps) {
     const { t, language } = useI18n()
-    const [isDark, setIsDark] = useState(false)
-
-    useEffect(() => {
-        setIsDark(document.documentElement.classList.contains('dark'))
-    }, [])
+    const isDark = useSyncExternalStore(subscribeToDarkMode, getDarkModeSnapshot, getDarkModeServerSnapshot)
 
     const [internalDate, setInternalDate] = useState(new Date())
     const currentDate = selectedDate || internalDate

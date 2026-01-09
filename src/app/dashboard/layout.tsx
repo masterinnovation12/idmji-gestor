@@ -122,9 +122,12 @@ export default function DashboardLayout({
                         },
                         (payload) => {
                             console.log('Profile updated realtime:', payload)
+                            const newData = payload.new as { nombre?: string, apellidos?: string, avatar_url?: string, rol?: string }
                             setUserProfile(prev => ({
-                                ...prev,
-                                ...payload.new as { nombre?: string, apellidos?: string, avatar_url?: string, rol?: string },
+                                nombre: newData.nombre ?? prev?.nombre ?? null,
+                                apellidos: newData.apellidos ?? prev?.apellidos ?? null,
+                                avatar_url: newData.avatar_url ?? prev?.avatar_url ?? null,
+                                rol: newData.rol ?? prev?.rol ?? null,
                                 // Mantener el email ya que no viene en la tabla profiles
                                 email: prev?.email || user.email || null
                             }))
