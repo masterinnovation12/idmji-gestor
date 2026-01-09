@@ -27,6 +27,7 @@ export default async function DashboardPage() {
         .from('cultos')
         .select(`
             *,
+            lecturas:lecturas_biblicas(*),
             tipo_culto:culto_types(nombre, color, tiene_ensenanza, tiene_testimonios, tiene_lectura_introduccion, tiene_lectura_finalizacion, tiene_himnos_y_coros),
             usuario_intro:profiles!id_usuario_intro(nombre, apellidos, avatar_url),
             usuario_finalizacion:profiles!id_usuario_finalizacion(nombre, apellidos, avatar_url),
@@ -46,6 +47,7 @@ export default async function DashboardPage() {
             .from('cultos')
             .select(`
             *,
+            lecturas:lecturas_biblicas(*),
             tipo_culto:culto_types(nombre, color, tiene_ensenanza, tiene_testimonios, tiene_lectura_introduccion, tiene_lectura_finalizacion, tiene_himnos_y_coros),
             usuario_intro:profiles!id_usuario_intro(nombre, apellidos, avatar_url),
             usuario_finalizacion:profiles!id_usuario_finalizacion(nombre, apellidos, avatar_url),
@@ -59,6 +61,20 @@ export default async function DashboardPage() {
         if (nextCultos && nextCultos.length > 0) {
             cultoMostrado = nextCultos[0]
             esCultoHoy = false
+        }
+    }
+
+    // Pre-compute reading state on server to avoid hydration mismatch
+    let lecturaData: { showAddButton: boolean; lecturaIntro: any } | null = null
+    if (cultoMostrado) {
+        const tipoCulto = cultoMostrado.tipo_culto
+        const lecturas = cultoMostrado.lecturas || []
+        const debeTenerLectura = tipoCulto?.tiene_lectura_introduccion && !tipoCulto?.nombre?.toLowerCase().includes('estudio')
+        const lecturaIntro = debeTenerLectura ? lecturas.find((l: any) => l.tipo_lectura === 'introduccion') : null
+
+        lecturaData = {
+            showAddButton: debeTenerLectura && !lecturaIntro,
+            lecturaIntro: lecturaIntro || null
         }
     }
 
@@ -86,6 +102,7 @@ export default async function DashboardPage() {
             user={{ ...profile, id: user.id }}
             culto={cultoMostrado}
             esHoy={esCultoHoy}
+            lecturaData={lecturaData}
             initialAssignments={initialAssignments || []}
             stats={{
                 totalCultos: totalCultos || 0,

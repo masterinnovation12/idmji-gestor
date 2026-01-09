@@ -9,7 +9,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, BookOpen, Users, Clock, UserIcon, ChevronRight, ChevronLeft, MapPin } from 'lucide-react'
+import { Calendar, BookOpen, Users, Clock, UserIcon, ChevronRight, ChevronLeft, MapPin, CheckCircle2, Plus } from 'lucide-react'
 import { format, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import Link from 'next/link'
@@ -66,10 +66,45 @@ function AssignmentPill({ label, usuario }: { label: string, usuario: Partial<Pr
     )
 }
 
+function ReadingDisplay({ lectura }: { lectura: any }) {
+    if (!lectura) return null
+
+    return (
+        <div className="group relative overflow-hidden rounded-3xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 p-4 transition-all hover:bg-blue-50 dark:hover:bg-blue-900/20">
+            <div className="flex items-center gap-4 relative z-10">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 ring-4 ring-white dark:ring-slate-900 shadow-sm">
+                    <BookOpen className="h-6 w-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-blue-700 dark:text-blue-300">
+                            Lectura Bíblica
+                        </span>
+                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3 w-3" />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Registrada</span>
+                        </div>
+                    </div>
+                    <p className="font-black text-lg leading-tight text-slate-800 dark:text-slate-100 truncate">
+                        {lectura.libro} {lectura.capitulo_inicio}:{lectura.versiculo_inicio}
+                        {(lectura.capitulo_fin !== lectura.capitulo_inicio || lectura.versiculo_fin !== lectura.versiculo_inicio) &&
+                            ` - ${lectura.capitulo_fin}:${lectura.versiculo_fin}`}
+                    </p>
+                </div>
+            </div>
+            {/* Background decoration */}
+            <div className="absolute -right-4 -bottom-4 opacity-5 dark:opacity-10 pointer-events-none">
+                <BookOpen className="h-32 w-32" />
+            </div>
+        </div>
+    )
+}
+
 interface DashboardClientProps {
     user: Profile & { id: string }
-    culto: Culto | null
+    culto: (Culto & { lecturas?: any[] }) | null
     esHoy: boolean
+    lecturaData: { showAddButton: boolean; lecturaIntro: any } | null
     initialAssignments: Culto[]
     stats: {
         totalCultos: number
@@ -77,7 +112,7 @@ interface DashboardClientProps {
     }
 }
 
-export default function DashboardClient({ user, culto, esHoy, initialAssignments }: DashboardClientProps) {
+export default function DashboardClient({ user, culto, esHoy, lecturaData, initialAssignments }: DashboardClientProps) {
     const { t, language } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
 
@@ -218,12 +253,29 @@ export default function DashboardClient({ user, culto, esHoy, initialAssignments
                                             )}
                                         </div>
 
-                                        {/* Botón de Acción */}
-                                        <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
-                                            <button className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl">
-                                                Ver Detalles Completos
-                                            </button>
-                                        </Link>
+                                        {/* Lógica de Lectura y Botón de Acción (pre-computed on server) */}
+                                        {lecturaData?.showAddButton ? (
+                                            <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
+                                                <button className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2 group relative overflow-hidden">
+                                                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                                                    <Plus className="w-4 h-4" />
+                                                    <span>Añadir Lectura de la Palabra</span>
+                                                </button>
+                                            </Link>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                {lecturaData?.lecturaIntro && (
+                                                    <div className="animate-fade-in-up">
+                                                        <ReadingDisplay lectura={lecturaData.lecturaIntro} />
+                                                    </div>
+                                                )}
+                                                <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
+                                                    <button className="w-full py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-lg">
+                                                        Ver Detalles Completos
+                                                    </button>
+                                                </Link>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             </motion.div>

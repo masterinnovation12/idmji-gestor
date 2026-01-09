@@ -321,7 +321,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                         key="empty-state"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="p-10 border-2 border-dashed border-primary/20 rounded-[2rem] flex flex-col items-center justify-center gap-6 bg-primary/5 group/empty hover:border-primary/40 transition-all cursor-pointer"
+                        className="p-10 border-2 border-dashed border-primary/20 rounded-4xl flex flex-col items-center justify-center gap-6 bg-primary/5 group/empty hover:border-primary/40 transition-all cursor-pointer"
                         onClick={() => {
                             if (config.tiene_lectura_introduccion) {
                                 setActiveTipo('introduccion');
@@ -452,7 +452,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                             </div>
                         </div>
 
-                        <div className="p-6 bg-muted/50 rounded-[2rem] border border-border/50 text-center relative overflow-hidden group">
+                        <div className="p-6 bg-muted/50 rounded-4xl border border-border/50 text-center relative overflow-hidden group">
                             <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover/assigned:opacity-100 transition-opacity" />
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2 relative z-10">Pasaje Bíblico</p>
                             <p className="text-3xl font-black uppercase tracking-tighter relative z-10">
@@ -473,7 +473,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                             <button
                                 onClick={handleConfirmRepetida}
                                 disabled={isActionLoading}
-                                className="flex-[2] h-14 bg-red-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 order-1 sm:order-2 flex items-center justify-center gap-2"
+                                className="flex-2 h-14 bg-red-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 order-1 sm:order-2 flex items-center justify-center gap-2"
                             >
                                 {isActionLoading ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

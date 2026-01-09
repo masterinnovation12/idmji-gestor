@@ -622,13 +622,13 @@ export default function HimnoCoroSelector({
                         onDragEnd={handleDragEnd}
                     >
                         <SortableContext
-                            items={sortedSelected.map((item, idx) => item.id || `selected-${idx}`)}
+                            items={sortedSelected.map((item, idx) => item.id ? item.id : `sortable-fallback-${idx}-${item.item_id}`)}
                             strategy={verticalListSortingStrategy}
                         >
                             <div className="space-y-2">
                                 {sortedSelected.map((item, index) => (
                                     <SortableItem
-                                        key={item.id || `selected-item-${index}`}
+                                        key={item.id ? item.id : `sortable-item-${index}-${item.item_id}`}
                                         item={item}
                                         onRemove={handleRemove}
                                         onMoveUp={handleMoveUp}
