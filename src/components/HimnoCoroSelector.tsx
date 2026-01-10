@@ -53,8 +53,9 @@ interface HimnoCoroSelectorProps {
 /**
  * Componente sortable individual para cada item
  */
-function SortableItem({ item, onRemove, onMoveUp, onMoveDown, isFirst, isLast }: {
+function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLast }: {
     item: PlanHimnoCoro
+    id: string
     onRemove: (id: string) => void
     onMoveUp: (id: string) => void
     onMoveDown: (id: string) => void
@@ -66,7 +67,7 @@ function SortableItem({ item, onRemove, onMoveUp, onMoveDown, isFirst, isLast }:
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: item.id })
+    } = useSortable({ id })
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -112,7 +113,7 @@ function SortableItem({ item, onRemove, onMoveUp, onMoveDown, isFirst, isLast }:
                             }`}>
                             {item.tipo === 'himno' ? 'Himno' : 'Coro'}
                         </span>
-                        <div className="flex items-center gap-1.5 text-[9px] md:text-[10px] text-muted-foreground/60 font-black uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5 text-[9px] md:text-[10px] text-muted-foreground/60 font-black uppercase tracking-widest shrink-0 whitespace-nowrap">
                             <Clock className="w-3 h-3 opacity-50" />
                             {formatDuration(data?.duracion_segundos || 0)}
                         </div>
@@ -607,6 +608,7 @@ export default function HimnoCoroSelector({
                 <AnimatePresence mode='popLayout'>
                     {sortedSelected.length === 0 && (
                         <motion.div
+                            key="empty-state"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             className="p-8 border-2 border-dashed border-border/50 rounded-2xl text-center text-muted-foreground bg-muted/5"
@@ -617,18 +619,20 @@ export default function HimnoCoroSelector({
                     )}
 
                     <DndContext
+                        key="content-list"
                         sensors={sensors}
                         collisionDetection={closestCenter}
                         onDragEnd={handleDragEnd}
                     >
                         <SortableContext
-                            items={sortedSelected.map((item, idx) => item.id ? item.id : `sortable-fallback-${idx}-${item.item_id}`)}
+                            items={sortedSelected.map((item, idx) => item.id || `sortable-item-${idx}-${item.item_id || item.orden || idx}`)}
                             strategy={verticalListSortingStrategy}
                         >
                             <div className="space-y-2">
                                 {sortedSelected.map((item, index) => (
                                     <SortableItem
-                                        key={item.id ? item.id : `sortable-item-${index}-${item.item_id}`}
+                                        key={item.id || `sortable-item-${index}-${item.item_id || item.orden || index}`}
+                                        id={item.id || `sortable-item-${index}-${item.item_id || item.orden || index}`}
                                         item={item}
                                         onRemove={handleRemove}
                                         onMoveUp={handleMoveUp}
