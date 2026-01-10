@@ -106,16 +106,16 @@ function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLas
                     <p className="font-black text-xs md:text-sm uppercase tracking-tight leading-tight text-foreground break-words whitespace-normal">
                         #{data?.numero} <span className="text-muted-foreground mx-1">|</span> {data?.titulo}
                     </p>
-                    <div className="flex items-center gap-3 mt-2">
+                    <div className="flex items-center gap-2 md:gap-3 mt-2 flex-wrap">
                         <span className={`text-[8px] md:text-[9px] uppercase font-black px-2.5 py-1 rounded-full tracking-wider border shadow-sm ${item.tipo === 'himno'
                             ? 'bg-blue-500/10 border-blue-500/20 text-blue-600'
                             : 'bg-purple-500/10 border-purple-500/20 text-purple-600'
                             }`}>
                             {item.tipo === 'himno' ? 'Himno' : 'Coro'}
                         </span>
-                        <div className="flex items-center gap-1.5 text-[9px] md:text-[10px] text-muted-foreground/60 font-black uppercase tracking-widest shrink-0 whitespace-nowrap">
-                            <Clock className="w-3 h-3 opacity-50" />
-                            {formatDuration(data?.duracion_segundos || 0)}
+                        <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-gray-700 dark:text-gray-300 font-black uppercase tracking-widest shrink-0 whitespace-nowrap ml-1">
+                            <Clock className="w-3.5 h-3.5 opacity-70" />
+                            <span>{formatDuration(data?.duracion_segundos || 0)}</span>
                         </div>
                     </div>
                 </div>
