@@ -447,7 +447,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                     />
                                                 </div>
                                                 <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mb-2">
-                                                    <p className={`text-[10px] font-bold flex items-center gap-1 ${status === 'complete' ? 'text-emerald-700 dark:text-emerald-300' :
+                                                    <div className={`text-[10px] font-bold flex items-center gap-1 ${status === 'complete' ? 'text-emerald-700 dark:text-emerald-300' :
                                                         event.es_laborable_festivo ? 'text-amber-700 dark:text-amber-300' :
                                                             'text-muted-foreground'
                                                         }`}>
@@ -461,7 +461,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                                 <span>{t('calendar.festivoLabel')}</span>
                                                             </div>
                                                         )}
-                                                    </p>
+                                                    </div>
                                                     <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ${status === 'complete' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                                                         {status === 'complete' ? <CheckCircle size={10} /> : <Clock size={10} />}
                                                         {status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}

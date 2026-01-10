@@ -27,7 +27,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import UserSelector from '@/components/UserSelector'
 import HimnoCoroSelector from '@/components/HimnoCoroSelector'
 import BibleReadingManager from '@/components/BibleReadingManager'
-import { updateAssignment, toggleFestivo, updateCultoProtocol } from './actions'
+import { updateAssignment, toggleFestivo, updateCultoProtocol, updateInicioAnticipado, updateCultoObservaciones } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import BackButton from '@/components/BackButton'
 import { toast } from 'sonner'
@@ -361,6 +361,47 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                 </motion.div>
             </div>
 
+            {/* Observaciones (Universal - Para TODOS los tipos de culto) */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full"
+            >
+                <div className="glass rounded-4xl p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                    <div className="flex flex-col gap-4 relative z-10">
+                        {/* Header */}
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20">
+                                <span className="text-2xl">📝</span>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
+                                    Observaciones
+                                </h3>
+                                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                                    Notas adicionales del culto
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Textarea */}
+                        <textarea
+                            placeholder="Escribe aquí las observaciones del culto..."
+                            defaultValue={(culto.meta_data as any)?.observaciones || ''}
+                            onBlur={async (e) => {
+                                await updateCultoObservaciones(culto.id, e.target.value)
+                                if (e.target.value.trim()) {
+                                    toast.success('Observaciones guardadas')
+                                }
+                            }}
+                            className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-amber-500/50 resize-none placeholder:text-slate-400"
+                            rows={3}
+                        />
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* Protocol Configuration (Solo Estudio Bíblico) */}
             {/* Protocol Configuration (Solo Estudio Bíblico) */}
             {(tipoCulto.toLowerCase().includes('estudio') || tipoCulto.toLowerCase().includes('biblico')) && (
                 <motion.div
@@ -447,6 +488,155 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                     </div>
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+
+            {/* Inicio Anticipado (Solo Estudio Bíblico) */}
+            {(tipoCulto.toLowerCase().includes('estudio') || tipoCulto.toLowerCase().includes('biblico')) && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full"
+                >
+                    <div className="glass rounded-4xl p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                        <div className="flex flex-col gap-6 relative z-10">
+                            {/* Header */}
+                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20">
+                                        <Clock className="w-6 h-6 text-amber-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
+                                            Inicio Anticipado
+                                        </h3>
+                                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                                            Por duración del video
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Toggle Switch */}
+                                <button
+                                    onClick={async () => {
+                                        const current = culto.meta_data?.inicio_anticipado?.activo ?? false
+                                        await updateInicioAnticipado(culto.id, {
+                                            activo: !current,
+                                            minutos: culto.meta_data?.inicio_anticipado?.minutos ?? 5,
+                                            observaciones: culto.meta_data?.inicio_anticipado?.observaciones
+                                        })
+                                        toast.success(!current ? 'Inicio anticipado activado' : 'Inicio anticipado desactivado')
+                                    }}
+                                    className={`flex items-center gap-4 px-5 py-3 rounded-2xl border-2 transition-all cursor-pointer ${(culto.meta_data?.inicio_anticipado?.activo ?? false)
+                                        ? 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300'
+                                        : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
+                                        }`}
+                                >
+                                    <span className="text-xs font-black uppercase tracking-tight">
+                                        {(culto.meta_data?.inicio_anticipado?.activo ?? false) ? 'Activado' : 'Desactivado'}
+                                    </span>
+                                    <div className={`w-12 h-7 rounded-full p-1 transition-colors border ${(culto.meta_data?.inicio_anticipado?.activo ?? false)
+                                        ? 'bg-amber-500 border-amber-600'
+                                        : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
+                                        }`}>
+                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${(culto.meta_data?.inicio_anticipado?.activo ?? false) ? 'translate-x-5' : 'translate-x-0'
+                                            }`} />
+                                    </div>
+                                </button>
+                            </div>
+
+                            {/* Content - Only shown when active */}
+                            {(culto.meta_data?.inicio_anticipado?.activo ?? false) && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    className="space-y-5"
+                                >
+                                    {/* Minute Buttons */}
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                            Minutos antes
+                                        </label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {[5, 7, 10].map((mins) => (
+                                                <button
+                                                    key={mins}
+                                                    onClick={async () => {
+                                                        await updateInicioAnticipado(culto.id, {
+                                                            activo: true,
+                                                            minutos: mins,
+                                                            observaciones: culto.meta_data?.inicio_anticipado?.observaciones
+                                                        })
+                                                        toast.success(`Inicio ${mins} minutos antes`)
+                                                    }}
+                                                    className={`px-6 py-3 rounded-2xl font-black text-sm transition-all ${(culto.meta_data?.inicio_anticipado?.minutos ?? 5) === mins
+                                                        ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
+                                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                        }`}
+                                                >
+                                                    {mins} min
+                                                </button>
+                                            ))}
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground font-bold">Otro:</span>
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    max={30}
+                                                    defaultValue={
+                                                        ![5, 7, 10].includes(culto.meta_data?.inicio_anticipado?.minutos ?? 5)
+                                                            ? culto.meta_data?.inicio_anticipado?.minutos
+                                                            : ''
+                                                    }
+                                                    placeholder="min"
+                                                    onBlur={async (e) => {
+                                                        const val = parseInt(e.target.value)
+                                                        if (val && val > 0 && val <= 30) {
+                                                            await updateInicioAnticipado(culto.id, {
+                                                                activo: true,
+                                                                minutos: val,
+                                                                observaciones: culto.meta_data?.inicio_anticipado?.observaciones
+                                                            })
+                                                            toast.success(`Inicio ${val} minutos antes`)
+                                                        }
+                                                    }}
+                                                    className="w-20 px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center font-black text-sm outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Calculated Start Time */}
+                                    <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20">
+                                        <div className="flex items-center gap-3">
+                                            <Clock className="w-5 h-5 text-amber-600" />
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 opacity-70">
+                                                    Hora real de inicio
+                                                </p>
+                                                <p className="text-xl font-black text-amber-700 dark:text-amber-300">
+                                                    {(() => {
+                                                        const [hours, minutes] = culto.hora_inicio.split(':').map(Number)
+                                                        const minsBefore = culto.meta_data?.inicio_anticipado?.minutos ?? 5
+                                                        let newMins = minutes - minsBefore
+                                                        let newHours = hours
+                                                        if (newMins < 0) {
+                                                            newMins += 60
+                                                            newHours -= 1
+                                                        }
+                                                        return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`
+                                                    })()}
+                                                    <span className="text-sm font-bold text-amber-600/60 ml-2">
+                                                        ({culto.meta_data?.inicio_anticipado?.minutos ?? 5} min antes de {culto.hora_inicio.slice(0, 5)})
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
                         </div>
                     </div>
                 </motion.div>

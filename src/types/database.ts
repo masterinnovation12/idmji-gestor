@@ -78,6 +78,11 @@ export interface Culto {
             oracion_inicio: boolean
             congregacion_pie: boolean
         }
+        inicio_anticipado?: {
+            activo: boolean
+            minutos: number
+            observaciones?: string
+        }
     }
 }
 

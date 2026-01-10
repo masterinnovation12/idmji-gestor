@@ -247,3 +247,85 @@ export async function updateCultoProtocol(
     revalidatePath(`/dashboard/cultos/${cultoId}`)
     return { success: true }
 }
+
+/**
+ * Actualizar inicio anticipado del estudio bíblico (metadata)
+ * Permite indicar que el culto comienza antes de la hora programada
+ */
+export async function updateInicioAnticipado(
+    cultoId: string,
+    config: { activo: boolean; minutos: number; observaciones?: string }
+) {
+    const supabase = await createClient()
+
+    // 1. Obtener metadata actual para no sobrescribir otros campos
+    const { data: culto } = await supabase
+        .from('cultos')
+        .select('meta_data')
+        .eq('id', cultoId)
+        .single()
+
+    const currentMeta = (culto?.meta_data as Record<string, unknown>) || {}
+
+    // 2. Mezclar con nuevo inicio_anticipado
+    const newMeta = {
+        ...currentMeta,
+        inicio_anticipado: {
+            activo: config.activo,
+            minutos: config.minutos,
+            observaciones: config.observaciones || ''
+        }
+    }
+
+    const { error } = await supabase
+        .from('cultos')
+        .update({ meta_data: newMeta })
+        .eq('id', cultoId)
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    revalidatePath(`/dashboard/cultos/${cultoId}`)
+    revalidatePath('/dashboard')
+    return { success: true }
+}
+
+/**
+ * Actualizar observaciones del culto (metadata)
+ * Disponible para TODOS los tipos de culto
+ */
+export async function updateCultoObservaciones(
+    cultoId: string,
+    observaciones: string
+) {
+    const supabase = await createClient()
+
+    // 1. Obtener metadata actual para no sobrescribir otros campos
+    const { data: culto } = await supabase
+        .from('cultos')
+        .select('meta_data')
+        .eq('id', cultoId)
+        .single()
+
+    const currentMeta = (culto?.meta_data as Record<string, unknown>) || {}
+
+    // 2. Mezclar con nuevas observaciones
+    const newMeta = {
+        ...currentMeta,
+        observaciones: observaciones
+    }
+
+    const { error } = await supabase
+        .from('cultos')
+        .update({ meta_data: newMeta })
+        .eq('id', cultoId)
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    revalidatePath(`/dashboard/cultos/${cultoId}`)
+    revalidatePath('/dashboard')
+    return { success: true }
+}

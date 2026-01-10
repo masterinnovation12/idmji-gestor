@@ -105,6 +105,13 @@ interface DashboardClientProps {
     culto: (Culto & { lecturas?: any[] }) | null
     esHoy: boolean
     lecturaData: { showAddButton: boolean; lecturaIntro: any } | null
+    estudioBiblicoData: {
+        esEstudio: boolean
+        oracionInicio: boolean
+        congregacionPie: boolean
+        inicioAnticipado: { activo: boolean; minutos: number; horaReal: string; observaciones?: string } | null
+    } | null
+    observacionesData: string
     initialAssignments: Culto[]
     stats: {
         totalCultos: number
@@ -112,7 +119,7 @@ interface DashboardClientProps {
     }
 }
 
-export default function DashboardClient({ user, culto, esHoy, lecturaData, initialAssignments }: DashboardClientProps) {
+export default function DashboardClient({ user, culto, esHoy, lecturaData, estudioBiblicoData, observacionesData, initialAssignments }: DashboardClientProps) {
     const { t, language } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
 
@@ -231,10 +238,72 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, initi
                                             <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter mb-2">
                                                 {culto.tipo_culto?.nombre}
                                             </h2>
+
+                                            {/* Hora - con inicio anticipado si aplica */}
                                             <div className="flex items-center gap-2 text-slate-500 font-bold mb-4">
                                                 <Clock className="w-5 h-5 text-blue-500" />
-                                                <span className="text-lg">{culto.hora_inicio.slice(0, 5)}</span>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    {estudioBiblicoData?.inicioAnticipado ? (
+                                                        <>
+                                                            <span className="text-lg line-through opacity-50">{(culto.hora_inicio || '').slice(0, 5)}</span>
+                                                            <span className="text-lg font-black text-amber-600 dark:text-amber-400">
+                                                                {estudioBiblicoData.inicioAnticipado.horaReal}
+                                                            </span>
+                                                            <span className="px-2 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-lg text-[10px] font-black uppercase">
+                                                                {estudioBiblicoData.inicioAnticipado.minutos} min antes
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-lg">{(culto.hora_inicio || '').slice(0, 5)}</span>
+                                                    )}
+                                                </div>
                                             </div>
+
+                                            {/* Protocol Badges - Solo Estudio Bíblico */}
+                                            {estudioBiblicoData?.esEstudio && (
+                                                <div className="flex flex-wrap gap-2 mt-3">
+                                                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border ${estudioBiblicoData.oracionInicio
+                                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
+                                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                                                        }`}>
+                                                        <span>🙏</span>
+                                                        <span>Oración: {estudioBiblicoData.oracionInicio ? 'Sí' : 'No'}</span>
+                                                    </div>
+                                                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border ${estudioBiblicoData.congregacionPie
+                                                        ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20'
+                                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                                                        }`}>
+                                                        <span>🪑</span>
+                                                        <span>{estudioBiblicoData.congregacionPie ? 'De Pie' : 'Sentados'}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Observaciones (Universal - para TODOS los cultos) */}
+                                            {(() => {
+                                                const obsContent = observacionesData?.trim()
+                                                const hasObs = !!obsContent && obsContent.length > 0
+
+                                                return (
+                                                    <div className={`mt-3 p-3 rounded-xl border ${hasObs
+                                                        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30'
+                                                        : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50'
+                                                        }`}>
+                                                        <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${hasObs
+                                                            ? 'text-amber-600 dark:text-amber-400'
+                                                            : 'text-slate-400 dark:text-slate-500'
+                                                            }`}>
+                                                            📝 Observaciones
+                                                        </p>
+                                                        <p className={`text-sm font-medium leading-snug ${hasObs
+                                                            ? 'text-amber-800 dark:text-amber-200'
+                                                            : 'text-slate-400 dark:text-slate-500 italic'
+                                                            }`}>
+                                                            {hasObs ? obsContent : 'Sin observaciones'}
+                                                        </p>
+                                                    </div>
+                                                )
+                                            })()}
                                         </div>
 
                                         {/* Grid de Responsables (Compacto y Visual) */}
