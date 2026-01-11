@@ -87,10 +87,12 @@ export default async function DashboardPage() {
             const lecturas = cultoMostrado.lecturas || []
             const debeTenerLectura = tipoCulto?.tiene_lectura_introduccion && !tipoCulto?.nombre?.toLowerCase().includes('estudio')
             const lecturaIntro = debeTenerLectura ? lecturas.find((l: any) => l.tipo_lectura === 'introduccion') : null
+            const lecturaFinal = tipoCulto?.tiene_lectura_finalizacion ? lecturas.find((l: any) => l.tipo_lectura === 'finalizacion') : null
 
             lecturaData = {
                 showAddButton: debeTenerLectura && !lecturaIntro,
-                lecturaIntro: lecturaIntro || null
+                lecturaIntro: lecturaIntro || null,
+                lecturaFinal: lecturaFinal || null
             }
 
             // Pre-compute Estudio Bíblico data (Only for Estudio Bíblico cults)

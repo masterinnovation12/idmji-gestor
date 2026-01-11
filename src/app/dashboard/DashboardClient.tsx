@@ -9,7 +9,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, BookOpen, Users, Clock, UserIcon, ChevronRight, ChevronLeft, MapPin, CheckCircle2, Plus } from 'lucide-react'
+import { Calendar, BookOpen, Users, Clock, UserIcon, ChevronRight, ChevronLeft, MapPin, Plus } from 'lucide-react'
 import { format, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import Link from 'next/link'
@@ -28,15 +28,15 @@ function UserAvatar({ usuario, size = 'md' }: { usuario: Partial<Profile> | null
 
     const sizeClasses = {
         sm: 'w-8 h-8 text-xs',
-        md: 'w-12 h-12 text-base', // Increased from 10
-        lg: 'w-16 h-16 text-lg',   // Increased from 14
-        xl: 'w-20 h-20 text-xl'    // New extra large size
+        md: 'w-12 h-12 text-base',
+        lg: 'w-16 h-16 text-lg',
+        xl: 'w-20 h-20 text-xl'
     }
 
     const initials = `${usuario.nombre?.[0] || ''}${usuario.apellidos?.[0] || ''}`.toUpperCase()
 
     return (
-        <div className={`relative ${sizeClasses[size]} rounded-full overflow-hidden shadow-md ring-2 ring-white/20 flex-shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold`}>
+        <div className={`relative ${sizeClasses[size]} rounded-full overflow-hidden shadow-sm ring-2 ring-white/20 flex-shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold`}>
             {usuario.avatar_url ? (
                 <NextImage
                     src={usuario.avatar_url}
@@ -51,51 +51,60 @@ function UserAvatar({ usuario, size = 'md' }: { usuario: Partial<Profile> | null
     )
 }
 
-function AssignmentPill({ label, usuario }: { label: string, usuario: Partial<Profile> | null | undefined }) {
-    if (!usuario) return null
+function AssignmentPill({ label, usuario, lectura }: { label: string, usuario: Partial<Profile> | null | undefined, lectura?: any }) {
+    if (!usuario && !lectura) return null
     return (
-        <div className="flex items-center gap-3 p-3 bg-white/50 dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-sm">
-            <UserAvatar usuario={usuario} size="md" />
-            <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-blue-600 dark:text-blue-300 font-black uppercase tracking-wider mb-0.5">{label}</p>
-                <p className="font-bold text-sm truncate text-slate-800 dark:text-slate-100">
-                    {usuario.nombre} {usuario.apellidos?.split(' ')[0]}
-                </p>
-            </div>
-        </div>
-    )
-}
-
-function ReadingDisplay({ lectura }: { lectura: any }) {
-    if (!lectura) return null
-
-    return (
-        <div className="group relative overflow-hidden rounded-3xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 p-4 transition-all hover:bg-blue-50 dark:hover:bg-blue-900/20">
-            <div className="flex items-center gap-4 relative z-10">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 ring-4 ring-white dark:ring-slate-900 shadow-sm">
-                    <BookOpen className="h-6 w-6" />
-                </div>
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-blue-700 dark:text-blue-300">
-                            Lectura Bíblica
-                        </span>
-                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="h-3 w-3" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Registrada</span>
-                        </div>
+        <div className={`flex flex-col p-3 bg-white/50 dark:bg-black/20 rounded-3xl border border-black/5 dark:border-white/5 backdrop-blur-sm transition-all ${lectura ? 'gap-3 bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : 'flex-row items-center gap-3'}`}>
+            {usuario ? (
+                <div className={`flex items-center gap-3 ${lectura ? 'border-b border-black/5 dark:border-white/5 pb-2' : ''}`}>
+                    <UserAvatar usuario={usuario} size="md" />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[10px] text-blue-600 dark:text-blue-300 font-black uppercase tracking-wider mb-0.5">{label}</p>
+                        <p className="font-bold text-sm truncate text-slate-800 dark:text-slate-100">
+                            {usuario.nombre} {usuario.apellidos?.split(' ')[0]}
+                        </p>
                     </div>
-                    <p className="font-black text-lg leading-tight text-slate-800 dark:text-slate-100 truncate">
-                        {lectura.libro} {lectura.capitulo_inicio}:{lectura.versiculo_inicio}
-                        {(lectura.capitulo_fin !== lectura.capitulo_inicio || lectura.versiculo_fin !== lectura.versiculo_inicio) &&
-                            ` - ${lectura.capitulo_fin}:${lectura.versiculo_fin}`}
-                    </p>
                 </div>
-            </div>
-            {/* Background decoration */}
-            <div className="absolute -right-4 -bottom-4 opacity-5 dark:opacity-10 pointer-events-none">
-                <BookOpen className="h-32 w-32" />
-            </div>
+            ) : (
+                <div className={`flex items-center gap-3 ${lectura ? 'border-b border-black/5 dark:border-white/5 pb-2' : ''}`}>
+                    <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 font-bold border-2 border-dashed border-slate-300 dark:border-slate-700">
+                        <Users className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[10px] text-blue-600 dark:text-blue-300 font-black uppercase tracking-wider mb-0.5">{label}</p>
+                        <p className="font-bold text-sm truncate text-slate-400 italic">
+                            Sin asignar
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Lectura integrada */}
+            {lectura && (
+                <div className="flex items-start gap-3 pl-1 relative group">
+                    <div className="w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0 text-blue-600 dark:text-blue-400 border border-black/5 dark:border-white/5">
+                        <BookOpen className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-blue-500/80">Lectura</span>
+                            <div className="w-1 h-1 rounded-full bg-blue-300" />
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600">Registrada</span>
+                        </div>
+                        <p className="font-black text-sm text-slate-700 dark:text-slate-200 leading-tight">
+                            {lectura.libro} {lectura.capitulo_inicio}:{lectura.versiculo_inicio}
+                            {(lectura.capitulo_fin !== lectura.capitulo_inicio || lectura.versiculo_fin !== lectura.versiculo_inicio) && (
+                                <>
+                                    {' - '}
+                                    {lectura.capitulo_fin === lectura.capitulo_inicio
+                                        ? lectura.versiculo_fin
+                                        : `${lectura.capitulo_fin}:${lectura.versiculo_fin}`}
+                                </>
+                            )}
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
@@ -104,7 +113,7 @@ interface DashboardClientProps {
     user: Profile & { id: string }
     culto: (Culto & { lecturas?: any[] }) | null
     esHoy: boolean
-    lecturaData: { showAddButton: boolean; lecturaIntro: any } | null
+    lecturaData: { showAddButton: boolean; lecturaIntro: any; lecturaFinal: any } | null
     estudioBiblicoData: {
         esEstudio: boolean
         oracionInicio: boolean
@@ -309,13 +318,21 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                                         {/* Grid de Responsables (Compacto y Visual) */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
                                             {culto.tipo_culto?.tiene_lectura_introduccion && (
-                                                <AssignmentPill label="Introducción" usuario={culto.usuario_intro} />
+                                                <AssignmentPill
+                                                    label="Introducción"
+                                                    usuario={culto.usuario_intro}
+                                                    lectura={lecturaData?.lecturaIntro}
+                                                />
                                             )}
                                             {culto.tipo_culto?.tiene_ensenanza && (
                                                 <AssignmentPill label="Enseñanza" usuario={culto.usuario_ensenanza} />
                                             )}
                                             {culto.tipo_culto?.tiene_lectura_finalizacion && (
-                                                <AssignmentPill label="Finalización" usuario={culto.usuario_finalizacion} />
+                                                <AssignmentPill
+                                                    label="Finalización"
+                                                    usuario={culto.usuario_finalizacion}
+                                                    lectura={lecturaData?.lecturaFinal}
+                                                />
                                             )}
                                             {culto.tipo_culto?.tiene_testimonios && (
                                                 <AssignmentPill label="Testimonios" usuario={culto.usuario_testimonios} />
@@ -333,11 +350,7 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                                             </Link>
                                         ) : (
                                             <div className="space-y-4">
-                                                {lecturaData?.lecturaIntro && (
-                                                    <div className="animate-fade-in-up">
-                                                        <ReadingDisplay lectura={lecturaData.lecturaIntro} />
-                                                    </div>
-                                                )}
+                                                {/* Lectura moved to AssignmentPill */}
                                                 <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
                                                     <button className="w-full py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-lg">
                                                         Ver Detalles Completos
