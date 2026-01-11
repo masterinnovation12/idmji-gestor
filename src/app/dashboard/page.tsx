@@ -23,7 +23,13 @@ export default async function DashboardPage() {
             .single()
 
         // Get today's culto
-        const today = format(new Date(), 'yyyy-MM-dd')
+        // Get today's culto (Force Europe/Madrid timezone)
+        const today = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Europe/Madrid',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(new Date())
         const { data: cultosData } = await supabase
             .from('cultos')
             .select(`
