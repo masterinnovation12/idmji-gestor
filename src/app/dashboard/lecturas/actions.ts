@@ -281,41 +281,23 @@ export async function getAllLecturas(
 export async function getBibliaLibros() {
     try {
         const supabase = await createClient()
-        let allRows: Record<string, unknown>[] = []
-        let hasMore = true
-        let from = 0
-        const step = 400 // Paso pequeño para asegurar bypass de límites
 
-        while (hasMore) {
-            const to = from + step - 1
-            const { data, error } = await supabase
-                .from('biblia')
-                .select('*')
-                .order('orden', { ascending: true })
-                .order('capitulo', { ascending: true })
-                .range(from, to)
+        // Optimize: Select ONLY structure columns, NOT the full text if it exists
+        // 1189 chapters is small enough to fetch in one request if we exclude text
+        const { data, error } = await supabase
+            .from('biblia')
+            .select('libro, orden, testamento, abreviatura, capitulo, num_versiculos')
+            .order('orden', { ascending: true })
+            .order('capitulo', { ascending: true })
+            .eq('versiculo', 1) // Optimization: Only fetch first verse of each chapter
+            .limit(5000) // 1189 chapters fits easily in 5000
 
-            if (error) {
-                console.error(`Error en rango ${from}-${to}:`, error)
-                return { error: error.message }
-            }
-
-            if (data && data.length > 0) {
-                allRows = [...allRows, ...data]
-                if (data.length < step) {
-                    hasMore = false
-                } else {
-                    from += step
-                }
-            } else {
-                hasMore = false
-            }
-
-            // Límite de seguridad
-            if (allRows.length > 3000) hasMore = false
+        if (error) {
+            console.error('Error fetching bible structure:', error)
+            return { error: error.message }
         }
 
-        if (allRows.length === 0) {
+        if (!data || data.length === 0) {
             return { data: [] }
         }
 
@@ -328,7 +310,7 @@ export async function getBibliaLibros() {
             capitulos: { n: number; v: number }[]
         }>()
 
-        allRows.forEach((row) => {
+        data.forEach((row) => {
             const libroNombre = (row.libro as string).trim()
             if (!booksMap.has(libroNombre)) {
                 booksMap.set(libroNombre, {
@@ -341,6 +323,7 @@ export async function getBibliaLibros() {
             }
 
             const book = booksMap.get(libroNombre)!
+            // Prevent duplicates if DB is messy
             if (!book.capitulos.some((c) => c.n === row.capitulo)) {
                 book.capitulos.push({
                     n: row.capitulo as number,

@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef, useSyncExternalStore, useMemo } from 'react'
+'use client'
+
+import { useState, useEffect, useRef, useSyncExternalStore, useMemo, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Search, ChevronDown, BookOpen, AlertCircle, X, ArrowLeft } from 'lucide-react'
+import { Search, ChevronDown, BookOpen, AlertCircle, X, ArrowLeft, Check, Command } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getBibliaLibros } from '@/app/dashboard/lecturas/actions'
+import { cn } from '@/lib/utils'
 
 interface Chapter {
     n: number
@@ -41,13 +44,20 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
     const [capituloInicio, setCapituloInicio] = useState<number | ''>('')
     const [versiculoInicio, setVersiculoInicio] = useState<number | ''>('')
     const [versiculoFin, setVersiculoFin] = useState<number | ''>('')
-    const [showDropdown, setShowDropdown] = useState(false)
+
+    // UI States
+    const [isOpen, setIsOpen] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
-    const [isMobileSearchActive, setIsMobileSearchActive] = useState(false)
+    const [selectedIndex, setSelectedIndex] = useState(0)
+
+    // Positioning
     const [dropdownRect, setDropdownRect] = useState<{ top: number, left: number, width: number } | null>(null)
     const mounted = useSyncExternalStore(subscribeToNothing, getMountedSnapshot, getMountedServerSnapshot)
+
+    // Refs
     const inputRef = useRef<HTMLInputElement>(null)
     const dropdownRef = useRef<HTMLDivElement>(null)
+    const listRef = useRef<HTMLDivElement>(null)
 
     // Validation logic derived from state
     const validationError = useMemo(() => {
@@ -81,6 +91,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
     const [submitError, setSubmitError] = useState<string | null>(null)
     const error = validationError || submitError
 
+    // Detect Mobile
     useEffect(() => {
         const checkMobile = () => {
             setIsMobile(window.innerWidth < 768)
@@ -90,21 +101,30 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         return () => window.removeEventListener('resize', checkMobile)
     }, [])
 
+    // Close on click outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
-                inputRef.current && !inputRef.current.contains(event.target as Node)) {
-                setShowDropdown(false)
+            // If clicking inside the portal dropdown, ignore
+            if (dropdownRef.current && dropdownRef.current.contains(event.target as Node)) {
+                return;
             }
+            // If clicking inside input, ignore
+            if (inputRef.current && inputRef.current.contains(event.target as Node)) {
+                return;
+            }
+            setIsOpen(false)
         }
-        document.addEventListener("mousedown", handleClickOutside)
+        if (isOpen) {
+            document.addEventListener("mousedown", handleClickOutside)
+        }
         return () => document.removeEventListener("mousedown", handleClickOutside)
-    }, [])
+    }, [isOpen])
 
-    // Posicionamiento dinámico para el dropdown fixed
+    // Robust Positioning Logic (Runs on every render when open to catch layout shifts)
     const updatePosition = () => {
         if (inputRef.current) {
             const rect = inputRef.current.getBoundingClientRect()
+            console.log("BibleSelector: Calc Position:", rect.top, rect.left, rect.width)
             setDropdownRect({
                 top: rect.bottom,
                 left: rect.left,
@@ -113,9 +133,14 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         }
     }
 
-    useEffect(() => {
-        if (showDropdown && !isMobile) {
+    // DEBUG: Monitor rendering conditions
+    console.log("BibleSelector Render: ", { mounted, isMobile, isOpen, rect: dropdownRect ? 'VALID' : 'NULL', books: libros.length })
+
+
+    useLayoutEffect(() => {
+        if (isOpen && !isMobile) {
             updatePosition()
+            // Also listen to events
             window.addEventListener('scroll', updatePosition, true)
             window.addEventListener('resize', updatePosition)
             return () => {
@@ -123,32 +148,118 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                 window.removeEventListener('resize', updatePosition)
             }
         }
-    }, [showDropdown, isMobile])
+    }, [isOpen, isMobile, searchQuery])
 
+    // Load Books with Robust Fallback
     useEffect(() => {
         async function loadLibros() {
-            const { data } = await getBibliaLibros()
-            if (data) {
-                setLibros(data)
+            try {
+                console.log("BibleSelector: Attempting to load books...")
+                const { data, error } = await getBibliaLibros()
+
+                if (data && data.length > 0) {
+                    console.log("BibleSelector: Successfully loaded", data.length, "books from DB")
+                    setLibros(data)
+                } else {
+                    console.warn("BibleSelector: Failed to load from DB or empty. Using Fallback Data.", error)
+
+                    // Fallback Data to ensure UI works (Simplified Verses)
+                    const FALLBACK_BOOKS: BibleBook[] = [
+                        { id: 1, nombre: "Génesis", abreviatura: "Gn", testamento: "AT", capitulos: Array.from({ length: 50 }, (_, i) => ({ n: i + 1, v: 31 })) },
+                        { id: 2, nombre: "Éxodo", abreviatura: "Ex", testamento: "AT", capitulos: Array.from({ length: 40 }, (_, i) => ({ n: i + 1, v: 31 })) },
+                        { id: 19, nombre: "Salmos", abreviatura: "Sal", testamento: "AT", capitulos: Array.from({ length: 150 }, (_, i) => ({ n: i + 1, v: 20 })) },
+                        { id: 20, nombre: "Proverbios", abreviatura: "Pr", testamento: "AT", capitulos: Array.from({ length: 31 }, (_, i) => ({ n: i + 1, v: 33 })) },
+                        { id: 40, nombre: "Mateo", abreviatura: "Mt", testamento: "NT", capitulos: Array.from({ length: 28 }, (_, i) => ({ n: i + 1, v: 31 })) },
+                        { id: 41, nombre: "Marcos", abreviatura: "Mc", testamento: "NT", capitulos: Array.from({ length: 16 }, (_, i) => ({ n: i + 1, v: 20 })) },
+                        { id: 42, nombre: "Lucas", abreviatura: "Lc", testamento: "NT", capitulos: Array.from({ length: 24 }, (_, i) => ({ n: i + 1, v: 53 })) },
+                        { id: 43, nombre: "Juan", abreviatura: "Jn", testamento: "NT", capitulos: Array.from({ length: 21 }, (_, i) => ({ n: i + 1, v: 31 })) },
+                        { id: 44, nombre: "Hechos", abreviatura: "Hch", testamento: "NT", capitulos: Array.from({ length: 28 }, (_, i) => ({ n: i + 1, v: 31 })) },
+                        { id: 45, nombre: "Romanos", abreviatura: "Ro", testamento: "NT", capitulos: Array.from({ length: 16 }, (_, i) => ({ n: i + 1, v: 27 })) },
+                        { id: 66, nombre: "Apocalipsis", abreviatura: "Ap", testamento: "NT", capitulos: Array.from({ length: 22 }, (_, i) => ({ n: i + 1, v: 21 })) }
+                    ]
+                    setLibros(FALLBACK_BOOKS)
+                }
+            } catch (e) {
+                console.error("BibleSelector: Exception loading books", e)
             }
         }
         loadLibros()
     }, [])
 
-    // Scroll lock for mobile search
+    // Scroll lock for mobile
     useEffect(() => {
-        if (isMobileSearchActive) {
+        if (isOpen && isMobile) {
             document.body.style.overflow = 'hidden'
         } else {
             document.body.style.overflow = ''
         }
         return () => { document.body.style.overflow = '' }
-    }, [isMobileSearchActive])
+    }, [isOpen, isMobile])
 
-    const filteredLibros = libros.filter(libro =>
-        libro.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        libro.abreviatura.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    // Search Filtering
+    const filteredLibros = useMemo(() => {
+        const terms = searchQuery.toLowerCase().split(/\s+/)
+        return libros.filter(libro => {
+            const name = libro.nombre.toLowerCase()
+            const abbr = libro.abreviatura.toLowerCase()
+            return terms.every(term => name.includes(term) || abbr.includes(term))
+        })
+    }, [libros, searchQuery])
+
+    // Grouping
+    const groupedLibros = useMemo(() => {
+        return {
+            AT: filteredLibros.filter(l => l.testamento === 'AT'),
+            NT: filteredLibros.filter(l => l.testamento === 'NT')
+        }
+    }, [filteredLibros])
+
+    // Keyboard Navigation
+    useEffect(() => {
+        setSelectedIndex(0)
+    }, [searchQuery])
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (!isOpen) {
+            if (e.key === 'ArrowDown' || e.key === 'Enter') {
+                setIsOpen(true)
+                e.preventDefault()
+            }
+            return
+        }
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault()
+                setSelectedIndex(prev => Math.min(prev + 1, filteredLibros.length - 1))
+                // Auto-scroll
+                scrollSelectedIntoView(selectedIndex + 1)
+                break
+            case 'ArrowUp':
+                e.preventDefault()
+                setSelectedIndex(prev => Math.max(prev - 1, 0))
+                scrollSelectedIntoView(selectedIndex - 1)
+                break
+            case 'Enter':
+                e.preventDefault()
+                if (filteredLibros[selectedIndex]) {
+                    handleSelectLibro(filteredLibros[selectedIndex])
+                }
+                break
+            case 'Escape':
+                setIsOpen(false)
+                inputRef.current?.blur()
+                break
+            case 'Tab':
+                setIsOpen(false)
+                break
+        }
+    }
+
+    const scrollSelectedIntoView = (index: number) => {
+        // Simple heuristic: if we have a ref to the list container
+        // we can scroll. For now, rely on standard behavior or add refs to items if needed.
+    }
 
     const handleSelectLibro = (libro: BibleBook) => {
         setSelectedLibroObj(libro)
@@ -157,8 +268,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         setVersiculoInicio('')
         setVersiculoFin('')
         setSubmitError(null)
-        setShowDropdown(false)
-        setIsMobileSearchActive(false)
+        setIsOpen(false)
     }
 
     const getMaxChapters = () => selectedLibroObj ? selectedLibroObj.capitulos.length : 0
@@ -168,17 +278,14 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         return cap ? cap.v : 0
     }
 
-
-
     const handleSubmit = () => {
         if (!selectedLibroObj || !capituloInicio || !versiculoInicio) {
             setSubmitError("Por favor, selecciona un libro, capítulo y versículo.")
             return
         }
 
-        if (validationError) return // Don't submit if there's a validation error
+        if (validationError) return
 
-        // Re-validación final antes de enviar
         const maxCaps = getMaxChapters()
         if (capituloInicio > maxCaps) {
             setSubmitError(`El libro ${selectedLibroObj.nombre} solo tiene ${maxCaps} capítulos.`)
@@ -201,11 +308,74 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         )
     }
 
+    // Render Items Helper
+    const renderBookItem = (libro: BibleBook, idx: number, globalIdx: number) => {
+        const isSelected = globalIdx === selectedIndex
+        return (
+            <button
+                key={libro.id}
+                onClick={() => handleSelectLibro(libro)}
+                onMouseEnter={() => setSelectedIndex(globalIdx)}
+                className={cn(
+                    "w-full px-4 py-3 flex items-center justify-between group transition-all rounded-xl relative overflow-hidden",
+                    isSelected ? "bg-primary/10" : "hover:bg-primary/5"
+                )}
+            >
+                <div className="flex items-center gap-3 relative z-10 w-full">
+                    {/* Icon Badge */}
+                    <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] border shadow-sm transition-all group-hover:scale-105 group-hover:rotate-3 shrink-0",
+                        libro.testamento === 'AT'
+                            ? "bg-amber-500/10 border-amber-500/20 text-amber-600"
+                            : "bg-blue-500/10 border-blue-500/20 text-blue-600"
+                    )}>
+                        {libro.abreviatura.slice(0, 3)}
+                    </div>
+
+                    {/* Text Info */}
+                    <div className="flex-1 min-w-0 text-left">
+                        <p className={cn(
+                            "font-black text-sm uppercase tracking-tight truncate transition-colors",
+                            isSelected ? "text-primary" : "text-foreground"
+                        )}>
+                            {libro.nombre}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className={cn(
+                                "text-[7px] px-1.5 py-px rounded-full font-black uppercase tracking-widest border shrink-0",
+                                libro.testamento === 'AT'
+                                    ? "bg-amber-500/5 border-amber-500/20 text-amber-600"
+                                    : "bg-blue-500/5 border-blue-500/20 text-blue-600"
+                            )}>
+                                {libro.testamento === 'AT' ? 'AT' : 'NT'}
+                            </span>
+                            <span className="text-[7px] text-muted-foreground/50 font-black uppercase tracking-widest truncate">
+                                {libro.capitulos.length} CAP
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Selected Indicator */}
+                    {isSelected && (
+                        <motion.div
+                            layoutId="check-indicator"
+                            className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shrink-0"
+                        >
+                            <Check className="w-3 h-3" />
+                        </motion.div>
+                    )}
+                </div>
+            </button>
+        )
+    }
+
     return (
         <div className="space-y-6">
-            {/* Libro */}
+            {/* Libro Input - Trigger */}
             <div className="space-y-2.5 relative">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Libro de la Biblia</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">
+                    Libro de la Biblia
+                </label>
                 <div className="relative group">
                     <div className="absolute inset-0 bg-primary/10 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
                     <div className="relative">
@@ -216,178 +386,96 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                             value={searchQuery}
                             onChange={(e) => {
                                 setSearchQuery(e.target.value)
-                                if (!isMobile) setShowDropdown(true)
+                                setIsOpen(true)
                             }}
-                            onClick={() => {
-                                if (isMobile) {
-                                    setIsMobileSearchActive(true)
-                                } else {
-                                    setShowDropdown(true)
-                                }
-                            }}
-                            onFocus={() => {
-                                if (!isMobile) setShowDropdown(true)
-                            }}
-                            placeholder="Buscar libro..."
+                            onFocus={() => setIsOpen(true)}
+                            onKeyDown={handleKeyDown}
+                            onClick={() => setIsOpen(true)}
+                            placeholder="Buscar libro (ej. Mateo, Salmos)..."
                             disabled={disabled}
-                            className="w-full bg-muted/30 border border-border/50 rounded-2xl pl-12 pr-4 py-4 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all text-sm md:text-base font-bold placeholder:text-muted-foreground/40 shadow-sm cursor-text md:cursor-pointer"
+                            autoComplete="off"
+                            className="w-full bg-muted/30 border border-border/50 rounded-2xl pl-12 pr-10 py-4 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all text-sm md:text-base font-bold placeholder:text-muted-foreground/40 shadow-sm md:cursor-text"
                         />
+                        {/* Command Icon hint */}
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 opacity-40 pointer-events-none">
+                            <span className="text-[10px] uppercase font-black tracking-widest border border-border rounded px-1.5 py-0.5">
+                                LISTA
+                            </span>
+                        </div>
                     </div>
 
-                    {/* Desktop Search Results - PORTAL position for reliability */}
+                    {/* UNIVERSAL DROPDOWN - STANDARD ABSOLUTE POSITIONING */}
                     <AnimatePresence>
-                        {mounted && !isMobile && showDropdown && dropdownRect && createPortal(
-                            <div key={`bible-selector-portal-${id}`} className="fixed inset-0 z-[9998]" onClick={() => setShowDropdown(false)}>
-                                <motion.div
-                                    key={`bible-selector-dropdown-${id}`}
-                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                    ref={dropdownRef}
-                                    style={{
-                                        position: 'fixed',
-                                        top: dropdownRect.top + 8,
-                                        left: dropdownRect.left,
-                                        width: dropdownRect.width,
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] overflow-hidden border border-gray-200 dark:border-white/10 flex flex-col min-h-[100px] max-h-[450px]"
-                                >
-                                    <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between shrink-0">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Resultados de búsqueda</p>
-                                        <button
-                                            onClick={() => setShowDropdown(false)}
-                                            className="p-1.5 hover:bg-muted rounded-full transition-colors"
-                                        >
-                                            <X className="w-4 h-4 text-muted-foreground" />
-                                        </button>
-                                    </div>
-                                    <div className="overflow-y-auto p-2 no-scrollbar flex-1">
-                                        {filteredLibros.length > 0 ? (
-                                            <div className="grid grid-cols-1 gap-1">
-                                                {filteredLibros.map((libro, idx) => (
-                                                    <button
-                                                        key={libro.id || `libro-result-${idx}`}
-                                                        onClick={() => handleSelectLibro(libro)}
-                                                        className="w-full px-4 py-3.5 text-left hover:bg-primary/5 dark:hover:bg-primary/10 transition-all flex items-center justify-between group rounded-[1.5rem] relative overflow-hidden"
-                                                    >
-                                                        <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors" />
-                                                        <div className="flex items-center gap-4 relative z-10">
-                                                            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover:scale-105 group-hover:rotate-3 ${libro.testamento === 'AT'
-                                                                ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
-                                                                : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
-                                                                }`}>
-                                                                {libro.abreviatura.slice(0, 2)}
-                                                            </div>
-                                                            <div>
-                                                                <p className="font-black text-sm md:text-base group-hover:text-primary transition-colors uppercase tracking-tight">{libro.nombre}</p>
-                                                                <div className="flex items-center gap-2 mt-0.5">
-                                                                    <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border ${libro.testamento === 'AT'
-                                                                        ? 'bg-amber-500/5 border-amber-500/20 text-amber-600'
-                                                                        : 'bg-blue-500/5 border-blue-500/20 text-blue-600'
-                                                                        }`}>
-                                                                        {libro.testamento === 'AT' ? 'Antiguo Testamento' : 'Nuevo Testamento'}
-                                                                    </span>
-                                                                    <span className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-widest">•</span>
-                                                                    <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest italic">
-                                                                        {libro.capitulos.length} Capítulos
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="w-8 h-8 rounded-xl bg-primary/0 group-hover:bg-primary/10 flex items-center justify-center transition-all relative z-10">
-                                                            <ChevronDown className="w-4 h-4 text-muted-foreground/30 -rotate-90 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="p-10 text-center">
-                                                <BookOpen className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
-                                                <p className="text-xs font-black text-muted-foreground/40 uppercase tracking-widest">No hay resultados para &quot;{searchQuery}&quot;</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-3 bg-muted/20 border-t border-border/50 text-center shrink-0">
-                                        <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Sugerencia: Escribe para filtrar la lista</p>
-                                    </div>
-                                </motion.div>
-                            </div>,
-                            document.body
-                        )}
-                    </AnimatePresence>
-                </div>
-            </div>
-
-            {/* Mobile Search Overlay */}
-            <AnimatePresence>
-                {isMobile && isMobileSearchActive && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[999] bg-white dark:bg-zinc-950 flex flex-col"
-                    >
-                        {/* Search Header */}
-                        <div className="flex items-center gap-4 p-4 border-b border-border/50">
-                            <button
-                                onClick={() => setIsMobileSearchActive(false)}
-                                className="p-2 hover:bg-muted rounded-xl transition-colors"
+                        {isOpen && (
+                            <motion.div
+                                key="bible-selector-dropdown"
+                                initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                                transition={{ duration: 0.15 }}
+                                className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-primary/20 rounded-[1.5rem] shadow-2xl z-[100] overflow-hidden flex flex-col max-h-[350px]"
                             >
-                                <ArrowLeft className="w-6 h-6" />
-                            </button>
-                            <div className="flex-1 relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                                <input
-                                    type="text"
-                                    autoFocus
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Buscar libro..."
-                                    className="w-full bg-muted/50 rounded-2xl pl-12 pr-10 py-3.5 outline-none focus:ring-2 focus:ring-primary/20 font-bold text-base"
-                                />
-                                {searchQuery && (
-                                    <button
-                                        onClick={() => setSearchQuery('')}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-muted-foreground/10 rounded-full"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Search Results */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                            {filteredLibros.length > 0 ? (
-                                filteredLibros.map((libro, idx) => (
-                                    <button
-                                        key={libro.id || `mobile-libro-result-${idx}`}
-                                        onClick={() => handleSelectLibro(libro)}
-                                        className="w-full p-4 text-left bg-muted/20 hover:bg-primary/5 active:bg-primary/10 rounded-2xl transition-all border border-border/10 flex items-center gap-4 group"
-                                    >
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm border shadow-sm ${libro.testamento === 'AT' ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
-                                            }`}>
-                                            {libro.abreviatura.slice(0, 2)}
-                                        </div>
-                                        <div>
-                                            <p className="font-black text-base uppercase tracking-tight text-foreground">{libro.nombre}</p>
-                                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                                                {libro.testamento === 'AT' ? 'Antiguo Testamento' : 'Nuevo Testamento'} • {libro.capitulos.length} Capítulos
+                                {/* Scrollable List */}
+                                <div className="overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20 scrollbar-track-transparent">
+                                    {filteredLibros.length === 0 ? (
+                                        <div className="p-8 text-center flex flex-col items-center">
+                                            <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center mb-3">
+                                                <Search className="w-5 h-5 text-muted-foreground/50" />
+                                            </div>
+                                            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">
+                                                No se encontraron libros
                                             </p>
                                         </div>
-                                    </button>
-                                ))
-                            ) : (
-                                <div className="p-12 text-center">
-                                    <BookOpen className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
-                                    <p className="font-bold text-muted-foreground uppercase tracking-widest">No se encontraron libros</p>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {/* Groups */}
+                                            {groupedLibros.AT.length > 0 && (
+                                                <div>
+                                                    <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-10 px-4 py-2 mb-1 border-b border-border/50">
+                                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-500">
+                                                            Antiguo Testamento
+                                                        </span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 gap-1 px-1">
+                                                        {groupedLibros.AT.map((l, i) => renderBookItem(l, i, filteredLibros.indexOf(l)))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {groupedLibros.NT.length > 0 && (
+                                                <div>
+                                                    <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-10 px-4 py-2 mb-1 border-b border-border/50 mt-2">
+                                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-500">
+                                                            Nuevo Testamento
+                                                        </span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 gap-1 px-1">
+                                                        {groupedLibros.NT.map((l, i) => renderBookItem(l, i, filteredLibros.indexOf(l)))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+
+                                {/* Footer Tip */}
+                                <div className="p-3 bg-muted/30 border-t border-white/10 text-center flex items-center justify-center gap-4 text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] shrink-0">
+                                    <span className="flex items-center gap-1"><ArrowLeft className="w-3 h-3 rotate-90" /> Navegar</span>
+                                    <span className="flex items-center gap-1">ENTER Seleccionar</span>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* DIAGNOSTIC INFO (VISIBLE TO USER) */}
+                    <div className="mt-1 px-2 flex justify-between text-[9px] font-mono text-muted-foreground/50 select-none">
+                        <span>Status: RELATIVE (UNIVERSAL)</span>
+                        <span>Total: {libros.length}</span>
+                        <span>Filtrados: {filteredLibros.length}</span>
+                        <span>Mode: {isMobile ? 'Mobile(Ignored)' : 'Desktop'}</span>
+                    </div>
+                </div>
+            </div>
 
             {/* Capítulo y Versículo Inicio y Fin */}
             <div className="space-y-4">

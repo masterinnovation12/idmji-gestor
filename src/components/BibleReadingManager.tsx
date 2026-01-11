@@ -88,11 +88,16 @@ function ReadingItem({ lectura, onEdit, onDelete }: ReadingItemProps) {
                                 </div>
                             )}
                         </div>
-                        <p className={`text-sm md:text-base lg:text-lg font-black uppercase tracking-tight mt-1 leading-none whitespace-nowrap break-normal ${lectura.es_repetida ? 'text-red-600' : 'text-foreground'}`}>
+                        <p className={`text-sm md:text-base lg:text-lg font-black uppercase tracking-tight mt-1 leading-tight whitespace-normal ${lectura.es_repetida ? 'text-red-600' : 'text-foreground'}`}>
                             {lectura.libro} {lectura.capitulo_inicio}:{lectura.versiculo_inicio}
-                            {lectura.capitulo_fin !== lectura.capitulo_inicio || lectura.versiculo_fin !== lectura.versiculo_inicio
-                                ? ` - ${lectura.capitulo_fin}:${lectura.versiculo_fin}`
-                                : ''}
+                            {(lectura.capitulo_fin !== lectura.capitulo_inicio || lectura.versiculo_fin !== lectura.versiculo_inicio) && (
+                                <>
+                                    {' - '}
+                                    {lectura.capitulo_fin === lectura.capitulo_inicio
+                                        ? lectura.versiculo_fin
+                                        : `${lectura.capitulo_fin}:${lectura.versiculo_fin}`}
+                                </>
+                            )}
                         </p>
                         <div className="flex items-center gap-1.5 mt-2">
                             <div className="flex items-center gap-1">
@@ -455,11 +460,16 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                         <div className="p-6 bg-muted/50 rounded-4xl border border-border/50 text-center relative overflow-hidden group">
                             <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover/assigned:opacity-100 transition-opacity" />
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2 relative z-10">Pasaje Bíblico</p>
-                            <p className="text-3xl font-black uppercase tracking-tighter relative z-10">
+                            <p className="text-3xl font-black uppercase tracking-tighter relative z-10 leading-none">
                                 {repetitionData.libro} {repetitionData.capInicio}:{repetitionData.versInicio}
-                                {repetitionData.capFin !== repetitionData.capInicio || repetitionData.versFin !== repetitionData.versInicio
-                                    ? ` - ${repetitionData.capFin}:${repetitionData.versFin}`
-                                    : ''}
+                                {(repetitionData.capFin !== repetitionData.capInicio || repetitionData.versFin !== repetitionData.versInicio) && (
+                                    <>
+                                        {' - '}
+                                        {repetitionData.capFin === repetitionData.capInicio
+                                            ? repetitionData.versFin
+                                            : `${repetitionData.capFin}:${repetitionData.versFin}`}
+                                    </>
+                                )}
                             </p>
                         </div>
 

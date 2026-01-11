@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
 import { getUserAssignments } from './cultos/actions'
 
+
+// Revalidation trigger
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {

@@ -17,7 +17,7 @@
  * @date 2024-12-28
  */
 
-'use client'
+'use client' // Force HMR update
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -173,6 +173,7 @@ export function InstallPrompt() {
     return (
         <AnimatePresence>
             <motion.div
+                key="install-prompt-modal"
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}

@@ -479,7 +479,7 @@ function SidebarContent({
                             className="flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-[10px] font-black text-white shadow-sm"
                         >
                             <Globe className="w-4 h-4 text-blue-300" />
-                            <span className="tracking-widest">{language === 'es-ES' ? 'ESPAÑOL' : 'CATALÀ'}</span>
+                            <span suppressHydrationWarning className="tracking-widest">{language === 'es-ES' ? 'ESPAÑOL' : 'CATALÀ'}</span>
                         </motion.button>
 
                         <motion.button
@@ -542,7 +542,7 @@ function SidebarContent({
                                 {/* Active background with Glow */}
                                 {isActive && (
                                     <motion.div
-                                        layoutId={isMobile ? undefined : "activeTab-desktop"}
+                                        layoutId={isMobile ? "activeTab-mobile" : "activeTab-desktop-v2"}
                                         className="absolute inset-0 bg-white/90 backdrop-blur-md rounded-[1.25rem] -z-10"
                                         initial={isMobile ? { opacity: 0, scale: 0.95 } : false}
                                         animate={isMobile ? { opacity: 1, scale: 1 } : undefined}
@@ -568,7 +568,7 @@ function SidebarContent({
 
                                 {isActive && !isSidebarCollapsed && (
                                     <motion.div
-                                        layoutId={isMobile ? undefined : "arrow-desktop"}
+                                        layoutId={isMobile ? "arrow-mobile" : "arrow-desktop-v2"}
                                         initial={isMobile ? { opacity: 0, x: -5 } : { x: -10 }}
                                         animate={{ x: 0, opacity: 1 }}
                                         className="relative z-10"
