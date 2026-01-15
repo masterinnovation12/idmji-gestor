@@ -1490,39 +1490,16 @@ export default function LecturasPageClient({
                             </div>
                         </div>
 
-                        {/* Acciones */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-4 sm:pt-6 border-t border-border/50">
+                        {/* Botón de cerrar */}
+                        <div className="flex justify-end pt-4 sm:pt-6 border-t border-border/50">
                             <Button
-                                variant="outline"
                                 onClick={() => {
-                                    // TODO: Implementar ver texto bíblico completo
-                                    toast.info('Funcionalidad en desarrollo')
+                                    setShowDetailsModal(false)
+                                    setSelectedLectura(null)
                                 }}
-                                className="flex-1 sm:flex-none text-xs sm:text-sm"
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 transition-all"
                             >
-                                <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
-                                {t('lecturas.detailsVerTexto')}
-                            </Button>
-                            <Link
-                                href={`/dashboard/cultos/${selectedLectura.culto.id}`}
-                                className="flex-1 sm:flex-none"
-                            >
-                                <Button
-                                    variant="outline"
-                                    className="w-full text-xs sm:text-sm"
-                                >
-                                    <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    {t('lecturas.detailsVerCulto')}
-                                </Button>
-                            </Link>
-                            <Button
-                                variant="destructive"
-                                onClick={() => handleDelete(selectedLectura)}
-                                disabled={isLoading}
-                                className="flex-1 sm:flex-none text-xs sm:text-sm"
-                            >
-                                <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                                {t('lecturas.detailsEliminar')}
+                                Cerrar
                             </Button>
                         </div>
                     </div>
