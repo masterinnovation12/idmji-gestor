@@ -150,6 +150,7 @@ export default function LecturasPageClient({
     const [isLoading, setIsLoading] = useState(false)
     const [showExportDropdown, setShowExportDropdown] = useState(false)
     const [mounted, setMounted] = useState(false)
+    const filtersPanelRef = useRef<HTMLDivElement>(null)
     
     // Estados de datos
     const [lecturas, setLecturas] = useState<LecturaExt[]>(initialLecturas)
@@ -363,6 +364,7 @@ export default function LecturasPageClient({
             
             isManualNavigation.current = true
             router.push(pathname, { scroll: false })
+            setShowFilters(false) // Cerrar panel de filtros al limpiar
             toast.success('Filtros limpiados correctamente')
         } catch (error) {
             console.error('Error clearing filters:', error)
@@ -571,6 +573,33 @@ export default function LecturasPageClient({
         }
     }, [showExportDropdown, mounted])
 
+    // Cerrar panel de filtros al hacer click fuera
+    useEffect(() => {
+        if (!mounted || !showFilters) return
+        
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement
+            
+            // No cerrar si se hace click en el botón de filtros o dentro del panel
+            const isFilterButton = target.closest('[data-filter-button="true"]')
+            const isInsidePanel = filtersPanelRef.current?.contains(target)
+            
+            if (!isFilterButton && !isInsidePanel) {
+                setShowFilters(false)
+            }
+        }
+        
+        // Usar timeout para evitar que se cierre inmediatamente al abrir
+        const timer = setTimeout(() => {
+            document.addEventListener('mousedown', handleClickOutside)
+        }, 100)
+        
+        return () => {
+            clearTimeout(timer)
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [showFilters, mounted])
+
     return (
         <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pb-8 sm:pb-12">
             <div suppressHydrationWarning className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 space-y-4 sm:space-y-6 lg:space-y-8 pt-4 sm:pt-6">
@@ -609,13 +638,21 @@ export default function LecturasPageClient({
                                 <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.stats')}</span>
                             </Button>
                             <Button
-                                variant="outline"
+                                variant={showFilters ? "default" : "outline"}
                                 size="sm"
                                 onClick={() => setShowFilters(!showFilters)}
-                                className="text-xs sm:text-sm px-3 sm:px-4"
+                                className={`filter-toggle-button text-xs sm:text-sm px-3 sm:px-4 transition-all ${
+                                    showFilters 
+                                        ? 'bg-primary text-primary-foreground shadow-md' 
+                                        : ''
+                                }`}
+                                data-filter-button="true"
                             >
-                                <Filter className="w-3 h-3 sm:w-4 sm:h-4" />
+                                <Filter className={`w-3 h-3 sm:w-4 sm:h-4 ${showFilters ? 'animate-pulse' : ''}`} />
                                 <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.filters')}</span>
+                                {showFilters && (
+                                    <X className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+                                )}
                             </Button>
                             <div className="relative export-dropdown">
                                 <Button
@@ -739,12 +776,28 @@ export default function LecturasPageClient({
                     <AnimatePresence>
                         {showFilters && (
                             <motion.div
+                                ref={filtersPanelRef}
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: 'auto', opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
                                 className="overflow-hidden"
                         >
                                 <Card className="border-border/50">
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-border/50">
+                                        <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+                                            <Filter className="w-4 h-4 sm:w-5 sm:h-5" />
+                                            <span suppressHydrationWarning>{t('lecturas.filters')}</span>
+                                        </CardTitle>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setShowFilters(false)}
+                                            className="h-8 w-8 p-0 rounded-full hover:bg-muted"
+                                            aria-label="Cerrar filtros"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    </CardHeader>
                                     <CardContent className="p-4 sm:p-6">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                                             {/* Rango de Fechas */}
