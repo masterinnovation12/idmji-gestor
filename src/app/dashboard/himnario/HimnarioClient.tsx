@@ -1,19 +1,3 @@
-/**
- * HimnarioClient - IDMJI Gestor de Púlpito
- * 
- * Componente cliente para explorar el catálogo de himnos y coros.
- * Permite filtrar por tipo, número o título y visualizar duraciones.
- * 
- * Características:
- * - Cambio de pestañas (Himnos/Coros) con animaciones fluidas
- * - Buscador en tiempo real
- * - Lista optimizada con duraciones y numeración visual
- * - Soporte multiidioma (ES/CA)
- * 
- * @author Antigravity AI
- * @date 2024-12-18
- */
-
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from 'react'
@@ -456,4 +440,3 @@ function CalculatorModal({ children, onClose }: { children: React.ReactNode, onC
         </motion.div>
     )
 }
-

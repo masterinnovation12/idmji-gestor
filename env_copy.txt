@@ -1,4 +1,4 @@
-﻿# Supabase Configuration
+# Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=https://dcjqjsmyydqpsmxbkhya.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjanFqc215eWRxcHNteGJraHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3NzQ3MTUsImV4cCI6MjA4MDM1MDcxNX0.AQ-K6u8zxwREbrr_I7Lcfa8OQsUAUIYafzA4jGFs5ec
 

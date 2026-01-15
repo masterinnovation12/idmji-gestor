@@ -1215,8 +1215,10 @@ export default function LecturasPageClient({
                                                                     <span suppressHydrationWarning className="hidden sm:inline">
                                                                         {format(parseISO(lectura.culto.fecha), 'PP', { locale })}
                                                                     </span>
-                                                                    <span suppressHydrationWarning className="sm:hidden">
-                                                                        {format(parseISO(lectura.culto.fecha), 'dd/MM/yyyy', { locale })}
+                                                                    <span suppressHydrationWarning className="sm:hidden flex items-center gap-1">
+                                                                        <span className="font-semibold text-foreground">{lectura.culto.tipo_culto.nombre}</span>
+                                                                        <span className="opacity-50">•</span>
+                                                                        <span>{format(parseISO(lectura.culto.fecha), 'dd/MM/yyyy', { locale })}</span>
                                                                     </span>
                                                     </span>
                                                                     <span className="opacity-30 hidden sm:inline">•</span>
@@ -1229,9 +1231,7 @@ export default function LecturasPageClient({
 
                                                     <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                                                         <span className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-widest shadow-sm ${
-                                                            lectura.tipo_lectura === 'introduccion'
-                                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                                                : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
+                                                            'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
                                                 }`}>
                                                 <span suppressHydrationWarning>
                                                 {lectura.culto.tipo_culto.nombre}

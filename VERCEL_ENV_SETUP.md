@@ -81,4 +81,3 @@ Esto se solucionará una vez añadidas las variables de entorno.
 - Las variables que empiezan con `NEXT_PUBLIC_` son públicas y se exponen al cliente
 - `SUPABASE_SERVICE_ROLE_KEY` y `VAPID_PRIVATE_KEY` son secretas y deben marcarse como "Sensitive"
 - Asegúrate de seleccionar todos los targets (Production, Preview, Development) para cada variable
-
