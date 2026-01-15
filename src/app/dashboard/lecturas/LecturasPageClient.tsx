@@ -1491,7 +1491,7 @@ export default function LecturasPageClient({
                         </div>
 
                         {/* Botón de cerrar */}
-                        <div className="flex justify-end pt-4 sm:pt-6 border-t border-border/50">
+                        <div className="flex justify-center pt-4 sm:pt-6 border-t border-border/50">
                             <Button
                                 onClick={() => {
                                     setShowDetailsModal(false)
