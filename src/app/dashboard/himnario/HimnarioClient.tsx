@@ -123,10 +123,14 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
     // Bloquear scroll del body cuando modal de calculadora está abierto
     useEffect(() => {
         if (isCalcModalOpen && window.innerWidth < 1024) {
-            const originalOverflow = document.body.style.overflow
-            document.body.style.overflow = 'hidden'
-            return () => {
-                document.body.style.overflow = originalOverflow
+            if (typeof document !== 'undefined' && document.body) {
+                const originalOverflow = document.body.style.overflow
+                document.body.style.overflow = 'hidden'
+                return () => {
+                    if (document.body) {
+                        document.body.style.overflow = originalOverflow
+                    }
+                }
             }
         }
     }, [isCalcModalOpen])

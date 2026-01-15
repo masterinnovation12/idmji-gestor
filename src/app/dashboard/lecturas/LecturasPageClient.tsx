@@ -24,7 +24,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import { 
     BookOpen, AlertCircle, ChevronLeft, ChevronRight, History, Calendar, 
     Search as SearchIcon, XCircle, Filter, Download, Share2, Eye, 
@@ -262,19 +261,19 @@ export default function LecturasPageClient({
     // Actualizar URL con filtros
     const updateURL = useCallback((newParams: Record<string, string | null>) => {
         isManualNavigation.current = true
-        const params = new URLSearchParams(searchParams)
+            const params = new URLSearchParams(searchParams)
         
         Object.entries(newParams).forEach(([key, value]) => {
             if (value && value !== '') {
                 params.set(key, value)
             } else {
                 params.delete(key)
-            }
+        }
         })
         
         // Si no es un cambio de página, resetear a página 1
         if (!newParams.page) {
-            params.set('page', '1')
+        params.set('page', '1')
         }
         
         // IMPORTANTE: { scroll: false } evita que la página salte al inicio
@@ -294,34 +293,50 @@ export default function LecturasPageClient({
 
     // Aplicar filtros
     const applyFilters = useCallback(() => {
-        updateURL({
-            startDate: startDate || null,
-            endDate: endDate || null,
-            tipoCulto: tipoCulto || null,
-            lectorId: lectorId || null,
-            testamento: testamento || null,
-            tipoLectura: tipoLectura || null,
-            capitulo: capitulo || null,
-            soloRepetidas: soloRepetidas ? 'true' : null
-        })
-        setShowFilters(false)
-    }, [startDate, endDate, tipoCulto, lectorId, testamento, tipoLectura, capitulo, soloRepetidas, updateURL])
+        if (!mounted) return
+        
+        try {
+            updateURL({
+                startDate: startDate || null,
+                endDate: endDate || null,
+                tipoCulto: tipoCulto || null,
+                lectorId: lectorId || null,
+                testamento: testamento || null,
+                tipoLectura: tipoLectura || null,
+                capitulo: capitulo || null,
+                soloRepetidas: soloRepetidas ? 'true' : null
+            })
+            setShowFilters(false)
+            toast.success('Filtros aplicados correctamente')
+        } catch (error) {
+            console.error('Error applying filters:', error)
+            toast.error('Error al aplicar filtros')
+        }
+    }, [startDate, endDate, tipoCulto, lectorId, testamento, tipoLectura, capitulo, soloRepetidas, updateURL, mounted])
 
     // Limpiar filtros
     const clearFilters = useCallback(() => {
-        setSearchTerm('')
-        setStartDate('')
-        setEndDate('')
-        setTipoCulto('')
-        setLectorId('')
-        setTestamento('')
-        setTipoLectura('')
-        setCapitulo('')
-        setSoloRepetidas(false)
+        if (!mounted) return
         
-        isManualNavigation.current = true
-        router.push(pathname, { scroll: false })
-    }, [pathname, router])
+        try {
+            setSearchTerm('')
+            setStartDate('')
+            setEndDate('')
+            setTipoCulto('')
+            setLectorId('')
+            setTestamento('')
+            setTipoLectura('')
+            setCapitulo('')
+            setSoloRepetidas(false)
+            
+            isManualNavigation.current = true
+            router.push(pathname, { scroll: false })
+            toast.success('Filtros limpiados correctamente')
+        } catch (error) {
+            console.error('Error clearing filters:', error)
+            toast.error('Error al limpiar filtros')
+        }
+    }, [pathname, router, mounted])
 
     // Cambiar página
     const changePage = useCallback((newPage: number) => {
@@ -340,7 +355,7 @@ export default function LecturasPageClient({
             const result = await deleteLectura(lectura.id, lectura.culto_id)
             if (result.error) {
                 toast.error(result.error)
-            } else {
+        } else {
                 toast.success(t('lecturas.deleteSuccess'))
                 setLecturas(prev => prev.filter(l => l.id !== lectura.id))
                 if (selectedLectura?.id === lectura.id) {
@@ -357,63 +372,111 @@ export default function LecturasPageClient({
 
     // Exportar a Excel
     const exportToExcel = useCallback(() => {
-        const data = lecturas.map(lectura => ({
-            'Cita': formatCita(lectura),
-            'Libro': lectura.libro,
-            'Capítulo Inicio': lectura.capitulo_inicio,
-            'Versículo Inicio': lectura.versiculo_inicio,
-            'Capítulo Fin': lectura.capitulo_fin,
-            'Versículo Fin': lectura.versiculo_fin,
-            'Lector': `${lectura.lector.nombre} ${lectura.lector.apellidos}`,
-            'Fecha': format(parseISO(lectura.culto.fecha), 'PP', { locale }),
-            'Tipo Culto': lectura.culto.tipo_culto.nombre,
-            'Tipo Lectura': lectura.tipo_lectura === 'introduccion' ? t('cultos.intro') : t('cultos.finalizacion'),
-            'Repetida': lectura.es_repetida ? 'Sí' : 'No'
-        }))
+        if (!lecturas || lecturas.length === 0) {
+            toast.error('No hay lecturas para exportar')
+            return
+        }
 
-        const ws = XLSX.utils.json_to_sheet(data)
-        const wb = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(wb, ws, 'Lecturas')
-        XLSX.writeFile(wb, `lecturas_${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
-        toast.success('Exportado a Excel correctamente')
+        try {
+            const data = lecturas.map(lectura => ({
+                'Cita': formatCita(lectura),
+                'Libro': lectura.libro,
+                'Capítulo Inicio': lectura.capitulo_inicio,
+                'Versículo Inicio': lectura.versiculo_inicio,
+                'Capítulo Fin': lectura.capitulo_fin,
+                'Versículo Fin': lectura.versiculo_fin,
+                'Lector': `${lectura.lector?.nombre || ''} ${lectura.lector?.apellidos || ''}`.trim(),
+                'Fecha': format(parseISO(lectura.culto.fecha), 'PP', { locale }),
+                'Tipo Culto': lectura.culto.tipo_culto?.nombre || '',
+                'Tipo Lectura': lectura.tipo_lectura === 'introduccion' ? t('cultos.intro') : t('cultos.finalizacion'),
+                'Repetida': lectura.es_repetida ? 'Sí' : 'No'
+            }))
+
+            const ws = XLSX.utils.json_to_sheet(data)
+            const wb = XLSX.utils.book_new()
+            XLSX.utils.book_append_sheet(wb, ws, 'Lecturas')
+            XLSX.writeFile(wb, `lecturas_${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
+            toast.success('Exportado a Excel correctamente')
+        } catch (error) {
+            console.error('Error exporting to Excel:', error)
+            toast.error('Error al exportar a Excel')
+        }
     }, [lecturas, locale, t])
 
     // Exportar a CSV
     const exportToCSV = useCallback(() => {
-        const headers = ['Cita', 'Libro', 'Capítulo Inicio', 'Versículo Inicio', 'Capítulo Fin', 'Versículo Fin', 'Lector', 'Fecha', 'Tipo Culto', 'Tipo Lectura', 'Repetida']
-        const rows = lecturas.map(lectura => [
-            formatCita(lectura),
-            lectura.libro,
-            lectura.capitulo_inicio,
-            lectura.versiculo_inicio,
-            lectura.capitulo_fin,
-            lectura.versiculo_fin,
-            `${lectura.lector.nombre} ${lectura.lector.apellidos}`,
-            format(parseISO(lectura.culto.fecha), 'PP', { locale }),
-            lectura.culto.tipo_culto.nombre,
-            lectura.tipo_lectura === 'introduccion' ? t('cultos.intro') : t('cultos.finalizacion'),
-            lectura.es_repetida ? 'Sí' : 'No'
-        ])
+        if (!lecturas || lecturas.length === 0) {
+            toast.error('No hay lecturas para exportar')
+            return
+        }
 
-        const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n')
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-        const link = document.createElement('a')
-        link.href = URL.createObjectURL(blob)
-        link.download = `lecturas_${format(new Date(), 'yyyy-MM-dd')}.csv`
-        link.click()
-        toast.success('Exportado a CSV correctamente')
+        try {
+            const headers = ['Cita', 'Libro', 'Capítulo Inicio', 'Versículo Inicio', 'Capítulo Fin', 'Versículo Fin', 'Lector', 'Fecha', 'Tipo Culto', 'Tipo Lectura', 'Repetida']
+            const rows = lecturas.map(lectura => [
+                formatCita(lectura),
+                lectura.libro,
+                lectura.capitulo_inicio,
+                lectura.versiculo_inicio,
+                lectura.capitulo_fin,
+                lectura.versiculo_fin,
+                `${lectura.lector?.nombre || ''} ${lectura.lector?.apellidos || ''}`.trim(),
+                format(parseISO(lectura.culto.fecha), 'PP', { locale }),
+                lectura.culto.tipo_culto?.nombre || '',
+                lectura.tipo_lectura === 'introduccion' ? t('cultos.intro') : t('cultos.finalizacion'),
+                lectura.es_repetida ? 'Sí' : 'No'
+            ])
+
+            const csv = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+            const link = document.createElement('a')
+            link.href = URL.createObjectURL(blob)
+            link.download = `lecturas_${format(new Date(), 'yyyy-MM-dd')}.csv`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(link.href)
+            toast.success('Exportado a CSV correctamente')
+        } catch (error) {
+            console.error('Error exporting to CSV:', error)
+            toast.error('Error al exportar a CSV')
+        }
     }, [lecturas, locale, t])
 
     // Compartir URL
-    const shareUrl = useCallback(() => {
-        const url = `${window.location.origin}${pathname}?${searchParams.toString()}`
-        if (navigator.share) {
-            navigator.share({ title: t('lecturas.title'), url })
+    const shareUrl = useCallback(async () => {
+        if (!mounted || typeof window === 'undefined') return
+
+        try {
+            const url = `${window.location.origin}${pathname}?${searchParams.toString()}`
+            
+            if (navigator.share && navigator.canShare && navigator.canShare({ url })) {
+                await navigator.share({ 
+                    title: t('lecturas.title'), 
+                    text: t('lecturas.desc'),
+                    url 
+                })
+                toast.success('URL compartida correctamente')
+            } else if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(url)
+                toast.success('URL copiada al portapapeles')
         } else {
-            navigator.clipboard.writeText(url)
-            toast.success('URL copiada al portapapeles')
+                // Fallback: crear input temporal
+                const input = document.createElement('input')
+                input.value = url
+                document.body.appendChild(input)
+                input.select()
+                document.execCommand('copy')
+                document.body.removeChild(input)
+                toast.success('URL copiada al portapapeles')
+            }
+        } catch (error) {
+            console.error('Error sharing URL:', error)
+            // Si el usuario cancela el share, no mostrar error
+            if (error instanceof Error && error.name !== 'AbortError') {
+                toast.error('Error al compartir URL')
+            }
         }
-    }, [pathname, searchParams, t])
+    }, [pathname, searchParams, t, mounted])
 
     // Agrupar lecturas
     const groupedLecturas = useMemo(() => {
@@ -452,24 +515,33 @@ export default function LecturasPageClient({
             .slice(0, 5)
     }, [searchTerm, libros])
 
-    // Calcular posición del dropdown de vista (solo cuando se abre, no en cada scroll)
     // Cerrar dropdowns al hacer click fuera
     useEffect(() => {
+        if (!mounted) return
+        
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement
             if (!target.closest('.export-dropdown')) {
                 setShowExportDropdown(false)
             }
         }
+        
         if (showExportDropdown) {
-            document.addEventListener('mousedown', handleClickOutside)
+            // Usar timeout para evitar que se cierre inmediatamente al abrir
+            const timer = setTimeout(() => {
+                document.addEventListener('mousedown', handleClickOutside)
+            }, 100)
+            
+            return () => {
+                clearTimeout(timer)
+                document.removeEventListener('mousedown', handleClickOutside)
+            }
         }
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [showExportDropdown])
+    }, [showExportDropdown, mounted])
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pb-8 sm:pb-12">
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 space-y-4 sm:space-y-6 lg:space-y-8 pt-4 sm:pt-6">
+        <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pb-8 sm:pb-12">
+            <div suppressHydrationWarning className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 space-y-4 sm:space-y-6 lg:space-y-8 pt-4 sm:pt-6">
                 
                 {/* Header Responsive */}
                 <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
@@ -491,7 +563,14 @@ export default function LecturasPageClient({
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setShowStats(!showStats)}
+                                onClick={() => {
+                                    if (!stats) {
+                                        toast.info('Cargando estadísticas...')
+                                        return
+                                    }
+                                    setShowStats(!showStats)
+                                }}
+                                disabled={!stats}
                                 className="text-xs sm:text-sm px-3 sm:px-4"
                             >
                                 <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -631,7 +710,7 @@ export default function LecturasPageClient({
                                 animate={{ height: 'auto', opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
                                 className="overflow-hidden"
-                            >
+                        >
                                 <Card className="border-border/50">
                                     <CardContent className="p-4 sm:p-6">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
@@ -823,7 +902,7 @@ export default function LecturasPageClient({
                                                         <div className="relative z-10">
                                                             <span suppressHydrationWarning className="text-xs font-black uppercase tracking-widest opacity-80">
                                                                 {t('lecturas.statsTotal')}
-                                                            </span>
+                            </span>
                                                             <p className="text-4xl font-black mt-1">
                                                                 {stats.totalLecturas}
                                                             </p>
@@ -842,7 +921,7 @@ export default function LecturasPageClient({
                                                         <div className="relative z-10">
                                                             <span suppressHydrationWarning className="text-xs font-black uppercase tracking-widest opacity-80">
                                                                 {t('lecturas.statsRepetidas')}
-                                                            </span>
+                            </span>
                                                             <p className="text-4xl font-black mt-1">
                                                                 {stats.repetidasCount}
                                                             </p>
@@ -869,85 +948,167 @@ export default function LecturasPageClient({
                                                         <Star size={12} fill="currentColor" />
                                                         {stats.librosMasLeidos[0]?.count || 0} LECTURAS
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                    </div>
+                </div>
+            </div>
 
                                         {/* Gráfico de barras - Responsive */}
-                                        {stats.librosMasLeidos.length > 0 && (
+                                        {stats.librosMasLeidos.length > 0 && mounted && (
                                             <div className="mt-6 pt-6 border-t border-border/50">
-                                                <h3 className="text-sm sm:text-base font-semibold mb-4">
+                                                <h3 suppressHydrationWarning className="text-sm sm:text-base font-semibold mb-4">
                                                     {t('lecturas.statsLibrosMasLeidos')}
                                                 </h3>
                                                 <div className="w-full bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-inner overflow-hidden">
                                                     {/* Contenedor con scroll horizontal para móvil */}
                                                     <div className="overflow-x-auto no-scrollbar pb-4 sm:pb-0">
-                                                        <div className="min-w-[600px] sm:min-w-0 h-80 sm:h-[450px] p-4 sm:p-8">
-                                                            <ResponsiveContainer width="100%" height="100%">
-                                                                <BarChart data={stats.librosMasLeidos.slice(0, 10)} margin={{ top: 30, right: 20, left: 0, bottom: 80 }}>
-                                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
-                                                                    <XAxis 
-                                                                        dataKey="libro" 
-                                                                        angle={-45}
-                                                                        textAnchor="end"
-                                                                        interval={0}
-                                                                        height={90}
-                                                                        tick={{ fontSize: 12, fontWeight: '800', fill: 'currentColor', opacity: 0.7 }}
-                                                                        axisLine={{ stroke: '#e2e8f0' }}
-                                                                        tickLine={false}
-                                                                    />
-                                                                    <YAxis 
-                                                                        tick={{ fontSize: 11, fill: '#94a3b8' }}
-                                                                        axisLine={false}
-                                                                        tickLine={false}
-                                                                    />
-                                                                    <Tooltip 
-                                                                        cursor={{ fill: 'currentColor', opacity: 0.05 }}
-                                                                        contentStyle={{ 
-                                                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                                                            border: '1px solid #e2e8f0',
-                                                                            borderRadius: '12px',
-                                                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                                                            fontSize: '12px',
-                                                                            color: '#1e293b'
-                                                                        }}
-                                                                        itemStyle={{ fontWeight: 'bold', color: '#3b82f6' }}
-                                                                    />
-                                                                    <Bar 
-                                                                        dataKey="count" 
-                                                                        fill="#3b82f6" 
-                                                                        radius={[6, 6, 0, 0]} 
-                                                                        barSize={40}
-                                                                    >
-                                                                        <LabelList 
-                                                                            dataKey="count" 
-                                                                            position="top" 
-                                                                            offset={10}
-                                                                            style={{ fill: 'currentColor', fontSize: '13px', fontWeight: '900', opacity: 0.9 }} 
-                                                                        />
-                                                                        {stats.librosMasLeidos.slice(0, 10).map((entry, index) => (
-                                                                            <Cell 
-                                                                                key={`cell-${index}`} 
-                                                                                fill={[
-                                                                                    '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a',
-                                                                                    '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'
-                                                                                ][index % 10]} 
+                                                        {/* En móvil: ancho fijo para scroll horizontal, en desktop: ancho completo */}
+                                                        <div className="min-w-[600px] sm:min-w-0 h-80 sm:h-[450px] p-4 sm:p-8 relative">
+                                                            {mounted && typeof window !== 'undefined' ? (
+                                                                <>
+                                                                    {/* Versión móvil: dimensiones fijas */}
+                                                                    <div className="sm:hidden" style={{ width: '600px', height: '320px' }}>
+                                                                        <BarChart 
+                                                                            width={600} 
+                                                                            height={320}
+                                                                            data={stats.librosMasLeidos.slice(0, 10)} 
+                                                                            margin={{ top: 30, right: 20, left: 0, bottom: 80 }}
+                                                                            barCategoryGap="10%"
+                                                                        >
+                                                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
+                                                                            <XAxis 
+                                                                                dataKey="libro" 
+                                                                                angle={-45}
+                                                                                textAnchor="end"
+                                                                                interval={0}
+                                                                                height={90}
+                                                                                tick={{ fontSize: 12, fontWeight: '800', fill: 'currentColor', opacity: 0.7 }}
+                                                                                axisLine={{ stroke: '#e2e8f0' }}
+                                                                                tickLine={false}
                                                                             />
-                                                                        ))}
-                                                                    </Bar>
-                                                                </BarChart>
-                                                            </ResponsiveContainer>
+                                                                            <YAxis 
+                                                                                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                                                                                axisLine={false}
+                                                                                tickLine={false}
+                                                                            />
+                                                                            <Tooltip 
+                                                                                cursor={{ fill: 'currentColor', opacity: 0.05 }}
+                                                                                contentStyle={{ 
+                                                                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                                                    border: '1px solid #e2e8f0',
+                                                                                    borderRadius: '12px',
+                                                                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                                                                    fontSize: '12px',
+                                                                                    color: '#1e293b'
+                                                                                }}
+                                                                                itemStyle={{ fontWeight: 'bold', color: '#3b82f6' }}
+                                                                            />
+                                                                            <Bar 
+                                                                                dataKey="count" 
+                                                                                fill="#3b82f6" 
+                                                                                radius={[6, 6, 0, 0]} 
+                                                                                barSize={40}
+                                                                            >
+                                                                                <LabelList 
+                                                                                    dataKey="count" 
+                                                                                    position="top" 
+                                                                                    offset={10}
+                                                                                    style={{ fill: 'currentColor', fontSize: '13px', fontWeight: '900', opacity: 0.9 }} 
+                                                                                />
+                                                                                {stats.librosMasLeidos.slice(0, 10).map((entry, index) => (
+                                                                                    <Cell 
+                                                                                        key={`cell-${index}`} 
+                                                                                        fill={[
+                                                                                            '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a',
+                                                                                            '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'
+                                                                                        ][index % 10]} 
+                                                                                    />
+                                                                                ))}
+                                                                            </Bar>
+                                                                        </BarChart>
+                                                                    </div>
+                                                                    {/* Versión desktop: responsive */}
+                                                                    <div className="hidden sm:block w-full h-full">
+                                                                        <ResponsiveContainer width="100%" height="100%">
+                                                                        <BarChart 
+                                                                            data={stats.librosMasLeidos.slice(0, 10)} 
+                                                                            margin={{ top: 30, right: 20, left: 0, bottom: 80 }}
+                                                                            barCategoryGap="10%"
+                                                                        >
+                                                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
+                                                                            <XAxis 
+                                                                                dataKey="libro" 
+                                                                                angle={-45}
+                                                                                textAnchor="end"
+                                                                                interval={0}
+                                                                                height={90}
+                                                                                tick={{ fontSize: 12, fontWeight: '800', fill: 'currentColor', opacity: 0.7 }}
+                                                                                axisLine={{ stroke: '#e2e8f0' }}
+                                                                                tickLine={false}
+                                                                            />
+                                                                            <YAxis 
+                                                                                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                                                                                axisLine={false}
+                                                                                tickLine={false}
+                                                                            />
+                                                                            <Tooltip 
+                                                                                cursor={{ fill: 'currentColor', opacity: 0.05 }}
+                                                                                contentStyle={{ 
+                                                                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                                                    border: '1px solid #e2e8f0',
+                                                                                    borderRadius: '12px',
+                                                                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                                                                    fontSize: '12px',
+                                                                                    color: '#1e293b'
+                                                                                }}
+                                                                                itemStyle={{ fontWeight: 'bold', color: '#3b82f6' }}
+                                                                            />
+                                                                            <Bar 
+                                                                                dataKey="count" 
+                                                                                fill="#3b82f6" 
+                                                                                radius={[6, 6, 0, 0]} 
+                                                                                barSize={40}
+                                                                            >
+                                                                                <LabelList 
+                                                                                    dataKey="count" 
+                                                                                    position="top" 
+                                                                                    offset={10}
+                                                                                    style={{ fill: 'currentColor', fontSize: '13px', fontWeight: '900', opacity: 0.9 }} 
+                                                                                />
+                                                                                {stats.librosMasLeidos.slice(0, 10).map((entry, index) => (
+                                                                                    <Cell 
+                                                                                        key={`cell-${index}`} 
+                                                                                        fill={[
+                                                                                            '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a',
+                                                                                            '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'
+                                                                                        ][index % 10]} 
+                                                                                    />
+                                                                                ))}
+                                                                            </Bar>
+                                                                        </BarChart>
+                                                                    </ResponsiveContainer>
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center absolute inset-0">
+                                                                    <div className="flex flex-col items-center gap-3">
+                                                                        <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                                                                        <p className="text-sm font-medium text-muted-foreground">Cargando gráfico...</p>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     
                                                     {/* Indicador visual de scroll para móvil */}
-                                                    <div className="md:hidden flex flex-col items-center pb-4 space-y-1">
-                                                        <div className="flex items-center justify-center text-[10px] font-black text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-4 py-1 rounded-full border border-blue-100 dark:border-blue-800 gap-2">
-                                                            <ChevronLeft size={12} className="animate-bounce-x" />
-                                                            DESLIZA PARA VER MÁS
-                                                            <ChevronRight size={12} className="animate-bounce-x" />
+                                                    {mounted && (
+                                                        <div className="md:hidden flex flex-col items-center pb-4 space-y-1">
+                                                            <div className="flex items-center justify-center text-[10px] font-black text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-4 py-1 rounded-full border border-blue-100 dark:border-blue-800 gap-2">
+                                                                <ChevronLeft size={12} className="animate-bounce-x" />
+                                                                DESLIZA PARA VER MÁS
+                                                                <ChevronRight size={12} className="animate-bounce-x" />
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         )}
@@ -956,7 +1117,7 @@ export default function LecturasPageClient({
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </div>
+            </div>
 
                 {/* Listado Principal - Responsive */}
                 <Card className="overflow-hidden border border-border/50 shadow-2xl bg-card/40 backdrop-blur-xl relative z-0">
@@ -1020,7 +1181,7 @@ export default function LecturasPageClient({
                                     {/* Indicador de repetida lateral */}
                                     {lectura.es_repetida && (
                                                     <div className="absolute left-0 top-0 bottom-0 w-1 sm:w-1.5 bg-red-500 shadow-[2px_0_10px_rgba(239,68,68,0.3)]" />
-                                                )}
+                                    )}
 
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
                                                     <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
@@ -1052,11 +1213,15 @@ export default function LecturasPageClient({
                                                     <span className="flex items-center gap-1">
                                                         <Calendar className="w-3 h-3" />
                                                                     <span suppressHydrationWarning className="hidden sm:inline">
-                                                                        {lectura.culto.tipo_culto.nombre} ({format(parseISO(lectura.culto.fecha), 'PP', { locale })})
+                                                                        {format(parseISO(lectura.culto.fecha), 'PP', { locale })}
                                                                     </span>
                                                                     <span suppressHydrationWarning className="sm:hidden">
                                                                         {format(parseISO(lectura.culto.fecha), 'dd/MM/yyyy', { locale })}
                                                                     </span>
+                                                    </span>
+                                                                    <span className="opacity-30 hidden sm:inline">•</span>
+                                                                    <span suppressHydrationWarning className="text-xs sm:text-sm font-medium text-muted-foreground">
+                                                                        {lectura.tipo_lectura === 'introduccion' ? t('cultos.intro') : t('cultos.finalizacion')}
                                                     </span>
                                                 </div>
                                             </div>
@@ -1068,7 +1233,9 @@ export default function LecturasPageClient({
                                                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
                                                 : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
                                                 }`}>
-                                                {lectura.tipo_lectura === 'introduccion' ? t('cultos.intro') : t('cultos.finalizacion')}
+                                                <span suppressHydrationWarning>
+                                                {lectura.culto.tipo_culto.nombre}
+                                                </span>
                                             </span>
 
                                             {lectura.es_repetida && (
@@ -1104,10 +1271,10 @@ export default function LecturasPageClient({
                                                             >
                                                                 <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                                                             </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
                                         </div>
+                                    </div>
+                                </div>
+                    </div>
                                         ))}
                                     </div>
                                 ))}
@@ -1130,7 +1297,7 @@ export default function LecturasPageClient({
                                         disabled={currentPage <= 1}
                                         onClick={() => changePage(currentPage - 1)}
                                         aria-label="Página anterior"
-                                    >
+                                >
                                         <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
                                         <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.previous')}</span>
                                         <span className="sm:hidden">Ant</span>
@@ -1222,7 +1389,9 @@ export default function LecturasPageClient({
                                     {t('lecturas.detailsTipoLectura')}
                                 </label>
                                 <p suppressHydrationWarning className="text-sm sm:text-base font-medium">
-                                    {selectedLectura.tipo_lectura === 'introduccion' ? t('cultos.intro') : t('cultos.finalizacion')}
+                                    <span suppressHydrationWarning>
+                                        {selectedLectura.tipo_lectura === 'introduccion' ? t('cultos.intro') : t('cultos.finalizacion')}
+                                    </span>
                                 </p>
                             </div>
                             <div className="space-y-1">

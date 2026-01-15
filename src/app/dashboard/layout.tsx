@@ -15,7 +15,7 @@
  */
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion'
@@ -52,6 +52,7 @@ export default function DashboardLayout({
     const { isDark, toggleTheme } = useTheme()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+    const [mounted, setMounted] = useState(false)
     const [userProfile, setUserProfile] = useState<{
         nombre: string | null
         apellidos: string | null
@@ -63,21 +64,33 @@ export default function DashboardLayout({
     const router = useRouter()
     const supabase = createClient()
 
+    // Verificar que estamos en el cliente
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
     // Ocultar scrollbar en páginas específicas
     useEffect(() => {
+        if (!mounted) return
         const shouldHideScrollbar = pathname?.includes('/admin/users') || pathname?.includes('/hermanos') || pathname?.includes('/profile')
         if (shouldHideScrollbar) {
             document.documentElement.classList.add('no-scrollbar')
-            document.body.classList.add('no-scrollbar')
+            if (document.body) {
+                document.body.classList.add('no-scrollbar')
+            }
         } else {
             document.documentElement.classList.remove('no-scrollbar')
-            document.body.classList.remove('no-scrollbar')
+            if (document.body) {
+                document.body.classList.remove('no-scrollbar')
+            }
         }
         return () => {
             document.documentElement.classList.remove('no-scrollbar')
-            document.body.classList.remove('no-scrollbar')
+            if (document.body) {
+                document.body.classList.remove('no-scrollbar')
+            }
         }
-    }, [pathname])
+    }, [pathname, mounted])
 
     // Fetch user profile on mount & Subscribe to Realtime changes
     useEffect(() => {
@@ -143,8 +156,8 @@ export default function DashboardLayout({
         }
     }, [supabase])
 
-    // Configuración dinámica de items del sidebar con i18n
-    const sidebarItems = [
+    // Configuración dinámica de items del sidebar con i18n (memoizado para evitar problemas de hidratación)
+    const sidebarItems = useMemo(() => [
         { icon: LayoutDashboard, label: t('nav.dashboard'), href: '/dashboard' },
         { icon: Calendar, label: t('nav.cultos'), href: '/dashboard/cultos' },
         { icon: BookOpen, label: t('nav.lecturas'), href: '/dashboard/lecturas' },
@@ -156,7 +169,7 @@ export default function DashboardLayout({
             { icon: UserCog, label: t('nav.users'), href: '/dashboard/admin/users' },
             { icon: FileText, label: t('nav.audit'), href: '/dashboard/admin/audit' },
         ] : [])
-    ]
+    ], [t, userProfile?.rol])
 
     // Cerrar menú móvil al cambiar de ruta
     useEffect(() => {
@@ -179,14 +192,19 @@ export default function DashboardLayout({
 
     // Bloquear scroll del body cuando sidebar móvil está abierto
     useEffect(() => {
+        if (!mounted) return
         if (isMobileMenuOpen && window.innerWidth < 768) {
-            const originalOverflow = document.body.style.overflow
-            document.body.style.overflow = 'hidden'
-            return () => {
-                document.body.style.overflow = originalOverflow
+            if (document.body) {
+                const originalOverflow = document.body.style.overflow
+                document.body.style.overflow = 'hidden'
+                return () => {
+                    if (document.body) {
+                        document.body.style.overflow = originalOverflow
+                    }
+                }
             }
         }
-    }, [isMobileMenuOpen])
+    }, [isMobileMenuOpen, mounted])
 
     // Gestos con Framer Motion (Pan) para rendimiento de 60fps
     const x = useMotionValue(-300)
