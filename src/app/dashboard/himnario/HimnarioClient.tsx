@@ -1,22 +1,6 @@
-/**
- * HimnarioClient - IDMJI Gestor de Púlpito
- * 
- * Componente cliente para explorar el catálogo de himnos y coros.
- * Permite filtrar por tipo, número o título y visualizar duraciones.
- * 
- * Características:
- * - Cambio de pestañas (Himnos/Coros) con animaciones fluidas
- * - Buscador en tiempo real
- * - Lista optimizada con duraciones y numeración visual
- * - Soporte multiidioma (ES/CA)
- * 
- * @author Antigravity AI
- * @date 2024-12-18
- */
-
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence, useMotionValue, useDragControls } from 'framer-motion'
 import { getHimnos, getCoros } from './actions'
 import { Music, Search, Clock, Sparkles, AudioLines, Plus } from 'lucide-react'
@@ -42,15 +26,41 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
     const [isCalcModalOpen, setIsCalcModalOpen] = useState(false)
 
 
+    // Guardar datos iniciales en refs (solo una vez, nunca actualizar - esto evita re-renders que interfieren con el scroll)
+    const initialHimnosRef = useRef(initialHimnos)
+    const initialCorosRef = useRef(initialCoros)
+
     // Efecto para recarga de datos con debounce
+    // IMPORTANTE: Solo ejecutar cuando cambia searchTerm o activeTab, NO en cada render
+    const prevSearchTermRef = useRef(searchTerm)
+    const prevActiveTabRef = useRef(activeTab)
+    const isInitialMount = useRef(true)
+    
     useEffect(() => {
+        // No hacer nada en el montaje inicial (los datos ya vienen de props)
+        if (isInitialMount.current) {
+            isInitialMount.current = false
+            prevSearchTermRef.current = searchTerm
+            prevActiveTabRef.current = activeTab
+            return
+        }
+
+        // Solo ejecutar si realmente cambió la búsqueda o la pestaña
+        const searchChanged = prevSearchTermRef.current !== searchTerm
+        const tabChanged = prevActiveTabRef.current !== activeTab
+        
+        // Si no hay cambios, no hacer nada (evitar re-renders innecesarios que interfieren con el scroll)
+        if (!searchChanged && !tabChanged) {
+            return
+        }
+        
+        prevSearchTermRef.current = searchTerm
+        prevActiveTabRef.current = activeTab
+        
         /**
          * Carga los datos filtrados basándose en la pestaña y búsqueda
          */
         async function loadData() {
-            if (!searchTerm && activeTab === 'himnos' && himnos.length === initialHimnos.length) return
-            if (!searchTerm && activeTab === 'coros' && coros.length === initialCoros.length) return
-
             setIsLoading(true)
 
             if (activeTab === 'himnos') {
@@ -67,20 +77,44 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 
             setIsLoading(false)
         }
-
-        const timer = setTimeout(() => {
-            loadData()
-        }, 300)
-        return () => clearTimeout(timer)
-    }, [searchTerm, activeTab, himnos.length, coros.length, initialHimnos.length, initialCoros.length])
+        
+        // Si se cambió la pestaña y no hay búsqueda, NO hacer nada (los datos ya están correctos)
+        // Esto evita re-renders innecesarios que interfieren con el scroll
+        if (tabChanged && !searchTerm) {
+            // Los datos ya están correctos, no actualizar estado
+            return
+        }
+        
+        // Solo cargar datos si hay búsqueda
+        if (searchTerm) {
+            const timer = setTimeout(() => {
+                loadData()
+            }, 300)
+            return () => clearTimeout(timer)
+        } else {
+            // Si no hay búsqueda y cambió la búsqueda (se limpió), restaurar datos iniciales
+            // Pero solo si realmente cambió la búsqueda (no en cada render)
+            if (searchChanged) {
+                if (activeTab === 'himnos') {
+                    setHimnos(initialHimnosRef.current)
+                } else {
+                    setCoros(initialCorosRef.current)
+                }
+            }
+        }
+    }, [searchTerm, activeTab]) // SOLO estas dos dependencias - nada más
 
     // Bloquear scroll del body cuando modal de calculadora está abierto
     useEffect(() => {
         if (isCalcModalOpen && window.innerWidth < 1024) {
-            const originalOverflow = document.body.style.overflow
-            document.body.style.overflow = 'hidden'
-            return () => {
-                document.body.style.overflow = originalOverflow
+            if (typeof document !== 'undefined' && document.body) {
+                const originalOverflow = document.body.style.overflow
+                document.body.style.overflow = 'hidden'
+                return () => {
+                    if (document.body) {
+                        document.body.style.overflow = originalOverflow
+                    }
+                }
             }
         }
     }, [isCalcModalOpen])
@@ -112,7 +146,10 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
         )
     }
 
-    const currentData = activeTab === 'himnos' ? himnos : coros
+    // Usar useMemo para evitar re-renders innecesarios que interfieren con el scroll
+    const currentData = useMemo(() => {
+        return activeTab === 'himnos' ? himnos : coros
+    }, [activeTab, himnos, coros])
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 pb-12 px-4">
@@ -122,10 +159,10 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 
                 <div className="flex flex-col lg:flex-row gap-8 justify-between items-start lg:items-center">
                     <div className="space-y-2">
-                        <h1 className="text-4xl lg:text-5xl font-black bg-linear-to-br from-primary via-accent to-primary bg-clip-text text-transparent tracking-tight">
+                        <h1 suppressHydrationWarning className="text-4xl lg:text-5xl font-black bg-linear-to-br from-primary via-accent to-primary bg-clip-text text-transparent tracking-tight">
                             {t('himnario.title')}
                         </h1>
-                        <p className="text-muted-foreground font-medium flex items-center gap-2">
+                        <p suppressHydrationWarning className="text-muted-foreground font-medium flex items-center gap-2">
                             <Sparkles className="w-4 h-4 text-accent" />
                             {t('himnario.desc')}
                         </p>
@@ -161,7 +198,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                             }`}
                     >
                         <tab.icon className="w-5 h-5" />
-                        <span className="uppercase tracking-widest text-xs">{tab.label}</span>
+                        <span suppressHydrationWarning className="uppercase tracking-widest text-xs">{tab.label}</span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${activeTab === tab.id
                             ? 'bg-white/20 text-white'
                             : 'bg-gray-200 dark:bg-zinc-600 text-gray-600 dark:text-zinc-300'
@@ -183,19 +220,19 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                 <table className="w-full table-fixed">
                                     <thead>
                                         <tr className="bg-muted/30 border-b border-border/50 text-left">
-                                            <th className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground w-24">
+                                            <th suppressHydrationWarning className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground w-24">
                                                 {t('himnario.tableNumber')}
                                             </th>
-                                            <th className="px-6 sm:px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground w-full">
+                                            <th suppressHydrationWarning className="px-6 sm:px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground w-full">
                                                 {t('himnario.tableTitle')}
                                             </th>
-                                            <th className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground text-right w-32">
+                                            <th suppressHydrationWarning className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground text-right w-32">
                                                 {t('himnario.tableDuration')}
                                             </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border/30">
-                                        <AnimatePresence mode="wait">
+                                        <AnimatePresence>
                                             {isLoading ? (
                                                 <motion.tr
                                                     key="loading"
@@ -276,7 +313,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                         {/* Footer del Listado */}
                         {!isLoading && currentData.length > 0 && (
                             <div className="px-8 py-6 bg-muted/30 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground text-center sm:text-left flex items-center justify-between">
-                                <span>
+                                <span suppressHydrationWarning>
                                     {t('himnario.showing')
                                         .replace('{count}', currentData.length.toString())
                                         .replace('{type}', activeTab === 'himnos' ? t('himnario.tabsHimnos') : t('himnario.tabsCoros'))}
@@ -296,11 +333,11 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                         <Card className="rounded-[2.5rem] border-none shadow-2xl bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 overflow-hidden">
                             <CardContent className="p-8 space-y-6">
                                 <div className="space-y-2">
-                                    <h3 className="text-xl font-black tracking-tighter flex items-center gap-3 text-foreground uppercase italic">
+                                    <h3 suppressHydrationWarning className="text-xl font-black tracking-tighter flex items-center gap-3 text-foreground uppercase italic">
                                         <Clock className="w-6 h-6 text-primary" />
                                         {t('himnario.calculator')}
                                     </h3>
-                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
+                                    <p suppressHydrationWarning className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
                                         {t('himnario.calculatorDesc')}
                                     </p>
                                 </div>
@@ -403,4 +440,3 @@ function CalculatorModal({ children, onClose }: { children: React.ReactNode, onC
         </motion.div>
     )
 }
-
