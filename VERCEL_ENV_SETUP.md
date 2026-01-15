@@ -41,7 +41,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 ### Variables VAPID (Notificaciones Push) - OPCIONALES:
 
 ```bash
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=BEeyLGjKHt_LpMMvsD7_63UIvVktANK2wN48bMrSA9L0goyoEbpxhL1xCN62c3PvwzamOmgCABglrcGxUk
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=BO2iL6_79-RNilgRKwV_qomTo01TbYbjfnBMDhPAcFV8BCLHlJGv6uQGRtW7P_RnHGUrHrzTok1otPwzqbRvOfY
 ```
 
 **Targets:** Production, Preview, Development
@@ -49,7 +49,7 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY=BEeyLGjKHt_LpMMvsD7_63UIvVktANK2wN48bMrSA9L0goyoEbp
 ---
 
 ```bash
-VAPID_PRIVATE_KEY=_K5mDScV2Cq069tU2la
+VAPID_PRIVATE_KEY=zS-Zv7jb63h_25_26ihXHoevdpfyufu-gBUU91l7tvU
 ```
 
 **Targets:** Production, Preview, Development  
@@ -81,4 +81,3 @@ Esto se solucionará una vez añadidas las variables de entorno.
 - Las variables que empiezan con `NEXT_PUBLIC_` son públicas y se exponen al cliente
 - `SUPABASE_SERVICE_ROLE_KEY` y `VAPID_PRIVATE_KEY` son secretas y deben marcarse como "Sensitive"
 - Asegúrate de seleccionar todos los targets (Production, Preview, Development) para cada variable
-

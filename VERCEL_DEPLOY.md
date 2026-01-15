@@ -14,8 +14,8 @@ Debes configurar las siguientes variables en el panel de Vercel (Project Setting
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clave Anon JWT | (Obtenla del panel de Supabase) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio (bypass RLS) | **REQUERIDA** para acciones administrativas |
 | `DATABASE_URL` | URL de conexión directa Postgres | Necesaria para migraciones si usas Prisma/Drizzle |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Clave pública para Push | `BEeyLGjKHt_LpMMvsD7_63UIvVktANK2wN48bMrSA9L0goyoEbpxhL1xCN62c3PvwzamOmgCABglrcGxUk` |
-| `VAPID_PRIVATE_KEY` | Clave privada para Push | (Tu clave privada actual) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Clave pública para Push | `BO2iL6_79-RNilgRKwV_qomTo01TbYbjfnBMDhPAcFV8BCLHlJGv6uQGRtW7P_RnHGUrHrzTok1otPwzqbRvOfY` |
+| `VAPID_PRIVATE_KEY` | Clave privada para Push | `zS-Zv7jb63h_25_26ihXHoevdpfyufu-gBUU91l7tvU` |
 | `VAPID_SUBJECT` | Email de contacto para Push | `mailto:admin@idmji.org` |
 
 ## 2. Configuración del Build
