@@ -408,20 +408,146 @@ export async function getLectores() {
 }
 
 /**
- * Obtener estadísticas de lecturas
+ * Obtener estadísticas de lecturas (con soporte para filtros)
  */
-export async function getLecturasStats() {
+export async function getLecturasStats(filters?: {
+    startDate?: string
+    endDate?: string
+    tipoCulto?: string
+    tipoLectura?: string
+    soloRepetidas?: boolean
+    search?: string
+    lectorId?: string
+    testamento?: 'AT' | 'NT'
+    capitulo?: number
+}) {
     const supabase = await createClient()
 
-    // Total de lecturas
-    const { count: totalLecturas } = await supabase
+    // Si hay filtros de fecha o tipo de culto, primero obtener IDs de cultos que los cumplan
+    let cultosIds: string[] | null = null
+    
+    if (filters?.startDate || filters?.endDate || filters?.tipoCulto) {
+        let cultosQuery = supabase
+            .from('cultos')
+            .select('id')
+        
+        if (filters?.startDate) {
+            cultosQuery = cultosQuery.gte('fecha', filters.startDate)
+        }
+        if (filters?.endDate) {
+            cultosQuery = cultosQuery.lte('fecha', filters.endDate)
+        }
+        if (filters?.tipoCulto) {
+            cultosQuery = cultosQuery.eq('tipo_culto_id', filters.tipoCulto)
+        }
+
+        const { data: cultosFiltrados } = await cultosQuery
+        cultosIds = cultosFiltrados?.map(c => c.id) || []
+
+        // Si hay filtros de fecha/tipo y no hay cultos que los cumplan, retornar estadísticas vacías
+        if (cultosIds.length === 0) {
+            return {
+                totalLecturas: 0,
+                librosMasLeidos: [],
+                repetidasCount: 0
+            }
+        }
+    }
+
+    // Construir query base para estadísticas
+    let queryTotal = supabase
         .from('lecturas_biblicas')
         .select('*', { count: 'exact', head: true })
 
-    // Libros más leídos
-    const { data: librosData } = await supabase
+    let queryLibros = supabase
         .from('lecturas_biblicas')
         .select('libro')
+
+    let queryRepetidas = supabase
+        .from('lecturas_biblicas')
+        .select('*', { count: 'exact', head: true })
+        .eq('es_repetida', true)
+
+    // Aplicar filtro de cultos si hay filtros de fecha/tipo
+    if (cultosIds && cultosIds.length > 0) {
+        queryTotal = queryTotal.in('culto_id', cultosIds)
+        queryLibros = queryLibros.in('culto_id', cultosIds)
+        queryRepetidas = queryRepetidas.in('culto_id', cultosIds)
+    }
+
+    // Filtro por lector
+    if (filters?.lectorId) {
+        queryTotal = queryTotal.eq('id_usuario_lector', filters.lectorId)
+        queryLibros = queryLibros.eq('id_usuario_lector', filters.lectorId)
+        queryRepetidas = queryRepetidas.eq('id_usuario_lector', filters.lectorId)
+    }
+
+    // Filtro por tipo de lectura
+    if (filters?.tipoLectura) {
+        queryTotal = queryTotal.eq('tipo_lectura', filters.tipoLectura)
+        queryLibros = queryLibros.eq('tipo_lectura', filters.tipoLectura)
+        queryRepetidas = queryRepetidas.eq('tipo_lectura', filters.tipoLectura)
+    }
+
+    // Filtro por lecturas repetidas (solo para total y libros, no para repetidasCount)
+    if (filters?.soloRepetidas) {
+        queryTotal = queryTotal.eq('es_repetida', true)
+        queryLibros = queryLibros.eq('es_repetida', true)
+        // queryRepetidas ya tiene .eq('es_repetida', true), así que no necesita este filtro adicional
+    }
+
+    // Filtro por capítulo
+    if (filters?.capitulo) {
+        queryTotal = queryTotal.eq('capitulo_inicio', filters.capitulo)
+        queryLibros = queryLibros.eq('capitulo_inicio', filters.capitulo)
+        queryRepetidas = queryRepetidas.eq('capitulo_inicio', filters.capitulo)
+    }
+
+    // Búsqueda avanzada: libro, lector, o capítulo
+    if (filters?.search) {
+        const searchTerm = filters.search.trim()
+        
+        // Intentar detectar si es búsqueda por capítulo (número)
+        const capituloMatch = searchTerm.match(/^(\d+)$/)
+        if (capituloMatch) {
+            const capituloNum = parseInt(capituloMatch[1])
+            queryTotal = queryTotal.eq('capitulo_inicio', capituloNum)
+            queryLibros = queryLibros.eq('capitulo_inicio', capituloNum)
+            queryRepetidas = queryRepetidas.eq('capitulo_inicio', capituloNum)
+        } else {
+            // Búsqueda por libro (insensible a mayúsculas/minúsculas)
+            queryTotal = queryTotal.ilike('libro', `%${searchTerm}%`)
+            queryLibros = queryLibros.ilike('libro', `%${searchTerm}%`)
+            queryRepetidas = queryRepetidas.ilike('libro', `%${searchTerm}%`)
+        }
+    }
+
+    // Filtro por testamento
+    if (filters?.testamento) {
+        const librosAT = [
+            'Génesis', 'Éxodo', 'Levítico', 'Números', 'Deuteronomio', 'Josué', 'Jueces', 'Rut',
+            '1 Samuel', '2 Samuel', '1 Reyes', '2 Reyes', '1 Crónicas', '2 Crónicas', 'Esdras',
+            'Nehemías', 'Ester', 'Job', 'Salmos', 'Proverbios', 'Eclesiastés', 'Cantares',
+            'Isaías', 'Jeremías', 'Lamentaciones', 'Ezequiel', 'Daniel', 'Oseas', 'Joel', 'Amós',
+            'Abdías', 'Jonás', 'Miqueas', 'Nahúm', 'Habacuc', 'Sofonías', 'Hageo', 'Zacarías', 'Malaquías'
+        ]
+        const librosNT = [
+            'Mateo', 'Marcos', 'Lucas', 'Juan', 'Hechos', 'Romanos', '1 Corintios', '2 Corintios',
+            'Gálatas', 'Efesios', 'Filipenses', 'Colosenses', '1 Tesalonicenses', '2 Tesalonicenses',
+            '1 Timoteo', '2 Timoteo', 'Tito', 'Filemón', 'Hebreos', 'Santiago', '1 Pedro', '2 Pedro',
+            '1 Juan', '2 Juan', '3 Juan', 'Judas', 'Apocalipsis'
+        ]
+        
+        const librosFiltro = filters.testamento === 'AT' ? librosAT : librosNT
+        queryTotal = queryTotal.in('libro', librosFiltro)
+        queryLibros = queryLibros.in('libro', librosFiltro)
+        queryRepetidas = queryRepetidas.in('libro', librosFiltro)
+    }
+
+    // Ejecutar consultas
+    const { count: totalLecturas } = await queryTotal
+
+    const { data: librosData } = await queryLibros
     
     const librosCount = new Map<string, number>()
     librosData?.forEach((lectura) => {
@@ -434,11 +560,7 @@ export async function getLecturasStats() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 10)
 
-    // Lecturas repetidas
-    const { count: repetidasCount } = await supabase
-        .from('lecturas_biblicas')
-        .select('*', { count: 'exact', head: true })
-        .eq('es_repetida', true)
+    const { count: repetidasCount } = await queryRepetidas
 
     return {
         totalLecturas: totalLecturas || 0,

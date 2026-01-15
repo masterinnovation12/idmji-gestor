@@ -165,6 +165,30 @@ export default function LecturasPageClient({
         setMounted(true)
     }, [])
 
+    // Función para cargar estadísticas con filtros actuales
+    const loadStats = useCallback(async () => {
+        if (!mounted) return
+        
+        try {
+            const filters = {
+                startDate: startDate || undefined,
+                endDate: endDate || undefined,
+                tipoCulto: tipoCulto || undefined,
+                tipoLectura: tipoLectura || undefined,
+                soloRepetidas: soloRepetidas || undefined,
+                search: searchTerm || undefined,
+                lectorId: lectorId || undefined,
+                testamento: testamento || undefined,
+                capitulo: capitulo ? parseInt(capitulo) : undefined
+            }
+            
+            const statsResult = await getLecturasStats(filters)
+            if (statsResult) setStats(statsResult)
+        } catch (error) {
+            console.error('Error loading stats:', error)
+        }
+    }, [mounted, startDate, endDate, tipoCulto, tipoLectura, soloRepetidas, searchTerm, lectorId, testamento, capitulo])
+
     // Cargar datos iniciales (tipos, lectores, stats, libros)
     useEffect(() => {
         async function loadData() {
@@ -172,7 +196,7 @@ export default function LecturasPageClient({
                 const [typesResult, lectoresResult, statsResult, librosResult] = await Promise.all([
                     getCultoTypes(),
                     getLectores(),
-                    getLecturasStats(),
+                    getLecturasStats(), // Carga inicial sin filtros
                     getBibliaLibros()
                 ])
                 
@@ -191,6 +215,13 @@ export default function LecturasPageClient({
         }
         loadData()
     }, [])
+
+    // Recargar estadísticas cuando cambien los filtros
+    useEffect(() => {
+        if (mounted) {
+            loadStats()
+        }
+    }, [mounted, startDate, endDate, tipoCulto, tipoLectura, soloRepetidas, searchTerm, lectorId, testamento, capitulo, loadStats])
 
     // Sincronizar estado local con props iniciales cuando cambian (esto se ejecuta cuando el servidor recarga los datos)
     // Usar refs para evitar re-renders innecesarios que interfieren con el scroll
@@ -307,6 +338,7 @@ export default function LecturasPageClient({
                 soloRepetidas: soloRepetidas ? 'true' : null
             })
             setShowFilters(false)
+            // Las estadísticas se recargarán automáticamente cuando cambien los searchParams
             toast.success('Filtros aplicados correctamente')
         } catch (error) {
             console.error('Error applying filters:', error)
@@ -688,6 +720,7 @@ export default function LecturasPageClient({
                                 const newSoloRepetidas = !soloRepetidas
                                 setSoloRepetidas(newSoloRepetidas)
                                 updateURL({ soloRepetidas: newSoloRepetidas ? 'true' : null })
+                                // Las estadísticas se recargarán automáticamente cuando cambien los searchParams
                             }}
                             className={`relative overflow-hidden h-10 sm:h-12 px-3 sm:px-4 md:px-6 rounded-xl border font-bold text-xs sm:text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 ${
                                 soloRepetidas
