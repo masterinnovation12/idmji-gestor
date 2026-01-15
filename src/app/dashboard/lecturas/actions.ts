@@ -4,6 +4,16 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath, unstable_noStore as noStore } from 'next/cache'
 
 /**
+ * Normaliza texto removiendo acentos para búsquedas
+ */
+function normalizeText(text: string): string {
+    return text
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+}
+
+/**
  * Crear o actualizar lectura bíblica
  */
 export async function saveLectura(
@@ -313,8 +323,105 @@ export async function getAllLecturas(
         if (capituloMatch) {
             query = query.eq('capitulo_inicio', parseInt(capituloMatch[1]))
         } else {
-            // Búsqueda por libro (insensible a mayúsculas/minúsculas)
-            query = query.ilike('libro', `%${searchTerm}%`)
+            // Búsqueda por libro (insensible a mayúsculas/minúsculas y acentos)
+            // Crear variantes: original y sin acentos
+            const variants: string[] = [searchTerm]
+            
+            // Agregar variante sin acentos
+            const withoutAccents = searchTerm
+                .replace(/[éÉ]/g, 'e')
+                .replace(/[áÁ]/g, 'a')
+                .replace(/[íÍ]/g, 'i')
+                .replace(/[óÓ]/g, 'o')
+                .replace(/[úÚ]/g, 'u')
+                .replace(/[ñÑ]/g, 'n')
+                .replace(/[üÜ]/g, 'u')
+            
+            if (withoutAccents !== searchTerm) {
+                variants.push(withoutAccents)
+            }
+            
+            // Mapeo de variantes comunes conocidas (ej: Genesis -> Génesis)
+            const commonVariants: Record<string, string[]> = {
+                'genesis': ['Génesis', 'Genesis'],
+                'exodo': ['Éxodo', 'Exodo'],
+                'levitico': ['Levítico', 'Levitico'],
+                'numeros': ['Números', 'Numeros'],
+                'deuteronomio': ['Deuteronomio'],
+                'jose': ['Josué', 'Jose'],
+                'jueces': ['Jueces'],
+                'rut': ['Rut'],
+                'samuel': ['Samuel'],
+                'reyes': ['Reyes'],
+                'cronicas': ['Crónicas', 'Cronicas'],
+                'esdras': ['Esdras'],
+                'nehemias': ['Nehemías', 'Nehemias'],
+                'ester': ['Ester'],
+                'job': ['Job'],
+                'salmos': ['Salmos'],
+                'proverbios': ['Proverbios'],
+                'eclesiastes': ['Eclesiastés', 'Eclesiastes'],
+                'cantares': ['Cantares'],
+                'isaias': ['Isaías', 'Isaias'],
+                'jeremias': ['Jeremías', 'Jeremias'],
+                'lamentaciones': ['Lamentaciones'],
+                'ezequiel': ['Ezequiel'],
+                'daniel': ['Daniel'],
+                'oseas': ['Oseas'],
+                'joel': ['Joel'],
+                'amos': ['Amós', 'Amos'],
+                'abdias': ['Abdías', 'Abdias'],
+                'jonas': ['Jonás', 'Jonas'],
+                'miqueas': ['Miqueas'],
+                'nahum': ['Nahúm', 'Nahum'],
+                'habacuc': ['Habacuc'],
+                'sofonias': ['Sofonías', 'Sofonias'],
+                'hageo': ['Hageo'],
+                'zacarias': ['Zacarías', 'Zacarias'],
+                'malaquias': ['Malaquías', 'Malaquias'],
+                'mateo': ['Mateo'],
+                'marcos': ['Marcos'],
+                'lucas': ['Lucas'],
+                'juan': ['Juan'],
+                'hechos': ['Hechos'],
+                'romanos': ['Romanos'],
+                'corintios': ['Corintios'],
+                'galatas': ['Gálatas', 'Galatas'],
+                'efesios': ['Efesios'],
+                'filipenses': ['Filipenses'],
+                'colosenses': ['Colosenses'],
+                'tesalonicenses': ['Tesalonicenses'],
+                'timoteo': ['Timoteo'],
+                'tito': ['Tito'],
+                'filemon': ['Filemón', 'Filemon'],
+                'hebreos': ['Hebreos'],
+                'santiago': ['Santiago'],
+                'pedro': ['Pedro'],
+                'judas': ['Judas'],
+                'apocalipsis': ['Apocalipsis']
+            }
+            
+            // Buscar variantes comunes
+            const normalizedSearch = withoutAccents.toLowerCase()
+            if (commonVariants[normalizedSearch]) {
+                commonVariants[normalizedSearch].forEach(variant => {
+                    if (!variants.includes(variant)) {
+                        variants.push(variant)
+                    }
+                })
+            }
+            
+            // Eliminar duplicados
+            const uniqueVariants = [...new Set(variants)]
+            
+            // Buscar con OR para cualquiera de las variantes
+            if (uniqueVariants.length === 1) {
+                query = query.ilike('libro', `%${uniqueVariants[0]}%`)
+            } else {
+                // Construir condición OR para Supabase
+                const orConditions = uniqueVariants.map(v => `libro.ilike.%${v}%`).join(',')
+                query = query.or(orConditions)
+            }
         }
     }
 

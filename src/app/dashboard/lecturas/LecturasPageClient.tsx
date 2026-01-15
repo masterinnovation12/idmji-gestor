@@ -147,6 +147,8 @@ export default function LecturasPageClient({
     const [showStats, setShowStats] = useState(false)
     const [selectedLectura, setSelectedLectura] = useState<LecturaExt | null>(null)
     const [showDetailsModal, setShowDetailsModal] = useState(false)
+    const [showDeleteModal, setShowDeleteModal] = useState(false)
+    const [lecturaToDelete, setLecturaToDelete] = useState<LecturaExt | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [showExportDropdown, setShowExportDropdown] = useState(false)
     const [mounted, setMounted] = useState(false)
@@ -380,39 +382,65 @@ export default function LecturasPageClient({
     // NO restaurar scroll automáticamente - dejar que el navegador maneje el scroll naturalmente
     // Solo preservar scroll cuando cambian filtros (no cuando cambia página)
 
-    // Eliminar lectura
-    const handleDelete = useCallback(async (lectura: LecturaExt) => {
-        if (!confirm(t('lecturas.deleteConfirm'))) return
+    // Abrir modal de eliminación
+    const handleDelete = useCallback((lectura: LecturaExt) => {
+        setLecturaToDelete(lectura)
+        setShowDeleteModal(true)
+    }, [])
+
+    // Confirmar y ejecutar eliminación
+    const confirmDelete = useCallback(async () => {
+        if (!lecturaToDelete) return
         
         setIsLoading(true)
         try {
-            const result = await deleteLectura(lectura.id, lectura.culto_id)
+            const result = await deleteLectura(lecturaToDelete.id, lecturaToDelete.culto_id)
             if (result.error) {
                 toast.error(result.error)
         } else {
                 toast.success(t('lecturas.deleteSuccess'))
-                setLecturas(prev => prev.filter(l => l.id !== lectura.id))
-                if (selectedLectura?.id === lectura.id) {
-                    setShowDetailsModal(false)
-                    setSelectedLectura(null)
-                }
+                setLecturas(prev => prev.filter(l => l.id !== lecturaToDelete.id))
+                setShowDeleteModal(false)
+                setLecturaToDelete(null)
+                // Recargar estadísticas
+                loadStats()
             }
         } catch (error) {
             toast.error(t('lecturas.deleteError'))
         } finally {
             setIsLoading(false)
         }
-    }, [selectedLectura, t])
+    }, [lecturaToDelete, t, loadStats])
 
-    // Exportar a Excel
-    const exportToExcel = useCallback(() => {
-        if (!lecturas || lecturas.length === 0) {
-            toast.error('No hay lecturas para exportar')
-            return
-        }
-
+    // Exportar a Excel - Obtiene TODAS las lecturas filtradas (no solo la página actual)
+    const exportToExcel = useCallback(async () => {
+        if (!mounted) return
+        
+        setIsLoading(true)
         try {
-            const data = lecturas.map(lectura => ({
+            // Obtener TODAS las lecturas con los filtros actuales (sin paginación)
+            const filters = {
+                startDate: startDate || undefined,
+                endDate: endDate || undefined,
+                tipoCulto: tipoCulto || undefined,
+                tipoLectura: tipoLectura || undefined,
+                soloRepetidas: soloRepetidas || undefined,
+                search: searchTerm || undefined,
+                lectorId: lectorId || undefined,
+                testamento: testamento || undefined,
+                capitulo: capitulo ? parseInt(capitulo) : undefined
+            }
+            
+            // Obtener todas las lecturas (sin límite de página)
+            const result = await getAllLecturas(1, 10000, filters) // Límite alto para obtener todas
+            
+            if (!result.data || result.data.length === 0) {
+                toast.error('No hay lecturas para exportar con los filtros aplicados')
+                setIsLoading(false)
+                return
+            }
+
+            const data = result.data.map((lectura: LecturaExt) => ({
                 'Cita': formatCita(lectura),
                 'Libro': lectura.libro,
                 'Capítulo Inicio': lectura.capitulo_inicio,
@@ -429,13 +457,19 @@ export default function LecturasPageClient({
             const ws = XLSX.utils.json_to_sheet(data)
             const wb = XLSX.utils.book_new()
             XLSX.utils.book_append_sheet(wb, ws, 'Lecturas')
-            XLSX.writeFile(wb, `lecturas_${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
-            toast.success('Exportado a Excel correctamente')
+            
+            // Nombre del archivo con información de filtros si hay
+            const filterInfo = searchTerm ? `_${searchTerm}` : ''
+            const fileName = `lecturas${filterInfo}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
+            XLSX.writeFile(wb, fileName)
+            toast.success(`Exportado a Excel correctamente (${data.length} lecturas)`)
         } catch (error) {
             console.error('Error exporting to Excel:', error)
             toast.error('Error al exportar a Excel')
+        } finally {
+            setIsLoading(false)
         }
-    }, [lecturas, locale, t])
+    }, [mounted, startDate, endDate, tipoCulto, tipoLectura, soloRepetidas, searchTerm, lectorId, testamento, capitulo, locale, t])
 
     // Exportar a CSV
     const exportToCSV = useCallback(() => {
@@ -483,34 +517,58 @@ export default function LecturasPageClient({
         try {
             const url = `${window.location.origin}${pathname}?${searchParams.toString()}`
             
-            if (navigator.share && navigator.canShare && navigator.canShare({ url })) {
+            // Generar un resumen de las lecturas actuales (primeras 10)
+            let shareText = `📖 *${t('lecturas.title')}*\n`
+            
+            // Añadir info de filtros si los hay
+            if (searchTerm) shareText += `🔍 Búsqueda: "${searchTerm}"\n`
+            if (startDate || endDate) {
+                const start = startDate ? format(parseISO(startDate), 'dd/MM/yy') : '...'
+                const end = endDate ? format(parseISO(endDate), 'dd/MM/yy') : 'hoy'
+                shareText += `📅 Periodo: ${start} - ${end}\n`
+            }
+            
+            shareText += `-------------------\n`
+            
+            const lecturasToShow = lecturas.slice(0, 10)
+            lecturasToShow.forEach(l => {
+                const fecha = format(parseISO(l.culto.fecha), 'dd/MM/yy')
+                shareText += `• ${formatCita(l)} (${fecha}) - ${l.lector.nombre}\n`
+            })
+            
+            if (lecturas.length > 10) {
+                shareText += `... y ${lecturas.length - 10} más.\n`
+            }
+            
+            shareText += `\n🔗 Ver completo en:\n${url}`
+            
+            if (navigator.share && navigator.canShare && navigator.canShare({ text: shareText })) {
                 await navigator.share({ 
                     title: t('lecturas.title'), 
-                    text: t('lecturas.desc'),
-                    url 
+                    text: shareText
                 })
-                toast.success('URL compartida correctamente')
+                toast.success('Contenido compartido correctamente')
             } else if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(url)
-                toast.success('URL copiada al portapapeles')
-        } else {
-                // Fallback: crear input temporal
-                const input = document.createElement('input')
-                input.value = url
-                document.body.appendChild(input)
-                input.select()
+                await navigator.clipboard.writeText(shareText)
+                toast.success('Información copiada al portapapeles')
+            } else {
+                // Fallback: crear textarea temporal
+                const textarea = document.createElement('textarea')
+                textarea.value = shareText
+                document.body.appendChild(textarea)
+                textarea.select()
                 document.execCommand('copy')
-                document.body.removeChild(input)
-                toast.success('URL copiada al portapapeles')
+                document.body.removeChild(textarea)
+                toast.success('Información copiada al portapapeles')
             }
         } catch (error) {
-            console.error('Error sharing URL:', error)
+            console.error('Error sharing content:', error)
             // Si el usuario cancela el share, no mostrar error
             if (error instanceof Error && error.name !== 'AbortError') {
-                toast.error('Error al compartir URL')
+                toast.error('Error al compartir')
             }
         }
-    }, [pathname, searchParams, t, mounted])
+    }, [pathname, searchParams, t, mounted, searchTerm, startDate, endDate, lecturas])
 
     // Agrupar lecturas
     const groupedLecturas = useMemo(() => {
@@ -553,7 +611,7 @@ export default function LecturasPageClient({
     useEffect(() => {
         if (!mounted) return
         
-        const handleClickOutside = (event: MouseEvent) => {
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
             const target = event.target as HTMLElement
             if (!target.closest('.export-dropdown')) {
                 setShowExportDropdown(false)
@@ -564,11 +622,13 @@ export default function LecturasPageClient({
             // Usar timeout para evitar que se cierre inmediatamente al abrir
             const timer = setTimeout(() => {
                 document.addEventListener('mousedown', handleClickOutside)
+                document.addEventListener('touchstart', handleClickOutside)
             }, 100)
             
             return () => {
                 clearTimeout(timer)
                 document.removeEventListener('mousedown', handleClickOutside)
+                document.removeEventListener('touchstart', handleClickOutside)
             }
         }
     }, [showExportDropdown, mounted])
@@ -654,41 +714,56 @@ export default function LecturasPageClient({
                                     <X className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
                                 )}
                             </Button>
-                            <div className="relative export-dropdown">
+                            <div className="relative export-dropdown z-[50]">
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setShowExportDropdown(!showExportDropdown)}
-                                    className="text-xs sm:text-sm px-3 sm:px-4"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        setShowExportDropdown(!showExportDropdown)
+                                    }}
+                                    className={`text-xs sm:text-sm px-3 sm:px-4 transition-all ${showExportDropdown ? 'bg-muted border-primary/50' : ''}`}
                                 >
                                     <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                                     <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.export')}</span>
                                     <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 hidden sm:inline transition-transform ${showExportDropdown ? 'rotate-180' : ''}`} />
                                 </Button>
-                                {showExportDropdown && (
-                                    <div className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-xl shadow-2xl z-[9999] overflow-hidden">
-                                        <button
-                                            onClick={() => {
-                                                exportToExcel()
-                                                setShowExportDropdown(false)
-                                            }}
-                                            className="w-full px-4 py-2 text-left hover:bg-muted flex items-center gap-2 text-sm transition-colors"
+                                
+                                {/* Dropdown Desktop */}
+                                <AnimatePresence>
+                                    {showExportDropdown && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            className="hidden sm:block absolute right-0 top-full mt-3 w-56 bg-background border border-border rounded-2xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-xl"
+                                            style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)' }}
                                         >
-                                            <FileSpreadsheet className="w-4 h-4" />
-                                            <span suppressHydrationWarning>{t('lecturas.exportExcel')}</span>
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                exportToCSV()
-                                                setShowExportDropdown(false)
-                                            }}
-                                            className="w-full px-4 py-2 text-left hover:bg-muted flex items-center gap-2 text-sm transition-colors"
-                                        >
-                                            <FileDown className="w-4 h-4" />
-                                            <span suppressHydrationWarning>{t('lecturas.exportCSV')}</span>
-                                        </button>
-                                    </div>
-                                )}
+                                            <div className="p-2 space-y-1">
+                                                <button
+                                                    onClick={() => {
+                                                        exportToExcel()
+                                                        setShowExportDropdown(false)
+                                                    }}
+                                                    className="w-full px-3 py-2.5 text-left hover:bg-muted rounded-xl flex items-center gap-3 text-sm font-semibold transition-all group"
+                                                >
+                                                    <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+                                                    <span suppressHydrationWarning>{t('lecturas.exportExcel')}</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        exportToCSV()
+                                                        setShowExportDropdown(false)
+                                                    }}
+                                                    className="w-full px-3 py-2.5 text-left hover:bg-muted rounded-xl flex items-center gap-3 text-sm font-semibold transition-all group"
+                                                >
+                                                    <FileDown className="w-4 h-4 text-green-600" />
+                                                    <span suppressHydrationWarning>{t('lecturas.exportCSV')}</span>
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                             <Button
                                 variant="outline"
@@ -1182,8 +1257,8 @@ export default function LecturasPageClient({
                                                                     </div>
                                                                 </div>
                                                             )}
-                                                        </div>
-                                                    </div>
+                    </div>
+                </div>
                                                     
                                                     {/* Indicador visual de scroll para móvil */}
                                                     {mounted && (
@@ -1337,22 +1412,15 @@ export default function LecturasPageClient({
                                                                     setSelectedLectura(lectura)
                                                                     setShowDetailsModal(true)
                                                                 }}
-                                                                className="p-2 sm:p-2.5 rounded-lg hover:bg-muted transition-colors"
+                                                                className="p-2 sm:p-2.5 rounded-lg hover:bg-muted transition-colors text-blue-600 dark:text-blue-400"
                                                                 aria-label="Ver detalles"
                                                             >
                                                                 <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
                                                             </button>
-                                                            <Link
-                                                                href={`/dashboard/cultos/${lectura.culto.id}`}
-                                                                className="p-2 sm:p-2.5 rounded-lg hover:bg-muted transition-colors"
-                                                                aria-label="Ver culto"
-                                                            >
-                                                                <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />
-                                                            </Link>
                                                             <button
                                                                 onClick={() => handleDelete(lectura)}
                                                                 disabled={isLoading}
-                                                                className="p-2 sm:p-2.5 rounded-lg hover:bg-red-500/10 hover:text-red-500 transition-colors disabled:opacity-50"
+                                                                className="p-2 sm:p-2.5 rounded-lg hover:bg-red-500/10 hover:text-red-500 transition-colors disabled:opacity-50 text-muted-foreground"
                                                                 aria-label="Eliminar lectura"
                                                             >
                                                                 <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -1404,7 +1472,7 @@ export default function LecturasPageClient({
                     )}
                 </CardContent>
             </Card>
-            </div>
+        </div>
 
             {/* Modal de Detalles */}
             <Modal
@@ -1504,6 +1572,119 @@ export default function LecturasPageClient({
                         </div>
                     </div>
                 )}
+            </Modal>
+
+            {/* Modal de Confirmación de Eliminación */}
+            <Modal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    if (!isLoading) {
+                        setShowDeleteModal(false)
+                        setLecturaToDelete(null)
+                    }
+                }}
+                title={
+                    <div className="flex items-center gap-3 text-red-600">
+                        <div className="p-2 bg-red-100/50 dark:bg-red-900/20 rounded-xl">
+                            <Trash2 className="w-6 h-6" />
+                        </div>
+                        <span className="uppercase tracking-tight font-black">{t('lecturas.deleteTitle')}</span>
+                    </div>
+                }
+                size="sm"
+                keyPrefix="delete-modal"
+            >
+                <div className="space-y-6 py-2">
+                    <div className="p-4 bg-muted/30 rounded-2xl border border-border/50">
+                        <p className="text-[10px] text-muted-foreground font-bold mb-1 uppercase tracking-widest">Elemento a eliminar:</p>
+                        {lecturaToDelete && (
+                            <p className="text-lg font-bold text-foreground">{formatCita(lecturaToDelete)}</p>
+                        )}
+                    </div>
+
+                    <p className="text-base text-muted-foreground font-medium">
+                        {t('lecturas.deleteConfirm')}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setShowDeleteModal(false)
+                                setLecturaToDelete(null)
+                            }}
+                            disabled={isLoading}
+                            className="py-6 rounded-2xl font-bold border-border hover:bg-muted transition-all shadow-none"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={confirmDelete}
+                            disabled={isLoading}
+                            className="py-6 rounded-2xl font-bold bg-red-600 hover:bg-red-700 text-white transition-all active:scale-95 flex items-center justify-center gap-2 shadow-none border-none"
+                        >
+                            {isLoading ? (
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <Trash2 className="w-5 h-5" />
+                            )}
+                            Eliminar
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal de Exportación para Móvil */}
+            <Modal
+                isOpen={showExportDropdown && typeof window !== 'undefined' && window.innerWidth < 640}
+                onClose={() => setShowExportDropdown(false)}
+                title={<span className="text-foreground uppercase tracking-tight">{t('lecturas.export')}</span>}
+                keyPrefix="export-modal"
+            >
+                <div className="space-y-4 py-2">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            exportToExcel()
+                            setShowExportDropdown(false)
+                        }}
+                        className="w-full p-5 text-left bg-muted/50 hover:bg-muted rounded-3xl flex items-center gap-4 transition-all active:scale-[0.98] group"
+                    >
+                        <div className="w-14 h-14 rounded-2xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shadow-sm group-active:scale-95 transition-transform">
+                            <FileSpreadsheet className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span suppressHydrationWarning className="font-bold text-lg text-foreground leading-tight">{t('lecturas.exportExcel')}</span>
+                            <span className="text-sm text-muted-foreground mt-0.5">Documento Excel (.xlsx)</span>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            exportToCSV()
+                            setShowExportDropdown(false)
+                        }}
+                        className="w-full p-5 text-left bg-muted/50 hover:bg-muted rounded-3xl flex items-center gap-4 transition-all active:scale-[0.98] group"
+                    >
+                        <div className="w-14 h-14 rounded-2xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center shadow-sm group-active:scale-95 transition-transform">
+                            <FileDown className="w-7 h-7 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span suppressHydrationWarning className="font-bold text-lg text-foreground leading-tight">{t('lecturas.exportCSV')}</span>
+                            <span className="text-sm text-muted-foreground mt-0.5">Valores separados por coma (.csv)</span>
+                        </div>
+                    </button>
+
+                    <div className="pt-4">
+                        <Button
+                            onClick={() => setShowExportDropdown(false)}
+                            className="w-full py-4 rounded-2xl font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20"
+                        >
+                            Cerrar
+                        </Button>
+                    </div>
+                </div>
             </Modal>
         </div>
     )
