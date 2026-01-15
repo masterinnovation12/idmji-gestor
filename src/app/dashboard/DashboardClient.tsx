@@ -171,11 +171,11 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4" />
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
                     <h1 className="text-5xl font-black mb-4 text-slate-900 dark:text-white tracking-tighter">
-                        {t('dashboard.welcome')}, <span className="text-blue-600 dark:text-blue-400">{user.nombre}</span>
+                        <span suppressHydrationWarning>{t('dashboard.welcome')},</span> <span className="text-blue-600 dark:text-blue-400">{user.nombre}</span>
                     </h1>
                     <div className="flex items-center gap-3 text-slate-500 font-bold">
                         <Calendar className="w-5 h-5 text-blue-500" />
-                        <span className="capitalize">{format(new Date(), 'PPPP', { locale })}</span>
+                        <span suppressHydrationWarning className="capitalize">{format(new Date(), 'PPPP', { locale })}</span>
                     </div>
                 </motion.div>
 
@@ -194,10 +194,10 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
             {/* Mobile Version (Compact Header) */}
             <div className="md:hidden flex items-center justify-between px-2 pt-2">
                 <div>
-                    <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                    <h1 suppressHydrationWarning className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                         Hola, {user.nombre}
                     </h1>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    <p suppressHydrationWarning className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                         {format(new Date(), 'EEEE, d MMM', { locale })}
                     </p>
                 </div>
@@ -227,15 +227,15 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                                     <CardContent className="p-6 md:p-8">
                                         {/* Badge de Estado */}
                                         <div className="flex justify-between items-start mb-6">
-                                            <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg ${esHoy ? 'bg-red-500 text-white shadow-red-500/30' : 'bg-blue-600 text-white shadow-blue-500/30'}`}>
+                                            <div suppressHydrationWarning className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg ${esHoy ? 'bg-red-500 text-white shadow-red-500/30' : 'bg-blue-600 text-white shadow-blue-500/30'}`}>
                                                 {esHoy ? 'CULTO DE HOY' : 'PRÓXIMO CULTO'}
                                             </div>
                                             {!esHoy && (
                                                 <div className="text-right">
-                                                    <p className="text-2xl font-black text-slate-300 dark:text-slate-600 leading-none">
+                                                    <p suppressHydrationWarning className="text-2xl font-black text-slate-300 dark:text-slate-600 leading-none">
                                                         {format(new Date(culto.fecha), 'd', { locale })}
                                                     </p>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                                    <p suppressHydrationWarning className="text-[10px] font-bold text-slate-400 uppercase">
                                                         {format(new Date(culto.fecha), 'MMM', { locale })}
                                                     </p>
                                                 </div>
@@ -384,7 +384,7 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                                 <button onClick={() => changeWeek('prev')} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-all shadow-sm">
                                     <ChevronLeft className="w-4 h-4" />
                                 </button>
-                                <span className="text-xs font-bold uppercase tracking-wider">{weekLabel}</span>
+                                <span suppressHydrationWarning className="text-xs font-bold uppercase tracking-wider">{weekLabel}</span>
                                 <button onClick={() => changeWeek('next')} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-all shadow-sm">
                                     <ChevronRight className="w-4 h-4" />
                                 </button>
@@ -408,7 +408,7 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                                                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-800 group">
                                                     <div className="flex justify-between items-start mb-2">
                                                         <div className="flex flex-col">
-                                                            <span className="text-xs font-bold text-slate-400 uppercase">{format(new Date(asg.fecha), 'EEE d', { locale })}</span>
+                                                            <span suppressHydrationWarning className="text-xs font-bold text-slate-400 uppercase">{format(new Date(asg.fecha), 'EEE d', { locale })}</span>
                                                             <span className="font-black text-slate-800 dark:text-slate-100">{asg.tipo_culto?.nombre}</span>
                                                         </div>
                                                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: asg.tipo_culto?.color }} />
@@ -455,7 +455,7 @@ function QuickActionLink({ href, icon, title }: { href: string, icon: React.Reac
                 className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-lg border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center gap-3 text-center hover:shadow-xl transition-all"
             >
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl">{icon}</div>
-                <span className="font-bold text-sm text-slate-700 dark:text-slate-200">{title}</span>
+                <span suppressHydrationWarning className="font-bold text-sm text-slate-700 dark:text-slate-200">{title}</span>
             </motion.div>
         </Link>
     )

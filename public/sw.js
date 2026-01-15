@@ -92,6 +92,14 @@ self.addEventListener('fetch', (event) => {
     const request = event.request;
     const url = new URL(request.url);
 
+    // NO interceptar peticiones en desarrollo (localhost)
+    // Esto permite que HMR funcione correctamente
+    if (url.hostname === 'localhost' || 
+        url.hostname === '127.0.0.1' ||
+        url.port === '3000') {
+        return; // Dejar que la petición pase sin interceptar
+    }
+
     // Solo manejar requests GET
     if (request.method !== 'GET') return;
 

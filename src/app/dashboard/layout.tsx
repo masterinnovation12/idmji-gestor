@@ -561,7 +561,7 @@ function SidebarContent({
                                 />
 
                                 {!isSidebarCollapsed && (
-                                    <span className={`flex-1 font-black text-xs tracking-widest uppercase relative z-10 ${isActive ? 'text-black' : 'text-white/60 group-hover:text-white'} transition-colors`}>
+                                    <span suppressHydrationWarning className={`flex-1 font-black text-xs tracking-widest uppercase relative z-10 ${isActive ? 'text-black' : 'text-white/60 group-hover:text-white'} transition-colors`}>
                                         {item.label}
                                     </span>
                                 )}
@@ -626,7 +626,7 @@ function SidebarContent({
                     whileTap={{ scale: 0.98 }}
                 >
                     <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
-                    {!isSidebarCollapsed && <span>{t('nav.logout')}</span>}
+                    {!isSidebarCollapsed && <span suppressHydrationWarning>{t('nav.logout')}</span>}
                 </motion.button>
 
                 {/* Versión de la Aplicación */}

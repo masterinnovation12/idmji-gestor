@@ -32,6 +32,17 @@ export function usePushNotifications() {
     }, [])
 
     async function registerServiceWorker() {
+        // No registrar Service Worker en desarrollo (localhost)
+        const isDevelopment = 
+            typeof window !== 'undefined' && 
+            (window.location.hostname === 'localhost' || 
+             window.location.hostname === '127.0.0.1')
+        
+        if (isDevelopment) {
+            console.log('[SW] Service Worker no se registra en desarrollo')
+            return
+        }
+
         try {
             const registration = await navigator.serviceWorker.register('/sw.js', {
                 scope: '/',
@@ -50,11 +61,16 @@ export function usePushNotifications() {
         setLoading(true)
         try {
             const registration = await navigator.serviceWorker.ready
+            const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+            if (!publicKey || publicKey.length < 50) {
+                console.error('VAPID_PUBLIC_KEY no está configurada o es inválida.')
+                toast.error('Error de configuración en notificaciones push')
+                return
+            }
+
             const sub = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(
-                    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-                ),
+                applicationServerKey: urlBase64ToUint8Array(publicKey),
             })
 
             // Save to DB

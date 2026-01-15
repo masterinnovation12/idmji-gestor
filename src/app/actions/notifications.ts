@@ -10,11 +10,21 @@ const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY!
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@idmji.org'
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-    webpush.setVapidDetails(
-        VAPID_SUBJECT,
-        VAPID_PUBLIC_KEY,
-        VAPID_PRIVATE_KEY
-    )
+    try {
+        // Validar que la clave pública tenga la longitud correcta antes de configurar
+        // Una clave VAPID válida en base64url suele tener ~87 caracteres y decodificar a 65 bytes
+        if (VAPID_PUBLIC_KEY.length > 50) {
+            webpush.setVapidDetails(
+                VAPID_SUBJECT,
+                VAPID_PUBLIC_KEY,
+                VAPID_PRIVATE_KEY
+            )
+        } else {
+            console.warn('⚠️ VAPID_PUBLIC_KEY parece inválida o muy corta. Las notificaciones push no funcionarán correctamente.')
+        }
+    } catch (error) {
+        console.error('❌ Error al configurar web-push VAPID:', error)
+    }
 }
 
 export interface PushSubscription {
