@@ -677,32 +677,52 @@ export async function getLecturasStats(filters?: {
 }
 
 /**
- * Obtener lista de libros de la Biblia
+ * Obtener lista de libros de la Biblia (todos los 66 libros)
+ * La tabla biblia tiene un registro por capítulo (no por versículo)
+ * Supabase limita a 1000 registros por consulta, así que usamos paginación
  */
 export async function getBibliaLibros() {
     try {
         const supabase = await createClient()
 
-        // Optimize: Select ONLY structure columns, NOT the full text if it exists
-        // 1189 chapters is small enough to fetch in one request if we exclude text
-        const { data, error } = await supabase
-            .from('biblia')
-            .select('libro, orden, testamento, abreviatura, capitulo, num_versiculos')
-            .order('orden', { ascending: true })
-            .order('capitulo', { ascending: true })
-            .eq('versiculo', 1) // Optimization: Only fetch first verse of each chapter
-            .limit(5000) // 1189 chapters fits easily in 5000
+        // Supabase tiene un límite de 1000 registros por consulta
+        // Necesitamos obtener todos los registros usando paginación
+        let allData: any[] = []
+        let from = 0
+        const pageSize = 1000
+        let hasMore = true
 
-        if (error) {
-            console.error('Error fetching bible structure:', error)
-            return { error: error.message }
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('biblia')
+                .select('libro, orden, testamento, abreviatura, capitulo, num_versiculos')
+                .order('orden', { ascending: true })
+                .order('capitulo', { ascending: true })
+                .range(from, from + pageSize - 1)
+
+            if (error) {
+                console.error('Error fetching bible structure:', error)
+                return { error: error.message }
+            }
+
+            if (!data || data.length === 0) {
+                hasMore = false
+            } else {
+                allData = allData.concat(data)
+                from += pageSize
+                // Si obtuvimos menos de pageSize registros, no hay más
+                hasMore = data.length === pageSize
+            }
         }
 
-        if (!data || data.length === 0) {
+        if (allData.length === 0) {
+            console.warn('getBibliaLibros: No se obtuvieron datos de la tabla biblia')
             return { data: [] }
         }
 
-        // Agregamos por libro de forma robusta
+        console.log(`getBibliaLibros: Se obtuvieron ${allData.length} registros de la tabla biblia (usando paginación)`)
+
+        // Agrupar por libro único
         const booksMap = new Map<string, {
             id: number
             nombre: string
@@ -711,29 +731,50 @@ export async function getBibliaLibros() {
             capitulos: { n: number; v: number }[]
         }>()
 
-        data.forEach((row) => {
+        allData.forEach((row) => {
             const libroNombre = (row.libro as string).trim()
+            
+            // Si el libro no existe en el mapa, agregarlo
             if (!booksMap.has(libroNombre)) {
                 booksMap.set(libroNombre, {
                     id: row.orden as number,
                     nombre: libroNombre,
-                    testamento: row.testamento as string,
-                    abreviatura: row.abreviatura as string,
+                    testamento: (row.testamento as string) || 'AT',
+                    abreviatura: (row.abreviatura as string) || libroNombre.substring(0, 3),
                     capitulos: []
                 })
             }
 
+            // Agregar el capítulo al libro
             const book = booksMap.get(libroNombre)!
-            // Prevent duplicates if DB is messy
-            if (!book.capitulos.some((c) => c.n === row.capitulo)) {
+            // Evitar duplicados de capítulos
+            const existingChapter = book.capitulos.find((c) => c.n === row.capitulo)
+            if (!existingChapter) {
                 book.capitulos.push({
                     n: row.capitulo as number,
-                    v: row.num_versiculos as number
+                    v: row.num_versiculos as number || 0
                 })
             }
         })
 
+        // Ordenar capítulos dentro de cada libro
+        booksMap.forEach((book) => {
+            book.capitulos.sort((a, b) => a.n - b.n)
+        })
+
+        // Convertir a array y ordenar por ID (orden)
         const finalData = Array.from(booksMap.values()).sort((a, b) => a.id - b.id)
+        
+        // Log para verificar que tenemos los 66 libros
+        console.log(`getBibliaLibros: Se agruparon ${finalData.length} libros únicos de la Biblia`)
+        
+        if (finalData.length !== 66) {
+            console.warn(`⚠️ Advertencia: Se esperaban 66 libros pero se obtuvieron ${finalData.length}`)
+            console.log('Libros encontrados:', finalData.map(b => `${b.nombre} (${b.abreviatura})`).join(', '))
+        } else {
+            console.log('✅ Todos los 66 libros de la Biblia cargados correctamente')
+        }
+
         return { data: finalData }
     } catch (err) {
         console.error('Excepción en getBibliaLibros:', err)
