@@ -37,6 +37,11 @@ export default async function DashboardPage() {
             .select(`
                 *,
                 lecturas:lecturas_biblicas(*),
+                plan_himnos_coros(
+                    *,
+                    himno:himnos(numero, titulo, duracion_segundos),
+                    coro:coros(numero, titulo, duracion_segundos)
+                ),
                 tipo_culto:culto_types(nombre, color, tiene_ensenanza, tiene_testimonios, tiene_lectura_introduccion, tiene_lectura_finalizacion, tiene_himnos_y_coros),
                 usuario_intro:profiles!id_usuario_intro(nombre, apellidos, avatar_url),
                 usuario_finalizacion:profiles!id_usuario_finalizacion(nombre, apellidos, avatar_url),
