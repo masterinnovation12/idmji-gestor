@@ -48,8 +48,8 @@ export const TIPOS_FESTIVO = {
 
 // Límites de la aplicación según MVP
 export const LIMITES = {
-    MAX_HIMNOS_POR_CULTO: 3,  // Máximo 3 himnos
-    MAX_COROS_POR_CULTO: 3,   // Máximo 3 coros
+    MAX_HIMNOS_POR_CULTO: 5,  // Máximo 5 himnos
+    MAX_COROS_POR_CULTO: 5,   // Máximo 5 coros
     MAX_LECTURAS_POR_CULTO: 2,
     SEARCH_DEBOUNCE_MS: 300,
     MIN_SEARCH_LENGTH: 2,

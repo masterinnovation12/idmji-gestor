@@ -32,6 +32,7 @@ import { useI18n } from '@/lib/i18n/I18nProvider'
 import BackButton from '@/components/BackButton'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import { LIMITES } from '@/lib/constants'
 import { Culto, Profile } from '@/types/database'
 import NextImage from 'next/image'
 
@@ -790,7 +791,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                         </CardTitle>
                                         <div className="hidden sm:block bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10">
                                             <p className="text-[10px] text-primary font-black uppercase tracking-widest leading-none">
-                                                Máximo 5 por categoría
+                                                Máximo {LIMITES.MAX_HIMNOS_POR_CULTO} por categoría
                                             </p>
                                         </div>
                                     </div>

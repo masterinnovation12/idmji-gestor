@@ -42,6 +42,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
+import { LIMITES } from '@/lib/constants'
 
 interface HimnoCoroSelectorProps {
     cultoId?: string // Now optional for calculator mode
@@ -123,7 +124,10 @@ function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLas
             <div className="flex items-center gap-1 md:gap-2 shrink-0 ml-2">
                 <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-1">
                     <button
-                        onClick={() => onMoveUp(item.id)}
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            onMoveUp(item.id)
+                        }}
                         disabled={isFirst}
                         title="Mover arriba"
                         className={`p-1.5 md:p-2 rounded-xl transition-all ${isFirst
@@ -135,7 +139,10 @@ function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLas
                     </button>
 
                     <button
-                        onClick={() => onMoveDown(item.id)}
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            onMoveDown(item.id)
+                        }}
                         disabled={isLast}
                         title="Mover abajo"
                         className={`p-1.5 md:p-2 rounded-xl transition-all ${isLast
@@ -148,7 +155,10 @@ function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLas
                 </div>
 
                 <button
-                    onClick={() => onRemove(item.id)}
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        onRemove(item.id)
+                    }}
                     title="Eliminar"
                     className="p-2 md:p-2.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all hover:scale-110 active:scale-90"
                 >
@@ -161,8 +171,8 @@ function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLas
 
 export default function HimnoCoroSelector({
     cultoId,
-    maxHimnos = 5,
-    maxCoros = 5,
+    maxHimnos = LIMITES.MAX_HIMNOS_POR_CULTO,
+    maxCoros = LIMITES.MAX_COROS_POR_CULTO,
     className
 }: HimnoCoroSelectorProps) {
     const [tipo, setTipo] = useState<'himno' | 'coro'>('himno')
@@ -175,19 +185,21 @@ export default function HimnoCoroSelector({
 
     const debouncedQuery = useDebounce(query, 300)
 
-    // Configurar sensores para drag-and-drop
+    // Configurar sensores para drag-and-drop con restricciones de activación para permitir clics
     const sensors = useSensors(
-        useSensor(PointerSensor),
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5, // 5px de tolerancia para distinguir clic de arrastre
+            },
+        }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         })
     )
 
-    // Ordenar selected: primero himnos, luego coros, manteniendo el orden dentro de cada tipo
+    // Ordenar selected por el campo 'orden' para mantener la secuencia definida por el usuario
     const sortedSelected = useMemo(() => {
-        const himnos = selected.filter(s => s.tipo === 'himno').sort((a, b) => a.orden - b.orden)
-        const coros = selected.filter(s => s.tipo === 'coro').sort((a, b) => a.orden - b.orden)
-        return [...himnos, ...coros]
+        return [...selected].sort((a, b) => a.orden - b.orden)
     }, [selected])
 
     const supabase = createClient()
@@ -208,10 +220,7 @@ export default function HimnoCoroSelector({
             if (cultoId) {
                 const { data } = await getHimnosCorosByCulto(cultoId)
                 if (data) {
-                    // Asegurar que el orden esté correcto: primero himnos, luego coros
-                    const himnos = data.filter(s => s.tipo === 'himno').sort((a, b) => a.orden - b.orden)
-                    const coros = data.filter(s => s.tipo === 'coro').sort((a, b) => a.orden - b.orden)
-                    setSelected([...himnos, ...coros])
+                    setSelected(data)
                 }
             } else if (userId) {
                 // Cargar listas guardadas de localStorage específicas del usuario
@@ -226,10 +235,7 @@ export default function HimnoCoroSelector({
                 const current = localStorage.getItem(`idmji_calc_session_${userId}`)
                 if (current) {
                     const parsed = JSON.parse(current)
-                    // Asegurar ordenamiento
-                    const himnos = parsed.filter((s: PlanHimnoCoro) => s.tipo === 'himno').sort((a: PlanHimnoCoro, b: PlanHimnoCoro) => a.orden - b.orden)
-                    const coros = parsed.filter((s: PlanHimnoCoro) => s.tipo === 'coro').sort((a: PlanHimnoCoro, b: PlanHimnoCoro) => a.orden - b.orden)
-                    setSelected([...himnos, ...coros])
+                    setSelected(parsed.sort((a: PlanHimnoCoro, b: PlanHimnoCoro) => a.orden - b.orden))
                 } else {
                     setSelected([])
                 }
@@ -284,9 +290,8 @@ export default function HimnoCoroSelector({
 
         if (cultoId) {
             // Modo Real: Guardar en DB
-            // Calcular el orden: si es himno, va después del último himno; si es coro, va después del último coro
-            const lastOfType = sortedSelected.filter(s => s.tipo === tipo)
-            const orden = lastOfType.length > 0 ? Math.max(...lastOfType.map(s => s.orden)) + 1 : 1
+            // Calcular el orden global: simplemente al final de la lista actual
+            const orden = selected.length > 0 ? Math.max(...selected.map(s => s.orden)) + 1 : 1
 
             const result = await addHimnoCoro(cultoId, tipo, item.id, orden)
 
@@ -296,17 +301,14 @@ export default function HimnoCoroSelector({
                 toast.success(`${tipo === 'himno' ? 'Himno' : 'Coro'} añadido`)
                 const { data } = await getHimnosCorosByCulto(cultoId)
                 if (data) {
-                    const himnos = data.filter(s => s.tipo === 'himno').sort((a, b) => a.orden - b.orden)
-                    const coros = data.filter(s => s.tipo === 'coro').sort((a, b) => a.orden - b.orden)
-                    setSelected([...himnos, ...coros])
+                    setSelected(data)
                 }
                 setQuery('')
                 setResults([])
             }
         } else {
             // Modo Calculadora: Estado Local
-            const lastOfType = sortedSelected.filter(s => s.tipo === tipo)
-            const orden = lastOfType.length > 0 ? Math.max(...lastOfType.map(s => s.orden)) + 1 : 1
+            const orden = selected.length > 0 ? Math.max(...selected.map(s => s.orden)) + 1 : 1
 
             const newItem: PlanHimnoCoro = {
                 id: crypto.randomUUID(), // Unique temp ID
@@ -316,7 +318,7 @@ export default function HimnoCoroSelector({
                 orden,
                 [tipo === 'himno' ? 'himno' : 'coro']: item
             }
-            setSelected([...sortedSelected, newItem])
+            setSelected([...selected, newItem])
             setQuery('')
             setResults([])
             toast.success('Añadido a la lista temporal')
@@ -328,12 +330,10 @@ export default function HimnoCoroSelector({
             await removeHimnoCoro(planId, cultoId)
             const { data } = await getHimnosCorosByCulto(cultoId)
             if (data) {
-                const himnos = data.filter(s => s.tipo === 'himno').sort((a, b) => a.orden - b.orden)
-                const coros = data.filter(s => s.tipo === 'coro').sort((a, b) => a.orden - b.orden)
-                setSelected([...himnos, ...coros])
+                setSelected(data)
             }
         } else {
-            setSelected(sortedSelected.filter(s => s.id !== planId))
+            setSelected(selected.filter(s => s.id !== planId))
         }
         toast.success(cultoId ? 'Eliminado del culto' : 'Eliminado de la lista')
     }
@@ -367,12 +367,13 @@ export default function HimnoCoroSelector({
     }
 
     const updateOrder = async (newOrder: PlanHimnoCoro[]) => {
-        // Actualizar los valores de orden
+        // Recalcular los valores de orden basados en el nuevo índice de la lista completa
         const updated = newOrder.map((item, index) => ({
             ...item,
             orden: index + 1
         }))
 
+        // Actualizar el estado local inmediatamente para feedback visual fluido
         setSelected(updated)
 
         if (cultoId) {
@@ -385,18 +386,16 @@ export default function HimnoCoroSelector({
             const result = await updateHimnosCorosOrder(cultoId, updates)
             if (result.error) {
                 toast.error('Error al actualizar el orden')
-                // Recargar desde la base de datos
+                // Revertir cargando desde DB si hay error
                 const { data } = await getHimnosCorosByCulto(cultoId)
                 if (data) {
-                    const himnos = data.filter(s => s.tipo === 'himno').sort((a, b) => a.orden - b.orden)
-                    const coros = data.filter(s => s.tipo === 'coro').sort((a, b) => a.orden - b.orden)
-                    setSelected([...himnos, ...coros])
+                    setSelected(data)
                 }
             } else {
                 toast.success('Orden actualizado')
             }
         } else if (userId) {
-            // Guardar en localStorage
+            // Guardar en localStorage (modo calculadora)
             localStorage.setItem(`idmji_calc_session_${userId}`, JSON.stringify(updated))
         }
     }

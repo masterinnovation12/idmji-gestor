@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { Himno, Coro, PlanHimnoCoro, ActionResponse } from '@/types/database'
+import { LIMITES } from '@/lib/constants'
 
 /**
  * Buscar himnos por número o título
@@ -71,7 +72,7 @@ export async function addHimnoCoro(
 ): Promise<ActionResponse> {
     const supabase = await createClient()
 
-    // Verificar límites (3 himnos + 3 coros)
+    // Verificar límites (5 himnos + 5 coros)
     const { data: existing } = await supabase
         .from('plan_himnos_coros')
         .select('tipo')
@@ -80,12 +81,12 @@ export async function addHimnoCoro(
     const himnosCount = existing?.filter(e => e.tipo === 'himno').length || 0
     const corosCount = existing?.filter(e => e.tipo === 'coro').length || 0
 
-    if (tipo === 'himno' && himnosCount >= 3) {
-        return { error: 'Máximo 3 himnos permitidos' }
+    if (tipo === 'himno' && himnosCount >= LIMITES.MAX_HIMNOS_POR_CULTO) {
+        return { error: `Máximo ${LIMITES.MAX_HIMNOS_POR_CULTO} himnos permitidos` }
     }
 
-    if (tipo === 'coro' && corosCount >= 3) {
-        return { error: 'Máximo 3 coros permitidos' }
+    if (tipo === 'coro' && corosCount >= LIMITES.MAX_COROS_POR_CULTO) {
+        return { error: `Máximo ${LIMITES.MAX_COROS_POR_CULTO} coros permitidos` }
     }
 
     const { error } = await supabase
