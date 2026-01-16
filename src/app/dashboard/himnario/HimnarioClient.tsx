@@ -404,35 +404,42 @@ function CalculatorModal({ children, onClose }: { children: React.ReactNode, onC
         <motion.div
             drag="y"
             dragControls={controls}
-            dragListener={false}
+            dragListener={true} // Ahora todo el modal escucha el arrastre
             dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.5 }}
+            dragElastic={{ top: 0, bottom: 0.8 }} // Mucho más elástico y fluido
             onDragEnd={(e, info) => {
-                if (info.offset.y > 100 || info.velocity.y > 500) {
+                // Umbral más inteligente: por distancia o por velocidad (flick)
+                if (info.offset.y > 120 || info.velocity.y > 600) {
                     onClose()
                 }
             }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            transition={{ type: 'spring', damping: 30, stiffness: 350, mass: 0.8 }}
             style={{ y }}
-            className="relative bg-white dark:bg-zinc-900 w-full rounded-t-4xl shadow-2xl overflow-hidden border-t border-white/20 z-10"
+            className="relative bg-white dark:bg-zinc-900 w-full rounded-t-[3rem] shadow-2xl overflow-hidden border-t border-white/20 z-10 touch-none"
         >
-            {/* Handle */}
+            {/* Handle visual premium */}
             <div
-                className="pt-4 pb-2 w-full flex justify-center touch-none cursor-grab active:cursor-grabbing bg-white dark:bg-zinc-900"
+                className="pt-4 pb-6 w-full flex justify-center touch-none cursor-grab active:cursor-grabbing"
                 onPointerDown={(e) => controls.start(e)}
             >
-                <div className="w-12 h-1.5 rounded-full bg-gray-300 dark:bg-zinc-700" />
+                <div className="w-16 h-1.5 rounded-full bg-gray-200 dark:bg-zinc-800" />
             </div>
 
-            {/* Content */}
-            <div className="px-6 pb-8">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-black italic uppercase tracking-tight">Calculadora</h2>
-                    <button onClick={onClose} className="p-2 bg-gray-100 dark:bg-zinc-800 rounded-full">
-                        <Plus className="w-5 h-5 rotate-45 text-gray-500" />
+            {/* Content con padding optimizado */}
+            <div className="px-6 pb-10">
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex flex-col">
+                        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 dark:text-white leading-none">Calculadora</h2>
+                        <span className="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] mt-1">Planificación de Tiempo</span>
+                    </div>
+                    <button 
+                        onClick={onClose} 
+                        className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-zinc-800 rounded-full active:scale-90 transition-transform"
+                    >
+                        <Plus className="w-6 h-6 rotate-45 text-gray-500" />
                     </button>
                 </div>
                 {children}

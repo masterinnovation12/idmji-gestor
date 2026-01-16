@@ -44,7 +44,7 @@ export const translations = {
         'dashboard.profile': 'Mi Perfil',
         'dashboard.admin': 'Administración',
         'dashboard.logout': 'Cerrar sesión',
-        'dashboard.hymns': 'Himnos y Coros',
+        'dashboard.hymns': 'HIMNARIO',
 
         // Cultos
         'cultos.intro': 'Introducción',
@@ -217,7 +217,7 @@ export const translations = {
         'nav.dashboard': 'Panel Principal',
         'nav.cultos': 'Calendario',
         'nav.lecturas': 'Historial Lecturas',
-        'nav.himnario': 'Himnos y Coros',
+        'nav.himnario': 'HIMNARIO',
         'nav.hermanos': 'Directorio Hermanos',
         'nav.stats': 'Estadísticas',
         'nav.users': 'Usuarios y Roles',
@@ -226,7 +226,7 @@ export const translations = {
         'nav.logout': 'Cerrar Sesión',
 
         // Himnario Page
-        'himnario.title': 'Himnario y Coros',
+        'himnario.title': 'HIMNARIO',
         'himnario.desc': 'HIMNARIO',
         'himnario.searchPlaceholder': 'Buscar por número o título...',
         'himnario.tabsHimnos': 'Himnos',
@@ -402,7 +402,7 @@ export const translations = {
         'dashboard.profile': 'El meu Perfil',
         'dashboard.admin': 'Administració',
         'dashboard.logout': 'Tancar sessió',
-        'dashboard.hymns': 'Himnes i Coros',
+        'dashboard.hymns': 'HIMNARI',
 
         // Cultos
         'cultos.intro': 'Introducció',
@@ -575,7 +575,7 @@ export const translations = {
         'nav.dashboard': 'Taulell Principal',
         'nav.cultos': 'Calendari',
         'nav.lecturas': 'Historial Lectures',
-        'nav.himnario': 'Himnes i Coros',
+        'nav.himnario': 'HIMNARI',
         'nav.hermanos': 'Directori Germans',
         'nav.stats': 'Estadístiques',
         'nav.users': 'Usuaris i Rols',
@@ -584,7 +584,7 @@ export const translations = {
         'nav.logout': 'Tancar Sessió',
 
         // Himnario Page
-        'himnario.title': 'Himnari i Coros',
+        'himnario.title': 'HIMNARI',
         'himnario.desc': 'HIMNARIO',
         'himnario.searchPlaceholder': 'Cercar per número o títol...',
         'himnario.tabsHimnos': 'Himnes',
