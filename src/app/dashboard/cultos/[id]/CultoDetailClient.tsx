@@ -790,13 +790,13 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                         </CardTitle>
                                         <div className="hidden sm:block bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10">
                                             <p className="text-[10px] text-primary font-black uppercase tracking-widest leading-none">
-                                                Máximo 3 por categoría
+                                                Máximo 5 por categoría
                                             </p>
                                         </div>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4 md:p-5 lg:p-6">
-                                    <HimnoCoroSelector cultoId={culto.id} />
+                                    <HimnoCoroSelector cultoId={culto.id} maxHimnos={5} maxCoros={5} />
                                 </CardContent>
                             </Card>
                         </motion.div>
