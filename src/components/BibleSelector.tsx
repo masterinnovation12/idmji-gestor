@@ -196,13 +196,30 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         return () => { document.body.style.overflow = '' }
     }, [isOpen, isMobile])
 
-    // Search Filtering
+    /**
+     * Normaliza texto removiendo acentos para búsquedas
+     */
+    const normalizeText = (text: string): string => {
+        return text
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+    }
+
+    // Search Filtering (con normalización de acentos)
     const filteredLibros = useMemo(() => {
-        const terms = searchQuery.toLowerCase().split(/\s+/)
+        if (!searchQuery.trim()) {
+            return libros // Si no hay búsqueda, mostrar todos
+        }
+        const normalizedQuery = normalizeText(searchQuery)
+        const terms = normalizedQuery.split(/\s+/).filter(t => t.length > 0)
         return libros.filter(libro => {
-            const name = libro.nombre.toLowerCase()
-            const abbr = libro.abreviatura.toLowerCase()
-            return terms.every(term => name.includes(term) || abbr.includes(term))
+            const normalizedName = normalizeText(libro.nombre)
+            const normalizedAbbr = normalizeText(libro.abreviatura)
+            return terms.every(term => 
+                normalizedName.includes(term) || 
+                normalizedAbbr.includes(term)
+            )
         })
     }, [libros, searchQuery])
 
@@ -469,10 +486,10 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
 
                     {/* DIAGNOSTIC INFO (VISIBLE TO USER) */}
                     <div className="mt-1 px-2 flex justify-between text-[9px] font-mono text-muted-foreground/50 select-none">
-                        <span>Status: RELATIVE (UNIVERSAL)</span>
-                        <span>Total: {libros.length}</span>
+                        <span>Estado: {libros.length === 66 ? 'Completo' : 'Cargando'}</span>
+                        <span>Total: {libros.length}/66</span>
                         <span>Filtrados: {filteredLibros.length}</span>
-                        <span>Mode: {isMobile ? 'Mobile(Ignored)' : 'Desktop'}</span>
+                        <span>Modo: {isMobile ? 'Móvil' : 'Escritorio'}</span>
                     </div>
                 </div>
             </div>
