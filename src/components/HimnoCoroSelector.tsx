@@ -20,8 +20,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Search, Plus, Trash2, Music, Clock, ChevronUp, ChevronDown } from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
-import { searchHimnos, searchCoros, addHimnoCoro, removeHimnoCoro, getHimnosCorosByCulto, updateHimnosCorosOrder } from '@/app/dashboard/himnos/actions'
-import { Himno, Coro, PlanHimnoCoro } from '@/types/database'
+import { searchHimnos, searchCoros, addHimnoCoro, removeHimnoCoro, getHimnosCorosByCulto, updateHimnosCorosOrder, updateSequencePointer } from '@/app/dashboard/himnos/actions'
+import { Himno, Coro, PlanHimnoCoro, Profile } from '@/types/database'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -49,6 +49,7 @@ interface HimnoCoroSelectorProps {
     maxHimnos?: number
     maxCoros?: number
     className?: string
+    tipoCulto?: string
 }
 
 /**
@@ -173,7 +174,8 @@ export default function HimnoCoroSelector({
     cultoId,
     maxHimnos = LIMITES.MAX_HIMNOS_POR_CULTO,
     maxCoros = LIMITES.MAX_COROS_POR_CULTO,
-    className
+    className,
+    tipoCulto
 }: HimnoCoroSelectorProps) {
     const [tipo, setTipo] = useState<'himno' | 'coro'>('himno')
     const [query, setQuery] = useState('')
@@ -182,6 +184,11 @@ export default function HimnoCoroSelector({
     const [savedLists, setSavedLists] = useState<{ id: string, name: string, items: PlanHimnoCoro[] }[]>([])
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
     const [listName, setListName] = useState('')
+
+    // Secuencia Automática
+    const [isSequenceModalOpen, setIsSequenceModalOpen] = useState(false)
+    const [pendingCoroId, setPendingCoroId] = useState<number | null>(null)
+    const [userProfile, setUserProfile] = useState<Profile | null>(null)
 
     const debouncedQuery = useDebounce(query, 300)
 
@@ -205,11 +212,20 @@ export default function HimnoCoroSelector({
     const supabase = createClient()
     const [userId, setUserId] = useState<string | null>(null)
 
-    // Fetch User ID on mount
+    // Fetch User Profile on mount
     useEffect(() => {
         async function getUser() {
             const { data: { user } } = await supabase.auth.getUser()
-            if (user) setUserId(user.id)
+            if (user) {
+                setUserId(user.id)
+                // Obtener perfil para el rol
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single()
+                if (profile) setUserProfile(profile as Profile)
+            }
         }
         getUser()
     }, [supabase.auth])
@@ -299,6 +315,13 @@ export default function HimnoCoroSelector({
                 toast.error(result.error)
             } else {
                 toast.success(`${tipo === 'himno' ? 'Himno' : 'Coro'} añadido`)
+                
+                // --- LÓGICA DE SECUENCIA AUTOMÁTICA (SOLO ADMIN Y ALABANZA) ---
+                if (tipo === 'coro' && userProfile?.rol === 'ADMIN' && tipoCulto?.toLowerCase().includes('alabanza')) {
+                    setPendingCoroId(item.id)
+                    setIsSequenceModalOpen(true)
+                }
+
                 const { data } = await getHimnosCorosByCulto(cultoId)
                 if (data) {
                     setSelected(data)
@@ -459,6 +482,19 @@ export default function HimnoCoroSelector({
         const mins = Math.floor(seconds / 60)
         const secs = seconds % 60
         return `${mins}:${secs.toString().padStart(2, '0')}`
+    }
+
+    const handleConfirmUpdateSequence = async () => {
+        if (pendingCoroId) {
+            const result = await updateSequencePointer(pendingCoroId)
+            if (result.success) {
+                toast.success('Secuencia global actualizada')
+            } else {
+                toast.error('Error al actualizar secuencia')
+            }
+        }
+        setIsSequenceModalOpen(false)
+        setPendingCoroId(null)
     }
 
     const durationHimnos = himnosSelected.reduce((acc, curr) => acc + (curr.himno?.duracion_segundos || 0), 0)
@@ -692,6 +728,53 @@ export default function HimnoCoroSelector({
                                     className="h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
                                 >
                                     Confirmar
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            {/* Sequence Modal */}
+            <AnimatePresence>
+                {isSequenceModalOpen && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/70 backdrop-blur-xl"
+                            onClick={() => setIsSequenceModalOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="relative w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl bg-white dark:bg-[#18181b] border border-gray-200 dark:border-zinc-700 text-center"
+                        >
+                            <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <Clock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            
+                            <h2 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white mb-4 uppercase italic">Actualizar Secuencia</h2>
+                            <p className="text-sm font-bold text-gray-500 dark:text-zinc-400 mb-8 leading-relaxed">
+                                ¿Deseas que los futuros cultos de Alabanza sigan la secuencia automática a partir de este coro?
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => {
+                                        setIsSequenceModalOpen(false)
+                                        setPendingCoroId(null)
+                                    }}
+                                    className="h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all"
+                                >
+                                    No, solo este
+                                </button>
+                                <button
+                                    onClick={handleConfirmUpdateSequence}
+                                    className="h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                >
+                                    Sí, actualizar
                                 </button>
                             </div>
                         </motion.div>

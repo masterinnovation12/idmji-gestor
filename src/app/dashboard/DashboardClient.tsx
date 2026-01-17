@@ -18,8 +18,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Culto, Profile } from '@/types/database'
 import { getUserAssignments } from './cultos/actions'
+import { autoFillAlabanzaSequence } from './himnos/actions'
 import { toast } from 'sonner'
-import NextImage from 'next/image'
+import { useEffect } from 'react'
 
 // --- Sub-componentes ---
 
@@ -242,6 +243,19 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
     }
 
     const weekLabel = `${format(startOfWeek(currentWeekDate, { weekStartsOn: 1 }), 'd MMM', { locale })} - ${format(endOfWeek(currentWeekDate, { weekStartsOn: 1 }), 'd MMM', { locale })}`
+
+    // Auto-relleno de secuencia de Alabanza (Solo ADMIN)
+    useEffect(() => {
+        if (user.rol === 'ADMIN') {
+            const triggerAutofill = async () => {
+                const result = await autoFillAlabanzaSequence()
+                if (result.data?.count && result.data.count > 0) {
+                    toast.success(`Secuencia de Alabanza auto-rellenada (${result.data.count} cultos)`)
+                }
+            }
+            triggerAutofill()
+        }
+    }, [user.rol])
 
     return (
         <div className="space-y-4 md:space-y-8 animate-fade-in-up pb-20">

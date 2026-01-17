@@ -797,7 +797,12 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4 md:p-5 lg:p-6">
-                                    <HimnoCoroSelector cultoId={culto.id} maxHimnos={5} maxCoros={5} />
+                                    <HimnoCoroSelector 
+                                        cultoId={culto.id} 
+                                        maxHimnos={5} 
+                                        maxCoros={5} 
+                                        tipoCulto={culto.tipo_culto?.nombre}
+                                    />
                                 </CardContent>
                             </Card>
                         </motion.div>
