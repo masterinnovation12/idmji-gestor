@@ -2,7 +2,8 @@
 // Force HMR update
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import { translations, type Language, type TranslationKey } from './translations'
+import { translations } from './translations'
+import type { Language, TranslationKey } from './types'
 
 interface I18nContextType {
     language: Language

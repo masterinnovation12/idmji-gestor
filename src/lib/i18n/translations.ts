@@ -883,6 +883,3 @@ export const translations = {
         'notifications.reminder.body': 'Germà, avui tens una assignació: {role} al {type} a les {time}.',
     },
 } as const
-
-export type Language = keyof typeof translations
-export type TranslationKey = keyof typeof translations['es-ES']

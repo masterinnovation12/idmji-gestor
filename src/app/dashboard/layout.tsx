@@ -40,7 +40,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
-import { TranslationKey, Language } from '@/lib/i18n/translations'
+import type { TranslationKey, Language } from '@/lib/i18n/types'
 import NextImage from 'next/image'
 
 export default function DashboardLayout({

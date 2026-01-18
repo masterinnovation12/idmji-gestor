@@ -1,38 +1,34 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import webpush from 'web-push'
 import { ActionResponse } from '@/types/database'
+import { PushSubscription } from '@/types/notifications'
 
 // VAPID keys configuration
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY!
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@idmji.org'
 
-if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-    try {
-        // Validar que la clave pública tenga la longitud correcta antes de configurar
-        // Una clave VAPID válida en base64url suele tener ~87 caracteres y decodificar a 65 bytes
-        if (VAPID_PUBLIC_KEY.length > 50) {
-            webpush.setVapidDetails(
-                VAPID_SUBJECT,
-                VAPID_PUBLIC_KEY,
-                VAPID_PRIVATE_KEY
-            )
-        } else {
-            console.warn('⚠️ VAPID_PUBLIC_KEY parece inválida o muy corta. Las notificaciones push no funcionarán correctamente.')
+async function getWebPush() {
+    // Importación dinámica para evitar que web-push se incluya en el bundle del cliente
+    // o cause errores de "export" en tiempo de compilación/ejecución
+    const webpush = (await import('web-push')).default
+    
+    if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+        try {
+            if (VAPID_PUBLIC_KEY.length > 50) {
+                webpush.setVapidDetails(
+                    VAPID_SUBJECT,
+                    VAPID_PUBLIC_KEY,
+                    VAPID_PRIVATE_KEY
+                )
+                return webpush
+            }
+        } catch (error) {
+            console.error('❌ Error al configurar web-push VAPID:', error)
         }
-    } catch (error) {
-        console.error('❌ Error al configurar web-push VAPID:', error)
     }
-}
-
-export interface PushSubscription {
-    endpoint: string
-    keys: {
-        p256dh: string
-        auth: string
-    }
+    return null
 }
 
 export async function subscribeToPush(subscription: PushSubscription): Promise<ActionResponse<void>> {
@@ -89,7 +85,8 @@ export async function unsubscribeFromPush(endpoint: string): Promise<ActionRespo
 
 export async function sendTestNotification(): Promise<ActionResponse<void>> {
     try {
-        if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+        const webpush = await getWebPush()
+        if (!webpush) {
             return { success: false, error: 'VAPID keys no configuradas' }
         }
 
@@ -144,7 +141,8 @@ export async function sendNotificationToUser(
     url?: string
 ): Promise<ActionResponse<void>> {
     try {
-        if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+        const webpush = await getWebPush()
+        if (!webpush) {
             return { success: false, error: 'VAPID keys no configuradas' }
         }
 

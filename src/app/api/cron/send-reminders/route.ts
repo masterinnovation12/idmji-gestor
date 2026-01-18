@@ -2,7 +2,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { sendNotificationToUser } from '@/app/actions/notifications'
-import { translations, Language } from '@/lib/i18n/translations'
+import { translations } from '@/lib/i18n/translations'
+import type { Language } from '@/lib/i18n/types'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 
