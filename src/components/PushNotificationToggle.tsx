@@ -26,18 +26,6 @@ export function PushNotificationToggle() {
 
     // Check subscription status on mount
     const checkSubscription = useCallback(async () => {
-        // No registrar Service Worker en desarrollo (localhost)
-        const isDevelopment = 
-            typeof window !== 'undefined' && 
-            (window.location.hostname === 'localhost' || 
-             window.location.hostname === '127.0.0.1')
-        
-        if (isDevelopment) {
-            setStatus('unsupported')
-            setErrorMessage('Las notificaciones push no están disponibles en desarrollo')
-            return
-        }
-
         // Check browser support
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
             setStatus('unsupported')

@@ -431,6 +431,14 @@ export const translations = {
         'pwa.iosStep3': 'Pulsa',
         'pwa.add': 'Añadir',
         'pwa.understood': 'Entendido',
+
+        // Notifications
+        'notifications.prompt.title': '¿Activar notificaciones?',
+        'notifications.prompt.desc': 'Recibe recordatorios de tus asignaciones directamente en tu móvil.',
+        'notifications.prompt.activate': 'SÍ, ACTIVAR',
+        'notifications.prompt.later': 'MÁS TARDE',
+        'notifications.reminder.title': 'Recordatorio de Culto',
+        'notifications.reminder.body': 'Hermano, hoy tienes una asignación: {role} en el {type} a las {time}.',
     },
     'ca-ES': {
         // Login
@@ -865,6 +873,14 @@ export const translations = {
         'pwa.iosStep3': 'Prem',
         'pwa.add': 'Afegir',
         'pwa.understood': 'Entès',
+
+        // Notifications
+        'notifications.prompt.title': 'Activar notificacions?',
+        'notifications.prompt.desc': 'Rep recordatoris de les teves assignacions directament al teu mòbil.',
+        'notifications.prompt.activate': 'SÍ, ACTIVAR',
+        'notifications.prompt.later': 'MÉS TARD',
+        'notifications.reminder.title': 'Recordatori de Culte',
+        'notifications.reminder.body': 'Germà, avui tens una assignació: {role} al {type} a les {time}.',
     },
 } as const
 

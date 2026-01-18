@@ -26,6 +26,7 @@ const updateProfileSchema = z.object({
     apellidos: z.string().min(1, 'Los apellidos son obligatorios'),
     email_contacto: z.string().email('Email de contacto inválido').optional().or(z.literal('')).nullable(),
     telefono: z.string().optional().or(z.literal('')).nullable(),
+    language: z.enum(['es-ES', 'ca-ES']).optional(),
     availability: z.object({
         template: z.record(z.string(), z.object({
             intro: z.boolean().optional(),
@@ -55,6 +56,7 @@ export async function updateProfile(
         apellidos: string,
         email_contacto?: string | null,
         telefono?: string | null,
+        language?: 'es-ES' | 'ca-ES',
         availability?: Record<string, unknown>
     }
 ): Promise<ActionResponse<void>> {
@@ -78,6 +80,7 @@ export async function updateProfile(
                 apellidos: updates.apellidos,
                 email_contacto: updates.email_contacto || null,
                 telefono: updates.telefono || null,
+                language: updates.language,
                 availability: updates.availability || {}
             })
             .eq('id', user.id)

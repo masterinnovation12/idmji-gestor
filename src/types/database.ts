@@ -20,6 +20,7 @@ export interface Profile {
     rol: UserRole
     avatar_url: string | null
     pulpito: boolean
+    language?: 'es-ES' | 'ca-ES'
     availability?: {
         template?: Record<string, {
             intro?: boolean

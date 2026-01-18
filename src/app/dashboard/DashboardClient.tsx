@@ -9,18 +9,20 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, BookOpen, Users, Clock, UserIcon, ChevronRight, ChevronLeft, MapPin, Plus, Music } from 'lucide-react'
-import { format, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns'
+import { Calendar, BookOpen, Users, Clock, UserIcon, ChevronRight, ChevronLeft, MapPin, Plus, Music, Bell } from 'lucide-react'
+import { format, addWeeks, subWeeks, startOfWeek, endOfWeek, getHours } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { useI18n } from '@/lib/i18n/I18nProvider'
+import { TranslationKey } from '@/lib/i18n/translations'
 import { Culto, Profile } from '@/types/database'
 import { getUserAssignments } from './cultos/actions'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
+import { NotificationPrompt } from '@/components/NotificationPrompt'
 
 // --- Sub-componentes ---
 
@@ -568,6 +570,8 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                 <QuickActionLink href="/dashboard/festivos" icon={<MapPin className="text-amber-500" />} title={t('dashboard.festivos')} />
                 <QuickActionLink href="/dashboard/hermanos" icon={<Users className="text-emerald-500" />} title={t('dashboard.hermanos')} />
             </div>
+
+            <NotificationPrompt />
         </div>
     )
 }

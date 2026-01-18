@@ -37,6 +37,7 @@ import { toast } from 'sonner'
 import { updateProfile, uploadAvatar, deleteAvatar } from './actions'
 import AvatarEditor from '@/components/AvatarEditor'
 import AvailabilityManager from '@/components/AvailabilityManager'
+import { PushNotificationToggle } from '@/components/PushNotificationToggle'
 import { obtenerIniciales } from '@/lib/helpers'
 
 interface ProfileClientProps {
@@ -61,6 +62,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
         apellidos: profile?.apellidos || '',
         email_contacto: profile?.email_contacto || '',
         telefono: profile?.telefono || '',
+        language: profile?.language || (language as 'es-ES' | 'ca-ES'),
         availability: initialAvailability
     })
     const [isLoading, setIsLoading] = useState(false)
@@ -469,7 +471,10 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                         <div className={`flex gap-1 p-1 rounded-xl shadow-inner justify-center ${isDark ? 'bg-muted/50' : 'bg-muted/30'}`}>
                                             <button
                                                 type="button"
-                                                onClick={() => setLanguage('es-ES')}
+                                                onClick={() => {
+                                                    setLanguage('es-ES')
+                                                    setFormData(prev => ({ ...prev, language: 'es-ES' }))
+                                                }}
                                                 className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${language === 'es-ES'
                                                     ? isDark
                                                         ? 'bg-primary text-white shadow-lg shadow-primary/40'
@@ -483,7 +488,10 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => setLanguage('ca-ES')}
+                                                onClick={() => {
+                                                    setLanguage('ca-ES')
+                                                    setFormData(prev => ({ ...prev, language: 'ca-ES' }))
+                                                }}
                                                 className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${language === 'ca-ES'
                                                     ? isDark
                                                         ? 'bg-primary text-white shadow-lg shadow-primary/40'
@@ -503,11 +511,11 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                     </div>
 
                     {/* Notificaciones Push */}
-                    {/* <Card className="rounded-[2.5rem] border-none shadow-xl glass overflow-hidden">
+                    <Card className="rounded-[2.5rem] border-none shadow-xl glass overflow-hidden">
                         <CardContent className="p-8">
                             <PushNotificationToggle />
                         </CardContent>
-                    </Card> */}
+                    </Card>
                 </motion.div>
             </form>
 
