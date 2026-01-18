@@ -799,6 +799,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 <CardContent className="p-4 md:p-5 lg:p-6">
                                     <HimnoCoroSelector 
                                         cultoId={culto.id} 
+                                        cultoDate={culto.fecha}
                                         maxHimnos={5} 
                                         maxCoros={5} 
                                         tipoCulto={culto.tipo_culto?.nombre}

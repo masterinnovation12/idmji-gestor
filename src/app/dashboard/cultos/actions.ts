@@ -12,7 +12,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { eachDayOfInterval, endOfMonth, getDay, startOfMonth, format } from 'date-fns'
+import { eachDayOfInterval, endOfMonth, getDay, startOfMonth, format, startOfWeek, endOfWeek } from 'date-fns'
 
 /**
  * Genera automáticamente los cultos de un mes basándose en el calendario semanal
@@ -144,8 +144,9 @@ export async function createCulto(formData: FormData) {
 export async function getCultosForMonth(year: number, month: number) {
     const supabase = await createClient()
 
-    const start = format(new Date(year, month, 1), 'yyyy-MM-dd')
-    const end = format(endOfMonth(new Date(year, month, 1)), 'yyyy-MM-dd')
+    const monthDate = new Date(year, month, 1)
+    const start = format(startOfWeek(startOfMonth(monthDate), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    const end = format(endOfWeek(endOfMonth(monthDate), { weekStartsOn: 1 }), 'yyyy-MM-dd')
 
     const { data, error } = await supabase
         .from('cultos')

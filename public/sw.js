@@ -11,7 +11,7 @@
  * - Stale-while-revalidate: Para recursos que cambian ocasionalmente
  */
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v6';
 const STATIC_CACHE = `idmji-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `idmji-dynamic-${CACHE_VERSION}`;
 

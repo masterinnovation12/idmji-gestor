@@ -36,9 +36,10 @@ import type { HermanoData } from '../hermanos/actions'
 
 interface CultosPageClientProps {
     initialCultos: Culto[]
+    initialDate: Date
 }
 
-export default function CultosPageClient({ initialCultos }: CultosPageClientProps) {
+export default function CultosPageClient({ initialCultos, initialDate }: CultosPageClientProps) {
     const { t } = useI18n()
     const [isDark, setIsDark] = useState(false)
 
@@ -48,8 +49,8 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
 
     const [cultos, setCultos] = useState(initialCultos)
 
-    const [view, setView] = useState<'month' | 'week' | 'day'>('month')
-    const [selectedDate, setSelectedDate] = useState(new Date())
+    const [view, setView] = useState<'month' | 'week' | 'day'>('week')
+    const [selectedDate, setSelectedDate] = useState(new Date(initialDate))
     const [showSuccess] = useState(false)
     const [statusFilter, setStatusFilter] = useState<'all' | 'complete' | 'pending'>('all')
     const [typeFilter, setTypeFilter] = useState<'all' | 'estudio' | 'alabanza' | 'ensenanza'>('all')
@@ -115,7 +116,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
     const getHermanoName = (hermanoId: string) => {
         // Buscar en la lista actual o intentar mantener el nombre si ya no está en la lista (TODO: Idealmente tener un map cache)
         const hermano = hermanos.find(h => h.id === hermanoId)
-        return hermano ? `${hermano.nombre || ''} ${hermano.apellidos || ''}`.trim() : 'Filtro Activo'
+        return hermano ? `${hermano.nombre || ''} ${hermano.apellidos || ''}`.trim() : t('calendar.activeFilter')
     }
 
     const totalCultos = cultos.length
@@ -246,7 +247,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                         {/* Fila 1: Vista y Estado */}
                         <div className="flex flex-wrap items-center gap-3">
                             {/* Etiqueta Vista */}
-                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 hidden sm:inline">Vista:</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 hidden sm:inline">{t('calendar.viewLabel')}</span>
 
                             {/* Selector de Vista - Compacto */}
                             <div className="flex bg-muted/40 p-1 rounded-xl border border-border/30 shadow-sm">
@@ -257,7 +258,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                         : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
                                         }`}
                                 >
-                                    Mes
+                                    {t('calendar.viewMonth')}
                                 </button>
                                 <button
                                     onClick={() => handleViewChange('week')}
@@ -266,7 +267,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                         : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
                                         }`}
                                 >
-                                    Semana
+                                    {t('calendar.viewWeek')}
                                 </button>
                                 <button
                                     onClick={() => handleViewChange('day')}
@@ -275,14 +276,14 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                         : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
                                         }`}
                                 >
-                                    Día
+                                    {t('calendar.viewDay')}
                                 </button>
                             </div>
 
                             <div className="hidden sm:block w-px h-6 bg-border/50" />
 
                             {/* Etiqueta Estado */}
-                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 hidden sm:inline">Estado:</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 hidden sm:inline">{t('calendar.statusLabel')}</span>
 
                             {/* Selector de Estado - Compacto */}
                             <div className="flex bg-muted/40 p-1 rounded-xl border border-border/30 shadow-sm">
@@ -293,7 +294,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                         : 'text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-900/20 hover:text-slate-600'
                                         }`}
                                 >
-                                    Todos
+                                    {t('calendar.statusAll')}
                                 </button>
                                 <button
                                     onClick={() => setStatusFilter('complete')}
@@ -303,7 +304,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                         }`}
                                 >
                                     <CheckCircle className="w-3 h-3" />
-                                    <span className="hidden md:inline">Completos</span>
+                                    <span className="hidden md:inline">{t('calendar.complete')}</span>
                                 </button>
                                 <button
                                     onClick={() => setStatusFilter('pending')}
@@ -313,7 +314,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                         }`}
                                 >
                                     <Clock className="w-3 h-3" />
-                                    <span className="hidden md:inline">Pendientes</span>
+                                    <span className="hidden md:inline">{t('calendar.pending')}</span>
                                 </button>
                             </div>
                         </div>
@@ -321,7 +322,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                         {/* Fila 2: Tipo, Festivos y Hermanos */}
                         <div className="flex flex-wrap items-center gap-3">
                             {/* Etiqueta Tipo */}
-                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 hidden sm:inline">Tipo:</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 hidden sm:inline">{t('calendar.typeLabel')}</span>
 
                             {/* Selector de Tipo - Compacto */}
                             <div className="flex bg-muted/40 p-1 rounded-xl border border-border/30 shadow-sm">
@@ -332,7 +333,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                         : 'text-muted-foreground hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600'
                                         }`}
                                 >
-                                    Todos
+                                    {t('calendar.statusAll')}
                                 </button>
                                 <button
                                     onClick={() => setTypeFilter('estudio')}
@@ -341,7 +342,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                         : 'text-muted-foreground hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600'
                                         }`}
                                 >
-                                    Estudio
+                                    {t('calendar.typeEstudio')}
                                 </button>
                                 <button
                                     onClick={() => setTypeFilter('alabanza')}
@@ -350,7 +351,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                         : 'text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600'
                                         }`}
                                 >
-                                    Alabanza
+                                    {t('calendar.typeAlabanza')}
                                 </button>
                                 <button
                                     onClick={() => setTypeFilter('ensenanza')}
@@ -359,7 +360,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                         : 'text-muted-foreground hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600'
                                         }`}
                                 >
-                                    Enseñanza
+                                    {t('calendar.typeEnsenanza')}
                                 </button>
                             </div>
 
@@ -374,7 +375,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                     }`}
                             >
                                 <AlertCircle className={`w-3.5 h-3.5 ${showFestivosOnly ? 'text-white' : 'text-amber-500'}`} />
-                                Festivos
+                                {t('calendar.filterFestivos')}
                             </button>
 
                             {/* Botón Hermanos */}
@@ -386,7 +387,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                     }`}
                             >
                                 <Users className={`w-3.5 h-3.5 ${selectedHermanos.length > 0 ? 'text-white' : 'text-purple-500'}`} />
-                                Hermanos
+                                {t('calendar.filterHermanos')}
                                 {selectedHermanos.length > 0 && (
                                     <span className="px-1.5 py-0.5 bg-white/20 rounded-full text-[8px]">
                                         {selectedHermanos.length}
@@ -409,7 +410,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                         cultos.length > 0 && filteredCultos.length === 0 && (
                             <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
                                 <p className="text-sm text-muted-foreground font-medium">
-                                    No se encontraron eventos con los filtros actuales.
+                                    {t('calendar.noEventsFiltered')}
                                 </p>
                                 <Button
                                     variant="outline"
@@ -421,7 +422,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                                         setSelectedHermanos([])
                                     }}
                                 >
-                                    Limpiar Filtros
+                                    {t('calendar.clearFilters')}
                                 </Button>
                             </div>
                         )
@@ -471,14 +472,14 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                 isOpen={showHermanosModal}
                 onClose={() => setShowHermanosModal(false)
                 }
-                title="Filtrar por Hermanos"
+                title={t('calendar.modalHermanosTitle')}
                 size="lg"
             >
                 <div className="space-y-6 pt-6">
                     {/* Búsqueda */}
                     <Input
                         icon={<Search className="w-4 h-4" />}
-                        placeholder="Buscar hermanos..."
+                        placeholder={t('calendar.modalHermanosSearch')}
                         value={hermanosSearch}
                         onChange={(e) => setHermanosSearch(e.target.value)}
                     />
@@ -487,7 +488,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                     {tempSelectedHermanos.length > 0 && (
                         <div className="space-y-2">
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                Seleccionados ({tempSelectedHermanos.length})
+                                {t('calendar.modalHermanosSelected')} ({tempSelectedHermanos.length})
                             </p>
                             <div className="flex flex-wrap gap-2">
                                 {tempSelectedHermanos.map(hermanoId => (
@@ -512,7 +513,7 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                     <div className="space-y-2 max-h-[400px] overflow-y-auto">
                         {hermanos.length === 0 ? (
                             <p className="text-center text-muted-foreground py-8 text-sm">
-                                No se encontraron hermanos
+                                {t('calendar.modalHermanosNoResults')}
                             </p>
                         ) : (
                             hermanos.map(hermano => {
@@ -556,13 +557,13 @@ export default function CultosPageClient({ initialCultos }: CultosPageClientProp
                             variant="ghost"
                             className="flex-1 h-12 rounded-xl font-black uppercase tracking-widest text-[10px]"
                         >
-                            Limpiar
+                            {t('calendar.modalHermanosClear')}
                         </Button>
                         <Button
                             onClick={applyHermanosFilter}
                             className="flex-1 h-12 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-purple-500/20 border-b-4 border-purple-800 bg-purple-600 hover:bg-purple-700 text-white"
                         >
-                            Aplicar Filtro
+                            {t('calendar.modalHermanosApply')}
                         </Button>
                     </div>
                 </div>

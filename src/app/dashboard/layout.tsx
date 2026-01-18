@@ -382,14 +382,14 @@ export default function DashboardLayout({
                                     className="w-full h-full object-cover"
                                 />
                             </div>
-                            <div className="flex flex-col">
-                                <span className="font-black italic text-sm tracking-tighter text-[#063b7a] dark:text-blue-400 leading-none">
-                                    IDMJI Sabadell
-                                </span>
-                                <span className="text-[8px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] mt-1">
-                                    Gestor de Púlpito
-                                </span>
-                            </div>
+                        <div className="flex flex-col">
+                            <span className="font-black italic text-sm tracking-tighter text-[#063b7a] dark:text-blue-400 leading-none">
+                                {t('common.appName')}
+                            </span>
+                            <span className="text-[8px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] mt-1">
+                                {t('common.appSubTitle')}
+                            </span>
+                        </div>
                         </div>
                         
                         {/* Espaciador para centrar el logo perfecto */}
@@ -483,10 +483,10 @@ function SidebarContent({
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xl font-black tracking-tighter uppercase italic text-white leading-none">
-                                IDMJI Sabadell
+                                {t('common.appName')}
                             </span>
                             <span className="text-[10px] font-bold text-white/60 tracking-[0.2em] uppercase mt-1">
-                                Gestor de Púlpito
+                                {t('common.appSubTitle')}
                             </span>
                         </div>
                     </motion.div>
@@ -510,7 +510,7 @@ function SidebarContent({
                             className="flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-[10px] font-black text-white shadow-sm"
                         >
                             <Globe className="w-4 h-4 text-blue-300" />
-                            <span suppressHydrationWarning className="tracking-widest">{language === 'es-ES' ? 'ESPAÑOL' : 'CATALÀ'}</span>
+                            <span className="tracking-widest">{language === 'es-ES' ? 'ESPAÑOL' : 'CATALÀ'}</span>
                         </motion.button>
 
                         <motion.button
@@ -592,7 +592,7 @@ function SidebarContent({
                                 />
 
                                 {!isSidebarCollapsed && (
-                                    <span suppressHydrationWarning className={`flex-1 font-black text-xs tracking-widest uppercase relative z-10 ${isActive ? 'text-black' : 'text-white/60 group-hover:text-white'} transition-colors`}>
+                                    <span className={`flex-1 font-black text-xs tracking-widest uppercase relative z-10 ${isActive ? 'text-black' : 'text-white/60 group-hover:text-white'} transition-colors`}>
                                         {item.label}
                                     </span>
                                 )}
@@ -657,14 +657,13 @@ function SidebarContent({
                     whileTap={{ scale: 0.98 }}
                 >
                     <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
-                    {!isSidebarCollapsed && <span suppressHydrationWarning>{t('nav.logout')}</span>}
+                    {!isSidebarCollapsed && <span>{t('nav.logout')}</span>}
                 </motion.button>
 
-                {/* Versión de la Aplicación */}
                 {!isSidebarCollapsed && (
                     <div className="pt-2 mt-2 border-t border-white/5">
                         <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 text-center">
-                            v1.0 • IDMJI Sabadell
+                            v2.0 • {t('common.appName')}
                         </p>
                     </div>
                 )}

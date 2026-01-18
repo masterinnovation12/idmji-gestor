@@ -206,7 +206,7 @@ export default function LoginPage() {
                         <div className="relative w-28 h-28 sm:w-36 sm:h-36">
                             <Image
                                 src="/logo.jpg"
-                                alt="Logo IDMJI"
+                                alt="IDMJI Sabadell Logo"
                                 fill
                                 sizes="(max-width: 768px) 112px, 144px"
                                 className="object-contain rounded-xl"

@@ -16,7 +16,7 @@
 
 'use client'
 
-import { useState, useSyncExternalStore } from 'react'
+import { useState, useSyncExternalStore, useRef, useEffect, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertCircle, CheckCircle, Clock } from 'lucide-react'
 import {
     startOfMonth,
@@ -70,9 +70,27 @@ function getDarkModeServerSnapshot() {
 export default function Calendar({ events, onMonthChange, view = 'month', selectedDate, onDateSelect }: CalendarProps) {
     const { t, language } = useI18n()
     const isDark = useSyncExternalStore(subscribeToDarkMode, getDarkModeSnapshot, getDarkModeServerSnapshot)
+    const listRef = useRef<HTMLDivElement>(null)
 
     const [internalDate, setInternalDate] = useState(new Date())
     const currentDate = selectedDate || internalDate
+
+    // Auto-scroll a "hoy" cuando entramos en vista semanal o cambia la fecha
+    useEffect(() => {
+        if (view === 'week' || view === 'month') {
+            const todayElement = document.getElementById('calendar-today')
+            if (todayElement && listRef.current) {
+                // Pequeño delay para asegurar que el renderizado y las animaciones terminen
+                setTimeout(() => {
+                    const isSunday = new Date().getDay() === 0
+                    todayElement.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: isSunday ? 'end' : 'start' 
+                    })
+                }, 150)
+            }
+        }
+    }, [view, currentDate])
     const setCurrentDate = (date: Date) => {
         if (onDateSelect) onDateSelect(date)
         else setInternalDate(date)
@@ -99,6 +117,17 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
         if (view === 'month') newDate = subMonths(currentDate, 1)
         else if (view === 'week') newDate = subWeeks(currentDate, 1)
         else newDate = subDays(currentDate, 1)
+
+        // Restricción: No permitir navegar antes del 1 de enero de 2026
+        const minDate = new Date(2026, 0, 1)
+        if (newDate < minDate && !isSameDay(newDate, minDate)) {
+            // Si es vista mensual y el mes resultante es anterior a enero 2026, bloqueamos
+            if (view === 'month' || (view === 'week' && endOfWeek(newDate, { weekStartsOn: 1 }) < minDate)) {
+                return
+            }
+            // Para vista semanal/diaria, si parte de la semana/día toca 2026, permitimos pero ajustamos
+            newDate = minDate
+        }
 
         const oldMonth = currentDate.getMonth()
         setCurrentDate(newDate)
@@ -147,6 +176,13 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
         t('calendar.days.sun')
     ]
 
+    const isAtLimit = useMemo(() => {
+        const minDate = new Date(2026, 0, 1)
+        if (view === 'month') return isSameMonth(currentDate, minDate)
+        if (view === 'week') return startOfWeek(currentDate, { weekStartsOn: 1 }) <= minDate
+        return isSameDay(currentDate, minDate)
+    }, [currentDate, view])
+
     return (
         <div className="space-y-6">
             {/* Header del Calendario */}
@@ -162,7 +198,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                     format(currentDate, 'EEEE, d MMMM yyyy', { locale })}
                         </h2>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-60">
-                            {view === 'month' ? 'Vista Mensual' : view === 'week' ? 'Vista Semanal' : 'Vista Diaria'}
+                            {view === 'month' ? t('calendar.viewMonthDesc') : view === 'week' ? t('calendar.viewWeekDesc') : t('calendar.viewDayDesc')}
                         </p>
                     </div>
                 </div>
@@ -170,11 +206,12 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                 <div className="flex items-center gap-3 bg-muted/30 p-2 rounded-[2.5rem] border border-border/50 shadow-inner backdrop-blur-md">
                     <button
                         onClick={handlePrev}
-                        className="p-3 hover:bg-background hover:shadow-lg rounded-2xl transition-all group active:scale-90 flex items-center gap-2"
-                        title={view === 'month' ? 'Mes Anterior' : view === 'week' ? 'Semana Anterior' : 'Día Anterior'}
+                        disabled={isAtLimit}
+                        className={`p-3 rounded-2xl transition-all group active:scale-90 flex items-center gap-2 ${isAtLimit ? 'opacity-20 cursor-not-allowed' : 'hover:bg-background hover:shadow-lg'}`}
+                        title={view === 'month' ? t('calendar.prevMonth') : view === 'week' ? t('calendar.prevWeek') : t('calendar.prevDay')}
                     >
                         <ChevronLeft className="w-6 h-6 text-primary group-hover:-translate-x-0.5 transition-transform" />
-                        <span className="hidden lg:inline text-[10px] font-black uppercase tracking-widest text-primary/70">Anterior</span>
+                        <span className="hidden lg:inline text-[10px] font-black uppercase tracking-widest text-primary/70">{t('calendar.prev')}</span>
                     </button>
 
                     <button
@@ -184,15 +221,15 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                             : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-muted-foreground hover:text-blue-600 border-transparent hover:border-blue-200'
                             }`}
                     >
-                        {isMonthActual ? t('calendar.today') : 'Hoy'}
+                        {isMonthActual ? t('calendar.today') : t('calendar.todayBtn')}
                     </button>
 
                     <button
                         onClick={handleNext}
                         className="p-3 hover:bg-background hover:shadow-lg rounded-2xl transition-all group active:scale-90 flex items-center gap-2"
-                        title={view === 'month' ? 'Mes Siguiente' : view === 'week' ? 'Semana Siguiente' : 'Día Siguiente'}
+                        title={view === 'month' ? t('calendar.nextMonth') : view === 'week' ? t('calendar.nextWeek') : t('calendar.nextDay')}
                     >
-                        <span className="hidden lg:inline text-[10px] font-black uppercase tracking-widest text-primary/70">Siguiente</span>
+                        <span className="hidden lg:inline text-[10px] font-black uppercase tracking-widest text-primary/70">{t('calendar.nextBtn')}</span>
                         <ChevronRight className="w-6 h-6 text-primary group-hover:translate-x-0.5 transition-transform" />
                     </button>
                 </div>
@@ -213,13 +250,14 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                         const isToday = isSameDay(day, new Date())
                         const isCurrentMonth = isSameMonth(day, currentDate)
                         const status = event ? getCultoStatus(event) : null
+                        const isBefore2026 = day < new Date(2026, 0, 1)
 
-                        // Hide days from other months in Month View
-                        if (view === 'month' && !isCurrentMonth) {
+                        // Hide days from other months in Month View OR ANY day before 2026
+                        if ((view === 'month' && !isCurrentMonth) || isBefore2026) {
                             return (
                                 <div
                                     key={dateStr}
-                                    className="min-h-[220px] md:min-h-[280px] p-2 md:p-4 bg-muted/5 opacity-20 pointer-events-none border-none shadow-none"
+                                    className={`${view === 'day' ? 'min-h-[400px]' : view === 'week' ? 'min-h-[300px]' : 'min-h-[220px] md:min-h-[280px]'} p-2 md:p-4 bg-muted/5 opacity-20 pointer-events-none border-none shadow-none`}
                                 />
                             )
                         }
@@ -348,12 +386,12 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                             {view === 'day' && (
                                                 <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50 shrink-0">
                                                     <div className="space-y-1">
-                                                        <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest">Responsable</p>
-                                                        <p className="text-xs font-bold truncate">Sin asignar</p>
+                                                        <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest">{t('calendar.responsible')}</p>
+                                                        <p className="text-xs font-bold truncate">{t('calendar.unassigned')}</p>
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest">Lectura</p>
-                                                        <p className="text-xs font-bold truncate">Pendiente</p>
+                                                        <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest">{t('calendar.reading')}</p>
+                                                        <p className="text-xs font-bold truncate">{t('calendar.pendingStatus')}</p>
                                                     </div>
                                                 </div>
                                             )}
@@ -372,7 +410,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
             </div>
 
             {/* Calendar List (Mobile/Tablet) - Vista de tarjetas premium */}
-            <div className="xl:hidden space-y-4 px-2 max-h-[60vh] overflow-y-auto no-scrollbar">
+            <div ref={listRef} className="xl:hidden space-y-4 px-2 max-h-[60vh] overflow-y-auto no-scrollbar">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={`${view}-${currentDate.getTime()}`}
@@ -384,6 +422,9 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                         {Array.from(eventsMap.values())
                             .filter(e => {
                                 const eventDate = new Date(e.fecha)
+                                const isBefore2026 = eventDate < new Date(2026, 0, 1)
+                                if (isBefore2026) return false
+
                                 if (view === 'month') return isSameMonth(eventDate, currentDate)
                                 if (view === 'week') return isSameWeek(eventDate, currentDate, { weekStartsOn: 1 })
                                 if (view === 'day') return isSameDay(eventDate, currentDate)
@@ -392,6 +433,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                             .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
                             .map((event, idx) => {
                                 const status = getCultoStatus(event)
+                                const isToday = isSameDay(new Date(event.fecha), new Date())
                                 // Sync Logic (Mobile)
                                 const config = event?.tipo_culto || {}
                                 const showIntro = config.tiene_lectura_introduccion !== false
@@ -399,7 +441,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                 const showTestimonios = !!config.tiene_testimonios
                                 const showFinal = config.tiene_lectura_finalizacion !== false
                                 return (
-                                    <Link href={`/dashboard/cultos/${event.id}`} key={event.id}>
+                                    <Link href={`/dashboard/cultos/${event.id}`} key={event.id} id={isToday ? 'calendar-today' : undefined}>
                                         <motion.div
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}

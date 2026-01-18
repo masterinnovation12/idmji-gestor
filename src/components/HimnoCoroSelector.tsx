@@ -46,6 +46,7 @@ import { LIMITES } from '@/lib/constants'
 
 interface HimnoCoroSelectorProps {
     cultoId?: string // Now optional for calculator mode
+    cultoDate?: string // Nueva prop para rastrear el punto de verdad en la secuencia
     maxHimnos?: number
     maxCoros?: number
     className?: string
@@ -170,14 +171,20 @@ function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLas
     )
 }
 
-export default function HimnoCoroSelector({
-    cultoId,
-    maxHimnos = LIMITES.MAX_HIMNOS_POR_CULTO,
-    maxCoros = LIMITES.MAX_COROS_POR_CULTO,
-    className,
-    tipoCulto
-}: HimnoCoroSelectorProps) {
-    const [tipo, setTipo] = useState<'himno' | 'coro'>('himno')
+export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
+    const {
+        cultoId,
+        cultoDate,
+        maxHimnos = LIMITES.MAX_HIMNOS_POR_CULTO,
+        maxCoros = LIMITES.MAX_COROS_POR_CULTO,
+        className,
+        tipoCulto
+    } = props
+
+    // Para cultos de Alabanza, seleccionamos Coros por defecto
+    const [tipo, setTipo] = useState<'himno' | 'coro'>(
+        tipoCulto?.toLowerCase().includes('alabanza') ? 'coro' : 'himno'
+    )
     const [query, setQuery] = useState('')
     const [results, setResults] = useState<(Himno | Coro)[]>([])
     const [selected, setSelected] = useState<PlanHimnoCoro[]>([])
@@ -187,6 +194,7 @@ export default function HimnoCoroSelector({
 
     // Secuencia Automática
     const [isSequenceModalOpen, setIsSequenceModalOpen] = useState(false)
+    const [isUpdatingSequence, setIsUpdatingSequence] = useState(false)
     const [pendingCoroId, setPendingCoroId] = useState<number | null>(null)
     const [userProfile, setUserProfile] = useState<Profile | null>(null)
 
@@ -316,10 +324,15 @@ export default function HimnoCoroSelector({
             } else {
                 toast.success(`${tipo === 'himno' ? 'Himno' : 'Coro'} añadido`)
                 
-                // --- LÓGICA DE SECUENCIA AUTOMÁTICA (SOLO ADMIN Y ALABANZA) ---
-                if (tipo === 'coro' && userProfile?.rol === 'ADMIN' && tipoCulto?.toLowerCase().includes('alabanza')) {
-                    setPendingCoroId(item.id)
-                    setIsSequenceModalOpen(true)
+                // --- LÓGICA DE SECUENCIA AUTOMÁTICA (SOLO ADMIN) ---
+                const isAlabanza = tipoCulto?.toLowerCase().includes('alabanza')
+                const isEnsenanza = tipoCulto?.toLowerCase().includes('enseñanza') || tipoCulto?.toLowerCase().includes('ensenanza')
+
+                if (userProfile?.rol === 'ADMIN') {
+                    if ((isAlabanza && tipo === 'coro') || (isEnsenanza)) {
+                        setPendingCoroId(item.id)
+                        setIsSequenceModalOpen(true)
+                    }
                 }
 
                 const { data } = await getHimnosCorosByCulto(cultoId)
@@ -486,15 +499,32 @@ export default function HimnoCoroSelector({
 
     const handleConfirmUpdateSequence = async () => {
         if (pendingCoroId) {
-            const result = await updateSequencePointer(pendingCoroId)
-            if (result.success) {
-                toast.success('Secuencia global actualizada')
-            } else {
-                toast.error('Error al actualizar secuencia')
+            setIsUpdatingSequence(true)
+            try {
+                const isAlabanza = tipoCulto?.toLowerCase().includes('alabanza')
+                const isEnsenanza = tipoCulto?.toLowerCase().includes('enseñanza') || tipoCulto?.toLowerCase().includes('ensenanza')
+                
+                let key = ''
+                if (isAlabanza && tipo === 'coro') key = 'ultimo_coro_id_alabanza'
+                else if (isEnsenanza && tipo === 'himno') key = 'ultimo_himno_id_ensenanza'
+                else if (isEnsenanza && tipo === 'coro') key = 'ultimo_coro_id_ensenanza'
+
+                if (key) {
+                    const result = await updateSequencePointer(key, pendingCoroId, cultoDate)
+                    if (result.success) {
+                        toast.success('Secuencia global actualizada')
+                    } else {
+                        toast.error('Error al actualizar secuencia')
+                    }
+                }
+            } catch (error) {
+                toast.error('Error de conexión')
+            } finally {
+                setIsUpdatingSequence(false)
+                setIsSequenceModalOpen(false)
+                setPendingCoroId(null)
             }
         }
-        setIsSequenceModalOpen(false)
-        setPendingCoroId(null)
     }
 
     const durationHimnos = himnosSelected.reduce((acc, curr) => acc + (curr.himno?.duracion_segundos || 0), 0)
@@ -772,9 +802,17 @@ export default function HimnoCoroSelector({
                                 </button>
                                 <button
                                     onClick={handleConfirmUpdateSequence}
-                                    className="h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                    disabled={isUpdatingSequence}
+                                    className="h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
-                                    Sí, actualizar
+                                    {isUpdatingSequence ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Actualizando...
+                                        </>
+                                    ) : (
+                                        'Sí, actualizar'
+                                    )}
                                 </button>
                             </div>
                         </motion.div>

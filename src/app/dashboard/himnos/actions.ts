@@ -7,97 +7,111 @@ import { LIMITES } from '@/lib/constants'
 import { startOfWeek, endOfWeek, format } from 'date-fns'
 
 /**
- * Obtener el puntero de la secuencia de coros desde app_config
+ * Obtener el puntero de la secuencia desde app_config
+ * @param key Clave en app_config (ej: 'ultimo_coro_id_alabanza')
  */
-export async function getSequencePointer(): Promise<number> {
+export async function getSequencePointer(key: string): Promise<{ id: number, date: string }> {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('app_config')
         .select('value')
-        .eq('key', 'ultimo_coro_id_alabanza')
+        .eq('key', key)
         .single()
 
     if (error || !data) {
-        // Si no existe, inicializar con el primer coro disponible
-        const { data: firstCoro } = await supabase
-            .from('coros')
+        // Inicializar con el primer item disponible
+        const table = key.includes('coro') ? 'coros' : 'himnos'
+        const { data: firstItem } = await supabase
+            .from(table)
             .select('id')
             .order('id', { ascending: true })
             .limit(1)
             .single()
 
-        return firstCoro?.id || 0
+        return { id: firstItem?.id || 0, date: '2000-01-01' }
     }
 
-    return (data.value as { id: number }).id
+    const value = data.value as { id: number, date?: string }
+    return { 
+        id: value.id, 
+        date: value.date || '2000-01-01' 
+    }
 }
 
 /**
- * Actualizar el puntero de la secuencia de coros en app_config
+ * Actualizar el puntero de la secuencia en app_config
+ * @param key Clave en app_config
+ * @param itemId ID del himno o coro
+ * @param date Fecha del culto (punto de verdad)
+ * @param skipAutoFill Si es true, no dispara el auto-relleno
  */
-export async function updateSequencePointer(coroId: number): Promise<ActionResponse> {
+export async function updateSequencePointer(key: string, itemId: number, date?: string, skipAutoFill: boolean = false): Promise<ActionResponse> {
     const supabase = await createClient()
     const { error } = await supabase
         .from('app_config')
         .upsert({
-            key: 'ultimo_coro_id_alabanza',
-            value: { id: coroId },
-            description: 'ID del último coro asignado en la secuencia de Alabanza'
+            key,
+            value: { id: itemId, date: date || format(new Date(), 'yyyy-MM-dd') },
+            description: `ID y fecha del último punto de verdad en la secuencia de ${key.includes('alabanza') ? 'Alabanza' : 'Enseñanza'}`
         }, { onConflict: 'key' })
 
     if (error) return { error: error.message }
+
+    // Disparar auto-relleno inmediato de la semana afectada
+    if (date && !skipAutoFill) {
+        if (key.includes('alabanza')) {
+            await autoFillAlabanzaSequence(new Date(date))
+        } else {
+            await autoFillEnsenanzaSequence(new Date(date))
+        }
+    }
+
     return { success: true }
 }
 
 /**
- * Obtener los siguientes N coros secuenciales
+ * Obtener los siguientes N items secuenciales
  */
-export async function getNextSequentialCoros(lastId: number, count: number): Promise<Coro[]> {
+export async function getNextSequentialItems(table: 'himnos' | 'coros', lastId: number, count: number): Promise<(Himno | Coro)[]> {
     const supabase = await createClient()
     
     // 1. Intentar obtener los siguientes a partir de lastId
-    const { data: nextCoros } = await supabase
-        .from('coros')
+    const { data: nextItems } = await supabase
+        .from(table)
         .select('*')
         .gt('id', lastId)
         .order('id', { ascending: true })
         .limit(count)
 
-    let results = (nextCoros || []) as Coro[]
+    let results = (nextItems || []) as (Himno | Coro)[]
 
     // 2. Si no hay suficientes, volver al principio (loop)
     if (results.length < count) {
         const remaining = count - results.length
-        const { data: loopCoros } = await supabase
-            .from('coros')
+        const { data: loopItems } = await supabase
+            .from(table)
             .select('*')
             .order('id', { ascending: true })
             .limit(remaining)
         
-        results = [...results, ...(loopCoros || []) as Coro[]]
+        results = [...results, ...(loopItems || []) as (Himno | Coro)[]]
     }
 
     return results
 }
 
 /**
- * Auto-rellenar secuencia de coros para cultos de Alabanza en un rango de fechas
+ * Auto-rellenar secuencia de Alabanza (4 coros)
  */
-export async function autoFillAlabanzaSequence(): Promise<ActionResponse<{ count: number }>> {
+export async function autoFillAlabanzaSequence(targetDate?: Date): Promise<ActionResponse<{ count: number }>> {
     const supabase = await createClient()
-    
-    // Rango de la semana actual
-    const start = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
-    const end = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    const baseDate = targetDate || new Date()
+    const start = format(startOfWeek(baseDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    const end = format(endOfWeek(baseDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
 
-    // 1. Obtener cultos de Alabanza sin coros asignados
     const { data: cultos, error: cultosError } = await supabase
         .from('cultos')
-        .select(`
-            id,
-            fecha,
-            tipo_culto:culto_types!inner(nombre)
-        `)
+        .select(`id, fecha, tipo_culto:culto_types!inner(nombre)`)
         .gte('fecha', start)
         .lte('fecha', end)
         .ilike('tipo_culto.nombre', '%Alabanza%')
@@ -107,43 +121,131 @@ export async function autoFillAlabanzaSequence(): Promise<ActionResponse<{ count
     if (!cultos || cultos.length === 0) return { data: { count: 0 } }
 
     let totalAssigned = 0
-    let currentPointer = await getSequencePointer()
+    let pointer = await getSequencePointer('ultimo_coro_id_alabanza')
+    const allInserts: any[] = []
+    const cultosToClear: string[] = []
 
     for (const culto of cultos) {
-        // Verificar si ya tiene coros
-        const { count: existingCount } = await supabase
-            .from('plan_himnos_coros')
-            .select('*', { count: 'exact', head: true })
-            .eq('culto_id', culto.id)
-            .eq('tipo', 'coro')
+        if (culto.fecha <= pointer.date) {
+            const { data: lastCoro } = await supabase
+                .from('plan_himnos_coros')
+                .select('coro_id')
+                .eq('culto_id', culto.id)
+                .eq('tipo', 'coro')
+                .order('orden', { ascending: false })
+                .limit(1)
+                .single()
+            if (lastCoro) { pointer.id = lastCoro.coro_id; pointer.date = culto.fecha }
+            continue
+        }
 
-        if (existingCount && existingCount > 0) continue
-
-        // Obtener los siguientes 4 coros
-        const nextCoros = await getNextSequentialCoros(currentPointer, 4)
+        const nextCoros = await getNextSequentialItems('coros', pointer.id, 4)
         if (nextCoros.length === 0) continue
 
-        // Insertar en el plan
-        const inserts = nextCoros.map((coro, index) => ({
-            culto_id: culto.id,
-            tipo: 'coro' as const,
-            coro_id: coro.id,
-            orden: index + 1
-        }))
+        cultosToClear.push(culto.id)
+        nextCoros.forEach((coro, index) => {
+            allInserts.push({ culto_id: culto.id, tipo: 'coro', coro_id: coro.id, orden: index + 1 })
+        })
 
-        const { error: insertError } = await supabase
-            .from('plan_himnos_coros')
-            .insert(inserts)
-
-        if (!insertError) {
-            totalAssigned++
-            currentPointer = nextCoros[nextCoros.length - 1].id
-        }
+        totalAssigned++
+        pointer.id = nextCoros[nextCoros.length - 1].id
+        pointer.date = culto.fecha
     }
 
-    // Actualizar puntero final
+    if (cultosToClear.length > 0) {
+        await supabase.from('plan_himnos_coros').delete().in('culto_id', cultosToClear).eq('tipo', 'coro')
+        if (allInserts.length > 0) await supabase.from('plan_himnos_coros').insert(allInserts)
+    }
+
     if (totalAssigned > 0) {
-        await updateSequencePointer(currentPointer)
+        await updateSequencePointer('ultimo_coro_id_alabanza', pointer.id, pointer.date, true)
+        revalidatePath('/dashboard')
+    }
+
+    return { data: { count: totalAssigned } }
+}
+
+/**
+ * Auto-rellenar secuencia de Enseñanza (3 himnos + 3 coros)
+ */
+export async function autoFillEnsenanzaSequence(targetDate?: Date): Promise<ActionResponse<{ count: number }>> {
+    const supabase = await createClient()
+    const baseDate = targetDate || new Date()
+    const start = format(startOfWeek(baseDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    const end = format(endOfWeek(baseDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+
+    const { data: cultos, error: cultosError } = await supabase
+        .from('cultos')
+        .select(`id, fecha, tipo_culto:culto_types!inner(nombre)`)
+        .gte('fecha', start)
+        .lte('fecha', end)
+        .ilike('tipo_culto.nombre', '%Enseñanza%')
+        .order('fecha', { ascending: true })
+
+    if (cultosError) return { error: cultosError.message }
+    if (!cultos || cultos.length === 0) return { data: { count: 0 } }
+
+    let totalAssigned = 0
+    let hPointer = await getSequencePointer('ultimo_himno_id_ensenanza')
+    let cPointer = await getSequencePointer('ultimo_coro_id_ensenanza')
+    
+    const allInserts: any[] = []
+    const cultosToClear: string[] = []
+
+    for (const culto of cultos) {
+        // Lógica de "Cadena de Verdad" para Enseñanza (Himnos y Coros)
+        const isPastOrEqualH = culto.fecha <= hPointer.date
+        const isPastOrEqualC = culto.fecha <= cPointer.date
+
+        if (isPastOrEqualH || isPastOrEqualC) {
+            // Actualizar punteros desde DB si existen
+            const { data: plan } = await supabase
+                .from('plan_himnos_coros')
+                .select('tipo, himno_id, coro_id')
+                .eq('culto_id', culto.id)
+                .order('orden', { ascending: false })
+
+            if (plan && plan.length > 0) {
+                const lastHimno = plan.find(p => p.tipo === 'himno')
+                const lastCoro = plan.find(p => p.tipo === 'coro')
+                if (lastHimno && isPastOrEqualH) { hPointer.id = lastHimno.himno_id; hPointer.date = culto.fecha }
+                if (lastCoro && isPastOrEqualC) { cPointer.id = lastCoro.coro_id; cPointer.date = culto.fecha }
+            }
+            if (isPastOrEqualH && isPastOrEqualC) continue
+        }
+
+        // Obtener los siguientes 3 de cada uno
+        const nextHimnos = await getNextSequentialItems('himnos', hPointer.id, 3)
+        const nextCoros = await getNextSequentialItems('coros', cPointer.id, 3)
+        
+        if (nextHimnos.length === 0 || nextCoros.length === 0) continue
+
+        cultosToClear.push(culto.id)
+        
+        // Himnos (orden 1-3)
+        nextHimnos.forEach((h, i) => {
+            allInserts.push({ culto_id: culto.id, tipo: 'himno', himno_id: h.id, orden: i + 1 })
+        })
+        // Coros (orden 4-6)
+        nextCoros.forEach((c, i) => {
+            allInserts.push({ culto_id: culto.id, tipo: 'coro', coro_id: c.id, orden: i + 4 })
+        })
+
+        totalAssigned++
+        hPointer.id = nextHimnos[nextHimnos.length - 1].id
+        hPointer.date = culto.fecha
+        cPointer.id = nextCoros[nextCoros.length - 1].id
+        cPointer.date = culto.fecha
+    }
+
+    if (cultosToClear.length > 0) {
+        await supabase.from('plan_himnos_coros').delete().in('culto_id', cultosToClear)
+        if (allInserts.length > 0) await supabase.from('plan_himnos_coros').insert(allInserts)
+    }
+
+    if (totalAssigned > 0) {
+        await updateSequencePointer('ultimo_himno_id_ensenanza', hPointer.id, hPointer.date, true)
+        await updateSequencePointer('ultimo_coro_id_ensenanza', cPointer.id, cPointer.date, true)
         revalidatePath('/dashboard')
     }
 
@@ -155,26 +257,12 @@ export async function autoFillAlabanzaSequence(): Promise<ActionResponse<{ count
  */
 export async function searchHimnos(query: string): Promise<ActionResponse<Himno[]>> {
     const supabase = await createClient()
-
     const isNumber = /^\d+$/.test(query)
-
-    let searchQuery = supabase
-        .from('himnos')
-        .select('*')
-        .limit(20)
-
-    if (isNumber) {
-        searchQuery = searchQuery.eq('numero', parseInt(query))
-    } else {
-        searchQuery = searchQuery.ilike('titulo', `%${query}%`)
-    }
-
+    let searchQuery = supabase.from('himnos').select('*').limit(20)
+    if (isNumber) searchQuery = searchQuery.eq('numero', parseInt(query))
+    else searchQuery = searchQuery.ilike('titulo', `%${query}%`)
     const { data, error } = await searchQuery
-
-    if (error) {
-        return { error: error.message }
-    }
-
+    if (error) return { error: error.message }
     return { data: data as Himno[] }
 }
 
@@ -183,81 +271,37 @@ export async function searchHimnos(query: string): Promise<ActionResponse<Himno[
  */
 export async function searchCoros(query: string): Promise<ActionResponse<Coro[]>> {
     const supabase = await createClient()
-
     const isNumber = /^\d+$/.test(query)
-
-    let searchQuery = supabase
-        .from('coros')
-        .select('*')
-        .limit(20)
-
-    if (isNumber) {
-        searchQuery = searchQuery.eq('numero', parseInt(query))
-    } else {
-        searchQuery = searchQuery.ilike('titulo', `%${query}%`)
-    }
-
+    let searchQuery = supabase.from('coros').select('*').limit(20)
+    if (isNumber) searchQuery = searchQuery.eq('numero', parseInt(query))
+    else searchQuery = searchQuery.ilike('titulo', `%${query}%`)
     const { data, error } = await searchQuery
-
-    if (error) {
-        return { error: error.message }
-    }
-
+    if (error) return { error: error.message }
     return { data: data as Coro[] }
 }
 
 /**
  * Añadir himno o coro a un culto
  */
-export async function addHimnoCoro(
-    cultoId: string,
-    tipo: 'himno' | 'coro',
-    itemId: number,
-    orden: number
-): Promise<ActionResponse> {
+export async function addHimnoCoro(cultoId: string, tipo: 'himno' | 'coro', itemId: number, orden: number): Promise<ActionResponse> {
     const supabase = await createClient()
-
-    // Verificar límites (5 himnos + 5 coros)
-    const { data: existing } = await supabase
-        .from('plan_himnos_coros')
-        .select('tipo')
-        .eq('culto_id', cultoId)
-
+    const { data: existing } = await supabase.from('plan_himnos_coros').select('tipo').eq('culto_id', cultoId)
     const himnosCount = existing?.filter(e => e.tipo === 'himno').length || 0
     const corosCount = existing?.filter(e => e.tipo === 'coro').length || 0
 
-    if (tipo === 'himno' && himnosCount >= LIMITES.MAX_HIMNOS_POR_CULTO) {
-        return { error: `Máximo ${LIMITES.MAX_HIMNOS_POR_CULTO} himnos permitidos` }
-    }
+    if (tipo === 'himno' && himnosCount >= LIMITES.MAX_HIMNOS_POR_CULTO) return { error: `Máximo ${LIMITES.MAX_HIMNOS_POR_CULTO} himnos permitidos` }
+    if (tipo === 'coro' && corosCount >= LIMITES.MAX_COROS_POR_CULTO) return { error: `Máximo ${LIMITES.MAX_COROS_POR_CULTO} coros permitidos` }
 
-    if (tipo === 'coro' && corosCount >= LIMITES.MAX_COROS_POR_CULTO) {
-        return { error: `Máximo ${LIMITES.MAX_COROS_POR_CULTO} coros permitidos` }
-    }
+    const { error } = await supabase.from('plan_himnos_coros').insert({
+        culto_id: cultoId, tipo,
+        himno_id: tipo === 'himno' ? itemId : null,
+        coro_id: tipo === 'coro' ? itemId : null,
+        orden,
+    })
+    if (error) return { error: error.message }
 
-    const { error } = await supabase
-        .from('plan_himnos_coros')
-        .insert({
-            culto_id: cultoId,
-            tipo,
-            himno_id: tipo === 'himno' ? itemId : null,
-            coro_id: tipo === 'coro' ? itemId : null,
-            orden,
-        })
-
-    if (error) {
-        return { error: error.message }
-    }
-
-    // Registrar en movimientos
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-        await supabase.from('movimientos').insert({
-            id_usuario: user.id,
-            tipo: 'cambio_himnos_coros',
-            descripcion: `Añadido ${tipo} al culto`,
-            culto_id: cultoId,
-        })
-    }
+    if (user) await supabase.from('movimientos').insert({ id_usuario: user.id, tipo: 'cambio_himnos_coros', descripcion: `Añadido ${tipo} al culto`, culto_id: cultoId })
 
     revalidatePath(`/dashboard/cultos/${cultoId}`)
     return { success: true }
@@ -268,16 +312,8 @@ export async function addHimnoCoro(
  */
 export async function removeHimnoCoro(planId: string, cultoId: string): Promise<ActionResponse> {
     const supabase = await createClient()
-
-    const { error } = await supabase
-        .from('plan_himnos_coros')
-        .delete()
-        .eq('id', planId)
-
-    if (error) {
-        return { error: error.message }
-    }
-
+    const { error } = await supabase.from('plan_himnos_coros').delete().eq('id', planId)
+    if (error) return { error: error.message }
     revalidatePath(`/dashboard/cultos/${cultoId}`)
     return { success: true }
 }
@@ -287,72 +323,27 @@ export async function removeHimnoCoro(planId: string, cultoId: string): Promise<
  */
 export async function getHimnosCorosByCulto(cultoId: string): Promise<ActionResponse<PlanHimnoCoro[]>> {
     const supabase = await createClient()
-
-    const { data, error } = await supabase
-        .from('plan_himnos_coros')
-        .select(`
-            id,
-            culto_id,
-            tipo,
-            orden,
+    const { data, error } = await supabase.from('plan_himnos_coros').select(`
+            id, culto_id, tipo, orden,
             himno:himnos(id, numero, titulo, duracion_segundos),
             coro:coros(id, numero, titulo, duracion_segundos)
-        `)
-        .eq('culto_id', cultoId)
-        .order('orden', { ascending: true })
-
-    if (error) {
-        return { error: error.message }
-    }
-
-    interface PlanItemMap {
-        tipo: 'himno' | 'coro';
-        himno?: { id: number };
-        coro?: { id: number };
-    }
-
-    // Mapear para mantener compatibilidad con la interfaz item_id
-    const mappedData = (data as unknown as PlanItemMap[])?.map(item => ({
-        ...item,
-        item_id: item.tipo === 'himno' ? item.himno?.id : item.coro?.id
-    }))
-
+        `).eq('culto_id', cultoId).order('orden', { ascending: true })
+    if (error) return { error: error.message }
+    const mappedData = (data as any[])?.map(item => ({ ...item, item_id: item.tipo === 'himno' ? item.himno?.id : item.coro?.id }))
     return { data: mappedData as PlanHimnoCoro[] }
 }
 
 /**
  * Actualizar el orden de los himnos y coros de un culto
  */
-export async function updateHimnosCorosOrder(
-    cultoId: string,
-    items: { id: string; orden: number }[]
-): Promise<ActionResponse> {
+export async function updateHimnosCorosOrder(cultoId: string, items: { id: string; orden: number }[]): Promise<ActionResponse> {
     const supabase = await createClient()
-
-    // Actualizar cada item con su nuevo orden
     for (const item of items) {
-        const { error } = await supabase
-            .from('plan_himnos_coros')
-            .update({ orden: item.orden })
-            .eq('id', item.id)
-            .eq('culto_id', cultoId)
-
-        if (error) {
-            return { error: error.message }
-        }
+        const { error } = await supabase.from('plan_himnos_coros').update({ orden: item.orden }).eq('id', item.id).eq('culto_id', cultoId)
+        if (error) return { error: error.message }
     }
-
-    // Registrar en movimientos
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-        await supabase.from('movimientos').insert({
-            id_usuario: user.id,
-            tipo: 'cambio_himnos_coros',
-            descripcion: 'Reordenado himnos y coros',
-            culto_id: cultoId,
-        })
-    }
-
+    if (user) await supabase.from('movimientos').insert({ id_usuario: user.id, tipo: 'cambio_himnos_coros', descripcion: 'Reordenado himnos y coros', culto_id: cultoId })
     revalidatePath(`/dashboard/cultos/${cultoId}`)
     return { success: true }
 }

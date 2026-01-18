@@ -1,7 +1,7 @@
 'use client'
 // Force HMR update
 
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { translations, type Language, type TranslationKey } from './translations'
 
 interface I18nContextType {
@@ -13,15 +13,16 @@ interface I18nContextType {
 const I18nContext = createContext<I18nContextType | undefined>(undefined)
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-    const [language, setLanguageState] = useState<Language>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('language') as Language
-            if (saved && (saved === 'es-ES' || saved === 'ca-ES')) {
-                return saved
-            }
+    // Inicializamos con un valor estático para evitar errores de hidratación
+    const [language, setLanguageState] = useState<Language>('es-ES')
+
+    // Sincronizamos con localStorage solo después del montaje en el cliente
+    useEffect(() => {
+        const saved = localStorage.getItem('language') as Language
+        if (saved && (saved === 'es-ES' || saved === 'ca-ES')) {
+            setLanguageState(saved)
         }
-        return 'es-ES'
-    })
+    }, [])
 
     const setLanguage = (lang: Language) => {
         setLanguageState(lang)

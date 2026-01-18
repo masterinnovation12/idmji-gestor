@@ -53,16 +53,24 @@ export function InstallPrompt() {
     const platform = useMemo(() => {
         if (typeof window === 'undefined') return null
         const userAgent = window.navigator.userAgent.toLowerCase()
-        if (/iphone|ipad|ipod/.test(userAgent)) return 'ios'
-        if (/android/.test(userAgent)) return 'android'
-        return 'other'
+        const isIOS = /iphone|ipad|ipod/.test(userAgent)
+        const isAndroid = /android/.test(userAgent)
+        
+        // Detección de In-App Browser (WhatsApp, FB, etc)
+        const isInApp = /fbav|instagram|fb_iab|fban|messenger|whatsapp|fbss|line\/|micromessenger/i.test(userAgent)
+        
+        return { 
+            name: isIOS ? 'ios' : isAndroid ? 'android' : 'other',
+            isInApp,
+            isSafari: isIOS && /safari/.test(userAgent) && !/crios|fxios|opr|mercury/i.test(userAgent)
+        }
     }, [])
 
     // Detectar si ya está en modo standalone
     const isStandalone = useMemo(() => {
         if (typeof window === 'undefined') return false
         return window.matchMedia('(display-mode: standalone)').matches ||
-            (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+            (window.navigator as any).standalone === true
     }, [])
 
     // Función para verificar si debemos mostrar el prompt
@@ -110,14 +118,14 @@ export function InstallPrompt() {
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
         // Para iOS, mostrar después de un tiempo prudencial
-        if (platform === 'ios') {
+        if (platform?.name === 'ios') {
             const timer = setTimeout(() => {
                 // Solo mostrar si no se ha mostrado en esta sesión
                 if (!sessionStorage.getItem(SESSION_SHOWN_KEY)) {
                     sessionStorage.setItem(SESSION_SHOWN_KEY, 'true')
                     setShowPrompt(true)
                 }
-            }, 10000) // 10 segundos para iOS
+            }, 4000) // 4 segundos para iOS
 
             return () => {
                 clearTimeout(timer)
@@ -202,7 +210,7 @@ export function InstallPrompt() {
                                     }`}>
                                     <Image
                                         src="/icons/icon-192x192.png"
-                                        alt="IDMJI"
+                                        alt="IDMJI Sabadell"
                                         width={40}
                                         height={40}
                                         className="rounded-lg"
@@ -232,7 +240,7 @@ export function InstallPrompt() {
                                     {t('pwa.later') || 'Ahora no'}
                                 </Button>
                                 <Button
-                                    onClick={platform === 'ios' ? handleIOSConfirm : handleInstall}
+                                    onClick={platform?.name === 'ios' ? handleIOSConfirm : handleInstall}
                                     className="flex-1 h-11 rounded-xl font-medium bg-blue-600 hover:bg-blue-700 text-white"
                                 >
                                     <Download className="w-4 h-4 mr-2" />
@@ -248,6 +256,14 @@ export function InstallPrompt() {
                                 {t('pwa.iosTitle') || 'Instalar en iPhone/iPad'}
                             </h4>
 
+                            {platform?.isInApp && (
+                                <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                                    <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 text-center uppercase tracking-wider">
+                                        ⚠️ Estás en un navegador limitado. Para instalar, abre esta web en SAFARI.
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="space-y-4">
                                 <div className="flex items-center gap-4">
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'
@@ -256,7 +272,7 @@ export function InstallPrompt() {
                                     </div>
                                     <div className="flex-1">
                                         <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                                            {t('pwa.iosStep1') || 'Pulsa el botón'} <strong>{t('pwa.share') || 'Compartir'}</strong> {t('pwa.inSafari') || 'en Safari'}
+                                            {t('pwa.iosStep1') || 'Pulsa el botón'} <strong>{t('pwa.share') || 'Compartir'}</strong> {t('pwa.inSafari') || 'en Safari o Chrome'}
                                         </p>
                                     </div>
                                 </div>

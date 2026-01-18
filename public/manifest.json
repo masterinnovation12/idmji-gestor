@@ -1,6 +1,6 @@
 {
   "name": "IDMJI Sabadell",
-  "short_name": "IDMJI",
+  "short_name": "IDMJI Sabadell",
   "description": "Gestión de cultos y púlpito para IDMJI Sabadell",
   "start_url": "/dashboard",
   "scope": "/",
