@@ -531,6 +531,11 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
     const durationCoros = corosSelected.reduce((acc, curr) => acc + (curr.coro?.duracion_segundos || 0), 0)
     const totalDuration = durationHimnos + durationCoros
 
+    const isAlabanza = tipoCulto?.toLowerCase().includes('alabanza')
+    const isEnsenanza = tipoCulto?.toLowerCase().includes('enseñanza') || tipoCulto?.toLowerCase().includes('ensenanza')
+    const sequenceTargetName = isEnsenanza ? 'Enseñanza' : 'Alabanza'
+    const sequenceItemName = tipo === 'himno' ? 'himno' : 'coro'
+
     return (
         <div className={`space-y-3 md:space-y-5 ${className} overflow-hidden w-full`}>
             {/* Tipo Selector */}
@@ -787,7 +792,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                             
                             <h2 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white mb-4 uppercase italic">Actualizar Secuencia</h2>
                             <p className="text-sm font-bold text-gray-500 dark:text-zinc-400 mb-8 leading-relaxed">
-                                ¿Deseas que los futuros cultos de Alabanza sigan la secuencia automática a partir de este coro?
+                                ¿Deseas que los futuros cultos de {sequenceTargetName} sigan la secuencia automática a partir de este {sequenceItemName}?
                             </p>
 
                             <div className="grid grid-cols-2 gap-4">
