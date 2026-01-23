@@ -35,7 +35,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
     const prevSearchTermRef = useRef(searchTerm)
     const prevActiveTabRef = useRef(activeTab)
     const isInitialMount = useRef(true)
-    
+
     useEffect(() => {
         // No hacer nada en el montaje inicial (los datos ya vienen de props)
         if (isInitialMount.current) {
@@ -48,15 +48,15 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
         // Solo ejecutar si realmente cambió la búsqueda o la pestaña
         const searchChanged = prevSearchTermRef.current !== searchTerm
         const tabChanged = prevActiveTabRef.current !== activeTab
-        
+
         // Si no hay cambios, no hacer nada (evitar re-renders innecesarios que interfieren con el scroll)
         if (!searchChanged && !tabChanged) {
             return
         }
-        
+
         prevSearchTermRef.current = searchTerm
         prevActiveTabRef.current = activeTab
-        
+
         /**
          * Carga los datos filtrados basándose en la pestaña y búsqueda
          */
@@ -77,14 +77,14 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 
             setIsLoading(false)
         }
-        
+
         // Si se cambió la pestaña y no hay búsqueda, NO hacer nada (los datos ya están correctos)
         // Esto evita re-renders innecesarios que interfieren con el scroll
         if (tabChanged && !searchTerm) {
             // Los datos ya están correctos, no actualizar estado
             return
         }
-        
+
         // Solo cargar datos si hay búsqueda
         if (searchTerm) {
             const timer = setTimeout(() => {
@@ -382,7 +382,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                         <CalculatorModal
                             onClose={() => setIsCalcModalOpen(false)}
                         >
-                            <div className="overflow-y-auto max-h-[80vh] no-scrollbar pb-6 px-1">
+                            <div className="pb-6 px-1">
                                 <HimnoCoroSelector
                                     maxHimnos={10}
                                     maxCoros={10}
@@ -397,32 +397,37 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 }
 
 function CalculatorModal({ children, onClose }: { children: React.ReactNode, onClose: () => void }) {
-    const controls = useDragControls()
     const y = useMotionValue(0)
+    const controls = useDragControls()
 
     return (
         <motion.div
             drag="y"
             dragControls={controls}
-            dragListener={true} // Ahora todo el modal escucha el arrastre
+            dragListener={false}
+            dragDirectionLock
             dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.8 }} // Mucho más elástico y fluido
+            dragElastic={{ top: 0, bottom: 0.5 }}
             onDragEnd={(e, info) => {
-                // Umbral más inteligente: por distancia o por velocidad (flick)
-                if (info.offset.y > 120 || info.velocity.y > 600) {
+                // Si se arrastra hacia abajo suficiente (distancia o velocidad)
+                if (info.offset.y > 50 || info.velocity.y > 100) {
                     onClose()
                 }
+            }}
+            // CLAVE: Capturar eventos en fase de captura ANTES de que lleguen a los hijos
+            onPointerDownCapture={(e) => {
+                controls.start(e)
             }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 350, mass: 0.8 }}
-            style={{ y }}
-            className="relative bg-white dark:bg-zinc-900 w-full rounded-t-[3rem] shadow-2xl overflow-hidden border-t border-white/20 z-10 touch-none"
+            transition={{ type: 'spring', damping: 25, stiffness: 300, mass: 0.8 }}
+            style={{ y, overscrollBehavior: 'contain', touchAction: 'none' }}
+            className="relative bg-white dark:bg-zinc-900 w-full rounded-t-[3rem] shadow-2xl overflow-hidden border-t border-white/20 z-10"
         >
             {/* Handle visual premium */}
             <div
-                className="pt-4 pb-6 w-full flex justify-center touch-none cursor-grab active:cursor-grabbing"
+                className="pt-4 pb-6 w-full flex justify-center cursor-grab active:cursor-grabbing"
                 onPointerDown={(e) => controls.start(e)}
             >
                 <div className="w-16 h-1.5 rounded-full bg-gray-200 dark:bg-zinc-800" />
@@ -435,8 +440,8 @@ function CalculatorModal({ children, onClose }: { children: React.ReactNode, onC
                         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 dark:text-white leading-none">Calculadora</h2>
                         <span className="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] mt-1">Planificación de Tiempo</span>
                     </div>
-                    <button 
-                        onClick={onClose} 
+                    <button
+                        onClick={onClose}
                         className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-zinc-800 rounded-full active:scale-90 transition-transform"
                     >
                         <Plus className="w-6 h-6 rotate-45 text-gray-500" />

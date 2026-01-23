@@ -220,8 +220,8 @@ export default function DashboardLayout({
     }, [isMobileMenuOpen, x])
 
     const handlePanEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-        const threshold = 80 // Más sensible para cerrar
-        const velocityThreshold = 400 // Más sensible a gestos rápidos (flicks)
+        const threshold = 40 // Mucho más sensible
+        const velocityThreshold = 200 // Requiere menos velocidad para cerrar
 
         if (isMobileMenuOpen) {
             // Cerrando (arrastre hacia la izquierda = valor negativo)
@@ -270,7 +270,7 @@ export default function DashboardLayout({
                     }}
                     onDragEnd={(e, info) => {
                         // Si arrastramos suficiente, abrir
-                        if (info.offset.x > 100 || info.velocity.x > 500) {
+                        if (info.offset.x > 80 || info.velocity.x > 300) {
                             setIsMobileMenuOpen(true)
                         } else {
                             // Si no, resetear
@@ -296,6 +296,10 @@ export default function DashboardLayout({
                         style={{ opacity }}
                         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100 md:hidden touch-none"
                         onClick={() => setIsMobileMenuOpen(false)}
+                        // Bloquear scroll de fondo agresivamente
+                        onTouchMove={(e) => {
+                            if (isMobileMenuOpen) e.preventDefault()
+                        }}
                         onPan={(e, info) => {
                             // Sincronización fluida del cierre al arrastrar el fondo
                             const newX = Math.max(-300, Math.min(0, 0 + info.offset.x))
@@ -309,15 +313,11 @@ export default function DashboardLayout({
             {/* Sidebars (Mobile) */}
             <motion.aside
                 style={{ x }}
-                className="fixed left-0 top-0 h-full w-[300px] z-110 flex flex-col md:hidden shadow-2xl touch-none will-change-transform"
+                className="fixed left-0 top-0 h-full w-[300px] z-110 flex flex-col md:hidden shadow-2xl touch-pan-y will-change-transform"
                 drag="x"
+                dragDirectionLock
                 dragConstraints={{ left: -300, right: 0 }}
-                dragElastic={0.15} // Más elástico y natural
-                onDrag={(e, info) => {
-                    // Asegurar que el motion value x se actualiza durante el arrastre
-                    // Esto sincroniza visualmente el aside con el overlay
-                    x.set(info.point.x - 300)
-                }}
+                dragElastic={0.05} // Reducir elasticidad para sensación más sólida
                 onDragEnd={handlePanEnd}
             >
                 <SidebarContent
@@ -371,7 +371,7 @@ export default function DashboardLayout({
                         >
                             <Menu size={22} />
                         </button>
-                        
+
                         <div className="flex items-center gap-3 flex-1 justify-center pr-2">
                             <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-2xl border border-white/20 shrink-0">
                                 <NextImage
@@ -382,16 +382,16 @@ export default function DashboardLayout({
                                     className="w-full h-full object-cover"
                                 />
                             </div>
-                        <div className="flex flex-col">
-                            <span className="font-black italic text-sm tracking-tighter text-[#063b7a] dark:text-blue-400 leading-none">
-                                {t('common.appName')}
-                            </span>
-                            <span className="text-[8px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] mt-1">
-                                {t('common.appSubTitle')}
-                            </span>
+                            <div className="flex flex-col">
+                                <span className="font-black italic text-sm tracking-tighter text-[#063b7a] dark:text-blue-400 leading-none">
+                                    {t('common.appName')}
+                                </span>
+                                <span className="text-[8px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] mt-1">
+                                    {t('common.appSubTitle')}
+                                </span>
+                            </div>
                         </div>
-                        </div>
-                        
+
                         {/* Espaciador para centrar el logo perfecto */}
                         <div className="w-12 shrink-0" />
                     </div>
