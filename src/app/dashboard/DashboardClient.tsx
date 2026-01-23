@@ -75,8 +75,8 @@ function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto }: { labe
         return ""
     }
 
-    const himnarioTitle = tipoCulto?.toLowerCase().includes('enseñanza') || tipoCulto?.toLowerCase().includes('ensenanza') 
-        ? t('dashboard.himnario.timeEnsenanza') 
+    const himnarioTitle = tipoCulto?.toLowerCase().includes('enseñanza') || tipoCulto?.toLowerCase().includes('ensenanza')
+        ? t('dashboard.himnario.timeEnsenanza')
         : t('dashboard.himnario.timeAlabanza')
 
     const hasExtraContent = lectura || (himnario && himnario.length > 0)
@@ -156,13 +156,13 @@ function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto }: { labe
                             const details = item.tipo === 'himno' ? item.himno : item.coro
                             if (!details) return null
                             return (
-                                <div key={idx} className="flex items-center justify-between gap-3 group/item p-2 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-all">
-                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div key={idx} className="flex flex-col gap-2 group/item p-2 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-all">
+                                    <div className="flex items-center gap-3 min-w-0 w-full">
                                         {/* Número redondo y limpio */}
                                         <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black shadow-sm ${item.tipo === 'himno' ? 'bg-indigo-500 text-white' : 'bg-purple-500 text-white'}`}>
                                             {details.numero}
                                         </div>
-                                        
+
                                         <div className="min-w-0 flex-1">
                                             <div className="flex items-center gap-2 mb-0.5">
                                                 <span className={`text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded ${item.tipo === 'himno' ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/30' : 'text-purple-600 bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800/30'}`}>
@@ -174,9 +174,10 @@ function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto }: { labe
                                             </p>
                                         </div>
                                     </div>
-                                    
-                                    <div className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-black/5 dark:border-white/10 shadow-sm group-hover/item:border-blue-500/30 transition-colors">
-                                        <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500 group-hover/item:text-blue-500 transition-colors" />
+
+                                    {/* Duración debajo del título */}
+                                    <div className="flex items-center gap-1.5 ml-11 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-black/5 dark:border-white/10 shadow-sm w-fit">
+                                        <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                                         <span className="font-mono text-[11px] font-black text-slate-600 dark:text-slate-300">
                                             {formatDuration(details.duracion_segundos)}
                                         </span>
@@ -185,7 +186,7 @@ function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto }: { labe
                             )
                         })}
                     </div>
-                    
+
                     {/* Pie inteligente Flotante */}
                     <div className="flex items-center justify-center mt-3 pt-4 border-t border-indigo-500/10 dark:border-indigo-400/10">
                         <div className="px-5 py-2.5 bg-slate-900 dark:bg-white rounded-2xl shadow-xl shadow-indigo-500/20 flex items-center gap-3 border border-white/10 dark:border-black/5 hover:scale-105 transition-transform cursor-default group/total">
