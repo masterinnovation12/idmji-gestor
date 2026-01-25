@@ -17,12 +17,12 @@
 
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
     User, Mail, Phone, Shield, Moon, Globe, Sun,
     Camera, Loader2, Sparkles, UserCircle,
-    Calendar, Save, AlertCircle, Trash2
+    Calendar, Save, AlertCircle, Trash2, Bell
 } from 'lucide-react'
 import NextImage from 'next/image'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -67,6 +67,12 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
     })
     const [isLoading, setIsLoading] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
+    const [mounted, setMounted] = useState(false)
+
+    // Hydration fix: wait until mounted to render dynamic specific parts
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     // Avatar States
     const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null)
@@ -154,6 +160,12 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
         }
     }
 
+    if (!mounted) {
+        return <div className="min-h-screen bg-background flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+    }
+
     return (
         <div className="max-w-5xl mx-auto space-y-8 pb-12 px-4 no-scrollbar">
             {/* Header con Animación */}
@@ -190,7 +202,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                     className="lg:col-span-1 space-y-6"
                 >
                     <Card className="rounded-[2.5rem] border-none shadow-2xl group glass">
-                        <CardContent className="p-8 text-center space-y-6 overflow-visible">
+                        <CardContent className="p-4 sm:p-6 md:p-8 text-center space-y-6 overflow-visible">
                             {/* Avatar Editable */}
                             <div className="relative mx-auto w-44 h-44 group/avatar">
                                 <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl group-hover/avatar:bg-primary/40 transition-all" />
@@ -251,13 +263,13 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                 )}
                             </div>
 
-                            <div className="space-y-2">
-                                <h2 className="text-2xl font-black tracking-tight truncate">
+                            <div className="space-y-1 sm:space-y-2">
+                                <h2 className="text-xl sm:text-2xl font-black tracking-tight truncate">
                                     {formData.nombre} {formData.apellidos}
                                 </h2>
-                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                                    <Shield className="w-3.5 h-3.5" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">{profile?.rol || 'MIEMBRO'}</span>
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                    <Shield className="w-3 h-3" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">{profile?.rol || 'MIEMBRO'}</span>
                                 </div>
                             </div>
 
@@ -288,7 +300,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                 >
                     {/* Sección: Datos Personales */}
                     <Card className="rounded-[2.5rem] border-none shadow-xl glass">
-                        <CardContent className="p-8 space-y-8 overflow-visible">
+                        <CardContent className="p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 overflow-visible">
                             <div>
                                 <h3 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
                                     <div className="p-2 bg-primary/10 rounded-xl">
@@ -374,20 +386,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                     </div>
                                 </div>
 
-                                {/* Botón Guardar Centrado */}
-                                <div className="flex justify-center pt-6">
-                                    <Button
-                                        type="submit"
-                                        disabled={isSaving}
-                                        className={`rounded-2xl px-8 py-3 font-black uppercase tracking-widest text-xs h-12 shadow-xl border-2 text-white hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark
-                                            ? 'bg-primary border-primary/50 hover:bg-primary/90 shadow-primary/40'
-                                            : 'bg-blue-600 border-blue-700 hover:bg-blue-700 shadow-blue-500/50'
-                                            }`}
-                                    >
-                                        {isSaving ? <Loader2 className="w-5 h-5 animate-spin mr-2 text-white" /> : <Save className="w-5 h-5 mr-2 text-white" />}
-                                        <span className="text-white font-black">{t('common.save')}</span>
-                                    </Button>
-                                </div>
+                                {/* Botón Guardar removido - ahora hay uno sticky al final */}
                             </div>
                         </CardContent>
                     </Card>
@@ -396,7 +395,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                     <div className="grid gap-8 md:grid-cols-2">
                         {/* Cuenta de Acceso (Lectura) */}
                         <Card className="rounded-[2.5rem] border-none shadow-xl glass">
-                            <CardContent className="p-8 space-y-6 overflow-visible">
+                            <CardContent className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 overflow-visible">
                                 <h3 className="text-lg font-black uppercase tracking-tighter flex items-center gap-3">
                                     <div className="p-2 bg-amber-500/10 rounded-xl">
                                         <Shield className="w-5 h-5 text-amber-500" />
@@ -427,7 +426,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
 
                         {/* Preferencias de Aplicación */}
                         <Card className="rounded-[2.5rem] border-none shadow-xl glass">
-                            <CardContent className="p-8 space-y-6 overflow-visible">
+                            <CardContent className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 overflow-visible">
                                 <h3 className="text-lg font-black uppercase tracking-tighter flex items-center gap-3">
                                     <div className="p-2 bg-accent/10 rounded-xl">
                                         <Sparkles className="w-5 h-5 text-accent" />
@@ -437,45 +436,45 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
 
                                 <div className="space-y-4">
                                     {/* Selector de Tema */}
-                                    <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-border/50">
-                                        <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-between p-3 sm:p-4 rounded-2xl bg-muted/30 border border-border/50">
+                                        <div className="flex items-center gap-2 sm:gap-3">
                                             <div className="p-2 bg-background rounded-xl shadow-sm">
                                                 {isDark ? <Moon className="w-4 h-4 text-primary" /> : <Sun className="w-4 h-4 text-amber-500" />}
                                             </div>
                                             <div>
                                                 <p className="font-bold text-xs uppercase tracking-tight">{t('profile.darkMode')}</p>
-                                                <p className="text-[10px] text-muted-foreground font-medium">{t('profile.darkModeDesc')}</p>
+                                                <p className="text-[10px] text-muted-foreground font-medium hidden sm:block">{t('profile.darkModeDesc')}</p>
                                             </div>
                                         </div>
                                         <button
                                             type="button"
                                             onClick={toggleTheme}
-                                            className={`relative w-12 h-7 rounded-full transition-colors duration-300 ${isDark ? 'bg-primary' : 'bg-zinc-300'}`}
+                                            className={`relative w-14 h-8 sm:w-12 sm:h-7 rounded-full transition-colors duration-300 shrink-0 ${isDark ? 'bg-primary' : 'bg-zinc-300'}`}
                                         >
                                             <motion.div
-                                                className="absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-md"
-                                                animate={{ x: isDark ? 20 : 0 }}
+                                                className="absolute top-1 left-1 w-6 h-6 sm:w-5 sm:h-5 bg-white rounded-full shadow-md"
+                                                animate={{ x: isDark ? 24 : 0 }}
                                                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                                             />
                                         </button>
                                     </div>
 
                                     {/* Selector de Idioma */}
-                                    <div className="flex flex-col gap-3 p-4 rounded-2xl bg-muted/30 border border-border/50">
+                                    <div className="flex flex-col gap-3 p-3 sm:p-4 rounded-2xl bg-muted/30 border border-border/50">
                                         <div className="flex items-center justify-center gap-2">
                                             <div className="p-2 bg-background rounded-xl shadow-sm">
                                                 <Globe className="w-4 h-4 text-blue-500" />
                                             </div>
                                             <p className="font-bold text-xs uppercase tracking-tight">{t('profile.language')}</p>
                                         </div>
-                                        <div className={`flex gap-1 p-1 rounded-xl shadow-inner justify-center ${isDark ? 'bg-muted/50' : 'bg-muted/30'}`}>
+                                        <div className={`flex gap-2 p-1.5 rounded-xl shadow-inner justify-center ${isDark ? 'bg-muted/50' : 'bg-muted/30'}`}>
                                             <button
                                                 type="button"
                                                 onClick={() => {
                                                     setLanguage('es-ES')
                                                     setFormData(prev => ({ ...prev, language: 'es-ES' }))
                                                 }}
-                                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${language === 'es-ES'
+                                                className={`flex-1 px-4 py-2.5 sm:px-3 sm:py-1.5 rounded-lg text-sm sm:text-xs font-black transition-all ${language === 'es-ES'
                                                     ? isDark
                                                         ? 'bg-primary text-white shadow-lg shadow-primary/40'
                                                         : 'bg-blue-600 text-white shadow-lg shadow-blue-500/40'
@@ -492,7 +491,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                                     setLanguage('ca-ES')
                                                     setFormData(prev => ({ ...prev, language: 'ca-ES' }))
                                                 }}
-                                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${language === 'ca-ES'
+                                                className={`flex-1 px-4 py-2.5 sm:px-3 sm:py-1.5 rounded-lg text-sm sm:text-xs font-black transition-all ${language === 'ca-ES'
                                                     ? isDark
                                                         ? 'bg-primary text-white shadow-lg shadow-primary/40'
                                                         : 'bg-blue-600 text-white shadow-lg shadow-blue-500/40'
@@ -512,14 +511,53 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
 
                     {/* Notificaciones Push */}
                     <Card className="rounded-[2.5rem] border-none shadow-xl glass overflow-hidden">
-                        <CardContent className="p-8">
+                        <CardContent className="p-4 sm:p-6 md:p-8">
+                            <h3 className="text-lg font-black uppercase tracking-tighter flex items-center gap-3 mb-6">
+                                <div className="p-2 bg-blue-500/10 rounded-xl">
+                                    <Bell className="w-5 h-5 text-blue-500" />
+                                </div>
+                                {t('profile.notifications' as any) || 'Notificaciones'}
+                            </h3>
                             <PushNotificationToggle />
                         </CardContent>
                     </Card>
                 </motion.div>
             </form>
 
-            <div className="mt-8 space-y-6">
+            {/* Botón de Guardar Sticky (solo móvil) y Normal (desktop) */}
+            <div className="mt-8">
+                {/* Versión Desktop - Normal al final */}
+                <div className="hidden sm:flex justify-center">
+                    <Button
+                        onClick={handleSubmit}
+                        disabled={isSaving}
+                        className={`rounded-2xl px-12 py-4 font-black uppercase tracking-widest text-sm h-14 shadow-xl border-2 text-white hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark
+                            ? 'bg-primary border-primary/50 hover:bg-primary/90 shadow-primary/40'
+                            : 'bg-blue-600 border-blue-700 hover:bg-blue-700 shadow-blue-500/50'
+                            }`}
+                    >
+                        {isSaving ? <Loader2 className="w-5 h-5 animate-spin mr-2 text-white" /> : <Save className="w-5 h-5 mr-2 text-white" />}
+                        <span className="text-white font-black">{t('common.save')}</span>
+                    </Button>
+                </div>
+
+                {/* Versión Móvil - Sticky en la parte inferior */}
+                <div className="sm:hidden fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-xl border-t border-border/50 z-50 shadow-2xl">
+                    <Button
+                        onClick={handleSubmit}
+                        disabled={isSaving}
+                        className={`w-full rounded-2xl py-4 font-black uppercase tracking-widest text-sm h-14 shadow-xl border-2 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark
+                            ? 'bg-primary border-primary/50 active:bg-primary/90 shadow-primary/40'
+                            : 'bg-blue-600 border-blue-700 active:bg-blue-700 shadow-blue-500/50'
+                            }`}
+                    >
+                        {isSaving ? <Loader2 className="w-5 h-5 animate-spin mr-2 text-white" /> : <Save className="w-5 h-5 mr-2 text-white" />}
+                        <span className="text-white font-black">{t('common.save')}</span>
+                    </Button>
+                </div>
+            </div>
+
+            <div className="mt-8 space-y-6 pb-24 sm:pb-6">
                 {/* Availability Manager */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -531,19 +569,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                         onChange={(newAvailability) => setFormData(prev => ({ ...prev, availability: newAvailability }))}
                         isDark={isDark}
                     />
-                    <div className="flex justify-center pt-6">
-                        <Button
-                            onClick={handleSubmit}
-                            disabled={isSaving}
-                            className={`rounded-2xl px-12 py-4 font-black uppercase tracking-widest text-sm h-14 shadow-xl border-2 text-white hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark
-                                ? 'bg-emerald-600 border-emerald-500/50 hover:bg-emerald-500/90 shadow-emerald-500/40'
-                                : 'bg-emerald-600 border-emerald-700 hover:bg-emerald-700 shadow-emerald-500/50'
-                                }`}
-                        >
-                            {isSaving ? <Loader2 className="w-5 h-5 animate-spin mr-2 text-white" /> : <Save className="w-5 h-5 mr-2 text-white" />}
-                            <span className="text-white font-black">{t('common.save')}</span>
-                        </Button>
-                    </div>
+                    {/* Botón removido - ahora hay uno sticky al final */}
                 </motion.div>
             </div>
 

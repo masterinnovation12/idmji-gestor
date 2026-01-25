@@ -24,9 +24,9 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { 
-    BookOpen, AlertCircle, ChevronLeft, ChevronRight, History, Calendar, 
-    Search as SearchIcon, XCircle, Filter, Download, Share2, Eye, 
+import {
+    BookOpen, AlertCircle, ChevronLeft, ChevronRight, History, Calendar,
+    Search as SearchIcon, XCircle, Filter, Download, Share2, Eye,
     Trash2, ExternalLink, BarChart3, TrendingUp, X, Calendar as CalendarIcon,
     Clock, Grid, List, LayoutGrid, FileText, FileSpreadsheet, FileDown,
     ChevronDown, ChevronUp, Info, CheckCircle2, Sparkles, Star
@@ -139,7 +139,7 @@ export default function LecturasPageClient({
     const [tipoLectura, setTipoLectura] = useState(searchParams.get('tipoLectura') || '')
     const [capitulo, setCapitulo] = useState(searchParams.get('capitulo') || '')
     const [soloRepetidas, setSoloRepetidas] = useState(searchParams.get('soloRepetidas') === 'true')
-    
+
     // Estados de UI
     const [viewMode, setViewMode] = useState<ViewMode>((searchParams.get('view') as ViewMode) || 'list')
     const [groupBy, setGroupBy] = useState<GroupBy>((searchParams.get('groupBy') as GroupBy) || 'none')
@@ -153,7 +153,7 @@ export default function LecturasPageClient({
     const [showExportDropdown, setShowExportDropdown] = useState(false)
     const [mounted, setMounted] = useState(false)
     const filtersPanelRef = useRef<HTMLDivElement>(null)
-    
+
     // Estados de datos
     const [lecturas, setLecturas] = useState<LecturaExt[]>(initialLecturas)
     const [totalPages, setTotalPages] = useState(initialTotalPages)
@@ -171,7 +171,7 @@ export default function LecturasPageClient({
     // Función para cargar estadísticas con filtros actuales
     const loadStats = useCallback(async () => {
         if (!mounted) return
-        
+
         try {
             const filters = {
                 startDate: startDate || undefined,
@@ -184,7 +184,7 @@ export default function LecturasPageClient({
                 testamento: testamento || undefined,
                 capitulo: capitulo ? parseInt(capitulo) : undefined
             }
-            
+
             const statsResult = await getLecturasStats(filters)
             if (statsResult) setStats(statsResult)
         } catch (error) {
@@ -202,7 +202,7 @@ export default function LecturasPageClient({
                     getLecturasStats(), // Carga inicial sin filtros
                     getBibliaLibros()
                 ])
-                
+
                 if (typesResult.data) setCultoTypes(typesResult.data)
                 if (lectoresResult.data) setLectores(lectoresResult.data)
                 if (statsResult) setStats(statsResult)
@@ -232,7 +232,7 @@ export default function LecturasPageClient({
     const prevInitialTotalPagesRef = useRef(initialTotalPages)
     const prevInitialPageRef = useRef(initialPage)
     const isManualNavigation = useRef(false)
-    
+
     useEffect(() => {
         // Solo actualizar si realmente hay cambios
         if (JSON.stringify(prevInitialLecturasRef.current) !== JSON.stringify(initialLecturas)) {
@@ -254,7 +254,7 @@ export default function LecturasPageClient({
     // Usar useRef para evitar re-renders constantes que interfieren con el scroll
     const searchParamsString = searchParams.toString()
     const prevSearchParamsRef = useRef(searchParamsString)
-    
+
     useEffect(() => {
         // Si la navegación fue manual (desde updateURL), no sincronizar de vuelta
         if (isManualNavigation.current) {
@@ -267,9 +267,9 @@ export default function LecturasPageClient({
         if (prevSearchParamsRef.current === searchParamsString) {
             return
         }
-        
+
         prevSearchParamsRef.current = searchParamsString
-        
+
         const currentSearch = searchParams.get('search') || ''
         const currentStartDate = searchParams.get('startDate') || ''
         const currentEndDate = searchParams.get('endDate') || ''
@@ -295,21 +295,21 @@ export default function LecturasPageClient({
     // Actualizar URL con filtros
     const updateURL = useCallback((newParams: Record<string, string | null>) => {
         isManualNavigation.current = true
-            const params = new URLSearchParams(searchParams)
-        
+        const params = new URLSearchParams(searchParams)
+
         Object.entries(newParams).forEach(([key, value]) => {
             if (value && value !== '') {
                 params.set(key, value)
             } else {
                 params.delete(key)
-        }
+            }
         })
-        
+
         // Si no es un cambio de página, resetear a página 1
         if (!newParams.page) {
-        params.set('page', '1')
+            params.set('page', '1')
         }
-        
+
         // IMPORTANTE: { scroll: false } evita que la página salte al inicio
         router.push(`${pathname}?${params.toString()}`, { scroll: false })
     }, [searchParams, pathname, router])
@@ -328,7 +328,7 @@ export default function LecturasPageClient({
     // Aplicar filtros
     const applyFilters = useCallback(() => {
         if (!mounted) return
-        
+
         try {
             updateURL({
                 startDate: startDate || null,
@@ -352,7 +352,7 @@ export default function LecturasPageClient({
     // Limpiar filtros
     const clearFilters = useCallback(() => {
         if (!mounted) return
-        
+
         try {
             setSearchTerm('')
             setStartDate('')
@@ -363,7 +363,7 @@ export default function LecturasPageClient({
             setTipoLectura('')
             setCapitulo('')
             setSoloRepetidas(false)
-            
+
             isManualNavigation.current = true
             router.push(pathname, { scroll: false })
             setShowFilters(false) // Cerrar panel de filtros al limpiar
@@ -391,13 +391,13 @@ export default function LecturasPageClient({
     // Confirmar y ejecutar eliminación
     const confirmDelete = useCallback(async () => {
         if (!lecturaToDelete) return
-        
+
         setIsLoading(true)
         try {
             const result = await deleteLectura(lecturaToDelete.id, lecturaToDelete.culto_id)
             if (result.error) {
                 toast.error(result.error)
-        } else {
+            } else {
                 toast.success(t('lecturas.deleteSuccess'))
                 setLecturas(prev => prev.filter(l => l.id !== lecturaToDelete.id))
                 setShowDeleteModal(false)
@@ -415,7 +415,7 @@ export default function LecturasPageClient({
     // Exportar a Excel - Obtiene TODAS las lecturas filtradas (no solo la página actual)
     const exportToExcel = useCallback(async () => {
         if (!mounted) return
-        
+
         setIsLoading(true)
         try {
             // Obtener TODAS las lecturas con los filtros actuales (sin paginación)
@@ -430,10 +430,10 @@ export default function LecturasPageClient({
                 testamento: testamento || undefined,
                 capitulo: capitulo ? parseInt(capitulo) : undefined
             }
-            
+
             // Obtener todas las lecturas (sin límite de página)
             const result = await getAllLecturas(1, 10000, filters) // Límite alto para obtener todas
-            
+
             if (!result.data || result.data.length === 0) {
                 toast.error('No hay lecturas para exportar con los filtros aplicados')
                 setIsLoading(false)
@@ -457,7 +457,7 @@ export default function LecturasPageClient({
             const ws = XLSX.utils.json_to_sheet(data)
             const wb = XLSX.utils.book_new()
             XLSX.utils.book_append_sheet(wb, ws, 'Lecturas')
-            
+
             // Nombre del archivo con información de filtros si hay
             const filterInfo = searchTerm ? `_${searchTerm}` : ''
             const fileName = `lecturas${filterInfo}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
@@ -516,10 +516,10 @@ export default function LecturasPageClient({
 
         try {
             const url = `${window.location.origin}${pathname}?${searchParams.toString()}`
-            
+
             // Generar un resumen de las lecturas actuales (primeras 10)
             let shareText = `📖 *${t('lecturas.title')}*\n`
-            
+
             // Añadir info de filtros si los hay
             if (searchTerm) shareText += `🔍 Búsqueda: "${searchTerm}"\n`
             if (startDate || endDate) {
@@ -527,24 +527,24 @@ export default function LecturasPageClient({
                 const end = endDate ? format(parseISO(endDate), 'dd/MM/yy') : 'hoy'
                 shareText += `📅 Periodo: ${start} - ${end}\n`
             }
-            
+
             shareText += `-------------------\n`
-            
+
             const lecturasToShow = lecturas.slice(0, 10)
             lecturasToShow.forEach(l => {
                 const fecha = format(parseISO(l.culto.fecha), 'dd/MM/yy')
                 shareText += `• ${formatCita(l)} (${fecha}) - ${l.lector.nombre}\n`
             })
-            
+
             if (lecturas.length > 10) {
                 shareText += `... y ${lecturas.length - 10} más.\n`
             }
-            
+
             shareText += `\n🔗 Ver completo en:\n${url}`
-            
+
             if (navigator.share && navigator.canShare && navigator.canShare({ text: shareText })) {
-                await navigator.share({ 
-                    title: t('lecturas.title'), 
+                await navigator.share({
+                    title: t('lecturas.title'),
                     text: shareText
                 })
                 toast.success('Contenido compartido correctamente')
@@ -573,12 +573,12 @@ export default function LecturasPageClient({
     // Agrupar lecturas
     const groupedLecturas = useMemo(() => {
         if (groupBy === 'none') return { 'Todas': lecturas }
-        
+
         const groups: Record<string, LecturaExt[]> = {}
-        
+
         lecturas.forEach(lectura => {
             let key = 'Todas'
-            
+
             if (groupBy === 'month') {
                 const date = parseISO(lectura.culto.fecha)
                 key = format(date, 'MMMM yyyy', { locale })
@@ -590,11 +590,11 @@ export default function LecturasPageClient({
             } else if (groupBy === 'lector') {
                 key = `${lectura.lector.nombre} ${lectura.lector.apellidos}`
             }
-            
+
             if (!groups[key]) groups[key] = []
             groups[key].push(lectura)
         })
-        
+
         return groups
     }, [lecturas, groupBy, locale])
 
@@ -610,21 +610,21 @@ export default function LecturasPageClient({
     // Cerrar dropdowns al hacer click fuera
     useEffect(() => {
         if (!mounted) return
-        
+
         const handleClickOutside = (event: MouseEvent | TouchEvent) => {
             const target = event.target as HTMLElement
             if (!target.closest('.export-dropdown')) {
                 setShowExportDropdown(false)
             }
         }
-        
+
         if (showExportDropdown) {
             // Usar timeout para evitar que se cierre inmediatamente al abrir
             const timer = setTimeout(() => {
                 document.addEventListener('mousedown', handleClickOutside)
                 document.addEventListener('touchstart', handleClickOutside)
             }, 100)
-            
+
             return () => {
                 clearTimeout(timer)
                 document.removeEventListener('mousedown', handleClickOutside)
@@ -636,24 +636,24 @@ export default function LecturasPageClient({
     // Cerrar panel de filtros al hacer click fuera
     useEffect(() => {
         if (!mounted || !showFilters) return
-        
+
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement
-            
+
             // No cerrar si se hace click en el botón de filtros o dentro del panel
             const isFilterButton = target.closest('[data-filter-button="true"]')
             const isInsidePanel = filtersPanelRef.current?.contains(target)
-            
+
             if (!isFilterButton && !isInsidePanel) {
                 setShowFilters(false)
             }
         }
-        
+
         // Usar timeout para evitar que se cierre inmediatamente al abrir
         const timer = setTimeout(() => {
             document.addEventListener('mousedown', handleClickOutside)
         }, 100)
-        
+
         return () => {
             clearTimeout(timer)
             document.removeEventListener('mousedown', handleClickOutside)
@@ -663,7 +663,7 @@ export default function LecturasPageClient({
     return (
         <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pb-8 sm:pb-12">
             <div suppressHydrationWarning className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 space-y-4 sm:space-y-6 lg:space-y-8 pt-4 sm:pt-6">
-                
+
                 {/* Header Responsive */}
                 <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -678,7 +678,7 @@ export default function LecturasPageClient({
                                 </p>
                             </div>
                         </div>
-                        
+
                         {/* Acciones rápidas - Responsive */}
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                             <Button
@@ -698,14 +698,13 @@ export default function LecturasPageClient({
                                 <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.stats')}</span>
                             </Button>
                             <Button
-                                variant={showFilters ? "default" : "outline"}
+                                variant={showFilters ? "primary" : "outline"}
                                 size="sm"
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={`filter-toggle-button text-xs sm:text-sm px-3 sm:px-4 transition-all ${
-                                    showFilters 
-                                        ? 'bg-primary text-primary-foreground shadow-md' 
+                                className={`filter-toggle-button text-xs sm:text-sm px-3 sm:px-4 transition-all ${showFilters
+                                        ? 'bg-primary text-primary-foreground shadow-md'
                                         : ''
-                                }`}
+                                    }`}
                                 data-filter-button="true"
                             >
                                 <Filter className={`w-3 h-3 sm:w-4 sm:h-4 ${showFilters ? 'animate-pulse' : ''}`} />
@@ -728,7 +727,7 @@ export default function LecturasPageClient({
                                     <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.export')}</span>
                                     <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 hidden sm:inline transition-transform ${showExportDropdown ? 'rotate-180' : ''}`} />
                                 </Button>
-                                
+
                                 {/* Dropdown Desktop */}
                                 <AnimatePresence>
                                     {showExportDropdown && (
@@ -774,40 +773,40 @@ export default function LecturasPageClient({
                                 <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
                                 <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.share')}</span>
                             </Button>
-                            </div>
                         </div>
                     </div>
+                </div>
 
                 {/* Búsqueda y Filtros Rápidos - Responsive */}
                 <div className="space-y-3 sm:space-y-4">
                     {/* Búsqueda Principal */}
                     <div className="relative group">
-                            <div className="absolute inset-0 bg-blue-500/10 blur-lg rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <div className="relative flex items-center bg-card border border-border/50 shadow-lg rounded-xl sm:rounded-2xl h-11 sm:h-12 md:h-14 focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary/50 transition-all overflow-hidden">
-                                <SearchIcon className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground ml-3 sm:ml-4 shrink-0 group-focus-within:text-primary transition-colors" />
-                                <input
-                                    type="text"
-                                    placeholder={t('lecturas.searchPlaceholder')}
-                                    className="w-full bg-transparent border-none outline-none px-3 sm:px-4 text-sm sm:text-base font-medium placeholder:text-muted-foreground/60 h-full text-foreground"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    aria-label="Buscar lecturas"
-                                    suppressHydrationWarning
-                                />
-                                {searchTerm && (
-                                    <button
-                                        onClick={() => setSearchTerm('')}
-                                        className="p-2 mr-1 sm:mr-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                                        aria-label="Limpiar búsqueda"
-                                    >
-                                        <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                                    </button>
-                                )}
-                            </div>
-                            
-                            {/* Autocompletado */}
-                            {libroSuggestions.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-2xl z-[9999] max-h-60 overflow-y-auto">
+                        <div className="absolute inset-0 bg-blue-500/10 blur-lg rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="relative flex items-center bg-card border border-border/50 shadow-lg rounded-xl sm:rounded-2xl h-11 sm:h-12 md:h-14 focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary/50 transition-all overflow-hidden">
+                            <SearchIcon className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground ml-3 sm:ml-4 shrink-0 group-focus-within:text-primary transition-colors" />
+                            <input
+                                type="text"
+                                placeholder={t('lecturas.searchPlaceholder')}
+                                className="w-full bg-transparent border-none outline-none px-3 sm:px-4 text-sm sm:text-base font-medium placeholder:text-muted-foreground/60 h-full text-foreground"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                aria-label="Buscar lecturas"
+                                suppressHydrationWarning
+                            />
+                            {searchTerm && (
+                                <button
+                                    onClick={() => setSearchTerm('')}
+                                    className="p-2 mr-1 sm:mr-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                    aria-label="Limpiar búsqueda"
+                                >
+                                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Autocompletado */}
+                        {libroSuggestions.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-2xl z-[9999] max-h-60 overflow-y-auto">
                                 {libroSuggestions.map((libro, idx) => (
                                     <button
                                         key={idx}
@@ -823,7 +822,7 @@ export default function LecturasPageClient({
                                 ))}
                             </div>
                         )}
-                        </div>
+                    </div>
 
                     {/* Filtros Rápidos - Responsive Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3">
@@ -834,11 +833,10 @@ export default function LecturasPageClient({
                                 updateURL({ soloRepetidas: newSoloRepetidas ? 'true' : null })
                                 // Las estadísticas se recargarán automáticamente cuando cambien los searchParams
                             }}
-                            className={`relative overflow-hidden h-10 sm:h-12 px-3 sm:px-4 md:px-6 rounded-xl border font-bold text-xs sm:text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 ${
-                                soloRepetidas
-                                ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20'
+                            className={`relative overflow-hidden h-10 sm:h-12 px-3 sm:px-4 md:px-6 rounded-xl border font-bold text-xs sm:text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 ${soloRepetidas
+                                    ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20'
                                     : 'bg-card hover:bg-accent/50 border-border text-muted-foreground hover:text-foreground hover:border-primary/50'
-                            }`}
+                                }`}
                         >
                             <AlertCircle className={`w-3 h-3 sm:w-4 sm:h-4 ${soloRepetidas ? 'text-white' : 'text-muted-foreground'}`} />
                             <span suppressHydrationWarning className="hidden sm:inline uppercase">{soloRepetidas ? t('lecturas.filterRepeated') : t('lecturas.filterAll')}</span>
@@ -856,7 +854,7 @@ export default function LecturasPageClient({
                                 animate={{ height: 'auto', opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
                                 className="overflow-hidden"
-                        >
+                            >
                                 <Card className="border-border/50">
                                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-border/50">
                                         <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
@@ -1048,50 +1046,50 @@ export default function LecturasPageClient({
                             >
                                 <Card className="border-border/50">
                                     <CardHeader>
-                                                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                                                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />
-                                                    <span suppressHydrationWarning>{t('lecturas.stats')}</span>
-                                                </CardTitle>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                                                    {/* Total Lecturas */}
-                                                    <div className="relative overflow-hidden p-6 bg-gradient-to-br from-blue-500 to-blue-700 rounded-[2rem] text-white shadow-xl shadow-blue-500/20 group">
-                                                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                                                            <BookOpen size={80} />
-                                                        </div>
-                                                        <div className="relative z-10">
-                                                            <span suppressHydrationWarning className="text-xs font-black uppercase tracking-widest opacity-80">
-                                                                {t('lecturas.statsTotal')}
-                            </span>
-                                                            <p className="text-4xl font-black mt-1">
-                                                                {stats.totalLecturas}
-                                                            </p>
-                                                            <div className="mt-4 flex items-center gap-2 text-[10px] font-bold bg-white/20 w-fit px-2 py-1 rounded-full">
-                                                                <TrendingUp size={12} />
-                                                                REGISTROS TOTALES
-                                                            </div>
-                                                        </div>
+                                        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                                            <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />
+                                            <span suppressHydrationWarning>{t('lecturas.stats')}</span>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                                            {/* Total Lecturas */}
+                                            <div className="relative overflow-hidden p-6 bg-gradient-to-br from-blue-500 to-blue-700 rounded-[2rem] text-white shadow-xl shadow-blue-500/20 group">
+                                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                                                    <BookOpen size={80} />
+                                                </div>
+                                                <div className="relative z-10">
+                                                    <span suppressHydrationWarning className="text-xs font-black uppercase tracking-widest opacity-80">
+                                                        {t('lecturas.statsTotal')}
+                                                    </span>
+                                                    <p className="text-4xl font-black mt-1">
+                                                        {stats.totalLecturas}
+                                                    </p>
+                                                    <div className="mt-4 flex items-center gap-2 text-[10px] font-bold bg-white/20 w-fit px-2 py-1 rounded-full">
+                                                        <TrendingUp size={12} />
+                                                        REGISTROS TOTALES
                                                     </div>
+                                                </div>
+                                            </div>
 
-                                                    {/* Repetidas */}
-                                                    <div className="relative overflow-hidden p-6 bg-gradient-to-br from-red-500 to-red-700 rounded-[2rem] text-white shadow-xl shadow-red-500/20 group">
-                                                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                                                            <AlertCircle size={80} />
-                                                        </div>
-                                                        <div className="relative z-10">
-                                                            <span suppressHydrationWarning className="text-xs font-black uppercase tracking-widest opacity-80">
-                                                                {t('lecturas.statsRepetidas')}
-                            </span>
-                                                            <p className="text-4xl font-black mt-1">
-                                                                {stats.repetidasCount}
-                                                            </p>
-                                                            <div className="mt-4 flex items-center gap-2 text-[10px] font-bold bg-white/20 w-fit px-2 py-1 rounded-full">
-                                                                <History size={12} />
-                                                                CONTROL DE DUPLICADOS
-                                                            </div>
-                                                        </div>
+                                            {/* Repetidas */}
+                                            <div className="relative overflow-hidden p-6 bg-gradient-to-br from-red-500 to-red-700 rounded-[2rem] text-white shadow-xl shadow-red-500/20 group">
+                                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                                                    <AlertCircle size={80} />
+                                                </div>
+                                                <div className="relative z-10">
+                                                    <span suppressHydrationWarning className="text-xs font-black uppercase tracking-widest opacity-80">
+                                                        {t('lecturas.statsRepetidas')}
+                                                    </span>
+                                                    <p className="text-4xl font-black mt-1">
+                                                        {stats.repetidasCount}
+                                                    </p>
+                                                    <div className="mt-4 flex items-center gap-2 text-[10px] font-bold bg-white/20 w-fit px-2 py-1 rounded-full">
+                                                        <History size={12} />
+                                                        CONTROL DE DUPLICADOS
                                                     </div>
+                                                </div>
+                                            </div>
 
                                             {/* Libro más leído (Top 1 Highlight) */}
                                             <div className="relative overflow-hidden p-6 bg-gradient-to-br from-purple-500 to-purple-700 rounded-[2rem] text-white shadow-xl shadow-purple-500/20 group">
@@ -1109,9 +1107,9 @@ export default function LecturasPageClient({
                                                         <Star size={12} fill="currentColor" />
                                                         {stats.librosMasLeidos[0]?.count || 0} LECTURAS
                                                     </div>
-                    </div>
-                </div>
-            </div>
+                                                </div>
+                                            </div>
+                                        </div>
 
                                         {/* Gráfico de barras - Responsive */}
                                         {stats.librosMasLeidos.length > 0 && mounted && (
@@ -1128,16 +1126,16 @@ export default function LecturasPageClient({
                                                                 <>
                                                                     {/* Versión móvil: dimensiones fijas */}
                                                                     <div className="sm:hidden" style={{ width: '600px', height: '320px' }}>
-                                                                        <BarChart 
-                                                                            width={600} 
+                                                                        <BarChart
+                                                                            width={600}
                                                                             height={320}
-                                                                            data={stats.librosMasLeidos.slice(0, 10)} 
+                                                                            data={stats.librosMasLeidos.slice(0, 10)}
                                                                             margin={{ top: 30, right: 20, left: 0, bottom: 80 }}
                                                                             barCategoryGap="10%"
                                                                         >
                                                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
-                                                                            <XAxis 
-                                                                                dataKey="libro" 
+                                                                            <XAxis
+                                                                                dataKey="libro"
                                                                                 angle={-45}
                                                                                 textAnchor="end"
                                                                                 interval={0}
@@ -1146,14 +1144,14 @@ export default function LecturasPageClient({
                                                                                 axisLine={{ stroke: '#e2e8f0' }}
                                                                                 tickLine={false}
                                                                             />
-                                                                            <YAxis 
+                                                                            <YAxis
                                                                                 tick={{ fontSize: 11, fill: '#94a3b8' }}
                                                                                 axisLine={false}
                                                                                 tickLine={false}
                                                                             />
-                                                                            <Tooltip 
+                                                                            <Tooltip
                                                                                 cursor={{ fill: 'currentColor', opacity: 0.05 }}
-                                                                                contentStyle={{ 
+                                                                                contentStyle={{
                                                                                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                                                                                     border: '1px solid #e2e8f0',
                                                                                     borderRadius: '12px',
@@ -1163,25 +1161,25 @@ export default function LecturasPageClient({
                                                                                 }}
                                                                                 itemStyle={{ fontWeight: 'bold', color: '#3b82f6' }}
                                                                             />
-                                                                            <Bar 
-                                                                                dataKey="count" 
-                                                                                fill="#3b82f6" 
-                                                                                radius={[6, 6, 0, 0]} 
+                                                                            <Bar
+                                                                                dataKey="count"
+                                                                                fill="#3b82f6"
+                                                                                radius={[6, 6, 0, 0]}
                                                                                 barSize={40}
                                                                             >
-                                                                                <LabelList 
-                                                                                    dataKey="count" 
-                                                                                    position="top" 
+                                                                                <LabelList
+                                                                                    dataKey="count"
+                                                                                    position="top"
                                                                                     offset={10}
-                                                                                    style={{ fill: 'currentColor', fontSize: '13px', fontWeight: '900', opacity: 0.9 }} 
+                                                                                    style={{ fill: 'currentColor', fontSize: '13px', fontWeight: '900', opacity: 0.9 }}
                                                                                 />
                                                                                 {stats.librosMasLeidos.slice(0, 10).map((entry, index) => (
-                                                                                    <Cell 
-                                                                                        key={`cell-${index}`} 
+                                                                                    <Cell
+                                                                                        key={`cell-${index}`}
                                                                                         fill={[
                                                                                             '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a',
                                                                                             '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'
-                                                                                        ][index % 10]} 
+                                                                                        ][index % 10]}
                                                                                     />
                                                                                 ))}
                                                                             </Bar>
@@ -1190,63 +1188,63 @@ export default function LecturasPageClient({
                                                                     {/* Versión desktop: responsive */}
                                                                     <div className="hidden sm:block w-full h-full">
                                                                         <ResponsiveContainer width="100%" height="100%">
-                                                                        <BarChart 
-                                                                            data={stats.librosMasLeidos.slice(0, 10)} 
-                                                                            margin={{ top: 30, right: 20, left: 0, bottom: 80 }}
-                                                                            barCategoryGap="10%"
-                                                                        >
-                                                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
-                                                                            <XAxis 
-                                                                                dataKey="libro" 
-                                                                                angle={-45}
-                                                                                textAnchor="end"
-                                                                                interval={0}
-                                                                                height={90}
-                                                                                tick={{ fontSize: 12, fontWeight: '800', fill: 'currentColor', opacity: 0.7 }}
-                                                                                axisLine={{ stroke: '#e2e8f0' }}
-                                                                                tickLine={false}
-                                                                            />
-                                                                            <YAxis 
-                                                                                tick={{ fontSize: 11, fill: '#94a3b8' }}
-                                                                                axisLine={false}
-                                                                                tickLine={false}
-                                                                            />
-                                                                            <Tooltip 
-                                                                                cursor={{ fill: 'currentColor', opacity: 0.05 }}
-                                                                                contentStyle={{ 
-                                                                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                                                                    border: '1px solid #e2e8f0',
-                                                                                    borderRadius: '12px',
-                                                                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                                                                    fontSize: '12px',
-                                                                                    color: '#1e293b'
-                                                                                }}
-                                                                                itemStyle={{ fontWeight: 'bold', color: '#3b82f6' }}
-                                                                            />
-                                                                            <Bar 
-                                                                                dataKey="count" 
-                                                                                fill="#3b82f6" 
-                                                                                radius={[6, 6, 0, 0]} 
-                                                                                barSize={40}
+                                                                            <BarChart
+                                                                                data={stats.librosMasLeidos.slice(0, 10)}
+                                                                                margin={{ top: 30, right: 20, left: 0, bottom: 80 }}
+                                                                                barCategoryGap="10%"
                                                                             >
-                                                                                <LabelList 
-                                                                                    dataKey="count" 
-                                                                                    position="top" 
-                                                                                    offset={10}
-                                                                                    style={{ fill: 'currentColor', fontSize: '13px', fontWeight: '900', opacity: 0.9 }} 
+                                                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
+                                                                                <XAxis
+                                                                                    dataKey="libro"
+                                                                                    angle={-45}
+                                                                                    textAnchor="end"
+                                                                                    interval={0}
+                                                                                    height={90}
+                                                                                    tick={{ fontSize: 12, fontWeight: '800', fill: 'currentColor', opacity: 0.7 }}
+                                                                                    axisLine={{ stroke: '#e2e8f0' }}
+                                                                                    tickLine={false}
                                                                                 />
-                                                                                {stats.librosMasLeidos.slice(0, 10).map((entry, index) => (
-                                                                                    <Cell 
-                                                                                        key={`cell-${index}`} 
-                                                                                        fill={[
-                                                                                            '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a',
-                                                                                            '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'
-                                                                                        ][index % 10]} 
+                                                                                <YAxis
+                                                                                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                                                                                    axisLine={false}
+                                                                                    tickLine={false}
+                                                                                />
+                                                                                <Tooltip
+                                                                                    cursor={{ fill: 'currentColor', opacity: 0.05 }}
+                                                                                    contentStyle={{
+                                                                                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                                                        border: '1px solid #e2e8f0',
+                                                                                        borderRadius: '12px',
+                                                                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                                                                        fontSize: '12px',
+                                                                                        color: '#1e293b'
+                                                                                    }}
+                                                                                    itemStyle={{ fontWeight: 'bold', color: '#3b82f6' }}
+                                                                                />
+                                                                                <Bar
+                                                                                    dataKey="count"
+                                                                                    fill="#3b82f6"
+                                                                                    radius={[6, 6, 0, 0]}
+                                                                                    barSize={40}
+                                                                                >
+                                                                                    <LabelList
+                                                                                        dataKey="count"
+                                                                                        position="top"
+                                                                                        offset={10}
+                                                                                        style={{ fill: 'currentColor', fontSize: '13px', fontWeight: '900', opacity: 0.9 }}
                                                                                     />
-                                                                                ))}
-                                                                            </Bar>
-                                                                        </BarChart>
-                                                                    </ResponsiveContainer>
+                                                                                    {stats.librosMasLeidos.slice(0, 10).map((entry, index) => (
+                                                                                        <Cell
+                                                                                            key={`cell-${index}`}
+                                                                                            fill={[
+                                                                                                '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a',
+                                                                                                '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'
+                                                                                            ][index % 10]}
+                                                                                        />
+                                                                                    ))}
+                                                                                </Bar>
+                                                                            </BarChart>
+                                                                        </ResponsiveContainer>
                                                                     </div>
                                                                 </>
                                                             ) : (
@@ -1257,9 +1255,9 @@ export default function LecturasPageClient({
                                                                     </div>
                                                                 </div>
                                                             )}
-                    </div>
-                </div>
-                                                    
+                                                        </div>
+                                                    </div>
+
                                                     {/* Indicador visual de scroll para móvil */}
                                                     {mounted && (
                                                         <div className="md:hidden flex flex-col items-center pb-4 space-y-1">
@@ -1278,7 +1276,7 @@ export default function LecturasPageClient({
                             </motion.div>
                         )}
                     </AnimatePresence>
-            </div>
+                </div>
 
                 {/* Listado Principal - Responsive */}
                 <Card className="overflow-hidden border border-border/50 shadow-2xl bg-card/40 backdrop-blur-xl relative z-0">
@@ -1286,16 +1284,16 @@ export default function LecturasPageClient({
                         <CardTitle className="text-lg sm:text-xl md:text-2xl flex items-center gap-2 sm:gap-3 flex-wrap">
                             <div className="p-2 sm:p-2.5 rounded-xl bg-primary/10 text-primary">
                                 <History className="w-4 h-4 sm:w-5 sm:h-6" />
-                        </div>
+                            </div>
                             <span suppressHydrationWarning>{t('lecturas.history')}</span>
-                        {searchTerm && (
+                            {searchTerm && (
                                 <span className="text-xs sm:text-sm font-medium text-muted-foreground px-2 sm:px-3 py-1 rounded-full bg-muted/50 border border-border/50">
                                     &quot;{searchTerm}&quot;
-                            </span>
-                        )}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
+                                </span>
+                            )}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
                         {lecturas.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 sm:py-24 md:py-32 text-center space-y-4 sm:space-y-6 px-4">
                                 <div className="p-4 sm:p-6 rounded-full bg-muted/5 ring-1 ring-border/50">
@@ -1331,48 +1329,45 @@ export default function LecturasPageClient({
                                             </div>
                                         )}
                                         {groupLecturas.map((lectura: LecturaExt) => (
-                                <div
-                                    key={lectura.id}
-                                                className={`group relative p-4 sm:p-6 transition-all hover:bg-muted/30 ${
-                                                    lectura.es_repetida ? 'bg-red-500/3' : ''
-                                        }`}
+                                            <div
+                                                key={lectura.id}
+                                                className={`group relative p-4 sm:p-6 transition-all hover:bg-muted/30 ${lectura.es_repetida ? 'bg-red-500/3' : ''
+                                                    }`}
                                                 role="article"
                                                 aria-label={`Lectura: ${formatCita(lectura)}`}
-                                >
-                                    {/* Indicador de repetida lateral */}
-                                    {lectura.es_repetida && (
+                                            >
+                                                {/* Indicador de repetida lateral */}
+                                                {lectura.es_repetida && (
                                                     <div className="absolute left-0 top-0 bottom-0 w-1 sm:w-1.5 bg-red-500 shadow-[2px_0_10px_rgba(239,68,68,0.3)]" />
-                                    )}
+                                                )}
 
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
                                                     <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-                                                        <div className={`mt-1 p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-sm shrink-0 ${
-                                                            lectura.es_repetida
-                                                ? 'bg-red-100 text-red-600 dark:bg-red-900/30'
-                                                : 'bg-primary/10 text-primary'
-                                                }`}>
+                                                        <div className={`mt-1 p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-sm shrink-0 ${lectura.es_repetida
+                                                                ? 'bg-red-100 text-red-600 dark:bg-red-900/30'
+                                                                : 'bg-primary/10 text-primary'
+                                                            }`}>
                                                             {lectura.es_repetida ? (
                                                                 <AlertCircle size={20} className="sm:w-6 sm:h-6" />
                                                             ) : (
                                                                 <BookOpen size={20} className="sm:w-6 sm:h-6" />
                                                             )}
-                                            </div>
+                                                        </div>
                                                         <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
-                                                            <h3 className={`text-lg sm:text-xl md:text-2xl font-black tracking-tight break-words ${
-                                                                lectura.es_repetida ? 'text-red-600' : ''
-                                                            }`}>
-                                                    {formatCita(lectura)}
-                                                </h3>
+                                                            <h3 className={`text-lg sm:text-xl md:text-2xl font-black tracking-tight break-words ${lectura.es_repetida ? 'text-red-600' : ''
+                                                                }`}>
+                                                                {formatCita(lectura)}
+                                                            </h3>
                                                             <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-xs sm:text-sm font-medium text-muted-foreground">
-                                                    <span className="text-foreground font-bold flex items-center gap-1">
-                                                        <UserIcon className="w-3 h-3" />
+                                                                <span className="text-foreground font-bold flex items-center gap-1">
+                                                                    <UserIcon className="w-3 h-3" />
                                                                     <span className="truncate max-w-[150px] sm:max-w-none">
-                                                        {lectura.lector.nombre} {lectura.lector.apellidos}
-                                                    </span>
+                                                                        {lectura.lector.nombre} {lectura.lector.apellidos}
+                                                                    </span>
                                                                 </span>
                                                                 <span className="opacity-30 hidden sm:inline">•</span>
-                                                    <span className="flex items-center gap-1">
-                                                        <Calendar className="w-3 h-3" />
+                                                                <span className="flex items-center gap-1">
+                                                                    <Calendar className="w-3 h-3" />
                                                                     <span suppressHydrationWarning className="hidden sm:inline">
                                                                         {format(parseISO(lectura.culto.fecha), 'PP', { locale })}
                                                                     </span>
@@ -1381,29 +1376,28 @@ export default function LecturasPageClient({
                                                                         <span className="opacity-50">•</span>
                                                                         <span>{format(parseISO(lectura.culto.fecha), 'dd/MM/yyyy', { locale })}</span>
                                                                     </span>
-                                                    </span>
-                                                                    <span className="opacity-30 hidden sm:inline">•</span>
-                                                                    <span suppressHydrationWarning className="text-xs sm:text-sm font-medium text-muted-foreground">
-                                                                        {lectura.tipo_lectura === 'introduccion' ? t('cultos.intro') : t('cultos.finalizacion')}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                                                </span>
+                                                                <span className="opacity-30 hidden sm:inline">•</span>
+                                                                <span suppressHydrationWarning className="text-xs sm:text-sm font-medium text-muted-foreground">
+                                                                    {lectura.tipo_lectura === 'introduccion' ? t('cultos.intro') : t('cultos.finalizacion')}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
 
                                                     <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                                                        <span className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-widest shadow-sm ${
-                                                            'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                                                }`}>
-                                                <span suppressHydrationWarning>
-                                                {lectura.culto.tipo_culto.nombre}
-                                                </span>
-                                            </span>
+                                                        <span className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-widest shadow-sm ${'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                                            }`}>
+                                                            <span suppressHydrationWarning>
+                                                                {lectura.culto.tipo_culto.nombre}
+                                                            </span>
+                                                        </span>
 
-                                            {lectura.es_repetida && (
+                                                        {lectura.es_repetida && (
                                                             <span suppressHydrationWarning className="flex items-center gap-1 bg-red-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-tighter animate-pulse shadow-lg shadow-red-500/20">
-                                                    REPETIDA
-                                                </span>
-                                            )}
+                                                                REPETIDA
+                                                            </span>
+                                                        )}
 
                                                         {/* Botones de acción - Responsive */}
                                                         <div className="flex items-center gap-1 sm:gap-2">
@@ -1425,39 +1419,39 @@ export default function LecturasPageClient({
                                                             >
                                                                 <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                                                             </button>
-                                        </div>
-                                    </div>
-                                </div>
-                    </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         ))}
                                     </div>
                                 ))}
-                                </div>
+                            </div>
                         )}
 
                         {/* Paginación Mejorada - Responsive */}
                         {totalPages > 1 && (
                             <div className="p-4 sm:p-6 md:p-8 bg-muted/10 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
                                 <p suppressHydrationWarning className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-widest text-center sm:text-left">
-                                {t('lecturas.pageOf')
+                                    {t('lecturas.pageOf')
                                         .replace('{current}', currentPage.toString())
                                         .replace('{total}', totalPages.toString())}
-                            </p>
+                                </p>
 
                                 <div className="flex items-center gap-2 sm:gap-3">
-                                <Button
-                                    variant="outline"
+                                    <Button
+                                        variant="outline"
                                         className="rounded-xl font-bold px-4 sm:px-6 h-10 sm:h-12 text-xs sm:text-sm border-border/50 hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95"
                                         disabled={currentPage <= 1}
                                         onClick={() => changePage(currentPage - 1)}
                                         aria-label="Página anterior"
-                                >
+                                    >
                                         <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
                                         <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.previous')}</span>
                                         <span className="sm:hidden">Ant</span>
-                                </Button>
-                                <Button
-                                    variant="outline"
+                                    </Button>
+                                    <Button
+                                        variant="outline"
                                         className="rounded-xl font-bold px-4 sm:px-6 h-10 sm:h-12 text-xs sm:text-sm border-border/50 hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95"
                                         disabled={currentPage >= totalPages}
                                         onClick={() => changePage(currentPage + 1)}
@@ -1466,13 +1460,13 @@ export default function LecturasPageClient({
                                         <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.next')}</span>
                                         <span className="sm:hidden">Sig</span>
                                         <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1" />
-                                </Button>
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Modal de Detalles */}
             <Modal

@@ -79,7 +79,7 @@ export default async function DashboardPage() {
         }
 
         // Pre-compute reading state on server to avoid hydration mismatch
-        let lecturaData: { showAddButton: boolean; lecturaIntro: any } | null = null
+        let lecturaData: { showAddButton: boolean; lecturaIntro: any; lecturaFinal: any } | null = null
         let estudioBiblicoData: {
             esEstudio: boolean
             oracionInicio: boolean
@@ -173,6 +173,7 @@ export default async function DashboardPage() {
                 estudioBiblicoData={estudioBiblicoData}
                 observacionesData={observacionesData}
                 initialAssignments={initialAssignments || []}
+                initialDate={cultoMostrado?.fecha || today}
                 stats={{
                     totalCultos: totalCultos || 0,
                     totalLecturas: totalLecturas || 0

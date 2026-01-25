@@ -23,7 +23,7 @@ import { motion } from 'framer-motion'
 
 interface UserSelectorProps {
     selectedUserId: string | null
-    onSelect: (userId: string | null, confirmed?: boolean) => void
+    onSelect: (user: Profile | string | null, confirmed?: boolean) => void
     disabled?: boolean
     isEditing?: boolean
     onEditChange?: (isEditing: boolean) => void
@@ -72,6 +72,13 @@ export default function UserSelector({
             setIsEditing(true)
         }
     }, [selectedUserId, setIsEditing])
+
+    // Force close dropdown if disabled (e.g. saving)
+    useEffect(() => {
+        if (disabled) {
+            setShowResults(false)
+        }
+    }, [disabled])
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -188,13 +195,14 @@ export default function UserSelector({
     const handleSelect = (user: Profile, confirmed: boolean = true) => {
         // If not confirmed (unavailable), we pass false to let parent handle the warning
         if (confirmed) {
-            onSelect(user.id, true)
+            onSelect(user, true) // Pass Full Profile Object
             setQuery('')
             setShowResults(false)
             setIsEditing(false)
         } else {
             // Parent will handle the modal
-            onSelect(user.id, false)
+            onSelect(user.id, false) // Here we might pass just ID if dialog expects ID? Or Profile?
+            // If parent expects Profile | string, ID is fine string.
             setShowResults(false)
         }
     }
@@ -292,7 +300,7 @@ export default function UserSelector({
                                                 }}
                                                 className={`
                                                     w-full px-4 py-3.5 text-left transition-all rounded-3xl flex items-center justify-between group/item relative overflow-hidden
-                                                    ${isSelected ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-primary/5 text-foreground'}
+                                                    ${isSelected ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'hover:bg-primary/5 text-foreground'}
                                                     ${!isAvailable && !isSelected ? 'opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0' : ''}
                                                 `}
                                             >
@@ -353,10 +361,11 @@ export default function UserSelector({
                         <div className="p-3 bg-muted/20 border-t border-border/50 text-center shrink-0">
                             <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Selecciona un hermano para asignar</p>
                         </div>
-                    </motion.div>
-                </div>,
+                    </motion.div >
+                </div >,
                 document.body
-            )}
+            )
+            }
 
             {/* Botones de acción en modo edición */}
             <div className="flex items-center gap-3">
@@ -383,6 +392,6 @@ export default function UserSelector({
                     </motion.button>
                 )}
             </div>
-        </div>
+        </div >
     )
 }

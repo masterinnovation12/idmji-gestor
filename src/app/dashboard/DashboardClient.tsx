@@ -23,190 +23,13 @@ import { getUserAssignments } from './cultos/actions'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
 import { NotificationPrompt } from '@/components/NotificationPrompt'
+import CultoNavigator from '@/components/CultoNavigator'
+import { UserAvatar } from '@/components/dashboard/cultos/UserAvatar'
+import { CultoCardRenderer } from '@/components/dashboard/cultos/CultoCardRenderer'
 
 // --- Sub-componentes ---
 
-function UserAvatar({ usuario, size = 'md' }: { usuario: Partial<Profile> | null | undefined, size?: 'sm' | 'md' | 'lg' | 'xl' }) {
-    if (!usuario) return null
-
-    const sizeClasses = {
-        sm: 'w-8 h-8 text-xs',
-        md: 'w-12 h-12 text-base',
-        lg: 'w-16 h-16 text-lg',
-        xl: 'w-20 h-20 text-xl'
-    }
-
-    const initials = `${usuario.nombre?.[0] || ''}${usuario.apellidos?.[0] || ''}`.toUpperCase()
-
-    return (
-        <div className={`relative ${sizeClasses[size]} rounded-full overflow-hidden shadow-sm ring-2 ring-white/20 flex-shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold`}>
-            {usuario.avatar_url ? (
-                <Image
-                    src={usuario.avatar_url}
-                    alt={initials}
-                    fill
-                    className="object-cover"
-                />
-            ) : (
-                <span>{initials}</span>
-            )}
-        </div>
-    )
-}
-
-function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto }: { label: string, usuario: Partial<Profile> | null | undefined, lectura?: any, himnario?: any[], tipoCulto?: string }) {
-    const { t } = useI18n()
-    if (!usuario && !lectura && (!himnario || himnario.length === 0)) return null
-
-    const formatDuration = (seconds: number) => {
-        const mins = Math.floor(seconds / 60)
-        const secs = seconds % 60
-        return `${mins}:${secs.toString().padStart(2, '0')}`
-    }
-
-    const hasHimnos = himnario?.some(item => item.tipo === 'himno')
-    const hasCoros = himnario?.some(item => item.tipo === 'coro')
-    const totalSeconds = himnario?.reduce((acc, item) => acc + (item.himno?.duracion_segundos || item.coro?.duracion_segundos || 0), 0) || 0
-
-    const tiempoLabel = () => {
-        if (hasHimnos && hasCoros) return t('dashboard.himnario.totalTime')
-        if (hasHimnos) return t('dashboard.himnario.totalTimeHymns')
-        if (hasCoros) return t('dashboard.himnario.totalTimeChoruses')
-        return ""
-    }
-
-    const himnarioTitle = tipoCulto?.toLowerCase().includes('enseñanza') || tipoCulto?.toLowerCase().includes('ensenanza') 
-        ? t('dashboard.himnario.timeEnsenanza') 
-        : t('dashboard.himnario.timeAlabanza')
-
-    const hasExtraContent = lectura || (himnario && himnario.length > 0)
-
-    return (
-        <div className={`flex flex-col p-4 bg-white/50 dark:bg-black/20 rounded-3xl border border-black/5 dark:border-white/5 backdrop-blur-sm transition-all shadow-sm ${hasExtraContent ? 'gap-3 bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : 'flex-row items-center gap-3'}`}>
-            {usuario ? (
-                <div className={`flex items-center gap-3 w-full ${hasExtraContent ? 'border-b border-black/5 dark:border-white/5 pb-2.5' : ''}`}>
-                    <UserAvatar usuario={usuario} size="md" />
-                    <div className="flex-1 min-w-0">
-                        <p className="text-[10px] text-blue-600 dark:text-blue-300 font-black uppercase tracking-wider mb-0.5">{label}</p>
-                        <p className="font-bold text-sm truncate text-slate-800 dark:text-slate-100">
-                            {usuario.nombre} {usuario.apellidos?.split(' ')[0]}
-                        </p>
-                    </div>
-                </div>
-            ) : (
-                <div className={`flex items-center gap-3 w-full ${hasExtraContent ? 'border-b border-black/5 dark:border-white/5 pb-2.5' : ''}`}>
-                    <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 font-bold border-2 border-dashed border-slate-300 dark:border-slate-700 shrink-0">
-                        <Users className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-[10px] text-blue-600 dark:text-blue-300 font-black uppercase tracking-wider mb-0.5">{label}</p>
-                        <p className="font-bold text-sm truncate text-slate-400 italic">
-                            {t('dashboard.himnario.unassigned')}
-                        </p>
-                    </div>
-                </div>
-            )}
-
-            {/* Lectura integrada */}
-            {lectura && (
-                <div className="flex items-center gap-3 p-3.5 bg-white/40 dark:bg-white/5 rounded-2xl border border-white/60 dark:border-white/10 shadow-sm relative group w-full min-w-0">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0 text-white border border-white/20">
-                        <BookOpen className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0 flex-1 flex flex-col justify-center">
-                        <div className="flex items-center flex-wrap gap-1.5 mb-1">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">{t('dashboard.himnario.reading')}</span>
-                            <div className="w-1 h-1 rounded-full bg-blue-300 hidden xs:block" />
-                            <div className="flex items-center gap-1 bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
-                                <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 whitespace-nowrap">{t('dashboard.himnario.registered')}</span>
-                            </div>
-                        </div>
-                        <p className="font-black text-[13px] sm:text-sm text-slate-800 dark:text-slate-100 leading-tight truncate">
-                            {lectura.libro} {lectura.capitulo_inicio}:{lectura.versiculo_inicio}
-                            {(lectura.capitulo_fin !== lectura.capitulo_inicio || lectura.versiculo_fin !== lectura.versiculo_inicio) && (
-                                <>
-                                    {' - '}
-                                    {lectura.capitulo_fin === lectura.capitulo_inicio
-                                        ? lectura.versiculo_fin
-                                        : `${lectura.capitulo_fin}:${lectura.versiculo_fin}`}
-                                </>
-                            )}
-                        </p>
-                    </div>
-                </div>
-            )}
-
-            {/* Himnario integrado */}
-            {himnario && himnario.length > 0 && (
-                <div className={`flex flex-col gap-4 p-4 bg-white/40 dark:bg-white/5 rounded-2xl border border-white/60 dark:border-white/10 shadow-sm relative w-full ${lectura ? 'mt-1' : ''}`}>
-                    {/* Header del Himnario - Ahora más integrado */}
-                    <div className="flex items-center gap-3 pb-3 border-b border-black/5 dark:border-white/5">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0 text-white">
-                            <Music className="w-5 h-5" />
-                        </div>
-                        <div className="flex-1">
-                            <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 leading-none">{himnarioTitle}</h3>
-                            <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-tight">{himnario.length} {t('dashboard.himnario.pieces')}</p>
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        {himnario.map((item, idx) => {
-                            const details = item.tipo === 'himno' ? item.himno : item.coro
-                            if (!details) return null
-                            return (
-                                <div key={idx} className="flex items-center justify-between gap-3 group/item p-2 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-all">
-                                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        {/* Número redondo y limpio */}
-                                        <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black shadow-sm ${item.tipo === 'himno' ? 'bg-indigo-500 text-white' : 'bg-purple-500 text-white'}`}>
-                                            {details.numero}
-                                        </div>
-                                        
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <span className={`text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded ${item.tipo === 'himno' ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/30' : 'text-purple-600 bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800/30'}`}>
-                                                    {item.tipo}
-                                                </span>
-                                            </div>
-                                            <p className="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm leading-tight group-hover/item:text-blue-600 dark:group-hover/item:text-blue-400 transition-colors">
-                                                {details.titulo}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-black/5 dark:border-white/10 shadow-sm group-hover/item:border-blue-500/30 transition-colors">
-                                        <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500 group-hover/item:text-blue-500 transition-colors" />
-                                        <span className="font-mono text-[11px] font-black text-slate-600 dark:text-slate-300">
-                                            {formatDuration(details.duracion_segundos)}
-                                        </span>
-                                    </div>
-                                </div>
-                            )
-                        })}
-                    </div>
-                    
-                    {/* Pie inteligente Flotante */}
-                    <div className="flex items-center justify-center mt-3 pt-4 border-t border-indigo-500/10 dark:border-indigo-400/10">
-                        <div className="px-5 py-2.5 bg-slate-900 dark:bg-white rounded-2xl shadow-xl shadow-indigo-500/20 flex items-center gap-3 border border-white/10 dark:border-black/5 hover:scale-105 transition-transform cursor-default group/total">
-                            <div className="w-8 h-8 rounded-full bg-blue-500/20 dark:bg-blue-100 flex items-center justify-center">
-                                <Clock className="w-4 h-4 text-blue-400 dark:text-blue-600 animate-pulse" />
-                            </div>
-                            <div className="flex flex-col items-start leading-none">
-                                <span className="text-[8px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1">
-                                    {tiempoLabel()}
-                                </span>
-                                <span className="text-white dark:text-slate-900 font-mono text-sm font-black tracking-tighter">
-                                    {formatDuration(totalSeconds)} <span className="text-[9px] opacity-60">min</span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    )
-}
+// --- Sub-componentes (Refactorizados a archivos externos) ---
 
 interface DashboardClientProps {
     user: Profile & { id: string }
@@ -225,9 +48,10 @@ interface DashboardClientProps {
         totalCultos: number
         totalLecturas: number
     }
+    initialDate: string
 }
 
-export default function DashboardClient({ user, culto, esHoy, lecturaData, estudioBiblicoData, observacionesData, initialAssignments }: DashboardClientProps) {
+export default function DashboardClient({ user, culto, esHoy, lecturaData, estudioBiblicoData, observacionesData, initialAssignments, initialDate }: DashboardClientProps) {
     const { t, language } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
 
@@ -328,172 +152,34 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Left: Culto Card (Takes 2 cols on Desktop) */}
-                <div className="lg:col-span-2 space-y-6">
-                    <AnimatePresence mode="wait">
-                        {culto ? (
-                            <motion.div
-                                key={culto.id}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="relative group"
-                            >
-                                <div className="absolute inset-0 bg-blue-600/20 blur-2xl rounded-[2.5rem] transform group-hover:scale-105 transition-transform duration-500 -z-10" />
-                                <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl">
-                                    {/* Banner Superior */}
-                                    <div className={`h-2 w-full`} style={{ backgroundColor: culto.tipo_culto?.color || '#3b82f6' }} />
-
-                                    <CardContent className="p-6 md:p-8">
-                                        {/* Badge de Estado */}
-                                        <div className="flex justify-between items-start mb-6">
-                                            <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg ${esHoy ? 'bg-red-500 text-white shadow-red-500/30' : 'bg-blue-600 text-white shadow-blue-500/30'}`}>
-                                                {esHoy ? t('dashboard.today') : t('dashboard.next')}
-                                            </div>
-                                            {!esHoy && (
-                                                <div className="text-right">
-                                                    <p className="text-2xl font-black text-slate-300 dark:text-slate-600 leading-none">
-                                                        {format(new Date(culto.fecha), 'd', { locale })}
-                                                    </p>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase">
-                                                        {format(new Date(culto.fecha), 'MMM', { locale })}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Info Principal */}
-                                        <div className="mb-8">
-                                            <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter mb-2">
-                                                {getTranslatedCultoName(culto.tipo_culto?.nombre)}
-                                            </h2>
-
-                                            {/* Hora - con inicio anticipado si aplica */}
-                                            <div className="flex items-center gap-2 text-slate-500 font-bold mb-4">
-                                                <Clock className="w-5 h-5 text-blue-500" />
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    {estudioBiblicoData?.inicioAnticipado ? (
-                                                        <>
-                                                            <span className="text-lg line-through opacity-50">{(culto.hora_inicio || '').slice(0, 5)}</span>
-                                                            <span className="text-lg font-black text-amber-600 dark:text-amber-400">
-                                                                {estudioBiblicoData.inicioAnticipado.horaReal}
-                                                            </span>
-                                                            <span className="px-2 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-lg text-[10px] font-black uppercase">
-                                                                {estudioBiblicoData.inicioAnticipado.minutos} {t('dashboard.minBefore')}
-                                                            </span>
-                                                        </>
-                                                    ) : (
-                                                        <span className="text-lg">{(culto.hora_inicio || '').slice(0, 5)}</span>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Protocol Badges - Solo Estudio Bíblico */}
-                                            {estudioBiblicoData?.esEstudio && (
-                                                <div className="flex flex-wrap gap-2 mt-3">
-                                                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border ${estudioBiblicoData.oracionInicio
-                                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
-                                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
-                                                        }`}>
-                                                        <span>🙏</span>
-                                                        <span>{t('dashboard.oracion')}: {estudioBiblicoData.oracionInicio ? t('dashboard.yes') : t('dashboard.no')}</span>
-                                                    </div>
-                                                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border ${estudioBiblicoData.congregacionPie
-                                                        ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20'
-                                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
-                                                        }`}>
-                                                        <span>🪑</span>
-                                                        <span>{estudioBiblicoData.congregacionPie ? t('dashboard.standing') : t('dashboard.seated')}</span>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Observaciones (Universal - para TODOS los cultos) */}
-                                            {(() => {
-                                                const obsContent = observacionesData?.trim()
-                                                const hasObs = !!obsContent && obsContent.length > 0
-
-                                                return (
-                                                    <div className={`mt-3 p-3 rounded-xl border ${hasObs
-                                                        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30'
-                                                        : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50'
-                                                        }`}>
-                                                        <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${hasObs
-                                                            ? 'text-amber-600 dark:text-amber-400'
-                                                            : 'text-slate-400 dark:text-slate-500'
-                                                            }`}>
-                                                            📝 {t('dashboard.observaciones')}
-                                                        </p>
-                                                        <p className={`text-sm font-medium leading-snug ${hasObs
-                                                            ? 'text-amber-800 dark:text-amber-200'
-                                                            : 'text-slate-400 dark:text-slate-500 italic'
-                                                            }`}>
-                                                            {hasObs ? obsContent : t('dashboard.noObservaciones')}
-                                                        </p>
-                                                    </div>
-                                                )
-                                            })()}
-                                        </div>
-
-                                        {/* Distribución de Responsables (Diseño Premium Asimétrico) */}
-                                        <div className="flex flex-col md:flex-row gap-6 mb-10 items-start">
-                                            {/* Columna Principal: Introducción (Suele ser la más larga por el Himnario) */}
-                                            {culto.tipo_culto?.tiene_lectura_introduccion && (
-                                                <div className="w-full md:w-1/2 lg:w-[58%] shrink-0">
-                                                    <AssignmentPill
-                                                        label={t('cultos.intro')}
-                                                        usuario={culto.usuario_intro}
-                                                        lectura={lecturaData?.lecturaIntro}
-                                                        himnario={(culto as any).plan_himnos_coros}
-                                                        tipoCulto={culto.tipo_culto?.nombre}
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {/* Columna Secundaria: El resto de asignaciones apiladas */}
-                                            <div className="flex-1 w-full space-y-4">
-                                                {culto.tipo_culto?.tiene_ensenanza && (
-                                                    <AssignmentPill label={t('cultos.ensenanza')} usuario={culto.usuario_ensenanza} />
-                                                )}
-                                                {culto.tipo_culto?.tiene_testimonios && (
-                                                    <AssignmentPill label={t('cultos.testimonios')} usuario={culto.usuario_testimonios} />
-                                                )}
-                                                {culto.tipo_culto?.tiene_lectura_finalizacion && (
-                                                    <AssignmentPill
-                                                        label={t('cultos.finalizacion')}
-                                                        usuario={culto.usuario_finalizacion}
-                                                        lectura={lecturaData?.lecturaFinal}
-                                                    />
-                                                )}
+                <div className="lg:col-span-2 space-y-4">
+                    <CultoNavigator
+                        initialCulto={culto}
+                        initialDate={initialDate}
+                        esHoy={esHoy}
+                    >
+                        {(navCulto, isNavLoading, navEsHoy) => (
+                            <>
+                                {isNavLoading ? (
+                                    <div className="relative">
+                                        <div className="bg-slate-200 dark:bg-slate-800 rounded-[2.5rem] h-[500px] animate-pulse w-full"></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="bg-white/80 dark:bg-black/50 backdrop-blur-md px-6 py-3 rounded-full shadow-xl">
+                                                <p className="text-sm font-black text-slate-500 animate-pulse uppercase tracking-widest">{t('dashboard.navigator.loading' as any)}</p>
                                             </div>
                                         </div>
-
-                                        {/* Lógica de Lectura y Botón de Acción (pre-computed on server) */}
-                                        {lecturaData?.showAddButton ? (
-                                            <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
-                                                <button className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2 group relative overflow-hidden">
-                                                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                                                    <Plus className="w-4 h-4" />
-                                                    <span>{t('dashboard.addReading')}</span>
-                                                </button>
-                                            </Link>
-                                        ) : (
-                                            <div className="space-y-4">
-                                                {/* Lectura moved to AssignmentPill */}
-                                                <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
-                                                    <button className="w-full py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-lg">
-                                                        {t('dashboard.viewFullDetails')}
-                                                    </button>
-                                                </Link>
-                                            </div>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
-                        ) : (
-                            <div className="glass rounded-[2.5rem] p-12 text-center border-dashed border-2 border-slate-200 dark:border-slate-800">
-                                <p className="text-slate-400 font-bold">{t('dashboard.noCultosScheduled')}</p>
-                            </div>
+                                    </div>
+                                ) : navCulto ? (
+                                    /* Renderizado Delegado al Componente Renderer */
+                                    <CultoCardRenderer culto={navCulto} esHoy={navEsHoy} />
+                                ) : (
+                                    <div className="glass rounded-[2.5rem] p-12 text-center border-dashed border-2 border-slate-200 dark:border-slate-800">
+                                        <p className="text-slate-400 font-bold">{t('dashboard.navigator.noService' as any)}</p>
+                                    </div>
+                                )}
+                            </>
                         )}
-                    </AnimatePresence>
+                    </CultoNavigator>
                 </div>
 
                 {/* Right: My Assignments (New Section) */}

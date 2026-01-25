@@ -64,7 +64,7 @@ export function AssignmentsManager({ cultoId, assignments }: AssignmentsManagerP
                 <label className="text-sm font-medium">Introducción</label>
                 <UserSelector
                     selectedUserId={assignments.intro?.id || null}
-                    onSelect={(userId) => handleUpdate('introduccion', userId)}
+                    onSelect={(userOrId) => handleUpdate('introduccion', typeof userOrId === 'object' ? userOrId?.id || null : userOrId)}
                 />
             </div>
 
@@ -72,7 +72,7 @@ export function AssignmentsManager({ cultoId, assignments }: AssignmentsManagerP
                 <label className="text-sm font-medium">Enseñanza / Predicación</label>
                 <UserSelector
                     selectedUserId={assignments.ensenanza?.id || null}
-                    onSelect={(userId) => handleUpdate('ensenanza', userId)}
+                    onSelect={(userOrId) => handleUpdate('ensenanza', typeof userOrId === 'object' ? userOrId?.id || null : userOrId)}
                 />
             </div>
 
@@ -80,7 +80,7 @@ export function AssignmentsManager({ cultoId, assignments }: AssignmentsManagerP
                 <label className="text-sm font-medium">Finalización</label>
                 <UserSelector
                     selectedUserId={assignments.finalizacion?.id || null}
-                    onSelect={(userId) => handleUpdate('finalizacion', userId)}
+                    onSelect={(userOrId) => handleUpdate('finalizacion', typeof userOrId === 'object' ? userOrId?.id || null : userOrId)}
                 />
             </div>
 
