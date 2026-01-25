@@ -27,6 +27,7 @@ export default function AvatarEditor({ imageSrc, isOpen, onClose, onSave }: Avat
 
     const handleSave = async () => {
         try {
+            if (!croppedAreaPixels) return
             const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels, rotation)
             if (croppedImage) {
                 onSave(croppedImage)

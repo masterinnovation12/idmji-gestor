@@ -406,11 +406,15 @@ function CalculatorModal({ children, onClose }: { children: React.ReactNode, onC
             dragControls={controls}
             dragListener={false}
             dragDirectionLock
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.5 }}
+            dragConstraints={{ top: 0, bottom: 300 }}
+            dragElastic={{ top: 0.05, bottom: 0.7 }}
             onDragEnd={(e, info) => {
-                // Si se arrastra hacia abajo suficiente (distancia o velocidad)
-                if (info.offset.y > 50 || info.velocity.y > 100) {
+                // Solo cerrar si se arrastra HACIA ABAJO (offset positivo)
+                const draggedDown = info.offset.y > 0
+                const sufficientDistance = info.offset.y > 80
+                const sufficientVelocity = info.velocity.y > 300
+
+                if (draggedDown && (sufficientDistance || sufficientVelocity)) {
                     onClose()
                 }
             }}

@@ -42,6 +42,7 @@ import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { TranslationKey, Language } from '@/lib/i18n/translations'
 import NextImage from 'next/image'
+import { LogoModal } from '@/components/LogoModal'
 
 export default function DashboardLayout({
     children,
@@ -53,6 +54,7 @@ export default function DashboardLayout({
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
     const [mounted, setMounted] = useState(false)
+    const [isLogoModalOpen, setIsLogoModalOpen] = useState(false)
     const [userProfile, setUserProfile] = useState<{
         nombre: string | null
         apellidos: string | null
@@ -334,6 +336,7 @@ export default function DashboardLayout({
                     userProfile={userProfile}
                     onMobileNav={() => setIsMobileMenuOpen(false)}
                     isMobile={true}
+                    onLogoClick={() => setIsLogoModalOpen(true)}
                 />
             </motion.aside>
 
@@ -354,6 +357,7 @@ export default function DashboardLayout({
                     isDark={isDark}
                     toggleTheme={toggleTheme}
                     userProfile={userProfile}
+                    onLogoClick={() => setIsLogoModalOpen(true)}
                 />
             </motion.aside>
 
@@ -372,8 +376,11 @@ export default function DashboardLayout({
                             <Menu size={22} />
                         </button>
 
-                        <div className="flex items-center gap-3 flex-1 justify-center pr-2">
-                            <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-2xl border border-white/20 shrink-0">
+                        <button
+                            onClick={() => setIsLogoModalOpen(true)}
+                            className="flex items-center gap-3 flex-1 justify-center pr-2 transition-transform active:scale-95 cursor-pointer"
+                        >
+                            <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-2xl border border-white/20 shrink-0 hover:scale-110 transition-transform">
                                 <NextImage
                                     src="/logo.jpg"
                                     alt="IDMJI Logo"
@@ -390,7 +397,7 @@ export default function DashboardLayout({
                                     {t('common.appSubTitle')}
                                 </span>
                             </div>
-                        </div>
+                        </button>
 
                         {/* Espaciador para centrar el logo perfecto */}
                         <div className="w-12 shrink-0" />
@@ -409,6 +416,9 @@ export default function DashboardLayout({
                     </motion.div>
                 </div>
             </main>
+
+            {/* Logo Modal */}
+            <LogoModal isOpen={isLogoModalOpen} onClose={() => setIsLogoModalOpen(false)} />
         </div>
     )
 }
@@ -442,6 +452,7 @@ interface SidebarContentProps {
     } | null
     onMobileNav?: () => void
     isMobile?: boolean
+    onLogoClick?: () => void
 }
 
 function SidebarContent({
@@ -457,7 +468,8 @@ function SidebarContent({
     toggleTheme,
     userProfile,
     onMobileNav,
-    isMobile = false
+    isMobile = false,
+    onLogoClick
 }: SidebarContentProps) {
     return (
         <div className="flex flex-col h-full bg-[#063b7a] dark:bg-black/95 backdrop-blur-xl border-r border-white/10">
@@ -466,10 +478,13 @@ function SidebarContent({
             <div className={`py-8 flex flex-col ${isSidebarCollapsed ? 'items-center px-4' : 'px-8'} border-b border-border/10 gap-6`}>
                 {/* Logo Section */}
                 {!isSidebarCollapsed ? (
-                    <motion.div
+                    <motion.button
+                        onClick={onLogoClick}
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-4"
+                        className="flex items-center gap-4 cursor-pointer hover:scale-105 transition-transform active:scale-95"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                     >
                         <div className="relative w-12 h-12">
                             <div className="absolute inset-0 bg-primary/20 blur-lg rounded-2xl animate-pulse" />
@@ -489,15 +504,17 @@ function SidebarContent({
                                 {t('common.appSubTitle')}
                             </span>
                         </div>
-                    </motion.div>
+                    </motion.button>
                 ) : (
-                    <NextImage
-                        src="/logo.jpg"
-                        alt="IDMJI Logo"
-                        width={44}
-                        height={44}
-                        className="rounded-xl shadow-xl hover:scale-110 transition-transform cursor-pointer"
-                    />
+                    <button onClick={onLogoClick} className="cursor-pointer">
+                        <NextImage
+                            src="/logo.jpg"
+                            alt="IDMJI Logo"
+                            width={44}
+                            height={44}
+                            className="rounded-xl shadow-xl hover:scale-110 transition-transform cursor-pointer"
+                        />
+                    </button>
                 )}
 
                 {/* Controls (Language & Theme) */}

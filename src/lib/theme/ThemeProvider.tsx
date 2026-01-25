@@ -13,7 +13,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const [isDark, setIsDark] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('theme')
-            return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)
+            // Solo activar dark si el usuario lo guardó explícitamente.
+            // Ignoramos la preferencia del sistema (matchMedia) para total independencia.
+            return saved === 'dark'
         }
         return false
     })

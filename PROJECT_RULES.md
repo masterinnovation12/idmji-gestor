@@ -153,6 +153,11 @@ src/
 - ✅ Animaciones sutiles y elegantes
 - ✅ Feedback visual al usuario
 - ✅ Logs descriptivos en desarrollo
+- ✅ **Tolerancia Cero a Errores**: Antes de finalizar cualquier tarea, es OBLIGATORIO ejecutar `npx tsc --noEmit` y `npx eslint .`. Cualquier error detectado DEBE ser corregido inmediatamente. No se permite la entrega de código con errores de compilación o linting.
+
+## 🛠️ Regla de Auto-Corrección (Antigravity Skill)
+- Siempre que se detecte un error de TypeScript, Lint o lógica durante el desarrollo, el agente (Antigravity) tiene la instrucción mandatoria de analizarlo y aplicar la corrección automáticamente antes de reportar el progreso al usuario.
+- El agente debe usar las herramientas de diagnóstico (`tsc`, `eslint`, `run_command`) proactivamente sin esperar a que el usuario lo solicite después de cada modificación significativa.
 
 ---
 

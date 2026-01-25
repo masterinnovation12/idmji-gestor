@@ -29,7 +29,7 @@ export function NotificationPrompt() {
 
     const checkStatus = useCallback(async () => {
         if (typeof window === 'undefined') return
-        
+
         // 1. Verificar soporte
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
 
@@ -68,7 +68,7 @@ export function NotificationPrompt() {
 
             const sub = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(publicKey)
+                applicationServerKey: urlBase64ToUint8Array(publicKey) as any
             })
 
             const result = await subscribeToPush({
