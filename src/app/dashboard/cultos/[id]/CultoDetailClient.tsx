@@ -17,7 +17,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { Calendar, Clock, User, BookOpen, Music, AlertCircle, CheckCircle, Sparkles, AlertTriangle } from 'lucide-react'
@@ -49,7 +49,7 @@ interface AssignmentSectionProps {
     icon: React.ReactNode,
     selectedUserId: string | null,
     usuarioActual: Partial<Profile> | null | undefined,
-    onSelect: (id: string | null, confirmed?: boolean) => void,
+    onSelect: (id: string | null, confirmed?: boolean) => Promise<void> | void,
     disabled: boolean,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     t: (key: any) => string,
@@ -73,6 +73,75 @@ function AssignmentSection({
     isFestivo
 }: AssignmentSectionProps) {
     const [isEditing, setIsEditing] = useState(!selectedUserId)
+    const [isSaving, setIsSaving] = useState(false)
+    const [optimisticId, setOptimisticId] = useState(selectedUserId)
+    const [optimisticUser, setOptimisticUser] = useState<Partial<Profile> | null>(usuarioActual || null)
+
+    // Sincronizar estado cuando llega el dato real del servidor
+    useEffect(() => {
+        setOptimisticId(selectedUserId)
+        if (usuarioActual) setOptimisticUser(usuarioActual)
+    }, [selectedUserId, usuarioActual])
+
+    // Modificamos el UserSelector para que devuelva el objeto usuario completo en el onSelect
+    // (Necesitaremos actualizar la firma en UserSelector también si no lo hace ya, 
+    // pero UserSelector.tsx ya pasaba el objeto 'user' en su handleSelect interno, 
+    // aunque la prop onSelect del padre solo recibía ID. Ajustaremos el callback aquí 
+    // para recibir el perfil si es posible, o buscaremos otra forma).
+
+    // UserSelector prop onSelect definition in props was: (id, confirmed) => ...
+    // To support optimistic UI properly, we need the Profile object.
+    // However, changing the prop signature of AssignmentSection might break usage in the grid parent.
+    // BUT UserSelector actually has the Profile object when it calls onSelect.
+
+    // TRUCO: El UserSelector tiene el objeto Profile. 
+    // Vamos a interceptar el onSelect del UserSelector para capturar el perfil.
+
+    // Necesitamos que el onSelect de AssignmentSection acepte el perfil OPCIONALMENTE?
+    // O mejor, manejamos el estado optimista aquí dentro.
+
+    // Vamos a definir un handler local enriquecido para el UserSelector
+    const handleUserSelectorSelect = async (profileOrId: Profile | string | null, confirmed: boolean = true) => {
+        setIsSaving(true)
+
+        // Determinar ID y Perfil para optimismo
+        let newId: string | null = null
+        let newProfile: Partial<Profile> | null = null
+
+        if (profileOrId && typeof profileOrId === 'object') {
+            newId = profileOrId.id
+            newProfile = profileOrId
+        } else if (typeof profileOrId === 'string') {
+            newId = profileOrId
+            // Si solo recibimos ID (caso raro desde UserSelector moderno), no podemos pintar avatar optimista perfecto,
+            // pero mantenemos el comportamiento anterior.
+        } else {
+            // Null
+            newId = null
+            newProfile = null
+        }
+
+        setOptimisticId(newId)
+        if (newProfile) setOptimisticUser(newProfile)
+
+        try {
+            if (newId && confirmed === false) {
+                await onSelect(newId, false)
+            } else {
+                await onSelect(newId, true)
+                if (newId) setIsEditing(false)
+            }
+        } catch (error) {
+            console.error("Assignment failed", error)
+            setOptimisticId(selectedUserId)
+            setOptimisticUser(usuarioActual || null)
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    // Renderizado usa los valores optimistas
+    const displayUser = optimisticUser || usuarioActual
 
     return (
         <motion.div
@@ -83,35 +152,41 @@ function AssignmentSection({
             <Card className={`h-full w-full min-w-0 border-t-4 border-primary/40 glass group hover:border-primary transition-all duration-500 shadow-xl relative overflow-visible ${isEditing ? 'ring-4 ring-primary/30' : ''}`}>
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
 
-                <CardHeader className="flex flex-row items-start justify-between pb-2 md:pb-3 shrink-0 gap-2">
+                <CardHeader className="flex flex-row items-center justify-between pb-2 md:pb-4 shrink-0 gap-2 border-b border-primary/5">
                     <CardTitle icon={icon} className="text-primary font-black uppercase tracking-widest text-[10px] md:text-[11px] leading-tight">
                         {label}
                     </CardTitle>
-                    {selectedUserId && !isEditing && (
+                    {optimisticId && !isEditing && (
                         <button
                             onClick={() => setIsEditing(true)}
-                            className="px-2 py-1 md:px-3 md:py-1.5 text-[8px] md:text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm shrink-0 mt-0.5"
+                            className="px-3 py-1 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm shrink-0"
                         >
                             Modificar
                         </button>
                     )}
                 </CardHeader>
-                <CardContent className="p-2.5 md:p-3.5 flex-1 flex flex-col overflow-visible">
-                    <div className="space-y-2.5 md:space-y-3.5 flex-1 flex flex-col overflow-visible">
+
+                <CardContent className="p-4 md:p-6 flex-1 flex flex-col overflow-visible">
+                    <div className="flex-1 flex flex-col overflow-visible relative">
+                        {/* Overlay de Carga */}
+                        {isSaving && (
+                            <div className="absolute inset-0 z-[120] bg-white/60 dark:bg-black/60 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center gap-3 animate-in fade-in duration-200">
+                                <div className="w-8 h-8 md:w-10 md:h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin shadow-lg" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">Guardando...</span>
+                            </div>
+                        )}
+
+                        {/* Contenido (Selector o Tarjeta Vertical) */}
                         <div className="shrink-0 relative z-110">
                             <UserSelector
-                                selectedUserId={selectedUserId}
-                                onSelect={(id, confirmed) => {
-                                    if (id && confirmed === false) {
-                                        onSelect(id, false)
-                                    } else {
-                                        onSelect(id, true)
-                                        if (id) setIsEditing(false)
-                                    }
-                                }}
-                                disabled={disabled}
+                                selectedUserId={optimisticId}
+                                // @ts-ignore - Modificaremos UserSelector para pasar el objeto completo
+                                onSelect={handleUserSelectorSelect}
+                                disabled={disabled || isSaving}
                                 isEditing={isEditing}
-                                onEditChange={setIsEditing}
+                                onEditChange={(val) => {
+                                    if (!isSaving) setIsEditing(val)
+                                }}
                                 cultoDate={cultoDate}
                                 assignmentType={assignmentType}
                                 isFestivo={isFestivo}
@@ -119,67 +194,56 @@ function AssignmentSection({
                         </div>
 
                         <AnimatePresence mode="wait">
-                            {usuarioActual ? (
+                            {displayUser && !isEditing ? (
                                 <motion.div
-                                    key={usuarioActual.id || `assigned-${label}`}
-                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    key={`assigned-${displayUser.id}`}
+                                    initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    className={`flex flex-col gap-3 p-3.5 md:p-4.5 rounded-[1.75rem] border shadow-inner relative overflow-hidden group/assigned transition-all flex-1 min-h-0 ${isEditing
-                                        ? 'bg-muted/50 border-border opacity-60'
-                                        : 'bg-primary/5 border-primary/10'
-                                        }`}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    className="flex flex-col items-center text-center mt-2 relative z-10"
                                 >
-                                    <div className="absolute inset-0 bg-linear-to-r from-primary/5 to-transparent opacity-0 group-hover/assigned:opacity-100 transition-opacity" />
-
-                                    <div className="flex items-center gap-3 relative z-10">
-                                        <div className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-black text-xs md:text-sm lg:text-base border-2 shadow-lg shrink-0 ${isEditing ? 'bg-muted border-border text-muted-foreground' : 'bg-primary/20 border-white/20 text-primary'
-                                            }`}>
-                                            {usuarioActual.avatar_url ? (
+                                    {/* Avatar Vertical Grande */}
+                                    <div className="relative group/avatar mb-4">
+                                        <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full transform group-hover/avatar:scale-125 transition-transform duration-500" />
+                                        <div className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 rounded-[2rem] border-4 border-white dark:border-slate-800 shadow-2xl relative overflow-hidden bg-slate-100 dark:bg-slate-800 transition-transform hover:scale-105 duration-300">
+                                            {displayUser.avatar_url ? (
                                                 <NextImage
-                                                    src={usuarioActual.avatar_url}
-                                                    alt=""
+                                                    src={displayUser.avatar_url}
+                                                    alt={displayUser.nombre || ''}
                                                     fill
                                                     className="object-cover"
                                                 />
                                             ) : (
-                                                <span className="uppercase tracking-tighter">{usuarioActual.nombre?.[0]}{usuarioActual.apellidos?.[0]}</span>
+                                                <div className="w-full h-full flex items-center justify-center text-4xl text-slate-300">
+                                                    {displayUser.nombre?.[0]}
+                                                </div>
                                             )}
                                         </div>
-                                        <div className="relative z-10 min-w-0 flex-1">
-                                            <p className={`text-[11px] md:text-sm lg:text-base xl:text-lg font-black uppercase tracking-tight leading-none whitespace-nowrap ${isEditing ? 'text-muted-foreground' : 'text-foreground'}`}>
-                                                {usuarioActual.nombre} {usuarioActual.apellidos}
-                                            </p>
-                                            <div className="flex items-center gap-2.5 mt-2">
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${isEditing ? 'bg-muted-foreground' : 'bg-emerald-500'}`} />
-                                                    <p className="text-[8px] md:text-[10px] lg:text-[11px] text-muted-foreground font-black uppercase tracking-widest leading-none">
-                                                        {isEditing ? 'Modificando...' : 'Asignado'}
-                                                    </p>
-                                                </div>
-                                                {!isEditing && (
-                                                    <motion.div
-                                                        initial={{ scale: 0 }}
-                                                        animate={{ scale: 1 }}
-                                                        className="bg-emerald-500/20 p-0.5 rounded-full shadow-sm shadow-emerald-500/20"
-                                                    >
-                                                        <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-500" />
-                                                    </motion.div>
-                                                )}
-                                            </div>
+                                        <div className="absolute -bottom-2 md:-bottom-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1 whitespace-nowrap z-20">
+                                            <CheckCircle className="w-3 h-3" />
+                                            Asignado
                                         </div>
                                     </div>
 
-                                    {/* Bloque de Lectura Bíblica Integrado (Solo para Introducción) */}
-                                    {label === t('culto.introduccion') && !isEditing && (
+                                    {/* Info Usuario */}
+                                    <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white leading-none tracking-tight mb-1">
+                                        {displayUser.nombre}
+                                    </h3>
+                                    <p className="text-sm font-bold text-primary uppercase tracking-wider mb-6">
+                                        {displayUser.apellidos?.split(' ')[0]}
+                                    </p>
+
+                                    {/* Bloque de Lectura Bíblica Integrado (Con diseño mejorado) */}
+                                    {label === t('culto.introduccion') && (
                                         <motion.div
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            className="relative z-10 mt-1 pt-3 border-t border-primary/10"
+                                            className="w-full text-left"
                                         >
+                                            <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/20 to-transparent mb-4" />
                                             <BibleReadingManager
                                                 cultoId={cultoId}
-                                                userId={usuarioActual?.id || ''}
+                                                userId={displayUser.id || ''}
                                                 config={{
                                                     tiene_lectura_introduccion: true,
                                                     tiene_lectura_finalizacion: false
@@ -188,15 +252,15 @@ function AssignmentSection({
                                         </motion.div>
                                     )}
                                 </motion.div>
-                            ) : !isEditing ? (
+                            ) : !isEditing && !displayUser ? (
                                 <motion.div
                                     key="unassigned"
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    className="p-4 border-2 border-dashed border-muted-foreground/10 rounded-3xl flex flex-col items-center justify-center gap-2 opacity-50"
+                                    className="p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col items-center justify-center gap-3 opacity-50 mt-4"
                                 >
-                                    <User className="w-6 h-6 text-muted-foreground/30" />
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 text-center">Pendiente de asignar</p>
+                                    <User className="w-8 h-8 text-slate-400" />
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Pendiente de asignar</p>
                                 </motion.div>
                             ) : null}
                         </AnimatePresence>
@@ -797,11 +861,11 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4 md:p-5 lg:p-6">
-                                    <HimnoCoroSelector 
-                                        cultoId={culto.id} 
+                                    <HimnoCoroSelector
+                                        cultoId={culto.id}
                                         cultoDate={culto.fecha}
-                                        maxHimnos={5} 
-                                        maxCoros={5} 
+                                        maxHimnos={5}
+                                        maxCoros={5}
                                         tipoCulto={culto.tipo_culto?.nombre}
                                     />
                                 </CardContent>
