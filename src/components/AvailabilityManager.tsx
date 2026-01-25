@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Calendar as CalendarIcon, Check, LayoutGrid, Info } from 'lucide-react'
+import { Calendar as CalendarIcon, Check, LayoutGrid, Info, Clock } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Card, CardContent } from '@/components/ui/Card'
 import { cn } from '@/lib/utils'
@@ -224,9 +225,6 @@ export default function AvailabilityManager({ value = {}, onChange }: Availabili
                                                     {ASSIGNMENTS.map(assignment => {
                                                         const isSelected = availability[assignment.key as keyof AssignmentAvailability]
 
-                                                        // Static configuration for 'Standard Pattern'
-                                                        // Mon-Sat: Intro/Finalization (Noches de Culto)
-                                                        // Sun: Intro/Teaching/Testimonies (Escuela Dominical - No Finalization)
                                                         const validAssignments = {
                                                             '1': ['intro', 'finalization'],
                                                             '2': ['intro', 'finalization'],
@@ -237,30 +235,40 @@ export default function AvailabilityManager({ value = {}, onChange }: Availabili
                                                             '0': ['intro', 'teaching', 'testimonies']
                                                         }
 
-                                                        const isValidForDay = validAssignments[day.key as keyof typeof validAssignments]?.includes(assignment.key)
+                                                        const isValidForDay = (validAssignments as Record<string, string[]>)[day.key]?.includes(assignment.key)
 
                                                         if (!isValidForDay) {
                                                             return (
-                                                                <div key={assignment.key} className="flex-1 h-10 rounded-xl bg-muted/20 border border-transparent flex items-center justify-center opacity-30 cursor-not-allowed min-w-18">
-                                                                    <span className="text-[8px] font-black uppercase text-muted-foreground scale-75 opacity-50">N/A</span>
+                                                                <div key={assignment.key} className="flex-1 h-12 rounded-xl bg-muted/10 border border-transparent flex items-center justify-center opacity-20 cursor-not-allowed min-w-[60px]">
+                                                                    <span className="text-[9px] font-black uppercase text-muted-foreground opacity-50">N/A</span>
                                                                 </div>
                                                             )
                                                         }
 
                                                         return (
-                                                            <button
+                                                            <motion.button
                                                                 key={assignment.key}
+                                                                whileHover={{ scale: 1.05 }}
+                                                                whileTap={{ scale: 0.95 }}
                                                                 onClick={() => updateTemplate(day.key, assignment.key as keyof AssignmentAvailability)}
                                                                 className={cn(
-                                                                    "flex-1 h-10 rounded-xl border flex items-center justify-center gap-1.5 transition-all min-w-18",
+                                                                    "flex-1 h-12 rounded-xl border flex items-center justify-center gap-1.5 transition-all min-w-[60px] relative overflow-hidden",
                                                                     isSelected
-                                                                        ? "bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/20"
-                                                                        : "bg-transparent border-transparent hover:bg-muted"
+                                                                        ? "bg-amber-500 border-amber-600 text-white shadow-lg shadow-amber-500/30"
+                                                                        : "bg-white/5 dark:bg-zinc-800/50 border-border/50 hover:bg-muted"
                                                                 )}
                                                             >
-                                                                <span className="text-[10px] font-black uppercase">{assignment.label}</span>
-                                                                {isSelected && <Check className="w-3 h-3 stroke-4" />}
-                                                            </button>
+                                                                {isSelected && (
+                                                                    <motion.div
+                                                                        layoutId={`check-${day.key}-${assignment.key}`}
+                                                                        className="absolute inset-0 bg-white/10"
+                                                                        initial={{ opacity: 0 }}
+                                                                        animate={{ opacity: 1 }}
+                                                                    />
+                                                                )}
+                                                                <span className="text-[10px] font-black uppercase relative z-10">{assignment.label}</span>
+                                                                {isSelected && <Check className="w-3 h-3 stroke-[4] relative z-10" />}
+                                                            </motion.button>
                                                         )
                                                     })}
                                                 </div>
@@ -320,7 +328,7 @@ export default function AvailabilityManager({ value = {}, onChange }: Availabili
                                             </div>
 
                                             {/* Toggles */}
-                                            <div className="flex-1 p-2 grid grid-cols-4 gap-1.5 items-center">
+                                            <div className="flex-1 p-2 sm:p-3 grid grid-cols-2 xs:grid-cols-4 gap-2 items-center">
                                                 {ASSIGNMENTS.map(assignment => {
                                                     const isSelected = availability[assignment.key as keyof AssignmentAvailability]
 
@@ -336,28 +344,43 @@ export default function AvailabilityManager({ value = {}, onChange }: Availabili
                                                     const isAvailableInCulto = cultoInfo ? (typeKey ? (cultoInfo.tipo_culto as Record<string, boolean>)?.[typeKey] : false) : false
 
                                                     if (!isAvailableInCulto) {
-                                                        return <div key={assignment.key} className="h-full rounded-xl bg-muted/20 border border-transparent flex items-center justify-center opacity-30 cursor-not-allowed">
-                                                            <span className="text-[8px] font-black uppercase text-muted-foreground scale-75 opacity-50">N/A</span>
-                                                        </div>
+                                                        return (
+                                                            <div key={assignment.key} className="h-12 rounded-xl bg-muted/10 border border-transparent flex items-center justify-center opacity-20 cursor-not-allowed">
+                                                                <span className="text-[9px] font-black uppercase text-muted-foreground opacity-50">N/A</span>
+                                                            </div>
+                                                        )
                                                     }
 
                                                     return (
-                                                        <button
+                                                        <motion.button
                                                             key={assignment.key}
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
                                                             onClick={() => updateException(date, assignment.key as keyof AssignmentAvailability)}
                                                             className={cn(
-                                                                "flex flex-col items-center justify-center h-full rounded-xl border transition-all",
+                                                                "flex flex-col items-center justify-center h-12 rounded-xl border transition-all relative overflow-hidden",
                                                                 isSelected
-                                                                    ? "bg-emerald-500 border-emerald-600 text-white shadow-sm"
-                                                                    : "bg-transparent border-transparent hover:bg-muted/50 text-muted-foreground/50 hover:text-muted-foreground"
+                                                                    ? "bg-emerald-500 border-emerald-600 text-white shadow-lg shadow-emerald-500/30"
+                                                                    : "bg-white/5 dark:bg-zinc-800/50 border-border/50 hover:bg-muted/50 text-muted-foreground/50 hover:text-muted-foreground"
                                                             )}
                                                         >
-                                                            <span className="text-[9px] font-black uppercase">{assignment.label}</span>
-                                                            <div className={cn(
-                                                                "w-1.5 h-1.5 rounded-full mt-1",
-                                                                isSelected ? "bg-white" : "bg-border"
-                                                            )} />
-                                                        </button>
+                                                            {isSelected && (
+                                                                <motion.div
+                                                                    layoutId={`check-exception-${dateStr}-${assignment.key}`}
+                                                                    className="absolute inset-0 bg-white/10"
+                                                                    initial={{ opacity: 0 }}
+                                                                    animate={{ opacity: 1 }}
+                                                                />
+                                                            )}
+                                                            <span className="text-[10px] font-black uppercase relative z-10">{assignment.label}</span>
+                                                            <motion.div
+                                                                className={cn(
+                                                                    "w-1.5 h-1.5 rounded-full mt-1 relative z-10",
+                                                                    isSelected ? "bg-white" : "bg-border"
+                                                                )}
+                                                                animate={isSelected ? { scale: [1, 1.5, 1] } : { scale: 1 }}
+                                                            />
+                                                        </motion.button>
                                                     )
                                                 })}
                                             </div>

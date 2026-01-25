@@ -226,3 +226,68 @@ export async function getCultosForRange(startDate: string, endDate: string) {
         return { success: false, error: 'Error al cargar cultos' }
     }
 }
+
+/**
+ * Obtiene el culto completo de una fecha específica con todas sus relaciones.
+ * Usado por CultoNavigator para navegación dinámica.
+ */
+export async function getCultoByDate(fecha: string) {
+    const supabase = await createClient()
+
+    try {
+        const { data, error } = await supabase
+            .from('cultos')
+            .select(`
+                *,
+                lecturas:lecturas_biblicas(*),
+                plan_himnos_coros(
+                    *,
+                    himno:himnos(numero, titulo, duracion_segundos),
+                    coro:coros(numero, titulo, duracion_segundos)
+                ),
+                tipo_culto:culto_types(nombre, color, tiene_ensenanza, tiene_testimonios, tiene_lectura_introduccion, tiene_lectura_finalizacion, tiene_himnos_y_coros),
+                usuario_intro:profiles!id_usuario_intro(nombre, apellidos, avatar_url),
+                usuario_finalizacion:profiles!id_usuario_finalizacion(nombre, apellidos, avatar_url),
+                usuario_ensenanza:profiles!id_usuario_ensenanza(nombre, apellidos, avatar_url),
+                usuario_testimonios:profiles!id_usuario_testimonios(nombre, apellidos, avatar_url)
+            `)
+            .eq('fecha', fecha)
+            .order('hora_inicio', { ascending: true })
+            .limit(1)
+            .maybeSingle()
+
+        if (error) throw error
+
+        return { success: true, data }
+    } catch (error) {
+        console.error('Error fetching culto by date:', error)
+        return { success: false, error: 'Error al cargar el culto' }
+    }
+}
+
+/**
+ * Obtiene indicadores de cultos en un rango de fechas (para mini-calendario).
+ * Retorna solo fecha y color del tipo, sin datos pesados.
+ */
+export async function getCultoIndicatorsForRange(startDate: string, endDate: string) {
+    const supabase = await createClient()
+
+    try {
+        const { data, error } = await supabase
+            .from('cultos')
+            .select(`
+                fecha,
+                tipo_culto:culto_types(color)
+            `)
+            .gte('fecha', startDate)
+            .lte('fecha', endDate)
+            .order('fecha', { ascending: true })
+
+        if (error) throw error
+
+        return { success: true, data }
+    } catch (error) {
+        console.error('Error fetching culto indicators:', error)
+        return { success: false, error: 'Error al cargar indicadores' }
+    }
+}

@@ -173,6 +173,7 @@ export default async function DashboardPage() {
                 estudioBiblicoData={estudioBiblicoData}
                 observacionesData={observacionesData}
                 initialAssignments={initialAssignments || []}
+                initialDate={cultoMostrado?.fecha || today}
                 stats={{
                     totalCultos: totalCultos || 0,
                     totalLecturas: totalLecturas || 0

@@ -79,6 +79,9 @@ export const translations = {
         'dashboard.himnario.totalTime': 'Tiempo Himnos y Coros',
         'dashboard.himnario.totalTimeHymns': 'Tiempo Himnos',
         'dashboard.himnario.totalTimeChoruses': 'Tiempo Coros',
+        'dashboard.navigator.today': 'HOY',
+        'dashboard.navigator.noService': 'Sin culto programado',
+        'dashboard.navigator.loading': 'Cargando...',
 
         // Cultos
         'cultos.intro': 'Introducción',
@@ -520,6 +523,9 @@ export const translations = {
         'dashboard.himnario.totalTime': 'Temps Himnes i Coros',
         'dashboard.himnario.totalTimeHymns': 'Temps Himnes',
         'dashboard.himnario.totalTimeChoruses': 'Temps Coros',
+        'dashboard.navigator.today': 'AVUI',
+        'dashboard.navigator.noService': 'Sense culte programat',
+        'dashboard.navigator.loading': 'Carregant...',
 
         // Cultos
         'cultos.intro': 'Introducció',

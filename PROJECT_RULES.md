@@ -153,6 +153,7 @@ src/
 - ✅ Animaciones sutiles y elegantes
 - ✅ Feedback visual al usuario
 - ✅ Logs descriptivos en desarrollo
+- ✅ **Seguridad de Hidratación (Hydration Safety)**: Para evitar errores de "Hydration failed" en Next.js, cualquier componente que dependa de valores del cliente (`window`, `localStorage`, `isDark`, `language` persistido) DEBE usar un estado `mounted`. No se deben renderizar clases o componentes que dependan de estos valores hasta que `useEffect` haya marcado `mounted = true`.
 - ✅ **Tolerancia Cero a Errores**: Antes de finalizar cualquier tarea, es OBLIGATORIO ejecutar `npx tsc --noEmit` y `npx eslint .`. Cualquier error detectado DEBE ser corregido inmediatamente. No se permite la entrega de código con errores de compilación o linting.
 
 ## 🛠️ Regla de Auto-Corrección (Antigravity Skill)

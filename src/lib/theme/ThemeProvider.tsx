@@ -10,15 +10,17 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-    const [isDark, setIsDark] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('theme')
-            // Solo activar dark si el usuario lo guardó explícitamente.
-            // Ignoramos la preferencia del sistema (matchMedia) para total independencia.
-            return saved === 'dark'
+    const [isDark, setIsDark] = useState(false)
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        const saved = localStorage.getItem('theme')
+        if (saved === 'dark') {
+            setIsDark(true)
+            document.documentElement.classList.add('dark')
         }
-        return false
-    })
+        setMounted(true)
+    }, [])
 
     useEffect(() => {
         if (isDark) {

@@ -17,12 +17,12 @@
 
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
     User, Mail, Phone, Shield, Moon, Globe, Sun,
     Camera, Loader2, Sparkles, UserCircle,
-    Calendar, Save, AlertCircle, Trash2
+    Calendar, Save, AlertCircle, Trash2, Bell
 } from 'lucide-react'
 import NextImage from 'next/image'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -67,6 +67,12 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
     })
     const [isLoading, setIsLoading] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
+    const [mounted, setMounted] = useState(false)
+
+    // Hydration fix: wait until mounted to render dynamic specific parts
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     // Avatar States
     const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null)
@@ -152,6 +158,12 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
         } finally {
             setIsSaving(false)
         }
+    }
+
+    if (!mounted) {
+        return <div className="min-h-screen bg-background flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
     }
 
     return (
@@ -251,13 +263,13 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                 )}
                             </div>
 
-                            <div className="space-y-2">
-                                <h2 className="text-2xl font-black tracking-tight truncate">
+                            <div className="space-y-1 sm:space-y-2">
+                                <h2 className="text-xl sm:text-2xl font-black tracking-tight truncate">
                                     {formData.nombre} {formData.apellidos}
                                 </h2>
-                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                                    <Shield className="w-3.5 h-3.5" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">{profile?.rol || 'MIEMBRO'}</span>
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                    <Shield className="w-3 h-3" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">{profile?.rol || 'MIEMBRO'}</span>
                                 </div>
                             </div>
 
@@ -500,6 +512,12 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                     {/* Notificaciones Push */}
                     <Card className="rounded-[2.5rem] border-none shadow-xl glass overflow-hidden">
                         <CardContent className="p-4 sm:p-6 md:p-8">
+                            <h3 className="text-lg font-black uppercase tracking-tighter flex items-center gap-3 mb-6">
+                                <div className="p-2 bg-blue-500/10 rounded-xl">
+                                    <Bell className="w-5 h-5 text-blue-500" />
+                                </div>
+                                {t('profile.notifications' as any) || 'Notificaciones'}
+                            </h3>
                             <PushNotificationToggle />
                         </CardContent>
                     </Card>

@@ -23,6 +23,7 @@ El agente debe ejecutar estos comandos siempre que realice cambios significativo
 ## 🧠 Guía de Resolución Común
 - **TS2322 (Type Incompatibility)**: Verificar interfaces en `src/types/database.ts` o componentes UI.
 - **TS2345 (Argument mismatch)**: Añadir comprobaciones de nulidad o cast de tipos (si es seguro).
+- **Hydration Error (Next.js)**: Si el error dice "Hydration failed", el agente DEBE envolver el renderizado o los estilos dinámicos en un chequeo de `mounted`.
 - **ESLint (Unused vars)**: Eliminar o prefijar con `_` si son necesarias para el futuro.
 - **ESLint (Any)**: Intentar tipar correctamente antes de usar `any`.
 
