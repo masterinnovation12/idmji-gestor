@@ -137,6 +137,12 @@ export interface Festivo {
     tipo: 'nacional' | 'autonomico' | 'local' | 'laborable_festivo'
     descripcion: string | null
     created_at?: string
+    // Campo opcional añadido por getFestivos() con el culto asociado
+    culto?: {
+        id: string
+        hora: string
+        tipo: string
+    } | null
 }
 
 export interface CalendarEvent extends Partial<Culto> {

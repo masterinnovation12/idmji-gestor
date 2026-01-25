@@ -156,7 +156,7 @@ id,
     }
 
     // Combinar datos
-    const formattedData = (festivosData as unknown as { id: number; fecha: string; tipo: string; descripcion: string | null }[]).map((festivo) => {
+    const formattedData = (festivosData as unknown as { id: number; fecha: string; tipo: 'nacional' | 'autonomico' | 'local' | 'laborable_festivo'; descripcion: string | null }[]).map((festivo) => {
         const culto = cultosMap[festivo.fecha]
         return {
             ...festivo,
@@ -168,7 +168,7 @@ id,
         }
     })
 
-    return { data: formattedData }
+    return { data: formattedData as import('@/types/database').Festivo[] }
 }
 
 export async function seedRandomFestivos(year: number) {
