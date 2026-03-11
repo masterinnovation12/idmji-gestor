@@ -13,7 +13,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff, Globe, Moon, Sun, LogIn, CheckCircle, Sparkles } from 'lucide-react'
@@ -38,41 +38,44 @@ export default function LoginPage() {
     const [error, setError] = useState('')
     const [loginSuccess, setLoginSuccess] = useState(false)
 
-    const setEmail = (email: string) => setCredentials(prev => ({ ...prev, email }))
-    const setPassword = (password: string) => setCredentials(prev => ({ ...prev, password }))
     const setRememberMe = (rememberMe: boolean) => setCredentials(prev => ({ ...prev, rememberMe }))
+    const emailRef = useRef<HTMLInputElement>(null)
+    const passwordRef = useRef<HTMLInputElement>(null)
 
-    const { email, password, rememberMe } = credentials
+    const { rememberMe } = credentials
 
-    // Cargar credenciales guardadas al montar
+    // Cargar credenciales guardadas al montar (inputs no controlados para E2E/Playwright)
     useEffect(() => {
         const savedEmail = localStorage.getItem('idmji_email')
         const savedPassword = localStorage.getItem('idmji_password')
         const savedRemember = localStorage.getItem('idmji_remember') === 'true'
 
         if (savedRemember && savedEmail && savedPassword) {
-            // Use timeout to avoid synchronous setState in effect (Next.js lint rule)
-            const timeout = setTimeout(() => {
-                setCredentials({
-                    email: savedEmail,
-                    password: savedPassword,
-                    rememberMe: true
-                })
+            setCredentials(prev => ({ ...prev, rememberMe: true }))
+            const t = setTimeout(() => {
+                if (emailRef.current) emailRef.current.value = savedEmail
+                if (passwordRef.current) passwordRef.current.value = savedPassword
             }, 0)
-            return () => clearTimeout(timeout)
+            return () => clearTimeout(t)
         }
     }, [])
 
-    // Manejar submit del formulario
-    const handleSubmit = async (e: React.FormEvent) => {
+    // Manejar submit del formulario (lee del DOM para compatibilidad con E2E/Playwright fill())
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         setError('')
         setIsLoading(true)
 
+        const form = e.currentTarget
+        const emailField = form.elements.namedItem('email') as HTMLInputElement | null
+        const passwordField = form.elements.namedItem('password') as HTMLInputElement | null
+        const emailVal = emailField?.value?.trim() ?? ''
+        const passwordVal = passwordField?.value?.trim() ?? ''
+
         try {
             const formData = new FormData()
-            formData.append('email', email)
-            formData.append('password', password)
+            formData.append('email', emailVal)
+            formData.append('password', passwordVal)
 
             const result = await login(formData)
 
@@ -82,8 +85,8 @@ export default function LoginPage() {
             } else if (result?.success) {
                 // Guardar credenciales si "recordar" está activo
                 if (rememberMe) {
-                    localStorage.setItem('idmji_email', email)
-                    localStorage.setItem('idmji_password', password)
+                    localStorage.setItem('idmji_email', emailVal)
+                    localStorage.setItem('idmji_password', passwordVal)
                     localStorage.setItem('idmji_remember', 'true')
                 } else {
                     localStorage.removeItem('idmji_email')
@@ -242,9 +245,11 @@ export default function LoginPage() {
                                 {t('login.email')}
                             </label>
                             <input
+                                ref={emailRef}
+                                data-testid="login-email"
+                                name="email"
                                 type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                defaultValue={credentials.email}
                                 required
                                 className="w-full bg-background/50 border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                                 placeholder="ejemplo@idmji.org"
@@ -262,9 +267,11 @@ export default function LoginPage() {
                             </label>
                             <div className="relative">
                                 <input
+                                    ref={passwordRef}
+                                    data-testid="login-password"
+                                    name="password"
                                     type={showPassword ? 'text' : 'password'}
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    defaultValue={credentials.password}
                                     required
                                     className="w-full bg-background/50 border border-border rounded-xl px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                                     placeholder="••••••••"
@@ -302,6 +309,7 @@ export default function LoginPage() {
                         <AnimatePresence>
                             {error && (
                                 <motion.div
+                                    data-testid="login-error"
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
@@ -314,6 +322,7 @@ export default function LoginPage() {
 
                         {/* Botón de login con efecto de éxito */}
                         <motion.button
+                            data-testid="login-submit"
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.7 }}

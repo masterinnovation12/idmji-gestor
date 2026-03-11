@@ -106,6 +106,9 @@ export const translations = {
         'culto.protocol.noPray': 'NO, ORAR',
         'culto.protocol.standing': 'DE PIE',
         'culto.protocol.seated': 'SENTADOS',
+        'culto.instrucciones.title': 'Instrucciones',
+        'culto.instrucciones.ver': 'Ver instrucciones',
+        'culto.instrucciones.empty': 'No hay instrucciones para este rol.',
 
         // Days
         'day.monday': 'Lunes',
@@ -550,6 +553,9 @@ export const translations = {
         'culto.protocol.noPray': 'NO, ORAR',
         'culto.protocol.standing': 'DE PEU',
         'culto.protocol.seated': 'ASSEGUTS',
+        'culto.instrucciones.title': 'Instruccions',
+        'culto.instrucciones.ver': 'Veure instruccions',
+        'culto.instrucciones.empty': 'No hi ha instruccions per a aquest rol.',
 
         // Days
         'day.monday': 'Dilluns',

@@ -26,6 +26,8 @@ import { NotificationPrompt } from '@/components/NotificationPrompt'
 import CultoNavigator from '@/components/CultoNavigator'
 import { UserAvatar } from '@/components/dashboard/cultos/UserAvatar'
 import { CultoCardRenderer } from '@/components/dashboard/cultos/CultoCardRenderer'
+import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
+import type { RolInstruccionCulto } from '@/types/database'
 
 // --- Sub-componentes ---
 
@@ -78,6 +80,7 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
     const [assignments, setAssignments] = useState<Culto[]>(initialAssignments)
     const [currentWeekDate, setCurrentWeekDate] = useState(new Date())
     const [isLoadingAssignments, setIsLoadingAssignments] = useState(false)
+    const [instruccionesModal, setInstruccionesModal] = useState<{ cultoTypeId: string; cultoTypeNombre: string; rol: RolInstruccionCulto } | null>(null)
 
     // Handlers for assignments navigation
     const changeWeek = async (direction: 'prev' | 'next') => {
@@ -209,32 +212,44 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                                     <div className="flex justify-center py-8"><div className="animate-spin w-6 h-6 border-2 border-blue-500 rounded-full border-t-transparent" /></div>
                                 ) : assignments.length > 0 ? (
                                     assignments.map((asg) => {
-                                        // Determine Role
-                                        const roles = []
-                                        if (asg.id_usuario_intro === user.id) roles.push(t('cultos.role.intro'))
-                                        if (asg.id_usuario_ensenanza === user.id) roles.push(t('cultos.role.teaching'))
-                                        if (asg.id_usuario_finalizacion === user.id) roles.push(t('cultos.role.final'))
-                                        if (asg.id_usuario_testimonios === user.id) roles.push(t('cultos.role.testimonies'))
+                                        const roles: string[] = []
+                                        const rolesKeys: RolInstruccionCulto[] = []
+                                        if (asg.id_usuario_intro === user.id) { roles.push(t('cultos.role.intro')); rolesKeys.push('introduccion') }
+                                        if (asg.id_usuario_ensenanza === user.id) { roles.push(t('cultos.role.teaching')); rolesKeys.push('ensenanza') }
+                                        if (asg.id_usuario_finalizacion === user.id) { roles.push(t('cultos.role.final')); rolesKeys.push('finalizacion') }
+                                        if (asg.id_usuario_testimonios === user.id) { roles.push(t('cultos.role.testimonies')); rolesKeys.push('testimonios') }
+                                        const firstRol = rolesKeys[0]
 
                                         return (
-                                            <Link key={asg.id} href={`/dashboard/cultos/${asg.id}`}>
-                                                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-800 group">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-xs font-bold text-slate-400 uppercase">{format(new Date(asg.fecha), 'EEE d', { locale })}</span>
-                                                            <span className="font-black text-slate-800 dark:text-slate-100">{getTranslatedCultoName(asg.tipo_culto?.nombre)}</span>
+                                            <div key={asg.id} className="flex flex-col gap-1">
+                                                <Link href={`/dashboard/cultos/${asg.id}`}>
+                                                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-800 group">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-xs font-bold text-slate-400 uppercase">{format(new Date(asg.fecha), 'EEE d', { locale })}</span>
+                                                                <span className="font-black text-slate-800 dark:text-slate-100">{getTranslatedCultoName(asg.tipo_culto?.nombre)}</span>
+                                                            </div>
+                                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: asg.tipo_culto?.color }} />
                                                         </div>
-                                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: asg.tipo_culto?.color }} />
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {roles.map(r => (
+                                                                <span key={r} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                                                                    {r}
+                                                                </span>
+                                                            ))}
+                                                        </div>
                                                     </div>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {roles.map(r => (
-                                                            <span key={r} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                                                                {r}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </Link>
+                                                </Link>
+                                                {firstRol && asg.tipo_culto_id && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setInstruccionesModal({ cultoTypeId: asg.tipo_culto_id, cultoTypeNombre: asg.tipo_culto?.nombre ?? '', rol: firstRol })}
+                                                        className="min-h-[44px] py-2.5 text-[10px] font-bold uppercase tracking-wider text-primary hover:underline text-left px-4 touch-manipulation rounded-lg hover:bg-primary/5 active:bg-primary/10 transition-colors"
+                                                    >
+                                                        {t('culto.instrucciones.ver')}
+                                                    </button>
+                                                )}
+                                            </div>
                                         )
                                     })
                                 ) : (
@@ -258,6 +273,16 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
             </div>
 
             <NotificationPrompt />
+
+            {instruccionesModal && (
+                <InstruccionesCultoModal
+                    isOpen
+                    onClose={() => setInstruccionesModal(null)}
+                    cultoTypeId={instruccionesModal.cultoTypeId}
+                    cultoTypeNombre={instruccionesModal.cultoTypeNombre}
+                    rol={instruccionesModal.rol}
+                />
+            )}
         </div>
     )
 }

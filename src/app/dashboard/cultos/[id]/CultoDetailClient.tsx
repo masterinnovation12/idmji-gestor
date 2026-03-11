@@ -20,7 +20,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
-import { Calendar, Clock, User, BookOpen, Music, AlertCircle, CheckCircle, Sparkles, AlertTriangle } from 'lucide-react'
+import { Calendar, Clock, User, BookOpen, Music, AlertCircle, CheckCircle, Sparkles, AlertTriangle, Info } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -30,6 +30,7 @@ import BibleReadingManager from '@/components/BibleReadingManager'
 import { updateAssignment, toggleFestivo, updateCultoProtocol, updateInicioAnticipado, updateCultoObservaciones } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import BackButton from '@/components/BackButton'
+import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LIMITES } from '@/lib/constants'
@@ -56,7 +57,8 @@ interface AssignmentSectionProps {
     cultoId: string,
     cultoDate?: string,
     assignmentType?: string,
-    isFestivo?: boolean
+    isFestivo?: boolean,
+    onVerInstrucciones?: () => void
 }
 
 function AssignmentSection({
@@ -70,7 +72,8 @@ function AssignmentSection({
     cultoId,
     cultoDate,
     assignmentType,
-    isFestivo
+    isFestivo,
+    onVerInstrucciones
 }: AssignmentSectionProps) {
     const [isEditing, setIsEditing] = useState(!selectedUserId)
     const [isSaving, setIsSaving] = useState(false)
@@ -150,20 +153,34 @@ function AssignmentSection({
             className={`h-full w-full min-w-0 ${isEditing ? 'relative z-100' : 'relative z-10'}`}
         >
             <Card className={`h-full w-full min-w-0 border-t-4 border-primary/40 glass group hover:border-primary transition-all duration-500 shadow-xl relative overflow-visible ${isEditing ? 'ring-4 ring-primary/30' : ''}`}>
-                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors pointer-events-none" />
 
                 <CardHeader className="flex flex-row items-center justify-between pb-2 md:pb-4 shrink-0 gap-2 border-b border-primary/5">
                     <CardTitle icon={icon} className="text-primary font-black uppercase tracking-widest text-[10px] md:text-[11px] leading-tight">
                         {label}
                     </CardTitle>
-                    {optimisticId && !isEditing && (
-                        <button
-                            onClick={() => setIsEditing(true)}
-                            className="px-3 py-1 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm shrink-0"
-                        >
-                            Modificar
-                        </button>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                        {onVerInstrucciones && (
+                            <button
+                                type="button"
+                                data-testid="ver-instrucciones-btn"
+                                onClick={onVerInstrucciones}
+                                className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2.5 sm:px-2 sm:py-1 text-[9px] font-black uppercase tracking-widest text-primary/80 hover:text-primary rounded-xl hover:bg-primary/10 transition-all flex items-center justify-center gap-1.5 touch-manipulation"
+                                aria-label={t('culto.instrucciones.ver')}
+                            >
+                                <Info className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 shrink-0" />
+                                <span className="hidden sm:inline">{t('culto.instrucciones.ver')}</span>
+                            </button>
+                        )}
+                        {optimisticId && !isEditing && (
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="px-3 py-1 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
+                            >
+                                Modificar
+                            </button>
+                        )}
+                    </div>
                 </CardHeader>
 
                 <CardContent className="p-4 md:p-6 flex-1 flex flex-col overflow-visible">
@@ -278,6 +295,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
     const [isUpdating, setIsUpdating] = useState(false)
     const [pendingAssignment, setPendingAssignment] = useState<{ type: 'introduccion' | 'finalizacion' | 'ensenanza' | 'testimonios', userId: string } | null>(null)
     const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false)
+    const [instruccionesModalRol, setInstruccionesModalRol] = useState<'introduccion' | 'ensenanza' | 'testimonios' | 'finalizacion' | null>(null)
 
     const handleToggleFestivo = async () => {
         setIsUpdating(true)
@@ -725,6 +743,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 cultoDate={culto.fecha}
                                 assignmentType="introduccion"
                                 isFestivo={culto.es_laborable_festivo}
+                                onVerInstrucciones={() => setInstruccionesModalRol('introduccion')}
                             />
                         </div>
                     )}
@@ -743,6 +762,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 cultoDate={culto.fecha}
                                 assignmentType="ensenanza"
                                 isFestivo={culto.es_laborable_festivo}
+                                onVerInstrucciones={() => setInstruccionesModalRol('ensenanza')}
                             />
                         </div>
                     )}
@@ -761,6 +781,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 cultoDate={culto.fecha}
                                 assignmentType="testimonios"
                                 isFestivo={culto.es_laborable_festivo}
+                                onVerInstrucciones={() => setInstruccionesModalRol('testimonios')}
                             />
                         </div>
                     )}
@@ -779,6 +800,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 cultoDate={culto.fecha}
                                 assignmentType="finalizacion"
                                 isFestivo={culto.es_laborable_festivo}
+                                onVerInstrucciones={() => setInstruccionesModalRol('finalizacion')}
                             />
                         </div>
                     )}
@@ -890,6 +912,14 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                     Finalizar y Guardar
                 </button>
             </motion.div>
+
+            <InstruccionesCultoModal
+                isOpen={!!instruccionesModalRol}
+                onClose={() => setInstruccionesModalRol(null)}
+                cultoTypeId={culto.tipo_culto_id}
+                cultoTypeNombre={tipoCulto}
+                rol={instruccionesModalRol ?? 'introduccion'}
+            />
         </div>
     )
 }

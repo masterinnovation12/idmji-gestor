@@ -151,6 +151,28 @@ export interface CalendarEvent extends Partial<Culto> {
     hora_inicio: string
 }
 
+/** Rol de asignación en un culto (igual que en la UI). */
+export type RolInstruccionCulto = 'introduccion' | 'ensenanza' | 'testimonios' | 'finalizacion'
+
+/** Instrucciones por tipo de culto y rol (tabla instrucciones_culto). */
+export interface InstruccionCulto {
+    id: number
+    culto_type_id: number
+    rol: RolInstruccionCulto
+    titulo_es: string
+    titulo_ca: string
+    contenido_es: string
+    contenido_ca: string
+    created_at?: string
+    updated_at?: string
+}
+
+/** Respuesta para el modal: título y contenido según idioma. */
+export interface InstruccionCultoParaUI {
+    titulo: string
+    contenido: string
+}
+
 export interface ActionResponse<T = void> {
     success?: boolean
     error?: string
