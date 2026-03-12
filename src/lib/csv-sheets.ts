@@ -51,19 +51,16 @@ function normalizeHeaderCell(cell: string, index: number): string {
 }
 
 /**
- * Obtiene la fila de cabecera: primera fila con al menos una celda no vacía.
- * Devuelve el índice de esa fila y las claves normalizadas.
+ * Obtiene la fila de cabecera: fila con más celdas no vacías en las primeras 15.
+ * Si ninguna tiene 2+ celdas, usa la primera fila no vacía (permite hojas con título de 1 celda).
  */
 function findHeaderRow(rows: string[][]): { headerIndex: number; keys: string[] } | null {
-  // First pass: find the row with the most non-empty cells (best candidate for header)
-  // Skip rows with only 1 non-empty cell (likely merged title/subtitle rows)
   let bestIndex = -1
   let bestScore = 0
 
   for (let i = 0; i < Math.min(rows.length, 15); i++) {
     const row = rows[i]
     const nonEmpty = row.filter((c) => (c ?? '').trim() !== '').length
-    if (nonEmpty < 2) continue // skip title rows with only 1 cell
     if (nonEmpty > bestScore) {
       bestScore = nonEmpty
       bestIndex = i
@@ -71,7 +68,6 @@ function findHeaderRow(rows: string[][]): { headerIndex: number; keys: string[] 
   }
 
   if (bestIndex === -1) {
-    // Fallback: first non-empty row
     for (let i = 0; i < rows.length; i++) {
       if (!isEmptyRow(rows[i])) {
         bestIndex = i
@@ -145,9 +141,17 @@ async function fetchCSVText(url: string): Promise<string> {
  * - Primera fila no vacía = cabecera (claves normalizadas)
  * - Filas totalmente vacías excluidas
  * - Columnas totalmente vacías excluidas
+ * - Elimina BOM UTF-8 si existe
+ * - Rechaza respuestas HTML (p. ej. error de Google)
  */
 export function parseAdaptiveCSV(csvText: string): Record<string, string>[] {
-  const lines = csvText.split(/\r?\n/).filter((l) => l.length > 0)
+  let text = csvText
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1)
+  const trimmed = text.trim()
+  if (trimmed.startsWith('<!') || trimmed.startsWith('<html') || trimmed.startsWith('<HTML')) {
+    return []
+  }
+  const lines = text.split(/\r?\n/).filter((l) => l.length > 0)
   const rows = lines.map((line) => parseCSVLine(line))
   if (rows.length === 0) return []
 

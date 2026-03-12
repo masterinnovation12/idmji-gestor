@@ -110,6 +110,18 @@ export const translations = {
         'culto.instrucciones.ver': 'Ver instrucciones',
         'culto.instrucciones.empty': 'No hay instrucciones para este rol.',
 
+        // Archivos (hojas Drive)
+        'archivos.title': 'Archivos',
+        'archivos.tab.ensenanzas': 'Enseñanzas',
+        'archivos.tab.estudios': 'Estudios Bíblicos',
+        'archivos.tab.instituto': 'Instituto Bíblico',
+        'archivos.tab.pastorado': 'Pastorado',
+        'archivos.loading': 'Cargando...',
+        'archivos.error': 'No se pudieron cargar los datos.',
+        'archivos.empty': 'No hay datos en esta hoja.',
+        'archivos.verDetalle': 'Ver detalle',
+        'archivos.cerrar': 'Cerrar',
+
         // Days
         'day.monday': 'Lunes',
         'day.tuesday': 'Martes',
@@ -300,6 +312,7 @@ export const translations = {
         'nav.lecturas': 'Historial Lecturas',
         'nav.himnario': 'HIMNARIO',
         'nav.hermanos': 'Directorio Hermanos',
+        'nav.archivos': 'Archivos',
         'nav.stats': 'Estadísticas',
         'nav.users': 'Usuarios y Roles',
         'nav.audit': 'Auditoría',
@@ -557,6 +570,18 @@ export const translations = {
         'culto.instrucciones.ver': 'Veure instruccions',
         'culto.instrucciones.empty': 'No hi ha instruccions per a aquest rol.',
 
+        // Archivos (hojas Drive)
+        'archivos.title': 'Arxius',
+        'archivos.tab.ensenanzas': 'Ensenyances',
+        'archivos.tab.estudios': 'Estudis Bíblics',
+        'archivos.tab.instituto': 'Institut Bíblic',
+        'archivos.tab.pastorado': 'Pastorat',
+        'archivos.loading': 'Carregant...',
+        'archivos.error': 'No s\'han pogut carregar les dades.',
+        'archivos.empty': 'No hi ha dades en aquesta fulla.',
+        'archivos.verDetalle': 'Veure detall',
+        'archivos.cerrar': 'Tancar',
+
         // Days
         'day.monday': 'Dilluns',
         'day.tuesday': 'Dimarts',
@@ -747,6 +772,7 @@ export const translations = {
         'nav.lecturas': 'Historial Lectures',
         'nav.himnario': 'HIMNARI',
         'nav.hermanos': 'Directori Germans',
+        'nav.archivos': 'Arxius',
         'nav.stats': 'Estadístiques',
         'nav.users': 'Usuaris i Rols',
         'nav.audit': 'Auditoria',

@@ -1,16 +1,18 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { getSheetData, type ArchivosResult } from './actions'
+import { createPortal } from 'react-dom'
+import type { ArchivosResult } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Modal } from '@/components/ui/Modal'
 import {
-  Loader2, AlertCircle, ChevronRight,
-  BookOpen, GraduationCap, School, Church, Filter, X, Calendar,
-  RefreshCw
+  Loader2, AlertCircle, ChevronRight, ChevronDown,
+  BookOpen, BookText, GraduationCap, UsersRound, Filter,
+  RefreshCw, Search, X, ArrowUpDown, ArrowUp, ArrowDown, ChevronsUpDown
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { SheetSourceId } from '@/lib/csv-sheets'
+import { pickPrimaryColumn, type DateColResult } from './archivos-helpers'
 
 /* ─── Constants ─────────────────────────────────────────── */
 const POLLING_INTERVAL_MS = 45_000
@@ -31,43 +33,158 @@ type TabConfig = {
 
 const TABS: TabConfig[] = [
   { id: 'ensenanzas',  label: 'Enseñanzas',     icon: BookOpen,       color: 'text-blue-600  dark:text-blue-400',  bg: 'bg-blue-50  dark:bg-blue-950/40',  activeBg: 'bg-blue-600  dark:bg-blue-500'  },
-  { id: 'estudios',   label: 'Estudios Bíblicos', icon: Church,       color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40', activeBg: 'bg-emerald-600 dark:bg-emerald-500' },
+  { id: 'estudios',   label: 'Estudios Bíblicos', icon: BookText,     color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40', activeBg: 'bg-emerald-600 dark:bg-emerald-500' },
   { id: 'instituto',  label: 'Instituto Bíblico', icon: GraduationCap, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40', activeBg: 'bg-violet-600 dark:bg-violet-500' },
-  { id: 'pastorado',  label: 'Pastorado',        icon: School,        color: 'text-amber-600  dark:text-amber-400',  bg: 'bg-amber-50  dark:bg-amber-950/40',  activeBg: 'bg-amber-600  dark:bg-amber-500'  },
+  { id: 'pastorado',  label: 'Pastorado',        icon: UsersRound,    color: 'text-amber-600  dark:text-amber-400',  bg: 'bg-amber-50  dark:bg-amber-950/40',  activeBg: 'bg-amber-600  dark:bg-amber-500'  },
 ]
 
 /* ─── Helpers ────────────────────────────────────────────── */
 
-const DATE_RE = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
-
-/** Try to parse DD/MM/YYYY or D/M/YYYY → Date. Returns null if not a date. */
-function parseDate(val: string): Date | null {
-  if (!val) return null
-  const m = DATE_RE.exec(val.trim())
-  if (!m) return null
-  const d = Number.parseInt(m[1], 10)
-  const mo = Number.parseInt(m[2], 10) - 1
-  const y = Number.parseInt(m[3], 10)
-  if (mo < 0 || mo > 11 || d < 1 || d > 31) return null
-  return new Date(y, mo, d)
+const MONTH_NAME_TO_NUM: Record<string, number> = {
+  enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
+  julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11,
 }
 
-/** Find which key in the first row looks most like a date column */
-function findDateColumn(data: Record<string, string>[]): string | null {
-  if (data.length === 0) return null
-  const keys = Object.keys(data[0])
-  for (const key of keys) {
-    const hits = data.slice(0, 10).filter((r) => parseDate(r[key]) !== null).length
-    if (hits >= 2) return key
+/** Intenta parsear varios formatos de fecha → Date. Devuelve null si no es fecha. */
+function parseDate(val: string): Date | null {
+  if (!val) return null
+  const s = val.trim()
+  if (!s) return null
+
+  // DD/MM/YYYY o D/M/YYYY
+  let m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s)
+  if (m) {
+    const d = Number.parseInt(m[1], 10)
+    const mo = Number.parseInt(m[2], 10) - 1
+    const y = Number.parseInt(m[3], 10)
+    if (mo >= 0 && mo <= 11 && d >= 1 && d <= 31) return new Date(y, mo, d)
+  }
+
+  // YYYY-MM-DD (ISO)
+  m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s)
+  if (m) {
+    const y = Number.parseInt(m[1], 10)
+    const mo = Number.parseInt(m[2], 10) - 1
+    const d = Number.parseInt(m[3], 10)
+    if (mo >= 0 && mo <= 11 && d >= 1 && d <= 31) return new Date(y, mo, d)
+  }
+
+  // DD-MM-YYYY
+  m = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(s)
+  if (m) {
+    const d = Number.parseInt(m[1], 10)
+    const mo = Number.parseInt(m[2], 10) - 1
+    const y = Number.parseInt(m[3], 10)
+    if (mo >= 0 && mo <= 11 && d >= 1 && d <= 31) return new Date(y, mo, d)
+  }
+
+  return null
+}
+
+/** Obtiene fecha desde una fila: columna única o MES+DÍA (nombres de mes). */
+function getDateFromRow(row: Record<string, string>, dateCol: string | null, mesCol: string | null, diaCol: string | null): Date | null {
+  if (dateCol) {
+    const dt = parseDate(row[dateCol])
+    if (dt) return dt
+  }
+  if (mesCol && diaCol) {
+    const mesVal = (row[mesCol] ?? '').trim().toLowerCase()
+    const diaVal = (row[diaCol] ?? '').trim()
+    const mo = MONTH_NAME_TO_NUM[mesVal] ?? (Number.parseInt(mesVal, 10) - 1)
+    const d = Number.parseInt(diaVal, 10)
+    if (Number.isNaN(d) || d < 1 || d > 31) return null
+    if (mo < 0 || mo > 11) return null
+    const y = new Date().getFullYear()
+    return new Date(y, mo, d)
   }
   return null
 }
 
-/** Extract sorted unique month+year options from a date column */
-function extractMonthYears(data: Record<string, string>[], dateCol: string) {
+/** Texto para mostrar la fecha en cards (columna única o "DÍA MES"). */
+function getDateDisplay(row: Record<string, string>, dateInfo: DateColResult): string | null {
+  if (dateInfo.col && row[dateInfo.col]) return row[dateInfo.col]
+  if (dateInfo.mesCol && dateInfo.diaCol) {
+    const mes = (row[dateInfo.mesCol] ?? '').trim()
+    const dia = (row[dateInfo.diaCol] ?? '').trim()
+    if (mes && dia) return `${dia} ${mes}`
+  }
+  return null
+}
+
+/** Busca columna(s) de fecha: una columna DD/MM/YYYY o el par MES+DÍA. */
+function findDateColumn(data: Record<string, string>[]): DateColResult {
+  if (!data || data.length === 0) return { col: null, mesCol: null, diaCol: null }
+  const keys = Object.keys(data[0])
+
+  for (const key of keys) {
+    const hits = data.slice(0, 15).filter((r) => parseDate(r[key]) !== null).length
+    if (hits >= 2) return { col: key, mesCol: null, diaCol: null }
+  }
+
+  const norm = (s: string) => s.replaceAll(/[\s_]/g, '').toLowerCase()
+  const mesKey = keys.find((k) => norm(k) === 'mes')
+  const diaKey = keys.find((k) => /^d[ií]a$/.test(norm(k)))
+  if (mesKey && diaKey) {
+    const hits = data.slice(0, 15).filter((r) => getDateFromRow(r, null, mesKey, diaKey) !== null).length
+    if (hits >= 2) return { col: null, mesCol: mesKey, diaCol: diaKey }
+  }
+
+  return { col: null, mesCol: null, diaCol: null }
+}
+
+/**
+ * Cuando hay MES+DÍA (p. ej. Estudios Bíblicos con celdas fusionadas):
+ * - Rellena MES vacío con el valor anterior (forward-fill)
+ * - Crea columna FECHA única en formato D/M/YYYY (como Enseñanzas)
+ * - Elimina MES y DÍA de la vista
+ */
+function transformMesDiaToFecha(
+  data: Record<string, string>[],
+  dateInfo: DateColResult
+): { data: Record<string, string>[]; columns: string[]; dateInfo: DateColResult } {
+  if (!data || !dateInfo.mesCol || !dateInfo.diaCol || data.length === 0) {
+    const columns = data && data.length > 0 ? Object.keys(data[0]) : []
+    return { data: data ?? [], columns, dateInfo }
+  }
+
+  const mesCol = dateInfo.mesCol
+  const diaCol = dateInfo.diaCol
+  const otherCols = Object.keys(data[0]).filter((k) => k !== mesCol && k !== diaCol)
+
+  let lastMes = ''
+  const transformed: Record<string, string>[] = []
+
+  for (const row of data) {
+    const mesRaw = (row[mesCol] ?? '').trim()
+    const mes = mesRaw || lastMes
+    if (mes) lastMes = mes
+
+    const dia = (row[diaCol] ?? '').trim()
+    const dt = getDateFromRow({ ...row, [mesCol]: mes }, null, mesCol, diaCol)
+    const fechaStr = dt ? `${dt.getDate()}/${dt.getMonth() + 1}/${dt.getFullYear()}` : ''
+
+    const newRow: Record<string, string> = { FECHA: fechaStr }
+    for (const k of otherCols) newRow[k] = row[k] ?? ''
+    transformed.push(newRow)
+  }
+
+  const columns = ['FECHA', ...otherCols]
+  return {
+    data: transformed,
+    columns,
+    dateInfo: { col: 'FECHA', mesCol: null, diaCol: null },
+  }
+}
+
+/** Extrae opciones únicas mes+año desde columna(s) de fecha. */
+function extractMonthYears(
+  data: Record<string, string>[],
+  dateInfo: DateColResult
+): { year: number; month: number; label: string }[] {
+  if (!data || !dateInfo) return []
   const seen = new Map<string, { year: number; month: number; label: string }>()
   for (const row of data) {
-    const dt = parseDate(row[dateCol])
+    const dt = getDateFromRow(row, dateInfo.col, dateInfo.mesCol, dateInfo.diaCol)
     if (!dt) continue
     const key = `${dt.getFullYear()}-${dt.getMonth()}`
     if (!seen.has(key)) {
@@ -86,43 +203,431 @@ function extractMonthYears(data: Record<string, string>[], dateCol: string) {
 function prettyKey(k: string) {
   return k
     .replaceAll('_', ' ')
-    .replaceAll(/([A-Z])/g, ' $1')
-    .trim()
     .toLowerCase()
-    .replace(/^\w/, (c) => c.toUpperCase())
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+/** Detecta el tipo de dato de una columna para determinar cómo ordenar */
+type ColType = 'date' | 'number' | 'alpha'
+function detectColType(col: string, data: Record<string, string>[]): ColType {
+  if (!data || data.length === 0) return 'alpha'
+  const sample = data.slice(0, 20).map((r) => (r[col] ?? '').trim()).filter(Boolean)
+  if (sample.length === 0) return 'alpha'
+  // Date detection
+  const dateHits = sample.filter((v) => parseDate(v) !== null).length
+  if (dateHits / sample.length >= 0.5) return 'date'
+  // Number detection
+  const numHits = sample.filter((v) => {
+    const n = Number(v.replaceAll(',', '.'))
+    return !Number.isNaN(n) && v !== ''
+  }).length
+  if (numHits / sample.length >= 0.7) return 'number'
+  return 'alpha'
+}
+
+/** Icono en la cabecera de columna según el estado de ordenamiento activo */
+type ColSortIconProps = Readonly<{ col: string; sortConfig: { field: string; dir: string; col?: string } | null }>
+function ColSortIcon({ col, sortConfig }: ColSortIconProps) {
+  const isActive = sortConfig?.field === 'col' && sortConfig.col === col
+  if (!isActive) {
+    return <ChevronsUpDown className="w-3.5 h-3.5 shrink-0 opacity-40 group-hover:opacity-80 transition-opacity" />
+  }
+  return sortConfig?.dir === 'asc'
+    ? <ArrowUp className="w-4 h-4 shrink-0 opacity-100 drop-shadow-sm" />
+    : <ArrowDown className="w-4 h-4 shrink-0 opacity-100 drop-shadow-sm" />
+}
+
+/* ─── HighlightText ──────────────────────────────────────────────── */
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function HighlightText({ text, query }: { text: string; query: string }) {
+  if (!query.trim() || !text) return <>{text || '—'}</>
+  const pattern = escapeRegex(query.trim())
+  const regex = new RegExp(`(${pattern})`, 'gi')
+  const parts = text.split(regex)
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark
+            key={i}
+            className="bg-yellow-200/90 dark:bg-yellow-500/30 text-foreground rounded-[3px] px-0.5 not-italic font-semibold"
+          >
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  )
+}
+
+/* ─── SearchBar ──────────────────────────────────────────────────── */
+type SearchBarProps = Readonly<{
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  accentColor: string
+  activeBg: string
+  resultsCount: number
+  totalCount: number
+}>
+
+function SearchBar({ value, onChange, placeholder = 'Buscar...', accentColor, resultsCount, totalCount }: SearchBarProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const isActive = value.trim().length > 0
+  const hasNoResults = isActive && resultsCount === 0
+
+  return (
+    <div className="relative">
+      <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none z-10">
+        <Search
+          className={`w-4 h-4 transition-all duration-200 ${
+            isActive ? accentColor : 'text-muted-foreground/40'
+          }`}
+        />
+      </div>
+      <input
+        ref={inputRef}
+        type="text"
+        autoComplete="off"
+        spellCheck={false}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`
+          w-full pl-10 pr-10 py-3 rounded-xl border text-sm
+          bg-background/60 backdrop-blur-sm
+          placeholder:text-muted-foreground/40
+          focus:outline-none focus:ring-2 transition-all duration-200
+          ${hasNoResults
+            ? 'border-destructive/40 focus:border-destructive/60 focus:ring-destructive/15'
+            : isActive
+              ? 'border-primary/40 focus:border-primary/60 focus:ring-primary/15 bg-background'
+              : 'border-border hover:border-border/80 focus:border-primary/40 focus:ring-primary/10'
+          }
+        `}
+      />
+      {isActive && (
+        <button
+          type="button"
+          aria-label="Limpiar búsqueda"
+          onClick={() => { onChange(''); inputRef.current?.focus() }}
+          className="absolute inset-y-0 right-3 flex items-center"
+        >
+          <X className="w-4 h-4 text-muted-foreground/50 hover:text-foreground transition-colors" />
+        </button>
+      )}
+      {isActive && (
+        <div
+          className={`absolute -bottom-5 right-1 text-[10px] font-medium transition-colors ${
+            hasNoResults ? 'text-destructive/70' : 'text-muted-foreground/60'
+          }`}
+        >
+          {hasNoResults
+            ? 'Sin resultados'
+            : `${resultsCount} de ${totalCount} resultado${resultsCount !== 1 ? 's' : ''}`}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ─── Shared: portal dropdown base ─────────────────────────── */
+type PortalRect = { top: number; left: number; minWidth: number }
+
+function usePortalDropdown() {
+  const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const [rect, setRect] = useState<PortalRect | null>(null)
+
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect()
+      setRect({ top: r.bottom + 6, left: r.left, minWidth: Math.max(r.width, 200) })
+    } else {
+      setRect(null)
+    }
+  }, [open])
+
+  return { open, setOpen, triggerRef, rect }
+}
+
+/* ─── FilterDropdown ────────────────────────────────────────── */
+type FilterDropdownProps = Readonly<{
+  monthYearOptions: { year: number; month: number; label: string }[]
+  filterMonthYear: string
+  setFilterMonthYear: (v: string) => void
+  activeTabConfig: TabConfig
+  hasFilter: boolean
+}>
+
+function FilterDropdown({ monthYearOptions, filterMonthYear, setFilterMonthYear, activeTabConfig, hasFilter }: FilterDropdownProps) {
+  const { open, setOpen, triggerRef, rect } = usePortalDropdown()
+
+  const currentLabel = hasFilter
+    ? monthYearOptions.find((o) => `${o.year}-${o.month}` === filterMonthYear)?.label
+    : null
+
+  // Agrupa por año para mostrar separadores
+  const byYear = monthYearOptions.reduce<Record<number, typeof monthYearOptions>>((acc, o) => {
+    if (!acc[o.year]) acc[o.year] = []
+    acc[o.year].push(o)
+    return acc
+  }, {})
+  const years = Object.keys(byYear).map(Number).sort((a, b) => b - a)
+
+  return (
+    <div>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`
+          flex items-center gap-2 min-h-[40px] px-4 py-2 rounded-xl text-sm font-semibold
+          transition-all touch-manipulation
+          ${hasFilter
+            ? `${activeTabConfig.activeBg} text-white shadow`
+            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }
+        `}
+      >
+        <Filter className="w-4 h-4" />
+        <span>Filtrar</span>
+        {hasFilter && currentLabel && (
+          <span className="text-xs opacity-90">({currentLabel})</span>
+        )}
+        <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && rect && createPortal(
+        <>
+          <div className="fixed inset-0 z-[200]" aria-hidden onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-[201] rounded-xl border border-border shadow-2xl overflow-hidden bg-white dark:bg-zinc-900 max-h-[300px] overflow-y-auto"
+            style={{ top: rect.top, left: rect.left, minWidth: rect.minWidth }}
+          >
+            {/* Todos */}
+            <button
+              type="button"
+              onClick={() => { setFilterMonthYear('all'); setOpen(false) }}
+              className={[
+                'w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors',
+                filterMonthYear === 'all'
+                  ? `${activeTabConfig.activeBg} text-white`
+                  : 'text-foreground hover:bg-muted/50',
+              ].join(' ')}
+            >
+              <span className="text-base leading-none">·</span>
+              <span>Todos los períodos</span>
+            </button>
+
+            {/* Por año agrupado */}
+            {years.map((year) => (
+              <div key={year}>
+                <div className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 bg-muted/30 border-t border-border/40">
+                  {year}
+                </div>
+                {byYear[year].map((opt) => {
+                  const key = `${opt.year}-${opt.month}`
+                  const isActive = filterMonthYear === key
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => { setFilterMonthYear(key); setOpen(false) }}
+                      className={[
+                        'w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors',
+                        isActive
+                          ? `${activeTabConfig.activeBg} text-white font-semibold`
+                          : 'text-foreground hover:bg-muted/50',
+                      ].join(' ')}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-white' : activeTabConfig.color.replace('text-', 'bg-')}`} />
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </>,
+        document.body
+      )}
+    </div>
+  )
+}
+
+/* ─── SortDropdown ──────────────────────────────────────────── */
+type SortField = 'date' | 'alpha' | 'col'
+type SortDir = 'asc' | 'desc'
+export type SortConfig = {
+  field: SortField
+  dir: SortDir
+  col?: string        // columna específica cuando field === 'col'
+  colType?: ColType   // tipo detectado de esa columna
+}
+
+type SortOption = { field: SortField; dir: SortDir; label: string; sublabel: string; Icon: React.ElementType }
+
+const ALL_SORT_OPTIONS: SortOption[] = [
+  { field: 'date',  dir: 'desc', label: 'Más reciente', sublabel: 'fecha ↓', Icon: ArrowDown },
+  { field: 'date',  dir: 'asc',  label: 'Más antigua',  sublabel: 'fecha ↑', Icon: ArrowUp   },
+  { field: 'alpha', dir: 'asc',  label: 'A → Z',        sublabel: 'nombre',  Icon: ArrowDown },
+  { field: 'alpha', dir: 'desc', label: 'Z → A',        sublabel: 'nombre',  Icon: ArrowUp   },
+]
+
+type SortDropdownProps = Readonly<{
+  sortConfig: SortConfig | null
+  setSortConfig: (v: SortConfig | null) => void
+  activeTabConfig: TabConfig
+  hasDateInfo: boolean
+}>
+
+function SortDropdown({ sortConfig, setSortConfig, activeTabConfig, hasDateInfo }: SortDropdownProps) {
+  const { open, setOpen, triggerRef, rect } = usePortalDropdown()
+  const hasSort = sortConfig !== null
+
+  const sortLabel = sortConfig
+    ? sortConfig.field === 'date'
+      ? (sortConfig.dir === 'desc' ? 'Reciente' : 'Antigua')
+      : sortConfig.field === 'alpha'
+        ? (sortConfig.dir === 'asc' ? 'A → Z' : 'Z → A')
+        : sortConfig.col
+          ? `${prettyKey(sortConfig.col)} ${sortConfig.dir === 'asc' ? '↑' : '↓'}`
+          : null
+    : null
+
+  const options = ALL_SORT_OPTIONS.filter((o) => hasDateInfo || o.field !== 'date')
+
+  return (
+    <div>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`
+          flex items-center gap-2 min-h-[40px] px-4 py-2 rounded-xl text-sm font-semibold
+          transition-all touch-manipulation
+          ${hasSort
+            ? `${activeTabConfig.activeBg} text-white shadow`
+            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }
+        `}
+      >
+        <ArrowUpDown className="w-4 h-4" />
+        <span>Ordenar</span>
+        {hasSort && sortLabel && (
+          <span className="text-xs opacity-90">({sortLabel})</span>
+        )}
+        <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && rect && createPortal(
+        <>
+          <div className="fixed inset-0 z-[200]" aria-hidden onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-[201] rounded-xl border border-border shadow-2xl overflow-hidden bg-white dark:bg-zinc-900"
+            style={{ top: rect.top, left: rect.left, minWidth: rect.minWidth }}
+          >
+            {/* Sin ordenar */}
+            <button
+              type="button"
+              onClick={() => { setSortConfig(null); setOpen(false) }}
+              className={[
+                'w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors',
+                !hasSort
+                  ? `${activeTabConfig.activeBg} text-white`
+                  : 'text-muted-foreground hover:bg-muted/50',
+              ].join(' ')}
+            >
+              <ArrowUpDown className="w-4 h-4 shrink-0" />
+              <span>Sin ordenar</span>
+            </button>
+
+            <div className="h-px bg-border/40 mx-3" />
+
+            {/* Opciones */}
+            {options.map((opt) => {
+              const isActive = sortConfig?.field === opt.field && sortConfig?.dir === opt.dir
+              const { Icon } = opt
+              return (
+                <button
+                  key={`${opt.field}-${opt.dir}`}
+                  type="button"
+                  onClick={() => { setSortConfig({ field: opt.field, dir: opt.dir }); setOpen(false) }}
+                  className={[
+                    'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
+                    isActive
+                      ? `${activeTabConfig.activeBg} text-white font-semibold`
+                      : 'text-foreground hover:bg-muted/50',
+                  ].join(' ')}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="font-medium">{opt.label}</span>
+                    <span className={`text-[10px] ${isActive ? 'opacity-70' : 'text-muted-foreground'}`}>{opt.sublabel}</span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </>,
+        document.body
+      )}
+    </div>
+  )
 }
 
 /* ─── Row-card (mobile) ──────────────────────────────────── */
+const DATE_COL_KEYS = (d: DateColResult) =>
+  [d.col, d.mesCol, d.diaCol].filter(Boolean) as string[]
+
 type RowCardProps = Readonly<{
   row: Record<string, string>
   columns: readonly string[]
-  dateCol: string | null
+  dateInfo: DateColResult
+  tabId: SheetSourceId
   accentBg: string
   accentText: string
   onClick: () => void
+  searchQuery?: string
 }>
 
-function RowCard({ row, columns, dateCol, accentBg, accentText, onClick }: RowCardProps) {
-  const dateVal = dateCol ? row[dateCol] : null
-  const primaryCol = columns.find((c) => c !== dateCol) ?? columns[0]
-  const restCols = columns.filter((c) => c !== dateCol && c !== primaryCol)
+function RowCard({ row, columns, dateInfo, tabId, accentBg, accentText, onClick, searchQuery = '' }: RowCardProps) {
+  const dateVal = getDateDisplay(row, dateInfo)
+  const dateCols = DATE_COL_KEYS(dateInfo)
+  const primaryCol = pickPrimaryColumn(columns, dateCols, tabId)
+  const restCols = columns.filter((c) => !dateCols.includes(c) && c !== primaryCol)
 
+  const primaryVal = primaryCol ? row[primaryCol] : ''
+  const dateParts = dateVal?.split('/') ?? []
+  const hasSlashDate = dateParts.length >= 3
   return (
     <button
       type="button"
       onClick={onClick}
+      data-testid="archivo-card"
+      aria-label={primaryVal ? `Ver detalle: ${String(primaryVal).slice(0, 50)}` : 'Ver detalle del registro'}
       className="w-full text-left p-4 hover:bg-muted/30 active:bg-muted/50 transition-colors group touch-manipulation"
     >
       <div className="flex items-start gap-3">
         {/* Date badge */}
         {dateVal && (
           <div className={`shrink-0 rounded-xl ${accentBg} px-2.5 py-1.5 text-center min-w-[52px]`}>
-            <div className={`text-xs font-bold ${accentText} leading-tight`}>
-              {dateVal.split('/').slice(0, 2).join('/')}
-            </div>
-            <div className={`text-[10px] ${accentText} opacity-70`}>
-              {dateVal.split('/')[2]}
-            </div>
+            {hasSlashDate ? (
+              <>
+                <div className={`text-xs font-bold ${accentText} leading-tight`}>
+                  {dateParts.slice(0, 2).join('/')}
+                </div>
+                <div className={`text-[10px] ${accentText} opacity-70`}>{dateParts[2]}</div>
+              </>
+            ) : (
+              <div className={`text-xs font-bold ${accentText} leading-tight`}>{dateVal}</div>
+            )}
           </div>
         )}
 
@@ -130,14 +635,14 @@ function RowCard({ row, columns, dateCol, accentBg, accentText, onClick }: RowCa
         <div className="flex-1 min-w-0">
           {primaryCol && (
             <div className="font-semibold text-sm text-foreground line-clamp-2 mb-1">
-              {row[primaryCol] || '—'}
+              <HighlightText text={row[primaryCol] || '—'} query={searchQuery} />
             </div>
           )}
           {restCols.slice(0, 3).map((col) => (
             row[col] ? (
               <div key={col} className="text-xs text-muted-foreground truncate">
                 <span className="font-medium">{prettyKey(col)}:</span>{' '}
-                {row[col]}
+                <HighlightText text={row[col]} query={searchQuery} />
               </div>
             ) : null
           ))}
@@ -150,40 +655,82 @@ function RowCard({ row, columns, dateCol, accentBg, accentText, onClick }: RowCa
 }
 
 /* ─── Main component ─────────────────────────────────────── */
-export default function ArchivosClient() {
+type ArchivosClientProps = {
+  initialData?: Partial<Record<SheetSourceId, Record<string, string>[]>>
+  initialErrors?: Partial<Record<SheetSourceId, string>>
+}
+
+export default function ArchivosClient({ initialData = {}, initialErrors }: ArchivosClientProps) {
   const { t } = useI18n()
   const [activeTab, setActiveTab] = useState<SheetSourceId>('ensenanzas')
-  const [data, setData] = useState<Record<string, string>[] | null>(null)
-  const [loading, setLoading] = useState(true)
+
+  // Inicializar directamente con datos del servidor (evita "Cargando..." innecesario)
+  const initialRows = initialData['ensenanzas']
+  const initialErr = initialErrors?.['ensenanzas']
+  const [data, setData] = useState<Record<string, string>[] | null>(
+    Array.isArray(initialRows) && initialRows.length > 0 ? initialRows : null
+  )
+  const [loading, setLoading] = useState(!Array.isArray(initialRows) || initialRows.length === 0)
   const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(initialErr ?? null)
   const [detailRow, setDetailRow] = useState<Record<string, string> | null>(null)
   const [filterMonthYear, setFilterMonthYear] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const initialDataRef = useRef(initialData)
 
   const activeTabConfig = TABS.find((t) => t.id === activeTab)!
 
-  /* ── Fetch ── */
+  /* ── Fetch: API route (para refresh/polling y tabs sin datos iniciales) ── */
   const fetchTab = useCallback(async (sourceId: SheetSourceId, silent = false) => {
     if (!silent) {
       setLoading(true)
       setError(null)
     }
-    const result: ArchivosResult = await getSheetData(sourceId)
-    setLoading(false)
-    setRefreshing(false)
-    if (!result.success) {
-      setError(result.error ?? t('archivos.error'))
-      if (!silent) setData(null)
-      return
+    try {
+      const res = await fetch(`/api/archivos?source=${encodeURIComponent(sourceId)}`, {
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+      })
+      const result: ArchivosResult = await res.json()
+      setLoading(false)
+      setRefreshing(false)
+      if (!result.success) {
+        setError(result.error ?? t('archivos.error'))
+        setData(null)
+        return
+      }
+      setData(result.data ?? [])
+    } catch (err) {
+      setLoading(false)
+      setRefreshing(false)
+      setError(err instanceof Error ? err.message : t('archivos.error'))
+      setData(null)
     }
-    setData(result.data ?? [])
   }, [t])
 
+  // Al cambiar de pestaña: usar datos del servidor si existen, si no hacer fetch
   useEffect(() => {
     setFilterMonthYear('all')
-    fetchTab(activeTab)
-  }, [activeTab, fetchTab])
+    setSearchQuery('')
+    setSortConfig(null)
+    const serverRows = initialDataRef.current[activeTab]
+    const serverErr = initialErrors?.[activeTab]
+    if (Array.isArray(serverRows) && serverRows.length > 0) {
+      setData(serverRows)
+      setError(null)
+      setLoading(false)
+    } else if (serverErr) {
+      setError(serverErr)
+      setData(null)
+      setLoading(false)
+    } else {
+      fetchTab(activeTab)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab])
 
   useEffect(() => {
     pollingRef.current = setInterval(() => {
@@ -200,27 +747,112 @@ export default function ArchivosClient() {
 
   /* ── Derived ── */
   const columns = useMemo(() => (data && data.length > 0 ? Object.keys(data[0]) : []), [data])
-  const dateCol = useMemo(() => (data ? findDateColumn(data) : null), [data])
+  const dateInfo = useMemo(() => (data ? findDateColumn(data) : { col: null, mesCol: null, diaCol: null }), [data])
+  const hasDateInfo = !!(dateInfo.col || (dateInfo.mesCol && dateInfo.diaCol))
   const monthYearOptions = useMemo(
-    () => (data && dateCol ? extractMonthYears(data, dateCol) : []),
-    [data, dateCol]
+    () => (data && hasDateInfo ? extractMonthYears(data, dateInfo) : []),
+    [data, dateInfo, hasDateInfo]
   )
 
   const filteredData = useMemo(() => {
     if (!data) return []
-    if (filterMonthYear === 'all' || !dateCol) return data
+    if (filterMonthYear === 'all' || !hasDateInfo) return data
     const [fy, fm] = filterMonthYear.split('-').map(Number)
     return data.filter((row) => {
-      const dt = parseDate(row[dateCol])
+      const dt = getDateFromRow(row, dateInfo.col, dateInfo.mesCol, dateInfo.diaCol)
       return dt !== null && dt.getFullYear() === fy && dt.getMonth() === fm
     })
-  }, [data, filterMonthYear, dateCol])
+  }, [data, filterMonthYear, dateInfo, hasDateInfo])
+
+  /* Filtro de búsqueda en tiempo real */
+  const searchFilteredData = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return filteredData
+    return filteredData.filter((row) =>
+      Object.values(row).some((v) => v?.toLowerCase().includes(q))
+    )
+  }, [filteredData, searchQuery])
+
+  /* Transformar MES+DÍA → FECHA única — DEBE ir ANTES del sort para que el forward-fill sea correcto */
+  const { data: preDisplayData, columns: displayColumns, dateInfo: displayDateInfo } = useMemo(() => {
+    const safeData = Array.isArray(searchFilteredData) ? searchFilteredData : []
+    const safeDateInfo = dateInfo ?? { col: null, mesCol: null, diaCol: null }
+    return transformMesDiaToFecha(safeData, safeDateInfo)
+  }, [searchFilteredData, dateInfo])
+
+  /* Ordenar sobre los datos ya transformados (FECHA ya existe y está correctamente calculada) */
+  const displayData = useMemo(() => {
+    if (!sortConfig) return preDisplayData
+    const { field, dir } = sortConfig
+    const dateCols = DATE_COL_KEYS(displayDateInfo)
+
+    return [...preDisplayData].sort((a, b) => {
+      // ── Ordenamiento por columna específica (clic en cabecera) ──
+      if (field === 'col' && sortConfig.col) {
+        const col = sortConfig.col
+        const type = sortConfig.colType ?? detectColType(col, preDisplayData)
+        if (type === 'date') {
+          const da = parseDate(a[col] ?? '')
+          const db = parseDate(b[col] ?? '')
+          if (!da && !db) return 0
+          if (!da) return 1
+          if (!db) return -1
+          const diff = da.getTime() - db.getTime()
+          return dir === 'asc' ? diff : -diff
+        }
+        if (type === 'number') {
+          const na = Number.parseFloat((a[col] ?? '').replaceAll(',', '.')) || 0
+          const nb = Number.parseFloat((b[col] ?? '').replaceAll(',', '.')) || 0
+          return dir === 'asc' ? na - nb : nb - na
+        }
+        const va = (a[col] ?? '').toLowerCase()
+        const vb = (b[col] ?? '').toLowerCase()
+        return dir === 'asc' ? va.localeCompare(vb, 'es') : vb.localeCompare(va, 'es')
+      }
+
+      // ── Ordenamiento general (dropdown Ordenar) ──
+      if (field === 'date') {
+        const da = getDateFromRow(a, displayDateInfo.col, displayDateInfo.mesCol, displayDateInfo.diaCol)
+        const db = getDateFromRow(b, displayDateInfo.col, displayDateInfo.mesCol, displayDateInfo.diaCol)
+        if (!da && !db) return 0
+        if (!da) return 1
+        if (!db) return -1
+        const diff = da.getTime() - db.getTime()
+        return dir === 'asc' ? diff : -diff
+      }
+      // alpha: columna principal del contenido (no fecha)
+      const primaryCol =
+        pickPrimaryColumn(displayColumns ?? [], dateCols, activeTab) ??
+        (displayColumns ?? []).find((c) => !dateCols.includes(c)) ??
+        (displayColumns ?? [])[0]
+      const va = (a[primaryCol] ?? '').toLowerCase()
+      const vb = (b[primaryCol] ?? '').toLowerCase()
+      const cmp = va.localeCompare(vb, 'es')
+      return dir === 'asc' ? cmp : -cmp
+    })
+  }, [preDisplayData, sortConfig, displayDateInfo, displayColumns, activeTab])
 
   const hasFilter = filterMonthYear !== 'all'
+  const hasSearch = searchQuery.trim().length > 0
+  const hasSort = sortConfig !== null
+  const hasAnyFilter = hasFilter || hasSearch || hasSort
+  const clearAllFilters = () => { setFilterMonthYear('all'); setSearchQuery(''); setSortConfig(null) }
 
-  /* ── Render ── */
+  /** Ciclo al hacer clic en cabecera: sin orden → ASC → DESC → sin orden */
+  const handleColSort = useCallback((col: string) => {
+    const type = detectColType(col, preDisplayData)
+    setSortConfig((prev) => {
+      if (prev?.field === 'col' && prev.col === col) {
+        if (prev.dir === 'asc') return { field: 'col', dir: 'desc', col, colType: type }
+        return null
+      }
+      return { field: 'col', dir: 'asc', col, colType: type }
+    })
+  }, [preDisplayData])
+
+  /* ── Render (CSS media queries para evitar hydration mismatch con useIsMobile) ── */
   return (
-    <div className="space-y-4 sm:space-y-6 pb-6">
+    <div className="space-y-4 sm:space-y-6 pb-6" suppressHydrationWarning>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -229,8 +861,8 @@ export default function ArchivosClient() {
             <activeTabConfig.icon className={`w-6 h-6 ${activeTabConfig.color}`} />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t('archivos.title')}</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground" suppressHydrationWarning>{t('archivos.title')}</h1>
+            <p className="text-xs text-muted-foreground mt-0.5" suppressHydrationWarning>
               Sincronizado desde Google Drive
               {refreshing && <span className="ml-2 inline-flex items-center gap-1 text-primary"><RefreshCw className="w-3 h-3 animate-spin" />actualizando…</span>}
             </p>
@@ -238,84 +870,90 @@ export default function ArchivosClient() {
         </div>
       </div>
 
-      {/* Tabs — scroll horizontal en móvil */}
-      <div className="overflow-x-auto no-scrollbar -mx-4 sm:-mx-6 lg:mx-0 px-4 sm:px-6 lg:px-0">
-        <div className="flex gap-2 min-w-max pb-1">
-          {TABS.map((tab) => {
-            const Icon = tab.icon
-            const isActive = activeTab === tab.id
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`
-                  min-h-[44px] px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl
-                  font-semibold text-xs sm:text-sm whitespace-nowrap
-                  transition-all duration-200 touch-manipulation
-                  flex items-center gap-2
-                  ${isActive
-                    ? `${tab.activeBg} text-white shadow-lg scale-[1.02]`
-                    : `${tab.bg} ${tab.color} hover:brightness-95`
-                  }
-                `}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span>{tab.label}</span>
-              </button>
-            )
-          })}
-        </div>
+      {/* Tabs — grid 2x2 en móvil, fila horizontal en desktop */}
+      <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap gap-2">
+        {TABS.map((tab) => {
+          const Icon = tab.icon
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`
+                min-h-[44px] px-3 py-2.5 sm:px-5 sm:py-2.5 rounded-xl
+                font-semibold text-[11px] sm:text-sm leading-tight
+                transition-all duration-200 touch-manipulation
+                flex items-center justify-center sm:justify-start gap-2
+                ${isActive
+                  ? `${tab.activeBg} text-white shadow-lg`
+                  : `${tab.bg} ${tab.color} hover:brightness-95`
+                }
+              `}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span className="text-left wrap-break-word hyphens-auto">{tab.label}</span>
+            </button>
+          )
+        })}
       </div>
 
-      {/* Filter bar — month/year */}
-      {monthYearOptions.length > 0 && (
+      {/* Barra de búsqueda + Filtro fecha + Limpiar todo */}
+      <div className="space-y-3">
+        {/* SearchBar siempre visible */}
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder={`Buscar en ${activeTabConfig.label}…`}
+          accentColor={activeTabConfig.color}
+          activeBg={activeTabConfig.activeBg}
+          resultsCount={searchFilteredData.length}
+          totalCount={filteredData.length}
+        />
+
+        {/* Fila: filtro fecha + ordenar + limpiar */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-medium">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Filtrar:</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              onClick={() => setFilterMonthYear('all')}
-              className={[
-                'px-3 py-1.5 rounded-lg text-xs font-semibold min-h-[32px] touch-manipulation transition-all',
-                hasFilter
-                  ? 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  : `${activeTabConfig.activeBg} text-white shadow`,
-              ].join(' ')}
-            >
-              Todos
-            </button>
-            {monthYearOptions.map((opt) => {
-              const key = `${opt.year}-${opt.month}`
-              const isActive = filterMonthYear === key
-              return (
-                <button
-                  key={key}
-                  onClick={() => setFilterMonthYear(isActive ? 'all' : key)}
-                  className={`
-                    px-3 py-1.5 rounded-lg text-xs font-semibold min-h-[32px] touch-manipulation transition-all
-                    ${isActive
-                      ? `${activeTabConfig.activeBg} text-white shadow`
-                      : `${activeTabConfig.bg} ${activeTabConfig.color} hover:brightness-95`
-                    }
-                  `}
-                >
-                  {opt.label}
-                </button>
-              )
-            })}
-          </div>
-          {hasFilter && (
-            <button
-              onClick={() => setFilterMonthYear('all')}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors ml-1"
-            >
-              <X className="w-3.5 h-3.5" /> Limpiar
-            </button>
+          {monthYearOptions.length > 0 && (
+            <FilterDropdown
+              monthYearOptions={monthYearOptions}
+              filterMonthYear={filterMonthYear}
+              setFilterMonthYear={setFilterMonthYear}
+              activeTabConfig={activeTabConfig}
+              hasFilter={hasFilter}
+            />
           )}
+
+          <SortDropdown
+            sortConfig={sortConfig}
+            setSortConfig={setSortConfig}
+            activeTabConfig={activeTabConfig}
+            hasDateInfo={hasDateInfo}
+          />
+
+          <AnimatePresence>
+            {hasAnyFilter && (
+              <motion.button
+                type="button"
+                onClick={clearAllFilters}
+                initial={{ opacity: 0, scale: 0.85, x: -6 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.85, x: -6 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center gap-1.5 min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-semibold
+                  text-destructive/80 hover:text-destructive
+                  bg-destructive/5 hover:bg-destructive/10
+                  border border-destructive/20 hover:border-destructive/30
+                  transition-colors touch-manipulation"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Limpiar</span>
+                <span className="bg-destructive/15 text-destructive rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none">
+                  {(hasFilter ? 1 : 0) + (hasSearch ? 1 : 0) + (hasSort ? 1 : 0)}
+                </span>
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
-      )}
+      </div>
 
       {/* States */}
       {loading && !data && (
@@ -332,15 +970,25 @@ export default function ArchivosClient() {
         </div>
       )}
 
-      {!loading && !error && data && filteredData.length === 0 && (
+      {!loading && !error && data && (displayData?.length ?? 0) === 0 && (
         <div className="glass rounded-2xl border border-border/50 p-12 flex flex-col items-center justify-center gap-3">
-          <Filter className="w-10 h-10 text-muted-foreground/40" />
-          <p className="text-muted-foreground text-sm">
-            {hasFilter ? 'No hay datos para este período.' : t('archivos.empty')}
+          {hasSearch
+            ? <Search className="w-10 h-10 text-muted-foreground/30" />
+            : <Filter className="w-10 h-10 text-muted-foreground/40" />
+          }
+          <p className="text-muted-foreground text-sm text-center">
+            {hasSearch
+              ? <>Sin resultados para <strong className="text-foreground">"{searchQuery}"</strong></>
+              : hasFilter ? 'No hay datos para este período.' : t('archivos.empty')
+            }
           </p>
-          {hasFilter && (
-            <button onClick={() => setFilterMonthYear('all')} className="text-xs text-primary underline">
-              Ver todos
+          {hasAnyFilter && (
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="text-xs text-primary underline hover:no-underline"
+            >
+              Limpiar filtros
             </button>
           )}
         </div>
@@ -348,82 +996,124 @@ export default function ArchivosClient() {
 
       {/* Content */}
       <AnimatePresence mode="wait">
-        {!loading && !error && filteredData.length > 0 && (
+        {!loading && !error && (displayData?.length ?? 0) > 0 && (
           <motion.div
-            key={`${activeTab}-${filterMonthYear}`}
+            key={`${activeTab}-${filterMonthYear}-${searchQuery}-${sortConfig?.field}-${sortConfig?.dir}`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.18 }}
           >
-            {/* ── Desktop table (sm+) ── */}
+            {/* ── Desktop: tabla (≥640px) — hidden en móvil vía CSS ── */}
             <div className="hidden sm:block glass rounded-2xl border border-border/50 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table
-                  className="w-full text-left text-sm"
-                  style={{ minWidth: `${Math.max(columns.length * 160, 500)}px` }}
-                >
+                <div className="overflow-x-auto">
+                  <table
+                    className="w-full text-left text-sm"
+                    style={{ minWidth: `${Math.max((displayColumns?.length ?? 0) * 160, 500)}px` }}
+                  >
                   <thead>
                     <tr className={`border-b border-border/60 ${activeTabConfig.bg}`}>
-                      {columns.map((col) => (
-                        <th
-                          key={col}
-                          className={`px-4 py-3.5 font-bold text-xs uppercase tracking-wide whitespace-nowrap ${activeTabConfig.color}`}
-                        >
-                          {prettyKey(col)}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredData.map((row, i) => (
-                      <tr
-                        key={`${activeTab}-row-${i}`}
-                        tabIndex={0}
-                        onClick={() => setDetailRow(row)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setDetailRow(row) }}
-                        className="border-b border-border/30 hover:bg-muted/20 transition-colors cursor-pointer group"
-                      >
-                        {columns.map((col) => (
-                          <td
+                      {(displayColumns ?? []).map((col) => {
+                        const isColActive = sortConfig?.field === 'col' && sortConfig.col === col
+                        return (
+                          <th
                             key={col}
-                            className="px-4 py-3 text-sm text-foreground/80 group-hover:text-foreground transition-colors"
+                            onClick={() => handleColSort(col)}
+                            title={`Ordenar por ${prettyKey(col)}`}
+                            className={`
+                              px-4 py-3.5 font-bold text-xs uppercase tracking-wide whitespace-nowrap
+                              select-none cursor-pointer group transition-all
+                              ${isColActive
+                                ? `${activeTabConfig.color} underline underline-offset-4 decoration-2`
+                                : `${activeTabConfig.color} hover:opacity-75`
+                              }
+                            `}
                           >
-                            <span className="line-clamp-2 max-w-[260px] block">{row[col] || '—'}</span>
-                          </td>
-                        ))}
+                            <div className="flex items-center gap-1.5">
+                              <span>{prettyKey(col)}</span>
+                              <ColSortIcon col={col} sortConfig={sortConfig} />
+                            </div>
+                          </th>
+                        )
+                      })}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                  <tbody>
+                    {(displayData ?? []).map((row, i) => (
+                        <tr
+                          key={`${activeTab}-row-${i}`}
+                          tabIndex={0}
+                          data-testid="archivo-table-row"
+                          aria-label="Ver detalle del registro"
+                          onClick={() => setDetailRow(row)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setDetailRow(row) }}
+                          className="border-b border-border/30 hover:bg-muted/20 transition-colors cursor-pointer group"
+                        >
+                          {(displayColumns ?? []).map((col) => (
+                            <td
+                              key={col}
+                              className="px-4 py-3 text-sm text-foreground/80 group-hover:text-foreground transition-colors"
+                            >
+                              <span className="line-clamp-2 max-w-[260px] block">
+                                <HighlightText text={row[col] || '—'} query={searchQuery} />
+                              </span>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-2.5 border-t border-border/30 flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground">
+                    {(displayData?.length ?? 0)} {(displayData?.length ?? 0) === 1 ? 'registro' : 'registros'}
+                    {hasFilter && (() => { const opt = monthYearOptions.find((o) => `${o.year}-${o.month}` === filterMonthYear); return opt ? ` · ${opt.label}` : '' })()}
+                    {hasSearch && ` · "${searchQuery}"`}
+                  </span>
+                  {hasAnyFilter && (
+                    <button
+                      type="button"
+                      onClick={clearAllFilters}
+                      className="text-[10px] text-primary/70 hover:text-primary underline transition-colors"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="px-4 py-2.5 border-t border-border/30">
-                <span className="text-xs text-muted-foreground">
-                  {filteredData.length} {filteredData.length === 1 ? 'registro' : 'registros'}
-                  {hasFilter && (() => { const opt = monthYearOptions.find((o) => `${o.year}-${o.month}` === filterMonthYear); return opt ? ` · ${opt.label}` : '' })()}
-                </span>
-              </div>
-            </div>
 
-            {/* ── Mobile cards (< sm) ── */}
+            {/* ── Mobile: cards (<640px) — sm:hidden en desktop ── */}
             <div className="sm:hidden glass rounded-2xl border border-border/50 overflow-hidden divide-y divide-border/30">
-              {filteredData.map((row, i) => (
-                <RowCard
-                  key={`${activeTab}-card-${i}`}
-                  row={row}
-                  columns={columns}
-                  dateCol={dateCol}
-                  accentBg={activeTabConfig.bg}
-                  accentText={activeTabConfig.color}
-                  onClick={() => setDetailRow(row)}
-                />
-              ))}
-              <div className="px-4 py-2.5">
-                <span className="text-xs text-muted-foreground">
-                  {filteredData.length} {filteredData.length === 1 ? 'registro' : 'registros'}
-                </span>
+                {displayData.map((row, i) => (
+                  <RowCard
+                    key={`${activeTab}-card-${i}`}
+                    row={row}
+                    columns={displayColumns ?? []}
+                    dateInfo={displayDateInfo ?? { col: null, mesCol: null, diaCol: null }}
+                    tabId={activeTab}
+                    accentBg={activeTabConfig.bg}
+                    accentText={activeTabConfig.color}
+                    onClick={() => setDetailRow(row)}
+                    searchQuery={searchQuery}
+                  />
+                ))}
+                <div className="px-4 py-2.5 flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground">
+                    {(displayData?.length ?? 0)} {(displayData?.length ?? 0) === 1 ? 'registro' : 'registros'}
+                    {hasFilter && (() => { const opt = monthYearOptions.find((o) => `${o.year}-${o.month}` === filterMonthYear); return opt ? ` · ${opt.label}` : '' })()}
+                    {hasSearch && ` · "${searchQuery}"`}
+                  </span>
+                  {hasAnyFilter && (
+                    <button
+                      type="button"
+                      onClick={clearAllFilters}
+                      className="text-[10px] text-primary/70 hover:text-primary underline transition-colors"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>

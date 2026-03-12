@@ -29,6 +29,7 @@ import {
     LogOut,
     Menu,
     FileText,
+    FileSpreadsheet,
     UserCog,
     ChevronRight,
     Search,
@@ -165,6 +166,7 @@ export default function DashboardLayout({
         { icon: BookOpen, label: t('nav.lecturas'), href: '/dashboard/lecturas' },
         { icon: Music, label: t('nav.himnario'), href: '/dashboard/himnario' },
         { icon: Users, label: t('nav.hermanos'), href: '/dashboard/hermanos' },
+        { icon: FileSpreadsheet, label: t('nav.archivos'), href: '/dashboard/archivos' },
         // Items de administración (solo para ADMIN)
         ...(userProfile?.rol === 'ADMIN' ? [
             { icon: BarChart, label: t('nav.stats'), href: '/dashboard/admin/stats' },

@@ -2,6 +2,12 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+    // Server Actions: no ejecutar middleware (evita "An unexpected response was received").
+    // El header puede ser 'next-action' o 'Next-Action' (case-insensitive).
+    if (request.headers.has('next-action')) {
+        return NextResponse.next({ request })
+    }
+
     let supabaseResponse = NextResponse.next({
         request,
     })
