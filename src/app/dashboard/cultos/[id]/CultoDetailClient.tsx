@@ -876,6 +876,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                     {/* Columna Derecha: Música (Bloque principal más grande y detallado) */}
                     {config.tiene_himnos_y_coros && (
                         <motion.div
+                            id="himnos"
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.3 }}

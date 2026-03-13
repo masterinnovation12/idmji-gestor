@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/Card'
-import { Clock, Plus, Info } from 'lucide-react'
+import { Clock, Plus, Info, Music } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { AssignmentPill } from './AssignmentPill'
 import { computeCultoDetails } from '@/lib/utils/computeCultoDetails'
@@ -61,6 +61,10 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
 
     const openModal = (rol: RolInstruccionCulto) => setInstrModal({ open: true, rol })
     const closeModal = () => setInstrModal(null)
+
+    const isEnsenanza = cultoNombre.toLowerCase().includes('enseñanza') || cultoNombre.toLowerCase().includes('ensenanza')
+    const showAddHimnos = !!(culto.tipo_culto?.tiene_himnos_y_coros && (!culto.plan_himnos_coros || culto.plan_himnos_coros.length === 0))
+    const addHimnosText = isEnsenanza ? t('dashboard.addCorosHimnosButton') : t('dashboard.addCorosButton')
 
     return (
         <>
@@ -120,19 +124,34 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                         lectura={lecturaData?.lecturaIntro}
                                         himnario={culto.plan_himnos_coros}
                                         tipoCulto={cultoNombre}
-                                        action={cultoTypeId ? <InstrIconBtn rol="introduccion" onOpen={openModal} /> : undefined}
-                                        footerAction={lecturaData?.showAddButton ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => setAddLecturaModalOpen(true)}
-                                                className="w-full py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
-                                            >
-                                                <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" strokeWidth={2.5} />
-                                                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">
-                                                    {t('dashboard.addReadingButton')}
-                                                </span>
-                                            </button>
-                                        ) : undefined}
+                        action={cultoTypeId ? <InstrIconBtn rol="introduccion" onOpen={openModal} /> : undefined}
+                        footerAction={(lecturaData?.showAddButton || showAddHimnos) ? (
+                            <div className="flex flex-col gap-2 w-full">
+                                {lecturaData?.showAddButton && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setAddLecturaModalOpen(true)}
+                                        className="w-full py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
+                                    >
+                                        <Plus className="w-4 h-4 shrink-0" strokeWidth={2.5} />
+                                        <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">
+                                            {t('dashboard.addReadingButton')}
+                                        </span>
+                                    </button>
+                                )}
+                                {showAddHimnos && (
+                                    <Link
+                                        href={`/dashboard/cultos/${culto.id}#himnos`}
+                                        className="w-full py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-indigo-400/30 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-indigo-500/5 hover:bg-indigo-500/10 hover:border-indigo-400/50 active:scale-[0.98] transition-all touch-manipulation text-indigo-600 dark:text-indigo-400"
+                                    >
+                                        <Music className="w-4 h-4 shrink-0" strokeWidth={2.5} />
+                                        <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">
+                                            {addHimnosText}
+                                        </span>
+                                    </Link>
+                                )}
+                            </div>
+                        ) : undefined}
                                     />
                                 </div>
                             )}

@@ -6,7 +6,7 @@ import { UserAvatar } from './UserAvatar'
 
 export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, action, footerAction }: { label: string, usuario: Partial<Profile> | null | undefined, lectura?: any, himnario?: any[], tipoCulto?: string, action?: ReactNode, footerAction?: ReactNode }) {
     const { t } = useI18n()
-    if (!usuario && !lectura && (!himnario || himnario.length === 0)) return null
+    if (!usuario && !lectura && (!himnario || himnario.length === 0) && footerAction == null) return null
 
     const formatDuration = (seconds: number) => {
         const mins = Math.floor(seconds / 60)
