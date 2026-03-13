@@ -9,49 +9,85 @@
 
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, X, Loader2 } from 'lucide-react'
 import { subscribeToPush } from '@/app/actions/notifications'
-import { PushSubscription } from '@/types/notifications'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
+import { usePrompts } from '@/lib/PromptsContext'
 
 // Claves para persistencia
 const DISMISS_KEY = 'notification_prompt_dismissed_at'
 const REPROMPT_DAYS = 7
+/** Retraso inicial para dar prioridad al prompt de instalación PWA (5s) */
+const INITIAL_DELAY_MS = 6000
+/** Tras cerrar el prompt de instalación, mostrar notificaciones tras este margen */
+const AFTER_INSTALL_CLOSED_MS = 1500
+
+function shouldShowNotificationPrompt(): boolean {
+    if (typeof window === 'undefined') return false
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
+    if (Notification.permission === 'granted' || Notification.permission === 'denied') return false
+    const dismissedAt = localStorage.getItem(DISMISS_KEY)
+    if (dismissedAt) {
+        const date = new Date(parseInt(dismissedAt, 10))
+        const daysSince = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24)
+        if (daysSince < REPROMPT_DAYS) return false
+    }
+    return true
+}
 
 export function NotificationPrompt() {
     const [show, setShow] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const { t } = useI18n()
     const { isDark } = useTheme()
+    const prompts = usePrompts()
+    const scheduledRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const initialScheduledRef = useRef(false)
+    const prevInstallRef = useRef(false)
 
-    const checkStatus = useCallback(async () => {
-        if (typeof window === 'undefined') return
+    const tryShow = useCallback(() => {
+        if (!shouldShowNotificationPrompt() || prompts?.activePrompt !== null) return
+        prompts?.setActivePrompt('notification')
+        setShow(true)
+    }, [prompts])
 
-        // 1. Verificar soporte
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-
-        // 2. Verificar permiso actual
-        if (Notification.permission === 'granted' || Notification.permission === 'denied') return
-
-        // 3. Verificar si fue cerrado recientemente
-        const dismissedAt = localStorage.getItem(DISMISS_KEY)
-        if (dismissedAt) {
-            const date = new Date(parseInt(dismissedAt))
-            const daysSince = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24)
-            if (daysSince < REPROMPT_DAYS) return
-        }
-
-        // Si todo ok, mostrar después de un breve delay
-        setTimeout(() => setShow(true), 3000)
-    }, [])
-
+    // Retraso inicial 6s para dar prioridad al prompt de instalación (5s); solo una vez por sesión
     useEffect(() => {
-        checkStatus()
-    }, [checkStatus])
+        if (!prompts) return
+        const clearScheduled = () => {
+            if (scheduledRef.current) {
+                clearTimeout(scheduledRef.current)
+                scheduledRef.current = null
+            }
+        }
+        if (prompts.activePrompt === 'install') {
+            clearScheduled()
+            return
+        }
+        if (prompts.activePrompt !== null || !shouldShowNotificationPrompt()) return
+        if (initialScheduledRef.current) return
+        initialScheduledRef.current = true
+        scheduledRef.current = setTimeout(tryShow, INITIAL_DELAY_MS)
+        return clearScheduled
+    }, [prompts, prompts?.activePrompt, tryShow])
+
+    // Cuando se cierra el prompt de instalación, mostrar el de notificaciones tras 1.5s
+    useEffect(() => {
+        if (!prompts) return
+        const wasInstall = prevInstallRef.current
+        const isInstall = prompts.activePrompt === 'install'
+        prevInstallRef.current = isInstall
+        if (wasInstall && !isInstall && shouldShowNotificationPrompt()) {
+            scheduledRef.current = setTimeout(tryShow, AFTER_INSTALL_CLOSED_MS)
+            return () => {
+                if (scheduledRef.current) clearTimeout(scheduledRef.current)
+            }
+        }
+    }, [prompts, prompts?.activePrompt, tryShow])
 
     const handleActivate = async () => {
         setIsLoading(true)
@@ -62,7 +98,15 @@ export function NotificationPrompt() {
                 return
             }
 
-            const registration = await navigator.serviceWorker.ready
+            // Registrar SW si no existe (necesario para push en producción/PWA)
+            let registration = await navigator.serviceWorker.getRegistration('/')
+            if (!registration) {
+                registration = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' })
+                await navigator.serviceWorker.ready
+            } else {
+                await navigator.serviceWorker.ready
+            }
+
             const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
 
             if (!publicKey) throw new Error('VAPID key missing')
@@ -83,6 +127,7 @@ export function NotificationPrompt() {
             if (result.success) {
                 toast.success('¡Notificaciones activadas!')
                 setShow(false)
+                prompts?.setActivePrompt(null)
             } else {
                 toast.error(result.error || 'Error al activar')
             }
@@ -97,6 +142,7 @@ export function NotificationPrompt() {
     const handleDismiss = () => {
         setShow(false)
         localStorage.setItem(DISMISS_KEY, Date.now().toString())
+        prompts?.setActivePrompt(null)
     }
 
     if (!show) return null
@@ -107,7 +153,8 @@ export function NotificationPrompt() {
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}
-                className="fixed bottom-24 left-4 right-4 md:left-auto md:right-8 md:w-[400px] z-[90]"
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                className="fixed bottom-4 left-3 right-3 z-50 md:left-auto md:right-6 md:w-[380px]"
             >
                 <div className={`glass rounded-3xl p-6 shadow-2xl border ${isDark ? 'border-white/10' : 'border-black/5'} flex flex-col gap-4 relative overflow-hidden`}>
                     <div className="absolute top-0 right-0 p-2">

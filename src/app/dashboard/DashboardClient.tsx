@@ -23,6 +23,7 @@ import { getUserAssignments } from './cultos/actions'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
 import { NotificationPrompt } from '@/components/NotificationPrompt'
+import { isSonidoUser } from '@/lib/utils/isSonido'
 import CultoNavigator from '@/components/CultoNavigator'
 import { UserAvatar } from '@/components/dashboard/cultos/UserAvatar'
 import { CultoCardRenderer } from '@/components/dashboard/cultos/CultoCardRenderer'
@@ -154,8 +155,8 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
             {/* 2. Main Action Area: Next/Today Culto & Assignments */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* Left: Culto Card (Takes 2 cols on Desktop) */}
-                <div className="lg:col-span-2 space-y-4">
+                {/* Left: Culto Card (Takes 2 cols on Desktop; full width for SONIDO) */}
+                <div className={`${isSonidoUser(user) ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-4`}>
                     <CultoNavigator
                         initialCulto={culto}
                         initialDate={initialDate}
@@ -185,8 +186,8 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                     </CultoNavigator>
                 </div>
 
-                {/* Right: My Assignments (New Section) */}
-                <div className="lg:col-span-1">
+                {/* Right: My Assignments (Hidden for SONIDO role) */}
+                {!isSonidoUser(user) && <div className="lg:col-span-1">
                     <Card className="h-full rounded-[2.5rem] border-none shadow-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex flex-col">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
@@ -261,7 +262,7 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                             </div>
                         </CardContent>
                     </Card>
-                </div>
+                </div>}
             </div>
 
             {/* 3. Quick Actions Grid (Restored & Improved) */}

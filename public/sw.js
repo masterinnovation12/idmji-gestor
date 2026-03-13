@@ -244,18 +244,18 @@ self.addEventListener('notificationclick', (event) => {
 
     const urlToOpen = event.notification.data?.url || '/dashboard';
 
+    const fullUrl = urlToOpen.startsWith('http') ? urlToOpen : self.location.origin + (urlToOpen.startsWith('/') ? urlToOpen : '/' + urlToOpen);
+
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((clientList) => {
-                // Buscar si ya hay una ventana abierta
                 for (const client of clientList) {
                     if (client.url.includes(self.location.origin) && 'focus' in client) {
-                        client.navigate(urlToOpen);
+                        client.navigate(fullUrl);
                         return client.focus();
                     }
                 }
-                // Si no hay ventana, abrir una nueva
-                return clients.openWindow(urlToOpen);
+                return clients.openWindow(fullUrl);
             })
     );
 });

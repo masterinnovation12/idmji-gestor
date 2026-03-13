@@ -5,11 +5,14 @@ import { sendNotificationToUser } from '@/app/actions/notifications'
 import { translations } from '@/lib/i18n/translations'
 import type { Language } from '@/lib/i18n/types'
 import { format } from 'date-fns'
-import { es, ca } from 'date-fns/locale'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
+    const authHeader = request.headers.get('authorization')
+    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
     try {
         console.log('CRON: Iniciando envío de recordatorios diarios (9:00 AM)...')
         const supabase = await createClient()
@@ -52,11 +55,10 @@ export async function GET() {
 
                     const lang = (profile?.language || 'es-ES') as Language
                     const t = (key: any) => translations[lang][key as keyof typeof translations['es-ES']] || key
-                    const locale = lang === 'ca-ES' ? ca : es
 
                     const roleLabel = t(role.key)
                     const cultoTypeLabel = culto.tipo_culto?.nombre || 'Culto'
-                    const timeLabel = culto.hora ? culto.hora.substring(0, 5) : '--:--'
+                    const timeLabel = culto.hora_inicio ? culto.hora_inicio.substring(0, 5) : '--:--'
 
                     const title = t('notifications.reminder.title')
                     const body = t('notifications.reminder.body')

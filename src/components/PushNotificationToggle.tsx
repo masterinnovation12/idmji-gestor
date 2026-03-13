@@ -15,10 +15,12 @@ import { Bell, BellOff, Send, AlertCircle, Check, Loader2 } from 'lucide-react'
 import { subscribeToPush, unsubscribeFromPush, sendTestNotification } from '@/app/actions/notifications'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 
 type NotificationStatus = 'checking' | 'unsupported' | 'denied' | 'inactive' | 'active' | 'error'
 
 export function PushNotificationToggle() {
+    const { t } = useI18n()
     const [status, setStatus] = useState<NotificationStatus>('checking')
     const [isLoading, setIsLoading] = useState(false)
     const [subscription, setSubscription] = useState<PushSubscription | null>(null)
@@ -26,17 +28,15 @@ export function PushNotificationToggle() {
 
     // Check subscription status on mount
     const checkSubscription = useCallback(async () => {
-        // Check browser support
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
             setStatus('unsupported')
-            setErrorMessage('Tu navegador no soporta notificaciones push')
+            setErrorMessage(t('notifications.status.unsupported'))
             return
         }
 
-        // Check permission
         if (Notification.permission === 'denied') {
             setStatus('denied')
-            setErrorMessage('Has bloqueado las notificaciones. Actívalas en la configuración del navegador.')
+            setErrorMessage(t('notifications.status.denied'))
             return
         }
 
@@ -56,9 +56,9 @@ export function PushNotificationToggle() {
         } catch (error) {
             console.error('Error checking subscription:', error)
             setStatus('error')
-            setErrorMessage('Error al verificar el estado de las notificaciones')
+            setErrorMessage(t('notifications.error.config'))
         }
-    }, [])
+    }, [t])
 
     useEffect(() => {
         checkSubscription()
@@ -74,13 +74,13 @@ export function PushNotificationToggle() {
 
             if (permission === 'denied') {
                 setStatus('denied')
-                setErrorMessage('Permiso de notificaciones denegado')
+                setErrorMessage(t('notifications.error.denied'))
                 setIsLoading(false)
                 return
             }
 
             if (permission !== 'granted') {
-                setErrorMessage('No se otorgó el permiso de notificaciones')
+                setErrorMessage(t('notifications.error.noPermission'))
                 setIsLoading(false)
                 return
             }
@@ -90,7 +90,7 @@ export function PushNotificationToggle() {
 
             if (!publicKey || publicKey.length < 50) {
                 setStatus('error')
-                setErrorMessage('Configuración del servidor incompleta o clave VAPID inválida')
+                setErrorMessage(t('notifications.error.config'))
                 setIsLoading(false)
                 return
             }
@@ -106,7 +106,7 @@ export function PushNotificationToggle() {
             const auth = sub.getKey('auth')
 
             if (!p256dh || !auth) {
-                setErrorMessage('Error al obtener claves de encriptación')
+                setErrorMessage(t('notifications.error.config'))
                 setStatus('error')
                 return
             }
@@ -128,7 +128,7 @@ export function PushNotificationToggle() {
             } else {
                 // Si hay error del servidor, pero la suscripción del navegador funcionó
                 if (result.error?.includes('does not exist')) {
-                    setErrorMessage('La base de datos no está configurada para notificaciones')
+                    setErrorMessage(t('notifications.error.db'))
                 } else {
                     setErrorMessage(result.error || 'Error al guardar la suscripción')
                 }
@@ -192,7 +192,7 @@ export function PushNotificationToggle() {
                 return (
                     <div className="flex items-center gap-3 text-muted-foreground">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        <span className="text-sm">Verificando...</span>
+                        <span className="text-sm">{t('notifications.status.checking')}</span>
                     </div>
                 )
 
@@ -210,8 +210,8 @@ export function PushNotificationToggle() {
                         <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
                             <BellOff className="w-5 h-5" />
                             <div>
-                                <p className="font-medium text-sm">Notificaciones bloqueadas</p>
-                                <p className="text-xs opacity-70">Actívalas en configuración del navegador</p>
+                                <p className="font-medium text-sm">{t('notifications.status.blocked')}</p>
+                                <p className="text-xs opacity-70">{t('notifications.status.blockedHint')}</p>
                             </div>
                         </div>
                     </div>
@@ -231,7 +231,7 @@ export function PushNotificationToggle() {
                             onClick={() => { setStatus('inactive'); setErrorMessage(null); checkSubscription(); }}
                             className="text-xs text-primary hover:underline"
                         >
-                            Reintentar
+                            {t('notifications.retry')}
                         </button>
                     </div>
                 )
@@ -244,8 +244,8 @@ export function PushNotificationToggle() {
                                 <BellOff className="w-5 h-5 text-gray-400 dark:text-zinc-500" />
                             </div>
                             <div>
-                                <p className="font-bold text-sm text-gray-900 dark:text-white">Notificaciones Push</p>
-                                <p className="text-xs text-gray-500 dark:text-zinc-400">Recibe alertas de tus asignaciones</p>
+                                <p className="font-bold text-sm text-gray-900 dark:text-white">{t('notifications.pushTitle')}</p>
+                                <p className="text-xs text-gray-500 dark:text-zinc-400">{t('notifications.pushDesc')}</p>
                             </div>
                         </div>
                         <button
@@ -254,7 +254,7 @@ export function PushNotificationToggle() {
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-all disabled:opacity-50 flex items-center gap-2"
                         >
                             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
-                            Activar
+                            {t('notifications.activate')}
                         </button>
                     </div>
                 )
@@ -269,10 +269,10 @@ export function PushNotificationToggle() {
                                 </div>
                                 <div>
                                     <p className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                                        Notificaciones Push
+                                        {t('notifications.pushTitle')}
                                         <Check className="w-4 h-4 text-green-500" />
                                     </p>
-                                    <p className="text-xs text-green-600 dark:text-green-400">Activadas</p>
+                                    <p className="text-xs text-green-600 dark:text-green-400">{t('notifications.activated')}</p>
                                 </div>
                             </div>
                             <button
@@ -280,7 +280,7 @@ export function PushNotificationToggle() {
                                 disabled={isLoading}
                                 className="px-4 py-2 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-300 text-sm font-bold rounded-xl transition-all disabled:opacity-50"
                             >
-                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Desactivar'}
+                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('notifications.deactivate')}
                             </button>
                         </div>
 
@@ -292,7 +292,7 @@ export function PushNotificationToggle() {
                             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-bold rounded-xl transition-all border border-blue-200 dark:border-blue-800 disabled:opacity-50"
                         >
                             <Send className="w-4 h-4" />
-                            Enviar Notificación de Prueba
+                            {t('notifications.testButton')}
                         </motion.button>
                     </div>
                 )

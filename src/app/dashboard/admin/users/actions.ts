@@ -45,7 +45,7 @@ export interface UserData {
 }
 
 const VALID_DOMAIN = '@idmjisabadell.org'
-const FALLBACK_ROLES = ['ADMIN', 'EDITOR', 'MIEMBRO'] as const
+const FALLBACK_ROLES = ['ADMIN', 'EDITOR', 'MIEMBRO', 'SONIDO'] as const
 
 const createSchema = z.object({
     email: z.string().email(),

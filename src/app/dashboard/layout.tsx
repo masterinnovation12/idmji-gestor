@@ -45,6 +45,7 @@ import { useTheme } from '@/lib/theme/ThemeProvider'
 import type { TranslationKey, Language } from '@/lib/i18n/types'
 import NextImage from 'next/image'
 import { LogoModal } from '@/components/LogoModal'
+import { isSonidoUser } from '@/lib/utils/isSonido'
 
 export default function DashboardLayout({
     children,
@@ -162,6 +163,7 @@ export default function DashboardLayout({
 
     // Configuración dinámica de items del sidebar con i18n (memoizado para evitar problemas de hidratación)
     // Archivos: visible para cualquier rol (ADMIN, EDITOR, VIEWER, etc.)
+    const isSonido = isSonidoUser(userProfile ?? {})
     const sidebarItems = useMemo(() => [
         { icon: LayoutDashboard, label: t('nav.dashboard'), href: '/dashboard' },
         { icon: Calendar, label: t('nav.cultos'), href: '/dashboard/cultos' },
@@ -169,14 +171,16 @@ export default function DashboardLayout({
         { icon: Music, label: t('nav.himnario'), href: '/dashboard/himnario' },
         { icon: Users, label: t('nav.hermanos'), href: '/dashboard/hermanos' },
         { icon: FileSpreadsheet, label: t('nav.archivos'), href: '/dashboard/archivos' },
-        { icon: BookMarked, label: t('nav.instrucciones'), href: '/dashboard/instrucciones' },
+        // Instrucciones: solo para usuarios de púlpito (no SONIDO)
+        ...(!isSonido ? [{ icon: BookMarked, label: t('nav.instrucciones'), href: '/dashboard/instrucciones' }] : []),
         // Items de administración (solo para ADMIN)
         ...(userProfile?.rol === 'ADMIN' ? [
             { icon: BarChart, label: t('nav.stats'), href: '/dashboard/admin/stats' },
             { icon: UserCog, label: t('nav.users'), href: '/dashboard/admin/users' },
             { icon: FileText, label: t('nav.audit'), href: '/dashboard/admin/audit' },
         ] : [])
-    ], [t, userProfile?.rol])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    ], [t, userProfile?.rol, isSonido])
 
     // Cerrar menú móvil al cambiar de ruta
     useEffect(() => {

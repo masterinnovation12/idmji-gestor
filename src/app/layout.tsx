@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { PWARegister } from "@/components/PWARegister";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { PromptsProvider } from "@/lib/PromptsContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -96,11 +97,13 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased no-scrollbar`}>
         <ThemeProvider>
           <I18nProvider>
-            <div className="gradient-mesh fixed inset-0 -z-10" />
-            <Toaster position="top-center" closeButton />
-            <PWARegister />
-            <InstallPrompt />
-            {children}
+            <PromptsProvider>
+              <div className="gradient-mesh fixed inset-0 -z-10" />
+              <Toaster position="top-center" closeButton />
+              <PWARegister />
+              <InstallPrompt />
+              {children}
+            </PromptsProvider>
           </I18nProvider>
         </ThemeProvider>
       </body>

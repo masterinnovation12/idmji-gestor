@@ -26,6 +26,7 @@ import Image from 'next/image'
 import { Button } from './ui/Button'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 import { useI18n } from '@/lib/i18n/I18nProvider'
+import { usePrompts } from '@/lib/PromptsContext'
 
 interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<void>;
@@ -48,6 +49,7 @@ export function InstallPrompt() {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
     const { isDark } = useTheme()
     const { t } = useI18n()
+    const prompts = usePrompts()
 
     // Detectar plataforma
     const platform = useMemo(() => {
@@ -111,7 +113,10 @@ export function InstallPrompt() {
 
             // Esperar un poco antes de mostrar para no interrumpir la carga inicial
             setTimeout(() => {
-                setShowPrompt(true)
+                if (prompts?.activePrompt === null) {
+                    prompts.setActivePrompt('install')
+                    setShowPrompt(true)
+                }
             }, 5000) // 5 segundos después del evento
         }
 
@@ -121,8 +126,9 @@ export function InstallPrompt() {
         if (platform?.name === 'ios') {
             const timer = setTimeout(() => {
                 // Solo mostrar si no se ha mostrado en esta sesión
-                if (!sessionStorage.getItem(SESSION_SHOWN_KEY)) {
+                if (!sessionStorage.getItem(SESSION_SHOWN_KEY) && prompts?.activePrompt === null) {
                     sessionStorage.setItem(SESSION_SHOWN_KEY, 'true')
+                    prompts?.setActivePrompt('install')
                     setShowPrompt(true)
                 }
             }, 4000) // 4 segundos para iOS
@@ -134,7 +140,7 @@ export function InstallPrompt() {
         }
 
         return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    }, [platform, shouldShowPrompt])
+    }, [platform, shouldShowPrompt, prompts?.activePrompt])
 
     // Detectar si se instaló la app
     useEffect(() => {
@@ -157,6 +163,7 @@ export function InstallPrompt() {
             if (outcome === 'accepted') {
                 localStorage.setItem(PROMPT_INSTALLED_KEY, 'true')
                 setShowPrompt(false)
+                prompts?.onInstallPromptClosed()
             }
         } catch (error) {
             console.error('Error durante instalación:', error)
@@ -170,6 +177,7 @@ export function InstallPrompt() {
         setShowIOSInstructions(false)
         // Guardar timestamp de cierre para respetar los días de espera
         localStorage.setItem(PROMPT_DISMISS_KEY, Date.now().toString())
+        prompts?.onInstallPromptClosed()
     }
 
     const handleIOSConfirm = () => {

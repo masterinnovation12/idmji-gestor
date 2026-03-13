@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { ActionResponse } from '@/types/database'
 import { PushSubscription } from '@/types/notifications'
+import { translations } from '@/lib/i18n/translations'
+import type { Language } from '@/lib/i18n/types'
 
 // VAPID keys configuration
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
@@ -105,12 +107,19 @@ export async function sendTestNotification(): Promise<ActionResponse<void>> {
         if (error) throw error
 
         if (!subscriptions || subscriptions.length === 0) {
-            return { success: false, error: 'No hay suscripciones activas' }
+            const { data: profile } = await supabase.from('profiles').select('language').eq('id', user.id).single()
+            const lang = (profile?.language || 'es-ES') as Language
+            const t = (key: keyof typeof translations['es-ES']) => translations[lang]?.[key] ?? translations['es-ES'][key] ?? String(key)
+            return { success: false, error: t('notifications.error.noSubscriptions' as keyof typeof translations['es-ES']) }
         }
 
+        const { data: profile } = await supabase.from('profiles').select('language').eq('id', user.id).single()
+        const lang = (profile?.language || 'es-ES') as Language
+        const t = (key: keyof typeof translations['es-ES']) => translations[lang]?.[key] ?? translations['es-ES'][key] ?? String(key)
+
         const payload = JSON.stringify({
-            title: 'Notificación de Prueba',
-            body: 'Esta es una notificación de prueba desde IDMJI Gestor',
+            title: t('notifications.test.title' as keyof typeof translations['es-ES']),
+            body: t('notifications.test.body' as keyof typeof translations['es-ES']),
             url: '/dashboard'
         })
 

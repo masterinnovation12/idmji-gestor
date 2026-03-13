@@ -8,7 +8,7 @@
  * @date 2024-12-18
  */
 
-export type UserRole = 'ADMIN' | 'EDITOR' | 'USER'
+export type UserRole = 'ADMIN' | 'EDITOR' | 'USER' | 'SONIDO'
 
 export interface Profile {
     id: string

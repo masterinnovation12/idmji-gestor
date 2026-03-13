@@ -2,6 +2,7 @@ import { getCultoDetails } from './actions'
 import { notFound } from 'next/navigation'
 import CultoDetailClient from './CultoDetailClient'
 import { createClient } from '@/lib/supabase/server'
+import { isSonidoUser } from '@/lib/utils/isSonido'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,5 +20,13 @@ export default async function CultoDetailPage({ params }: PageProps) {
         notFound()
     }
 
-    return <CultoDetailClient culto={culto} userId={user?.id || ''} />
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('rol, availability')
+        .eq('id', user?.id || '')
+        .single()
+
+    const isSonido = isSonidoUser(profile ?? {})
+
+    return <CultoDetailClient culto={culto} userId={user?.id || ''} readOnlyAssignments={isSonido} />
 }

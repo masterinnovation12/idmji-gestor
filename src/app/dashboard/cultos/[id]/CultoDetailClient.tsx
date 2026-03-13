@@ -40,6 +40,8 @@ import NextImage from 'next/image'
 interface CultoDetailClientProps {
     culto: Culto
     userId: string
+    /** Si es true (rol SONIDO), puede ver asignaciones pero no editarlas. Sí puede añadir lecturas e himnos/coros. */
+    readOnlyAssignments?: boolean
 }
 
 /**
@@ -58,7 +60,9 @@ interface AssignmentSectionProps {
     cultoDate?: string,
     assignmentType?: string,
     isFestivo?: boolean,
-    onVerInstrucciones?: () => void
+    onVerInstrucciones?: () => void,
+    /** Solo lectura: muestra el asignado pero no permite editar (rol SONIDO) */
+    readOnly?: boolean,
 }
 
 function AssignmentSection({
@@ -73,9 +77,11 @@ function AssignmentSection({
     cultoDate,
     assignmentType,
     isFestivo,
-    onVerInstrucciones
+    onVerInstrucciones,
+    readOnly = false,
 }: AssignmentSectionProps) {
-    const [isEditing, setIsEditing] = useState(!selectedUserId)
+    // En modo readOnly nunca se edita; si hay usuario asignado tampoco se empieza editando
+    const [isEditing, setIsEditing] = useState(readOnly ? false : !selectedUserId)
     const [isSaving, setIsSaving] = useState(false)
     const [optimisticId, setOptimisticId] = useState(selectedUserId)
     const [optimisticUser, setOptimisticUser] = useState<Partial<Profile> | null>(usuarioActual || null)
@@ -172,7 +178,7 @@ function AssignmentSection({
                                 <span className="hidden sm:inline">{t('culto.instrucciones.ver')}</span>
                             </button>
                         )}
-                        {optimisticId && !isEditing && (
+                        {optimisticId && !isEditing && !readOnly && (
                             <button
                                 onClick={() => setIsEditing(true)}
                                 className="px-3 py-1 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
@@ -193,22 +199,24 @@ function AssignmentSection({
                             </div>
                         )}
 
-                        {/* Contenido (Selector o Tarjeta Vertical) */}
-                        <div className="shrink-0 relative z-110">
-                            <UserSelector
-                                selectedUserId={optimisticId}
-                                // @ts-ignore - Modificaremos UserSelector para pasar el objeto completo
-                                onSelect={handleUserSelectorSelect}
-                                disabled={disabled || isSaving}
-                                isEditing={isEditing}
-                                onEditChange={(val) => {
-                                    if (!isSaving) setIsEditing(val)
-                                }}
-                                cultoDate={cultoDate}
-                                assignmentType={assignmentType}
-                                isFestivo={isFestivo}
-                            />
-                        </div>
+                        {/* Contenido (Selector o Tarjeta Vertical) — oculto en readOnly */}
+                        {!readOnly && (
+                            <div className="shrink-0 relative z-110">
+                                <UserSelector
+                                    selectedUserId={optimisticId}
+                                    // @ts-ignore - Modificaremos UserSelector para pasar el objeto completo
+                                    onSelect={handleUserSelectorSelect}
+                                    disabled={disabled || isSaving}
+                                    isEditing={isEditing}
+                                    onEditChange={(val) => {
+                                        if (!isSaving) setIsEditing(val)
+                                    }}
+                                    cultoDate={cultoDate}
+                                    assignmentType={assignmentType}
+                                    isFestivo={isFestivo}
+                                />
+                            </div>
+                        )}
 
                         <AnimatePresence mode="wait">
                             {displayUser && !isEditing ? (
@@ -269,7 +277,7 @@ function AssignmentSection({
                                         </motion.div>
                                     )}
                                 </motion.div>
-                            ) : !isEditing && !displayUser ? (
+                            ) : (!isEditing || readOnly) && !displayUser ? (
                                 <motion.div
                                     key="unassigned"
                                     initial={{ opacity: 0 }}
@@ -288,7 +296,7 @@ function AssignmentSection({
     )
 }
 
-export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
+export default function CultoDetailClient({ culto, readOnlyAssignments = false }: CultoDetailClientProps) {
     const router = useRouter()
     const { t, language } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
@@ -404,8 +412,8 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                     <div className="flex flex-col gap-2">
                                         <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-4 leading-none">Estado de Jornada</p>
                                         <button
-                                            onClick={handleToggleFestivo}
-                                            disabled={isUpdating}
+                                            onClick={readOnlyAssignments ? undefined : handleToggleFestivo}
+                                            disabled={isUpdating || readOnlyAssignments}
                                             className={`flex items-center gap-4 px-8 py-4 rounded-3xl border transition-all font-black group relative overflow-hidden h-full ${culto.es_laborable_festivo
                                                 ? 'bg-amber-500 text-white border-amber-600 shadow-xl shadow-amber-500/30 scale-105'
                                                 : 'bg-white/40 dark:bg-black/20 backdrop-blur-md text-muted-foreground border-white/20 hover:border-amber-500/50 hover:bg-amber-50/10'
@@ -471,22 +479,22 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                         <textarea
                             placeholder="Escribe aquí las observaciones del culto..."
                             defaultValue={(culto.meta_data as any)?.observaciones || ''}
-                            onBlur={async (e) => {
+                            readOnly={readOnlyAssignments}
+                            onBlur={readOnlyAssignments ? undefined : async (e) => {
                                 await updateCultoObservaciones(culto.id, e.target.value)
                                 if (e.target.value.trim()) {
                                     toast.success('Observaciones guardadas')
                                 }
                             }}
-                            className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-amber-500/50 resize-none placeholder:text-slate-400"
+                            className={`w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-amber-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
                             rows={3}
                         />
                     </div>
                 </div>
             </motion.div>
 
-            {/* Protocol Configuration (Solo Estudio Bíblico) */}
-            {/* Protocol Configuration (Solo Estudio Bíblico) */}
-            {(tipoCulto.toLowerCase().includes('estudio') || tipoCulto.toLowerCase().includes('biblico')) && (
+            {/* Protocol Configuration (Solo Estudio Bíblico, oculto para SONIDO) */}
+            {!readOnlyAssignments && (tipoCulto.toLowerCase().includes('estudio') || tipoCulto.toLowerCase().includes('biblico')) && (
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -576,8 +584,8 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                 </motion.div>
             )}
 
-            {/* Inicio Anticipado (Solo Estudio Bíblico) */}
-            {(tipoCulto.toLowerCase().includes('estudio') || tipoCulto.toLowerCase().includes('biblico')) && (
+            {/* Inicio Anticipado (Solo Estudio Bíblico, oculto para SONIDO) */}
+            {!readOnlyAssignments && (tipoCulto.toLowerCase().includes('estudio') || tipoCulto.toLowerCase().includes('biblico')) && (
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -744,6 +752,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 assignmentType="introduccion"
                                 isFestivo={culto.es_laborable_festivo}
                                 onVerInstrucciones={() => setInstruccionesModalRol('introduccion')}
+                                readOnly={readOnlyAssignments}
                             />
                         </div>
                     )}
@@ -763,6 +772,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 assignmentType="ensenanza"
                                 isFestivo={culto.es_laborable_festivo}
                                 onVerInstrucciones={() => setInstruccionesModalRol('ensenanza')}
+                                readOnly={readOnlyAssignments}
                             />
                         </div>
                     )}
@@ -782,6 +792,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 assignmentType="testimonios"
                                 isFestivo={culto.es_laborable_festivo}
                                 onVerInstrucciones={() => setInstruccionesModalRol('testimonios')}
+                                readOnly={readOnlyAssignments}
                             />
                         </div>
                     )}
@@ -801,6 +812,7 @@ export default function CultoDetailClient({ culto }: CultoDetailClientProps) {
                                 assignmentType="finalizacion"
                                 isFestivo={culto.es_laborable_festivo}
                                 onVerInstrucciones={() => setInstruccionesModalRol('finalizacion')}
+                                readOnly={readOnlyAssignments}
                             />
                         </div>
                     )}
