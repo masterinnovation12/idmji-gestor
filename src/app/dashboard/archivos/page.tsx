@@ -1,3 +1,7 @@
+/**
+ * Página Archivos: visible para cualquier usuario autenticado (cualquier rol).
+ * No se comprueba rol: ADMIN, EDITOR, VIEWER, etc. pueden acceder.
+ */
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { unstable_noStore } from 'next/cache'
@@ -22,6 +26,7 @@ export default async function ArchivosPage() {
   if (!user) {
     redirect('/login')
   }
+  // Sin comprobación de rol: cualquier usuario autenticado puede ver Archivos
 
   // Carga en servidor: evita problemas de cookies/sesión en fetch cliente
   const initialData: Partial<Record<SheetSourceId, Record<string, string>[]>> = {}

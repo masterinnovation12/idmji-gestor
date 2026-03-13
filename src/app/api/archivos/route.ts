@@ -1,7 +1,7 @@
 /**
  * API Route para datos de Archivos (Google Sheets).
- * Sustituye la Server Action para evitar "An unexpected response was received from the server"
- * con middleware + Next.js 16.
+ * Accesible por cualquier usuario autenticado (cualquier rol: ADMIN, EDITOR, VIEWER, etc.).
+ * No se comprueba rol.
  */
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -30,6 +30,7 @@ export async function GET(request: Request) {
     if (!user) {
       return NextResponse.json({ success: false, error: 'No autenticado' }, { status: 401 })
     }
+    // Sin comprobación de rol: cualquier usuario autenticado puede consumir la API
 
     const { searchParams } = new URL(request.url)
     const sourceId = searchParams.get('source')

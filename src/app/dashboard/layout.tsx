@@ -35,7 +35,8 @@ import {
     Search,
     Globe,
     Moon,
-    Sun
+    Sun,
+    BookMarked
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -160,6 +161,7 @@ export default function DashboardLayout({
     }, [supabase])
 
     // Configuración dinámica de items del sidebar con i18n (memoizado para evitar problemas de hidratación)
+    // Archivos: visible para cualquier rol (ADMIN, EDITOR, VIEWER, etc.)
     const sidebarItems = useMemo(() => [
         { icon: LayoutDashboard, label: t('nav.dashboard'), href: '/dashboard' },
         { icon: Calendar, label: t('nav.cultos'), href: '/dashboard/cultos' },
@@ -167,6 +169,7 @@ export default function DashboardLayout({
         { icon: Music, label: t('nav.himnario'), href: '/dashboard/himnario' },
         { icon: Users, label: t('nav.hermanos'), href: '/dashboard/hermanos' },
         { icon: FileSpreadsheet, label: t('nav.archivos'), href: '/dashboard/archivos' },
+        { icon: BookMarked, label: t('nav.instrucciones'), href: '/dashboard/instrucciones' },
         // Items de administración (solo para ADMIN)
         ...(userProfile?.rol === 'ADMIN' ? [
             { icon: BarChart, label: t('nav.stats'), href: '/dashboard/admin/stats' },
