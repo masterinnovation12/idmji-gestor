@@ -110,6 +110,32 @@ export const translations = {
         'culto.instrucciones.ver': 'Ver instrucciones',
         'culto.instrucciones.empty': 'No hay instrucciones para este rol.',
 
+        // Página Instrucciones
+        'instrucciones.subtitle': 'Guía de roles para cada tipo de culto',
+        'instrucciones.comingSoon': 'Próximamente',
+        'instrucciones.empty': 'No hay instrucciones disponibles.',
+        'instrucciones.of': 'de',
+        'instrucciones.rolesReady': 'roles disponibles',
+
+        // Archivos - textos de app
+        'archivos.search.inTab': 'Buscar en {tab}…',
+        'archivos.search.noResults': 'Sin resultados',
+        'archivos.filter.allPeriods': 'Todos los períodos',
+        'archivos.sort.recent': 'Más reciente',
+        'archivos.sort.oldest': 'Más antiguo',
+        'archivos.sort.alpha': 'Alfabético',
+        'archivos.sort.alphaReverse': 'Alfabético Z→A',
+        'archivos.sort.colAsc': 'Columna ↑',
+        'archivos.sort.colDesc': 'Columna ↓',
+        'archivos.clear': 'Limpiar',
+        'archivos.clearFilters': 'Limpiar filtros',
+        'archivos.records': 'registros',
+        'archivos.record': 'registro',
+        'archivos.noResultsFor': 'Sin resultados para',
+        'archivos.sort.sortLabel': 'Ordenar',
+        'archivos.sort.noSort': 'Sin ordenar',
+        'archivos.filter.label': 'Filtrar',
+
         // Archivos (hojas Drive)
         'archivos.title': 'Archivos',
         'archivos.tab.ensenanzas': 'Enseñanzas',
@@ -570,6 +596,32 @@ export const translations = {
         'culto.instrucciones.title': 'Instruccions',
         'culto.instrucciones.ver': 'Veure instruccions',
         'culto.instrucciones.empty': 'No hi ha instruccions per a aquest rol.',
+
+        // Pàgina Instruccions
+        'instrucciones.subtitle': 'Guia de rols per a cada tipus de culte',
+        'instrucciones.comingSoon': 'Properament',
+        'instrucciones.empty': 'No hi ha instruccions disponibles.',
+        'instrucciones.of': 'de',
+        'instrucciones.rolesReady': 'rols disponibles',
+
+        // Arxius - textos de l'app
+        'archivos.search.inTab': 'Cercar a {tab}…',
+        'archivos.search.noResults': 'Sense resultats',
+        'archivos.filter.allPeriods': 'Tots els períodes',
+        'archivos.sort.recent': 'Més recent',
+        'archivos.sort.oldest': 'Més antic',
+        'archivos.sort.alpha': 'Alfabètic',
+        'archivos.sort.alphaReverse': 'Alfabètic Z→A',
+        'archivos.sort.colAsc': 'Columna ↑',
+        'archivos.sort.colDesc': 'Columna ↓',
+        'archivos.clear': 'Netejar',
+        'archivos.clearFilters': 'Netejar filtres',
+        'archivos.records': 'registres',
+        'archivos.record': 'registre',
+        'archivos.noResultsFor': 'Sense resultats per a',
+        'archivos.sort.sortLabel': 'Ordenar',
+        'archivos.sort.noSort': 'Sense ordre',
+        'archivos.filter.label': 'Filtrar',
 
         // Archivos (hojas Drive)
         'archivos.title': 'Arxius',

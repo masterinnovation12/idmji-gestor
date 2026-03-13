@@ -8,6 +8,7 @@ export type RolInfo = {
   rol: RolInstruccionCulto
   titulo: string
   contenido: string
+  publicado: boolean
 }
 
 export type CultoInstrucciones = {
@@ -34,7 +35,7 @@ export async function getAllInstrucciones(
     const { data, error } = await supabase
       .from('instrucciones_culto')
       .select(`
-        id, rol,
+        id, rol, publicado,
         titulo_es, titulo_ca,
         contenido_es, contenido_ca,
         culto_types!culto_type_id(id, nombre, color)
@@ -56,6 +57,7 @@ export async function getAllInstrucciones(
         rol: row.rol as RolInstruccionCulto,
         titulo: isCa ? (row.titulo_ca || row.titulo_es) : (row.titulo_es || row.titulo_ca),
         contenido: isCa ? (row.contenido_ca || row.contenido_es) : (row.contenido_es || row.contenido_ca),
+        publicado: row.publicado ?? false,
       })
     }
 

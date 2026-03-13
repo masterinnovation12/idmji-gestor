@@ -24,6 +24,7 @@ const MONTHS_ES = [
 
 type TabConfig = {
   id: SheetSourceId
+  labelKey: string
   label: string
   icon: React.ElementType
   color: string
@@ -31,11 +32,11 @@ type TabConfig = {
   activeBg: string
 }
 
-const TABS: TabConfig[] = [
-  { id: 'ensenanzas',  label: 'Enseñanzas',     icon: BookOpen,       color: 'text-blue-600  dark:text-blue-400',  bg: 'bg-blue-50  dark:bg-blue-950/40',  activeBg: 'bg-blue-600  dark:bg-blue-500'  },
-  { id: 'estudios',   label: 'Estudios Bíblicos', icon: BookText,     color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40', activeBg: 'bg-emerald-600 dark:bg-emerald-500' },
-  { id: 'instituto',  label: 'Instituto Bíblico', icon: GraduationCap, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40', activeBg: 'bg-violet-600 dark:bg-violet-500' },
-  { id: 'pastorado',  label: 'Pastorado',        icon: UsersRound,    color: 'text-amber-600  dark:text-amber-400',  bg: 'bg-amber-50  dark:bg-amber-950/40',  activeBg: 'bg-amber-600  dark:bg-amber-500'  },
+const TABS_BASE = [
+  { id: 'ensenanzas' as SheetSourceId, labelKey: 'archivos.tab.ensenanzas', icon: BookOpen,       color: 'text-blue-600  dark:text-blue-400',  bg: 'bg-blue-50  dark:bg-blue-950/40',  activeBg: 'bg-blue-600  dark:bg-blue-500'  },
+  { id: 'estudios'   as SheetSourceId, labelKey: 'archivos.tab.estudios',   icon: BookText,       color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40', activeBg: 'bg-emerald-600 dark:bg-emerald-500' },
+  { id: 'instituto'  as SheetSourceId, labelKey: 'archivos.tab.instituto',  icon: GraduationCap, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40', activeBg: 'bg-violet-600 dark:bg-violet-500' },
+  { id: 'pastorado'  as SheetSourceId, labelKey: 'archivos.tab.pastorado',  icon: UsersRound,    color: 'text-amber-600  dark:text-amber-400',  bg: 'bg-amber-50  dark:bg-amber-950/40',  activeBg: 'bg-amber-600  dark:bg-amber-500'  },
 ]
 
 /* ─── Helpers ────────────────────────────────────────────── */
@@ -363,9 +364,11 @@ type FilterDropdownProps = Readonly<{
   setFilterMonthYear: (v: string) => void
   activeTabConfig: TabConfig
   hasFilter: boolean
+  tAllPeriods: string
 }>
 
-function FilterDropdown({ monthYearOptions, filterMonthYear, setFilterMonthYear, activeTabConfig, hasFilter }: FilterDropdownProps) {
+function FilterDropdown({ monthYearOptions, filterMonthYear, setFilterMonthYear, activeTabConfig, hasFilter, tAllPeriods }: FilterDropdownProps) {
+  const { t } = useI18n()
   const { open, setOpen, triggerRef, rect } = usePortalDropdown()
 
   const currentLabel = hasFilter
@@ -396,7 +399,7 @@ function FilterDropdown({ monthYearOptions, filterMonthYear, setFilterMonthYear,
         `}
       >
         <Filter className="w-4 h-4" />
-        <span>Filtrar</span>
+        <span>{t('archivos.filter.label')}</span>
         {hasFilter && currentLabel && (
           <span className="text-xs opacity-90">({currentLabel})</span>
         )}
@@ -422,7 +425,7 @@ function FilterDropdown({ monthYearOptions, filterMonthYear, setFilterMonthYear,
               ].join(' ')}
             >
               <span className="text-base leading-none">·</span>
-              <span>Todos los períodos</span>
+              <span>{tAllPeriods}</span>
             </button>
 
             {/* Por año agrupado */}
@@ -473,11 +476,11 @@ export type SortConfig = {
 
 type SortOption = { field: SortField; dir: SortDir; label: string; sublabel: string; Icon: React.ElementType }
 
-const ALL_SORT_OPTIONS: SortOption[] = [
-  { field: 'date',  dir: 'desc', label: 'Más reciente', sublabel: 'fecha ↓', Icon: ArrowDown },
-  { field: 'date',  dir: 'asc',  label: 'Más antigua',  sublabel: 'fecha ↑', Icon: ArrowUp   },
-  { field: 'alpha', dir: 'asc',  label: 'A → Z',        sublabel: 'nombre',  Icon: ArrowDown },
-  { field: 'alpha', dir: 'desc', label: 'Z → A',        sublabel: 'nombre',  Icon: ArrowUp   },
+const ALL_SORT_OPTIONS_BASE = [
+  { field: 'date'  as SortField, dir: 'desc' as SortDir, labelKey: 'archivos.sort.recent',       sublabel: 'fecha ↓', Icon: ArrowDown },
+  { field: 'date'  as SortField, dir: 'asc'  as SortDir, labelKey: 'archivos.sort.oldest',       sublabel: 'fecha ↑', Icon: ArrowUp   },
+  { field: 'alpha' as SortField, dir: 'asc'  as SortDir, labelKey: 'archivos.sort.alpha',        sublabel: 'A → Z',   Icon: ArrowDown },
+  { field: 'alpha' as SortField, dir: 'desc' as SortDir, labelKey: 'archivos.sort.alphaReverse', sublabel: 'Z → A',   Icon: ArrowUp   },
 ]
 
 type SortDropdownProps = Readonly<{
@@ -485,17 +488,26 @@ type SortDropdownProps = Readonly<{
   setSortConfig: (v: SortConfig | null) => void
   activeTabConfig: TabConfig
   hasDateInfo: boolean
+  tSortLabels: { recent: string; oldest: string; alpha: string; alphaR: string; noSort: string; sort: string }
 }>
 
-function SortDropdown({ sortConfig, setSortConfig, activeTabConfig, hasDateInfo }: SortDropdownProps) {
+function SortDropdown({ sortConfig, setSortConfig, activeTabConfig, hasDateInfo, tSortLabels }: SortDropdownProps) {
   const { open, setOpen, triggerRef, rect } = usePortalDropdown()
   const hasSort = sortConfig !== null
 
+  const ALL_SORT_OPTIONS: SortOption[] = ALL_SORT_OPTIONS_BASE.map((o) => ({
+    ...o,
+    label: o.labelKey === 'archivos.sort.recent' ? tSortLabels.recent
+         : o.labelKey === 'archivos.sort.oldest' ? tSortLabels.oldest
+         : o.labelKey === 'archivos.sort.alpha'  ? tSortLabels.alpha
+         : tSortLabels.alphaR,
+  }))
+
   const sortLabel = sortConfig
     ? sortConfig.field === 'date'
-      ? (sortConfig.dir === 'desc' ? 'Reciente' : 'Antigua')
+      ? (sortConfig.dir === 'desc' ? tSortLabels.recent : tSortLabels.oldest)
       : sortConfig.field === 'alpha'
-        ? (sortConfig.dir === 'asc' ? 'A → Z' : 'Z → A')
+        ? (sortConfig.dir === 'asc' ? tSortLabels.alpha : tSortLabels.alphaR)
         : sortConfig.col
           ? `${prettyKey(sortConfig.col)} ${sortConfig.dir === 'asc' ? '↑' : '↓'}`
           : null
@@ -519,7 +531,7 @@ function SortDropdown({ sortConfig, setSortConfig, activeTabConfig, hasDateInfo 
         `}
       >
         <ArrowUpDown className="w-4 h-4" />
-        <span>Ordenar</span>
+        <span>{tSortLabels.sort}</span>
         {hasSort && sortLabel && (
           <span className="text-xs opacity-90">({sortLabel})</span>
         )}
@@ -545,7 +557,7 @@ function SortDropdown({ sortConfig, setSortConfig, activeTabConfig, hasDateInfo 
               ].join(' ')}
             >
               <ArrowUpDown className="w-4 h-4 shrink-0" />
-              <span>Sin ordenar</span>
+              <span>{tSortLabels.noSort}</span>
             </button>
 
             <div className="h-px bg-border/40 mx-3" />
@@ -662,6 +674,13 @@ type ArchivosClientProps = {
 
 export default function ArchivosClient({ initialData = {}, initialErrors }: ArchivosClientProps) {
   const { t } = useI18n()
+
+  // Tabs con etiquetas traducidas
+  const TABS: TabConfig[] = TABS_BASE.map((tab) => ({
+    ...tab,
+    label: t(tab.labelKey as Parameters<typeof t>[0]),
+  }))
+
   const [activeTab, setActiveTab] = useState<SheetSourceId>('ensenanzas')
 
   // Inicializar directamente con datos del servidor (evita "Cargando..." innecesario)
@@ -903,7 +922,7 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
         <SearchBar
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder={`Buscar en ${activeTabConfig.label}…`}
+          placeholder={t('archivos.search.inTab').replace('{tab}', activeTabConfig.label)}
           accentColor={activeTabConfig.color}
           activeBg={activeTabConfig.activeBg}
           resultsCount={searchFilteredData.length}
@@ -919,6 +938,7 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
               setFilterMonthYear={setFilterMonthYear}
               activeTabConfig={activeTabConfig}
               hasFilter={hasFilter}
+              tAllPeriods={t('archivos.filter.allPeriods')}
             />
           )}
 
@@ -927,6 +947,14 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
             setSortConfig={setSortConfig}
             activeTabConfig={activeTabConfig}
             hasDateInfo={hasDateInfo}
+            tSortLabels={{
+              recent: t('archivos.sort.recent'),
+              oldest: t('archivos.sort.oldest'),
+              alpha: t('archivos.sort.alpha'),
+              alphaR: t('archivos.sort.alphaReverse'),
+              noSort: t('archivos.sort.noSort'),
+              sort: t('archivos.sort.sortLabel'),
+            }}
           />
 
           <AnimatePresence>
@@ -945,7 +973,7 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
                   transition-colors touch-manipulation"
               >
                 <X className="w-3.5 h-3.5" />
-                <span>Limpiar</span>
+                <span>{t('archivos.clear')}</span>
                 <span className="bg-destructive/15 text-destructive rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none">
                   {(hasFilter ? 1 : 0) + (hasSearch ? 1 : 0) + (hasSort ? 1 : 0)}
                 </span>
@@ -978,7 +1006,7 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
           }
           <p className="text-muted-foreground text-sm text-center">
             {hasSearch
-              ? <>Sin resultados para <strong className="text-foreground">"{searchQuery}"</strong></>
+              ? <>{t('archivos.noResultsFor')} <strong className="text-foreground">"{searchQuery}"</strong></>
               : hasFilter ? 'No hay datos para este período.' : t('archivos.empty')
             }
           </p>
@@ -988,7 +1016,7 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
               onClick={clearAllFilters}
               className="text-xs text-primary underline hover:no-underline"
             >
-              Limpiar filtros
+              {t('archivos.clearFilters')}
             </button>
           )}
         </div>
@@ -1066,7 +1094,7 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
                 </div>
                 <div className="px-4 py-2.5 border-t border-border/30 flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-muted-foreground">
-                    {(displayData?.length ?? 0)} {(displayData?.length ?? 0) === 1 ? 'registro' : 'registros'}
+                    {(displayData?.length ?? 0)} {(displayData?.length ?? 0) === 1 ? t('archivos.record') : t('archivos.records')}
                     {hasFilter && (() => { const opt = monthYearOptions.find((o) => `${o.year}-${o.month}` === filterMonthYear); return opt ? ` · ${opt.label}` : '' })()}
                     {hasSearch && ` · "${searchQuery}"`}
                   </span>
@@ -1076,7 +1104,7 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
                       onClick={clearAllFilters}
                       className="text-[10px] text-primary/70 hover:text-primary underline transition-colors"
                     >
-                      Limpiar
+                      {t('archivos.clear')}
                     </button>
                   )}
                 </div>
@@ -1099,7 +1127,7 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
                 ))}
                 <div className="px-4 py-2.5 flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-muted-foreground">
-                    {(displayData?.length ?? 0)} {(displayData?.length ?? 0) === 1 ? 'registro' : 'registros'}
+                    {(displayData?.length ?? 0)} {(displayData?.length ?? 0) === 1 ? t('archivos.record') : t('archivos.records')}
                     {hasFilter && (() => { const opt = monthYearOptions.find((o) => `${o.year}-${o.month}` === filterMonthYear); return opt ? ` · ${opt.label}` : '' })()}
                     {hasSearch && ` · "${searchQuery}"`}
                   </span>
@@ -1109,7 +1137,7 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
                       onClick={clearAllFilters}
                       className="text-[10px] text-primary/70 hover:text-primary underline transition-colors"
                     >
-                      Limpiar
+                      {t('archivos.clear')}
                     </button>
                   )}
                 </div>
