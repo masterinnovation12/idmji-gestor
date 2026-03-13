@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Profile } from '@/types/database'
 import { Clock, BookOpen, Music, Users } from 'lucide-react'
 import { UserAvatar } from './UserAvatar'
 
-export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto }: { label: string, usuario: Partial<Profile> | null | undefined, lectura?: any, himnario?: any[], tipoCulto?: string }) {
+export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, action, footerAction }: { label: string, usuario: Partial<Profile> | null | undefined, lectura?: any, himnario?: any[], tipoCulto?: string, action?: ReactNode, footerAction?: ReactNode }) {
     const { t } = useI18n()
     if (!usuario && !lectura && (!himnario || himnario.length === 0)) return null
 
@@ -29,37 +30,42 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto }:
         : t('dashboard.himnario.timeAlabanza')
 
     const hasExtraContent = lectura || (himnario && himnario.length > 0)
+    const hasFooter = footerAction != null
+
+    const nombreCompleto = usuario ? `${usuario.nombre ?? ''} ${(usuario.apellidos ?? '').split(' ')[0] ?? ''}`.trim() : ''
 
     return (
-        <div className={`flex flex-col p-4 bg-white/50 dark:bg-black/20 rounded-3xl border border-black/5 dark:border-white/5 backdrop-blur-sm transition-all shadow-sm ${hasExtraContent ? 'gap-3 bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : 'flex-row items-center gap-3'}`}>
+        <div className={`flex p-3 sm:p-4 bg-white/50 dark:bg-black/20 rounded-3xl border border-black/5 dark:border-white/5 backdrop-blur-sm transition-all shadow-sm relative ${hasExtraContent || hasFooter ? 'flex-col gap-3' : 'flex-row items-center gap-2 sm:gap-3'} ${hasExtraContent ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : ''}`}>
             {usuario ? (
-                <div className={`flex items-center gap-3 w-full ${hasExtraContent ? 'border-b border-black/5 dark:border-white/5 pb-2.5' : ''}`}>
+                <div className={`flex items-center gap-2 sm:gap-3 w-full min-w-0 ${hasExtraContent ? 'border-b border-black/5 dark:border-white/5 pb-2.5' : ''}`}>
                     <UserAvatar usuario={usuario} size="md" />
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 overflow-hidden">
                         <p className="text-[10px] text-blue-600 dark:text-blue-300 font-black uppercase tracking-wider mb-0.5">{label}</p>
-                        <p className="font-bold text-sm truncate text-slate-800 dark:text-slate-100">
-                            {usuario.nombre} {usuario.apellidos?.split(' ')[0]}
+                        <p className="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-2 wrap-break-word leading-tight">
+                            {nombreCompleto || usuario.nombre}
                         </p>
                     </div>
+                    {action != null && <div className="shrink-0 self-center">{action}</div>}
                 </div>
             ) : (
-                <div className={`flex items-center gap-3 w-full ${hasExtraContent ? 'border-b border-black/5 dark:border-white/5 pb-2.5' : ''}`}>
+                <div className={`flex items-center gap-2 sm:gap-3 w-full min-w-0 ${hasExtraContent ? 'border-b border-black/5 dark:border-white/5 pb-2.5' : ''}`}>
                     <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 font-bold border-2 border-dashed border-slate-300 dark:border-slate-700 shrink-0">
                         <Users className="w-5 h-5" />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 overflow-hidden">
                         <p className="text-[10px] text-blue-600 dark:text-blue-300 font-black uppercase tracking-wider mb-0.5">{label}</p>
-                        <p className="font-bold text-sm truncate text-slate-400 italic">
+                        <p className="font-bold text-sm text-slate-400 italic line-clamp-2 wrap-break-word leading-tight">
                             {t('dashboard.himnario.unassigned')}
                         </p>
                     </div>
+                    {action != null && <div className="shrink-0 self-center">{action}</div>}
                 </div>
             )}
 
             {/* Lectura integrada */}
             {lectura && (
                 <div className="flex items-center gap-3 p-3.5 bg-white/40 dark:bg-white/5 rounded-2xl border border-white/60 dark:border-white/10 shadow-sm relative group w-full min-w-0">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0 text-white border border-white/20">
+                    <div className="w-11 h-11 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0 text-white border border-white/20">
                         <BookOpen className="w-5 h-5" />
                     </div>
                     <div className="min-w-0 flex-1 flex flex-col justify-center">
@@ -91,7 +97,7 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto }:
                 <div className={`flex flex-col gap-4 p-4 bg-white/40 dark:bg-white/5 rounded-2xl border border-white/60 dark:border-white/10 shadow-sm relative w-full ${lectura ? 'mt-1' : ''}`}>
                     {/* Header del Himnario - Ahora más integrado */}
                     <div className="flex items-center gap-3 pb-3 border-b border-black/5 dark:border-white/5">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0 text-white">
+                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0 text-white">
                             <Music className="w-5 h-5" />
                         </div>
                         <div className="flex-1">
@@ -152,6 +158,11 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto }:
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+            {hasFooter && (
+                <div className="w-full pt-3 border-t border-black/5 dark:border-white/5 flex justify-center">
+                    {footerAction}
                 </div>
             )}
         </div>

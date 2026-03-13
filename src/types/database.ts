@@ -85,6 +85,9 @@ export interface Culto {
             observaciones?: string
         }
     }
+
+    // Plan de himnos/coros (join desde plan_himnos_coros)
+    plan_himnos_coros?: Array<{ tipo: string; himno?: { duracion_segundos?: number }; coro?: { duracion_segundos?: number }; [key: string]: unknown }>
 }
 
 export interface LecturaBiblica {

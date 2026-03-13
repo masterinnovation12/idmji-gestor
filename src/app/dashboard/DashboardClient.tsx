@@ -112,7 +112,7 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
 
             {/* 1. Header Premium (Adaptive) */}
             {/* Desktop Version */}
-            <div className="hidden md:flex relative overflow-hidden glass rounded-4xl p-12 shadow-2xl border-white/20 bg-gradient-to-br from-slate-50 to-blue-50/50 dark:from-slate-900 dark:to-slate-800 items-center justify-between">
+            <div className="hidden md:flex relative overflow-hidden glass rounded-4xl p-12 shadow-2xl border-white/20 bg-linear-to-br from-slate-50 to-blue-50/50 dark:from-slate-900 dark:to-slate-800 items-center justify-between">
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4" />
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
                     <h1 className="text-4xl lg:text-5xl font-black mb-4 text-slate-900 dark:text-white tracking-tighter">
@@ -174,7 +174,7 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                                     </div>
                                 ) : navCulto ? (
                                     /* Renderizado Delegado al Componente Renderer */
-                                    <CultoCardRenderer culto={navCulto} esHoy={navEsHoy} />
+                                    <CultoCardRenderer culto={navCulto} esHoy={navEsHoy} currentUserId={user.id} />
                                 ) : (
                                     <div className="glass rounded-[2.5rem] p-12 text-center border-dashed border-2 border-slate-200 dark:border-slate-800">
                                         <p className="text-slate-400 font-bold">{t('dashboard.navigator.noService' as any)}</p>

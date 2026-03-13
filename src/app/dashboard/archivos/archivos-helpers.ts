@@ -20,8 +20,8 @@ export function normalizeForMatch(s: string): string {
 }
 
 export function pickPrimaryColumn(
-  columns: string[],
-  dateCols: string[],
+  columns: readonly string[],
+  dateCols: readonly string[],
   tabId: SheetSourceId
 ): string {
   const candidates = columns.filter((c) => !dateCols.includes(c))

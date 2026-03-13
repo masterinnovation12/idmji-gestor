@@ -1,0 +1,32 @@
+{
+  "version": "0.2",
+  "language": "es,en",
+  "words": [
+    "Instruccion",
+    "instrucciones",
+    "culto",
+    "Culto",
+    "Nombre",
+    "RolInstruccionCulto",
+    "cultoTypeId",
+    "cultoTypeNombre",
+    "InstruccionesCultoModal",
+    "getInstruccionCulto",
+    "culto_types",
+    "cultoTypeId",
+    "titulo",
+    "contenido",
+    "Properament",
+    "instruccions",
+    "Afegir",
+    "lectures",
+    "registrades",
+    "Detalls",
+    "Complets",
+    "cultes",
+    "programats",
+    "pròximament",
+    "testid"
+  ],
+  "ignorePaths": ["node_modules", ".next", "*.min.js"]
+}

@@ -1,47 +1,50 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/Card'
-import { Clock, Plus, BookMarked } from 'lucide-react'
+import { Clock, Plus, Info } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { AssignmentPill } from './AssignmentPill'
 import { computeCultoDetails } from '@/lib/utils/computeCultoDetails'
 import Link from 'next/link'
 import { Culto } from '@/types/database'
 import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
+import AddLecturaModal from '@/components/AddLecturaModal'
 import type { RolInstruccionCulto } from '@/types/database'
 
 type InstrModal = { open: boolean; rol: RolInstruccionCulto } | null
 
-interface VerInstrBtnProps {
+interface InstrIconBtnProps {
     readonly rol: RolInstruccionCulto
-    readonly label: string
-    readonly verText: string
     readonly onOpen: (rol: RolInstruccionCulto) => void
 }
 
-function VerInstrBtn({ rol, label, verText, onOpen }: VerInstrBtnProps) {
+/** Icono "i" de instrucciones dentro de la tarjeta: visible, accesible y responsive (zona táctil ≥36px). */
+function InstrIconBtn({ rol, onOpen }: InstrIconBtnProps) {
     return (
         <button
             type="button"
             onClick={() => onOpen(rol)}
-            className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-xl
-                bg-white/70 dark:bg-black/20 border border-black/8 dark:border-white/10
-                text-[11px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400
-                hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700
+            aria-label="Ver instrucciones"
+            className="flex items-center justify-center w-9 h-9 min-w-9 min-h-9 rounded-full
+                bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400
+                hover:bg-blue-200 dark:hover:bg-blue-800/50 border border-blue-200 dark:border-blue-700/50
                 active:scale-95 transition-all shadow-sm touch-manipulation"
         >
-            <BookMarked className="w-3.5 h-3.5 shrink-0" />
-            <span>{verText}</span>
-            <span className="text-[10px] opacity-60">· {label}</span>
+            <Info className="w-4 h-4 shrink-0" strokeWidth={2.5} />
         </button>
     )
 }
 
-export function StandardCultoCard({ culto, esHoy }: Readonly<{ culto: Culto; esHoy: boolean }>) {
+export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ culto: Culto; esHoy: boolean; currentUserId: string }>) {
     const { t } = useI18n()
+    const router = useRouter()
     const { observacionesData, lecturaData } = computeCultoDetails(culto)
     const [instrModal, setInstrModal] = useState<InstrModal>(null)
+    const [addLecturaModalOpen, setAddLecturaModalOpen] = useState(false)
+
+    const introUserId = (culto.usuario_intro as { id?: string } | null)?.id ?? currentUserId
 
     const cultoTypeId = culto.tipo_culto?.id ?? culto.tipo_culto_id
     const cultoNombre = culto.tipo_culto?.nombre ?? ''
@@ -58,7 +61,6 @@ export function StandardCultoCard({ culto, esHoy }: Readonly<{ culto: Culto; esH
 
     const openModal = (rol: RolInstruccionCulto) => setInstrModal({ open: true, rol })
     const closeModal = () => setInstrModal(null)
-    const verText = t('culto.instrucciones.ver')
 
     return (
         <>
@@ -116,63 +118,57 @@ export function StandardCultoCard({ culto, esHoy }: Readonly<{ culto: Culto; esH
                                         label={t('cultos.intro')}
                                         usuario={culto.usuario_intro}
                                         lectura={lecturaData?.lecturaIntro}
-                                        himnario={(culto as any).plan_himnos_coros}
+                                        himnario={culto.plan_himnos_coros}
                                         tipoCulto={cultoNombre}
+                                        action={cultoTypeId ? <InstrIconBtn rol="introduccion" onOpen={openModal} /> : undefined}
+                                        footerAction={lecturaData?.showAddButton ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setAddLecturaModalOpen(true)}
+                                                className="w-full py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
+                                            >
+                                                <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" strokeWidth={2.5} />
+                                                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">
+                                                    {t('dashboard.addReadingButton')}
+                                                </span>
+                                            </button>
+                                        ) : undefined}
                                     />
-                                    {cultoTypeId && (
-                                        <VerInstrBtn rol="introduccion" label={t('cultos.role.intro')} verText={verText} onOpen={openModal} />
-                                    )}
                                 </div>
                             )}
 
                             <div className="flex-1 w-full space-y-4">
                                 {culto.tipo_culto?.tiene_ensenanza && (
-                                    <div>
-                                        <AssignmentPill label={t('cultos.ensenanza')} usuario={culto.usuario_ensenanza} />
-                                        {cultoTypeId && (
-                                            <VerInstrBtn rol="ensenanza" label={t('cultos.role.teaching')} verText={verText} onOpen={openModal} />
-                                        )}
-                                    </div>
+                                    <AssignmentPill
+                                        label={t('cultos.ensenanza')}
+                                        usuario={culto.usuario_ensenanza}
+                                        action={cultoTypeId ? <InstrIconBtn rol="ensenanza" onOpen={openModal} /> : undefined}
+                                    />
                                 )}
                                 {culto.tipo_culto?.tiene_testimonios && (
-                                    <div>
-                                        <AssignmentPill label={t('cultos.testimonios')} usuario={culto.usuario_testimonios} />
-                                        {cultoTypeId && (
-                                            <VerInstrBtn rol="testimonios" label={t('cultos.role.testimonies')} verText={verText} onOpen={openModal} />
-                                        )}
-                                    </div>
+                                    <AssignmentPill
+                                        label={t('cultos.testimonios')}
+                                        usuario={culto.usuario_testimonios}
+                                        action={cultoTypeId ? <InstrIconBtn rol="testimonios" onOpen={openModal} /> : undefined}
+                                    />
                                 )}
                                 {culto.tipo_culto?.tiene_lectura_finalizacion && (
-                                    <div>
-                                        <AssignmentPill
-                                            label={t('cultos.finalizacion')}
-                                            usuario={culto.usuario_finalizacion}
-                                            lectura={lecturaData?.lecturaFinal}
-                                        />
-                                        {cultoTypeId && (
-                                            <VerInstrBtn rol="finalizacion" label={t('cultos.role.final')} verText={verText} onOpen={openModal} />
-                                        )}
-                                    </div>
+                                    <AssignmentPill
+                                        label={t('cultos.finalizacion')}
+                                        usuario={culto.usuario_finalizacion}
+                                        lectura={lecturaData?.lecturaFinal}
+                                        action={cultoTypeId ? <InstrIconBtn rol="finalizacion" onOpen={openModal} /> : undefined}
+                                    />
                                 )}
                             </div>
                         </div>
 
-                        {/* Botón de Acción */}
-                        {lecturaData?.showAddButton ? (
-                            <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
-                                <button className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2 group relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                                    <Plus className="w-4 h-4" />
-                                    <span>{t('dashboard.addReading')}</span>
-                                </button>
-                            </Link>
-                        ) : (
-                            <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
-                                <button className="w-full py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-lg">
-                                    {t('dashboard.viewFullDetails')}
-                                </button>
-                            </Link>
-                        )}
+                        {/* Botón de Acción: siempre Ver detalles */}
+                        <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
+                            <button className="w-full py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-lg">
+                                {t('dashboard.viewFullDetails')}
+                            </button>
+                        </Link>
                     </CardContent>
                 </Card>
             </div>
@@ -187,6 +183,19 @@ export function StandardCultoCard({ culto, esHoy }: Readonly<{ culto: Culto; esH
                     rol={instrModal.rol}
                 />
             )}
+
+            {/* Modal añadir lectura (acceso directo desde dashboard) */}
+            <AddLecturaModal
+                isOpen={addLecturaModalOpen}
+                onClose={() => setAddLecturaModalOpen(false)}
+                cultoId={culto.id}
+                userId={introUserId}
+                tipo="introduccion"
+                onSuccess={() => {
+                    router.refresh()
+                    setAddLecturaModalOpen(false)
+                }}
+            />
         </>
     )
 }

@@ -21,21 +21,27 @@ export function InstruccionesCultoModal({
   cultoTypeId,
   cultoTypeNombre,
   rol,
-}: InstruccionesCultoModalProps) {
+}: Readonly<InstruccionesCultoModalProps>) {
   const { t, language } = useI18n()
   const [titulo, setTitulo] = useState<string>('')
   const [contenido, setContenido] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const lang = (language === 'ca-ES' ? 'ca-ES' : 'es-ES') as 'es-ES' | 'ca-ES'
+  const lang: 'es-ES' | 'ca-ES' = language === 'ca-ES' ? 'ca-ES' : 'es-ES'
 
   useEffect(() => {
     if (!isOpen || !cultoTypeId) return
-    setLoading(true)
-    setError(null)
+    let mounted = true
+    queueMicrotask(() => {
+      if (mounted) {
+        setLoading(true)
+        setError(null)
+      }
+    })
     getInstruccionCulto(cultoTypeId, rol, lang)
       .then((res) => {
+        if (!mounted) return
         if (res.success && res.data) {
           setTitulo(res.data.titulo)
           setContenido(res.data.contenido)
@@ -45,7 +51,12 @@ export function InstruccionesCultoModal({
           if (res.error) setError(res.error)
         }
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (mounted) setLoading(false)
+      })
+    return () => {
+      mounted = false
+    }
   }, [isOpen, cultoTypeId, rol, lang])
 
   const displayTitle = titulo || (cultoTypeNombre ? `${t('culto.instrucciones.title')} – ${cultoTypeNombre}` : t('culto.instrucciones.title'))
@@ -77,7 +88,7 @@ export function InstruccionesCultoModal({
                   </div>
                   <div className="min-w-0 flex-1 overflow-x-hidden">
                     <article
-                      className="text-sm md:text-base leading-[1.65] md:leading-[1.7] text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-medium antialiased selection:bg-primary/20 break-words"
+                      className="text-sm md:text-base leading-[1.65] md:leading-[1.7] text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-medium antialiased selection:bg-primary/20 wrap-break-word"
                       aria-label={t('culto.instrucciones.title')}
                     >
                       {contenido}
@@ -86,9 +97,14 @@ export function InstruccionesCultoModal({
                 </div>
               </div>
             ) : (
-              <p className="text-slate-500 dark:text-slate-400 italic py-4">
-                {t('culto.instrucciones.empty')}
-              </p>
+              <div className="py-6 px-4 text-center">
+                <p className="text-muted-foreground font-medium">
+                  {t('instrucciones.comingSoon')}
+                </p>
+                <p className="text-sm text-muted-foreground/70 mt-1">
+                  {t('culto.instrucciones.empty')}
+                </p>
+              </div>
             )}
           </>
         )}

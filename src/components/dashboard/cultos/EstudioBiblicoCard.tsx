@@ -1,3 +1,7 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Clock, Plus } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -5,10 +9,15 @@ import { AssignmentPill } from './AssignmentPill'
 import { computeCultoDetails } from '@/lib/utils/computeCultoDetails'
 import Link from 'next/link'
 import { Culto } from '@/types/database'
+import AddLecturaModal from '@/components/AddLecturaModal'
 
-export function EstudioBiblicoCard({ culto, esHoy }: { culto: Culto, esHoy: boolean }) {
+export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ culto: Culto; esHoy: boolean; currentUserId: string }>) {
     const { t } = useI18n()
+    const router = useRouter()
     const { estudioBiblicoData, observacionesData, lecturaData } = computeCultoDetails(culto)
+    const [addLecturaModalOpen, setAddLecturaModalOpen] = useState(false)
+
+    const introUserId = (culto.usuario_intro as { id?: string } | null)?.id ?? currentUserId
 
     const getTranslatedCultoName = (name: string | undefined) => {
         if (!name) return ''
@@ -116,8 +125,20 @@ export function EstudioBiblicoCard({ culto, esHoy }: { culto: Culto, esHoy: bool
                                     label={t('cultos.intro')}
                                     usuario={culto.usuario_intro}
                                     lectura={lecturaData?.lecturaIntro}
-                                    himnario={(culto as any).plan_himnos_coros}
+                                    himnario={culto.plan_himnos_coros}
                                     tipoCulto={culto.tipo_culto?.nombre}
+                                    footerAction={lecturaData?.showAddButton ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setAddLecturaModalOpen(true)}
+                                            className="w-full py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
+                                        >
+                                            <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" strokeWidth={2.5} />
+                                            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">
+                                                {t('dashboard.addReadingButton')}
+                                            </span>
+                                        </button>
+                                    ) : undefined}
                                 />
                             </div>
                         )}
@@ -139,24 +160,26 @@ export function EstudioBiblicoCard({ culto, esHoy }: { culto: Culto, esHoy: bool
                         </div>
                     </div>
 
-                    {/* Botón de Acción */}
-                    {lecturaData?.showAddButton ? (
-                        <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
-                            <button className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2 group relative overflow-hidden">
-                                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                                <Plus className="w-4 h-4" />
-                                <span>{t('dashboard.addReading')}</span>
-                            </button>
-                        </Link>
-                    ) : (
-                        <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
-                            <button className="w-full py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-lg">
-                                {t('dashboard.viewFullDetails')}
-                            </button>
-                        </Link>
-                    )}
+                    {/* Botón de Acción: siempre Ver detalles */}
+                    <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
+                        <button className="w-full py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-lg">
+                            {t('dashboard.viewFullDetails')}
+                        </button>
+                    </Link>
                 </CardContent>
             </Card>
+
+            <AddLecturaModal
+                isOpen={addLecturaModalOpen}
+                onClose={() => setAddLecturaModalOpen(false)}
+                cultoId={culto.id}
+                userId={introUserId}
+                tipo="introduccion"
+                onSuccess={() => {
+                    router.refresh()
+                    setAddLecturaModalOpen(false)
+                }}
+            />
         </div>
     )
 }

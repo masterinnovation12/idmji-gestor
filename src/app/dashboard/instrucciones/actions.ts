@@ -48,7 +48,8 @@ export async function getAllInstrucciones(
     // Agrupar por tipo de culto
     const map = new Map<number, CultoInstrucciones>()
     for (const row of data) {
-      const ct = row.culto_types as { id: number; nombre: string; color: string } | null
+      const raw = row.culto_types as unknown
+      const ct = (Array.isArray(raw) ? raw[0] : raw) as { id: number; nombre: string; color: string } | null
       if (!ct) continue
       if (!map.has(ct.id)) {
         map.set(ct.id, { cultoTypeId: ct.id, nombre: ct.nombre, color: ct.color ?? '#6366f1', roles: [] })
@@ -85,7 +86,7 @@ export async function getInstruccionCulto(
 
     const { data, error } = await supabase
       .from('instrucciones_culto')
-      .select('titulo_es, titulo_ca, contenido_es, contenido_ca')
+      .select('titulo_es, titulo_ca, contenido_es, contenido_ca, publicado')
       .eq('culto_type_id', id)
       .eq('rol', rol)
       .maybeSingle()
@@ -100,9 +101,13 @@ export async function getInstruccionCulto(
     }
 
     const isCa = language === 'ca-ES'
+    const publicado = data.publicado === true
+    // Solo devolver contenido real si está publicado; si no, mostrar "Próximamente" en el modal
     const result: InstruccionCultoParaUI = {
       titulo: isCa ? (data.titulo_ca || data.titulo_es) : (data.titulo_es || data.titulo_ca),
-      contenido: isCa ? (data.contenido_ca || data.contenido_es) : (data.contenido_es || data.contenido_ca),
+      contenido: publicado
+        ? (isCa ? (data.contenido_ca || data.contenido_es) : (data.contenido_es || data.contenido_ca))
+        : '',
     }
     return { success: true, data: result }
   } catch (e) {

@@ -408,9 +408,9 @@ function FilterDropdown({ monthYearOptions, filterMonthYear, setFilterMonthYear,
 
       {open && rect && createPortal(
         <>
-          <div className="fixed inset-0 z-[200]" aria-hidden onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-200" aria-hidden onClick={() => setOpen(false)} />
           <div
-            className="fixed z-[201] rounded-xl border border-border shadow-2xl overflow-hidden bg-white dark:bg-zinc-900 max-h-[300px] overflow-y-auto"
+            className="fixed z-201 rounded-xl border border-border shadow-2xl overflow-hidden bg-white dark:bg-zinc-900 max-h-[300px] overflow-y-auto"
             style={{ top: rect.top, left: rect.left, minWidth: rect.minWidth }}
           >
             {/* Todos */}
@@ -540,9 +540,9 @@ function SortDropdown({ sortConfig, setSortConfig, activeTabConfig, hasDateInfo,
 
       {open && rect && createPortal(
         <>
-          <div className="fixed inset-0 z-[200]" aria-hidden onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-200" aria-hidden onClick={() => setOpen(false)} />
           <div
-            className="fixed z-[201] rounded-xl border border-border shadow-2xl overflow-hidden bg-white dark:bg-zinc-900"
+            className="fixed z-201 rounded-xl border border-border shadow-2xl overflow-hidden bg-white dark:bg-zinc-900"
             style={{ top: rect.top, left: rect.left, minWidth: rect.minWidth }}
           >
             {/* Sin ordenar */}

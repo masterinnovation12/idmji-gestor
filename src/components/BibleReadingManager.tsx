@@ -17,16 +17,14 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { BookOpen, AlertCircle, Plus, Edit2, Trash2, CheckCircle2, Loader2 } from 'lucide-react'
-import { format } from 'date-fns'
-import { es, ca } from 'date-fns/locale'
+import { BookOpen, AlertCircle, Plus, Edit2, Trash2, Loader2, CheckCircle2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Modal } from '@/components/ui/Modal'
 import { LecturaBiblica } from '@/types/database'
-import BibleSelector from '@/components/BibleSelector'
-import { saveLectura, confirmRepeatedLectura, getLecturasByCulto, deleteLectura } from '@/app/dashboard/lecturas/actions'
+import { getLecturasByCulto, deleteLectura } from '@/app/dashboard/lecturas/actions'
 import { toast } from 'sonner'
+import AddLecturaModal from '@/components/AddLecturaModal'
 
 interface BibleReadingManagerProps {
     cultoId: string
@@ -34,19 +32,6 @@ interface BibleReadingManagerProps {
     config: {
         tiene_lectura_introduccion: boolean
         tiene_lectura_finalizacion: boolean
-    }
-}
-
-interface RepetitionData {
-    libro: string
-    capInicio: number
-    versInicio: number
-    capFin: number
-    versFin: number
-    originalId: string
-    existingReading: {
-        fecha: string
-        [key: string]: unknown
     }
 }
 
@@ -139,16 +124,12 @@ function ReadingItem({ lectura, onEdit, onDelete }: ReadingItemProps) {
 }
 
 export default function BibleReadingManager({ cultoId, userId, config }: BibleReadingManagerProps) {
-    const { t, language } = useI18n()
+    const { t } = useI18n()
     const [lecturas, setLecturas] = useState<LecturaBiblica[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const [isActionLoading, setIsActionLoading] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [activeTipo, setActiveTipo] = useState<'introduccion' | 'finalizacion' | null>(null)
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
-
-    // Estado para confirmación de repetición
-    const [repetitionData, setRepetitionData] = useState<RepetitionData | null>(null)
 
     // Cargar lecturas actuales
     const loadLecturas = useCallback(async () => {
@@ -173,108 +154,13 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
         loadLecturas()
     }, [loadLecturas])
 
-    const handleSelectCita = async (
-        libro: string,
-        capInicio: number,
-        versInicio: number,
-        capFin?: number,
-        versFin?: number
-    ) => {
-        if (!activeTipo) return
-
-        setIsActionLoading(true)
-        try {
-            const result = await saveLectura(
-                cultoId,
-                activeTipo,
-                libro,
-                capInicio,
-                versInicio,
-                capFin || capInicio,
-                versFin || versInicio,
-                userId
-            )
-
-            if (result.requiresConfirmation) {
-                setRepetitionData({
-                    libro,
-                    capInicio,
-                    versInicio,
-                    capFin: capFin || capInicio,
-                    versFin: versFin || versInicio,
-                    originalId: result.existingReading.id,
-                    existingReading: result.existingReading
-                })
-            } else if (result.success) {
-                toast.success(t('common.success'))
-                // Actualización optimista del estado local
-                if (result.data) {
-                    setLecturas(prev => {
-                        const exists = prev.findIndex(l => l.id === result.data.id)
-                        if (exists !== -1) {
-                            const newLecturas = [...prev]
-                            newLecturas[exists] = result.data
-                            return newLecturas
-                        }
-                        return [...prev, result.data].sort((a, b) => a.tipo_lectura.localeCompare(b.tipo_lectura))
-                    })
-                }
-                setIsModalOpen(false)
-                // loadLecturas() // Ya lo actualizamos optimísticamente
-            } else if (result.error) {
-                toast.error(result.error)
-            }
-        } catch {
-            toast.error('Error al guardar la lectura')
-        } finally {
-            setIsActionLoading(false)
-        }
-    }
-
-    const handleConfirmRepetida = async () => {
-        if (!repetitionData || !activeTipo) return
-
-        setIsActionLoading(true)
-        try {
-            const result = await confirmRepeatedLectura(
-                cultoId,
-                activeTipo,
-                repetitionData.libro,
-                repetitionData.capInicio,
-                repetitionData.versInicio,
-                repetitionData.capFin,
-                repetitionData.versFin,
-                userId,
-                repetitionData.originalId
-            )
-
-            if (result.success) {
-                toast.success('Lectura guardada como repetida')
-                if (result.data) {
-                    setLecturas(prev => {
-                        const exists = prev.findIndex(l => l.id === result.data.id)
-                        if (exists !== -1) {
-                            const newLecturas = [...prev]
-                            newLecturas[exists] = result.data
-                            return newLecturas
-                        }
-                        return [...prev, result.data].sort((a, b) => a.tipo_lectura.localeCompare(b.tipo_lectura))
-                    })
-                }
-                setRepetitionData(null)
-                setIsModalOpen(false)
-            } else {
-                toast.error(result.error || 'Error al confirmar')
-            }
-        } catch {
-            toast.error('Error de conexión')
-        } finally {
-            setIsActionLoading(false)
-        }
+    const handleCloseAddModal = () => {
+        setIsModalOpen(false)
+        setActiveTipo(null)
     }
 
     const handleDelete = async (id: string) => {
-        setIsActionLoading(true)
+        setIsLoading(true)
         try {
             // Optimismo: Eliminar de la UI primero para evitar el "flash"
             const currentLecturas = [...lecturas]
@@ -294,7 +180,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
         } catch {
             toast.error('Error de conexión')
         } finally {
-            setIsActionLoading(false)
+            setIsLoading(false)
             setDeleteConfirmId(null)
         }
     }
@@ -322,11 +208,12 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                         </AnimatePresence>
                     </div>
                 ) : (
-                    <motion.div
+                    <motion.button
+                        type="button"
                         key="empty-state"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="p-10 border-2 border-dashed border-primary/20 rounded-4xl flex flex-col items-center justify-center gap-6 bg-primary/5 group/empty hover:border-primary/40 transition-all cursor-pointer"
+                        className="w-full py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
                         onClick={() => {
                             if (config.tiene_lectura_introduccion) {
                                 setActiveTipo('introduccion');
@@ -337,45 +224,44 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                             }
                         }}
                     >
-                        <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center group-hover/empty:scale-110 transition-transform shadow-inner">
-                            <Plus className="w-8 h-8 text-primary" />
-                        </div>
-                        <div className="text-center space-y-2">
-                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary">
-                                Añadir Lectura
-                            </p>
-                            <p className="text-[9px] font-medium uppercase tracking-widest text-muted-foreground/60">
-                                No hay lecturas registradas
-                            </p>
-                        </div>
-                    </motion.div>
+                        <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" strokeWidth={2.5} />
+                        <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">
+                            {t('dashboard.addReadingButton')}
+                        </span>
+                    </motion.button>
                 )}
             </div>
 
-            {/* Botones de acción inteligentes - Solo se muestran si NO hay lecturas o para añadir el tipo faltante */}
+            {/* Botones compactos para añadir el tipo de lectura faltante */}
             <div className="flex flex-wrap gap-3 md:gap-4 pt-4 border-t border-border/50 shrink-0">
                 {lecturas.length > 0 && config.tiene_lectura_introduccion && !lecturas.some(l => l.tipo_lectura === 'introduccion') && (
                     <motion.button
                         key="btn-add-intro"
+                        type="button"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => { setActiveTipo('introduccion'); setIsModalOpen(true); }}
-                        className="flex-1 min-w-[140px] flex items-center justify-center gap-3 h-14 rounded-2xl font-black uppercase tracking-widest text-[9px] md:text-[10px] transition-all shadow-xl bg-black dark:bg-white text-white dark:text-black hover:brightness-110 border-none"
+                        className="flex-1 min-w-0 py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
                     >
-                        <Plus className="w-4 h-4" />
-                        Añadir Lectura
+                        <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" strokeWidth={2.5} />
+                        <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+                            {t('dashboard.addReadingButton')}
+                        </span>
                     </motion.button>
                 )}
                 {lecturas.length > 0 && config.tiene_lectura_finalizacion && !lecturas.some(l => l.tipo_lectura === 'finalizacion') && (
                     <motion.button
                         key="btn-add-final"
+                        type="button"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => { setActiveTipo('finalizacion'); setIsModalOpen(true); }}
-                        className="flex-1 min-w-[140px] flex items-center justify-center gap-3 h-14 rounded-2xl font-black uppercase tracking-widest text-[9px] md:text-[10px] transition-all shadow-xl bg-black dark:bg-white text-white dark:text-black hover:brightness-110 border-none"
+                        className="flex-1 min-w-0 py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
                     >
-                        <Plus className="w-4 h-4" />
-                        Añadir Lectura Final
+                        <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" strokeWidth={2.5} />
+                        <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+                            {t('dashboard.addReadingFinalButton')}
+                        </span>
                     </motion.button>
                 )}
             </div>
@@ -419,85 +305,17 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                 </div>
             </Modal>
 
-            {/* Modal de Selección de Biblia */}
-            <Modal
-                isOpen={isModalOpen}
-                onClose={() => { setIsModalOpen(false); setRepetitionData(null); }}
-                title={
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                            <BookOpen className="w-4 h-4" />
-                        </div>
-                        <span className="text-sm font-black uppercase tracking-widest">
-                            {lecturas.some(l => l.tipo_lectura === activeTipo) ? 'Modificar' : 'Añadir'} Lectura: {activeTipo === 'introduccion' ? 'Introducción' : 'Finalización'}
-                        </span>
-                    </div>
-                }
-                size="md"
-                keyPrefix="bible-selection"
-            >
-                {!repetitionData ? (
-                    <div className="p-1">
-                        <BibleSelector
-                            onSelect={handleSelectCita}
-                            disabled={isActionLoading}
-                        />
-                    </div>
-                ) : (
-                    <div className="space-y-6 animate-in fade-in zoom-in duration-300 p-2">
-                        <div className="flex flex-col items-center text-center space-y-4">
-                            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-600 shadow-inner">
-                                <AlertCircle className="w-10 h-10" />
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-2xl font-black uppercase tracking-tighter text-red-600">¡Cita Repetida!</h3>
-                                <p className="text-muted-foreground text-sm font-medium max-w-xs mx-auto">
-                                    Esta cita ya fue leída anteriormente el <span className="text-foreground font-bold">{format(new Date(repetitionData.existingReading.fecha), 'PP', { locale: language === 'ca-ES' ? ca : es })}</span>.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="p-6 bg-muted/50 rounded-4xl border border-border/50 text-center relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover/assigned:opacity-100 transition-opacity" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2 relative z-10">Pasaje Bíblico</p>
-                            <p className="text-3xl font-black uppercase tracking-tighter relative z-10 leading-none">
-                                {repetitionData.libro} {repetitionData.capInicio}:{repetitionData.versInicio}
-                                {(repetitionData.capFin !== repetitionData.capInicio || repetitionData.versFin !== repetitionData.versInicio) && (
-                                    <>
-                                        {' - '}
-                                        {repetitionData.capFin === repetitionData.capInicio
-                                            ? repetitionData.versFin
-                                            : `${repetitionData.capFin}:${repetitionData.versFin}`}
-                                    </>
-                                )}
-                            </p>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                            <button
-                                onClick={() => setRepetitionData(null)}
-                                className="flex-1 h-14 bg-muted text-muted-foreground font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-muted/80 transition-colors order-2 sm:order-1"
-                            >
-                                {t('common.cancel')}
-                            </button>
-                            <button
-                                onClick={handleConfirmRepetida}
-                                disabled={isActionLoading}
-                                className="flex-2 h-14 bg-red-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 order-1 sm:order-2 flex items-center justify-center gap-2"
-                            >
-                                {isActionLoading ? (
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    <>
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        Usar de todos modos
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </Modal>
+            {isModalOpen && activeTipo && (
+                <AddLecturaModal
+                    isOpen={isModalOpen}
+                    onClose={handleCloseAddModal}
+                    cultoId={cultoId}
+                    userId={userId}
+                    tipo={activeTipo}
+                    onSuccess={loadLecturas}
+                    isEdit={lecturas.some(l => l.tipo_lectura === activeTipo)}
+                />
+            )}
         </div>
     )
 }
