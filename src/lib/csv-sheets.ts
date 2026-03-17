@@ -121,13 +121,21 @@ function removeEmptyColumns(data: Record<string, string>[]): Record<string, stri
 
 /**
  * Fetch a URL con timeout y cuerpo como texto UTF-8.
+ * Headers tipo navegador para que Google Sheets no devuelva 500 en algunos documentos
+ * (Enseñanzas, Pastorado, etc.) cuando la petición viene de servidor.
  */
 async function fetchCSVText(url: string): Promise<string> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
   const res = await fetch(url, {
     signal: controller.signal,
-    headers: { Accept: 'text/csv, text/plain; charset=utf-8' },
+    headers: {
+      Accept: 'text/csv, text/plain; charset=utf-8',
+      'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+      Referer: 'https://docs.google.com/',
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    },
   })
   clearTimeout(timeout)
   if (!res.ok) {

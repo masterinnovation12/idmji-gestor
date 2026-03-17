@@ -41,6 +41,33 @@ const TABS_BASE = [
 
 /* ─── Helpers ────────────────────────────────────────────── */
 
+/** Clasifica el mensaje de error para mostrar tipo y sugerencia. */
+function parseErrorDisplay(error: string): { type: string; hint: string | null } {
+  const e = error.trim()
+  if (/HTTP\s*500|500\s*Internal|Error interno del servidor/i.test(e)) {
+    return {
+      type: 'Error de servidor (HTTP 500)',
+      hint: 'El documento de Google Sheets no responde. Comprueba que la hoja esté publicada en la web (Archivo → Compartir → Publicar en la web) y que la URL en las variables de entorno sea correcta.',
+    }
+  }
+  if (/HTTP\s*404|404\s*Not\s*Found/i.test(e)) {
+    return { type: 'No encontrado (HTTP 404)', hint: 'La URL del documento no es válida o la hoja ya no está publicada.' }
+  }
+  if (/HTTP\s*403|403\s*Forbidden/i.test(e)) {
+    return { type: 'Acceso denegado (HTTP 403)', hint: 'El documento no permite acceso público. Publica la hoja en la web como "Cualquier persona con el enlace".' }
+  }
+  if (/fetch|network|timeout|aborted|ECONNREFUSED/i.test(e)) {
+    return { type: 'Error de conexión', hint: 'Comprueba tu conexión a internet e inténtalo de nuevo.' }
+  }
+  if (/No autenticado|401|unauthorized/i.test(e)) {
+    return { type: 'No autenticado', hint: 'Inicia sesión de nuevo.' }
+  }
+  if (/URL.*no configurada|no está configurada/i.test(e)) {
+    return { type: 'Configuración', hint: 'Falta la variable de entorno para esta hoja (p. ej. SHEET_ENSENANZAS_CSV_URL).' }
+  }
+  return { type: 'Error al cargar', hint: null }
+}
+
 const MONTH_NAME_TO_NUM: Record<string, number> = {
   enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
   julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11,
@@ -299,6 +326,7 @@ function SearchBar({ value, onChange, placeholder = 'Buscar...', accentColor, re
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        suppressHydrationWarning
         className={`
           w-full pl-10 pr-10 py-3 rounded-xl border text-sm
           bg-background/60 backdrop-blur-sm
@@ -397,6 +425,7 @@ function FilterDropdown({ monthYearOptions, filterMonthYear, setFilterMonthYear,
             : 'bg-muted text-muted-foreground hover:bg-muted/80'
           }
         `}
+        suppressHydrationWarning
       >
         <Filter className="w-4 h-4" />
         <span>{t('archivos.filter.label')}</span>
@@ -529,6 +558,7 @@ function SortDropdown({ sortConfig, setSortConfig, activeTabConfig, hasDateInfo,
             : 'bg-muted text-muted-foreground hover:bg-muted/80'
           }
         `}
+        suppressHydrationWarning
       >
         <ArrowUpDown className="w-4 h-4" />
         <span>{tSortLabels.sort}</span>
@@ -890,7 +920,7 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
       </div>
 
       {/* Tabs — grid 2x2 en móvil, fila horizontal en desktop */}
-      <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap gap-2">
+      <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap gap-2" suppressHydrationWarning>
         {TABS.map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -908,6 +938,7 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
                   : `${tab.bg} ${tab.color} hover:brightness-95`
                 }
               `}
+              suppressHydrationWarning
             >
               <Icon className="w-4 h-4 shrink-0" />
               <span className="text-left wrap-break-word hyphens-auto">{tab.label}</span>
@@ -991,12 +1022,29 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
         </div>
       )}
 
-      {error && !data && (
-        <div className="glass rounded-2xl border border-destructive/30 p-12 flex flex-col items-center justify-center gap-3">
-          <AlertCircle className="w-12 h-12 text-destructive" />
-          <p className="text-muted-foreground text-sm text-center max-w-xs">{error}</p>
-        </div>
-      )}
+      {error && !data && (() => {
+        const { type, hint } = parseErrorDisplay(error)
+        return (
+          <div
+            className="glass rounded-2xl border-2 border-destructive/40 bg-destructive/5 p-8 sm:p-10 flex flex-col items-center justify-center gap-4 max-w-md"
+            role="alert"
+            aria-live="polite"
+          >
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="w-10 h-10 shrink-0" />
+              <span className="font-bold text-base">{type}</span>
+            </div>
+            <p className="text-muted-foreground text-sm text-center wrap-break-word" suppressHydrationWarning>
+              {error}
+            </p>
+            {hint && (
+              <p className="text-xs text-muted-foreground text-center bg-muted/50 rounded-lg px-4 py-3 border border-border/50">
+                {hint}
+              </p>
+            )}
+          </div>
+        )
+      })()}
 
       {!loading && !error && data && (displayData?.length ?? 0) === 0 && (
         <div className="glass rounded-2xl border border-border/50 p-12 flex flex-col items-center justify-center gap-3">
