@@ -2,10 +2,13 @@ import { Culto } from '@/types/database'
 
 export interface CultoDetails {
     lecturaData: { showAddButton: boolean; lecturaIntro: any; lecturaFinal: any } | null
+    temaIntroduccionAlabanza: string | null
     estudioBiblicoData: {
         esEstudio: boolean
+        protocoloDefinido: boolean
         oracionInicio: boolean
         congregacionPie: boolean
+        inicioAnticipadoDefinido: boolean
         inicioAnticipado: { activo: boolean; minutos: number; horaReal: string; observaciones?: string } | null
     } | null
     observacionesData: string
@@ -16,6 +19,7 @@ export function computeCultoDetails(culto: Culto | null): CultoDetails {
     if (!culto) {
         return {
             lecturaData: null,
+            temaIntroduccionAlabanza: null,
             estudioBiblicoData: null,
             observacionesData: ''
         }
@@ -67,8 +71,10 @@ export function computeCultoDetails(culto: Culto | null): CultoDetails {
 
         estudioBiblicoData = {
             esEstudio: true,
+            protocoloDefinido: metaData?.protocolo_definido === true,
             oracionInicio: metaData?.protocolo?.oracion_inicio ?? true,
             congregacionPie: metaData?.protocolo?.congregacion_pie ?? false,
+            inicioAnticipadoDefinido: metaData?.inicio_anticipado_definido === true,
             inicioAnticipado: inicioAnticipado?.activo ? {
                 activo: true,
                 minutos: inicioAnticipado.minutos || 5,
@@ -81,8 +87,13 @@ export function computeCultoDetails(culto: Culto | null): CultoDetails {
     // 3. Observaciones Data
     const observacionesData = (culto.meta_data as any)?.observaciones || ''
 
+    // 4. Tema introducción Alabanza (solo para cultos de Alabanza)
+    const esAlabanza = tipoCulto?.nombre?.toLowerCase().includes('alabanza') ?? false
+    const temaIntroduccionAlabanza = esAlabanza ? ((culto.meta_data as any)?.tema_introduccion_alabanza ?? null) : null
+
     return {
         lecturaData,
+        temaIntroduccionAlabanza,
         estudioBiblicoData,
         observacionesData
     }

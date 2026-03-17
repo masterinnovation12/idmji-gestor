@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Profile } from '@/types/database'
-import { Clock, BookOpen, Music, Users } from 'lucide-react'
+import { Clock, BookOpen, Music, Users, BookMarked } from 'lucide-react'
 import { UserAvatar } from './UserAvatar'
 
-export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, action, footerAction }: { label: string, usuario: Partial<Profile> | null | undefined, lectura?: any, himnario?: any[], tipoCulto?: string, action?: ReactNode, footerAction?: ReactNode }) {
+export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, action, footerAction, temaIntroduccionAlabanza }: { label: string, usuario: Partial<Profile> | null | undefined, lectura?: any, himnario?: any[], tipoCulto?: string, action?: ReactNode, footerAction?: ReactNode, temaIntroduccionAlabanza?: string | null }) {
     const { t } = useI18n()
-    if (!usuario && !lectura && (!himnario || himnario.length === 0) && footerAction == null) return null
+    if (!usuario && !lectura && (!himnario || himnario.length === 0) && footerAction == null && !temaIntroduccionAlabanza) return null
 
     const formatDuration = (seconds: number) => {
         const mins = Math.floor(seconds / 60)
@@ -29,7 +29,7 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
         ? t('dashboard.himnario.timeEnsenanza')
         : t('dashboard.himnario.timeAlabanza')
 
-    const hasExtraContent = lectura || (himnario && himnario.length > 0)
+    const hasExtraContent = lectura || (himnario && himnario.length > 0) || !!temaIntroduccionAlabanza
     const hasFooter = footerAction != null
 
     const nombreCompleto = usuario ? `${usuario.nombre ?? ''} ${(usuario.apellidos ?? '').split(' ')[0] ?? ''}`.trim() : ''
@@ -59,6 +59,16 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
                         </p>
                     </div>
                     {action != null && <div className="shrink-0 self-center">{action}</div>}
+                </div>
+            )}
+
+            {/* Tema introducción Alabanza */}
+            {temaIntroduccionAlabanza && (
+                <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-blue-50/80 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/40 w-full min-w-0">
+                    <BookMarked className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <p className="text-[10px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 leading-tight line-clamp-2">
+                        {t(temaIntroduccionAlabanza)}
+                    </p>
                 </div>
             )}
 

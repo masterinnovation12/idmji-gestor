@@ -3,6 +3,7 @@ import DashboardClient from './DashboardClient'
 import { redirect } from 'next/navigation'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
 import { getUserAssignments } from './cultos/actions'
+import { computeCultoDetails } from '@/lib/utils/computeCultoDetails'
 
 
 // Revalidation trigger
@@ -78,68 +79,10 @@ export default async function DashboardPage() {
             }
         }
 
-        // Pre-compute reading state on server to avoid hydration mismatch
-        let lecturaData: { showAddButton: boolean; lecturaIntro: any; lecturaFinal: any } | null = null
-        let estudioBiblicoData: {
-            esEstudio: boolean
-            oracionInicio: boolean
-            congregacionPie: boolean
-            inicioAnticipado: { activo: boolean; minutos: number; horaReal: string; observaciones?: string } | null
-        } | null = null
-
-        if (cultoMostrado) {
-            const tipoCulto = cultoMostrado.tipo_culto
-            const lecturas = cultoMostrado.lecturas || []
-            const debeTenerLectura = tipoCulto?.tiene_lectura_introduccion && !tipoCulto?.nombre?.toLowerCase().includes('estudio')
-            const lecturaIntro = debeTenerLectura ? lecturas.find((l: any) => l.tipo_lectura === 'introduccion') : null
-            const lecturaFinal = tipoCulto?.tiene_lectura_finalizacion ? lecturas.find((l: any) => l.tipo_lectura === 'finalizacion') : null
-
-            lecturaData = {
-                showAddButton: debeTenerLectura && !lecturaIntro,
-                lecturaIntro: lecturaIntro || null,
-                lecturaFinal: lecturaFinal || null
-            }
-
-            // Pre-compute Estudio Bíblico data (Only for Estudio Bíblico cults)
-            const esEstudio = tipoCulto?.nombre?.toLowerCase().includes('estudio') || tipoCulto?.nombre?.toLowerCase().includes('biblico') || false
-            if (esEstudio) {
-                const metaData = cultoMostrado.meta_data as any
-                const inicioAnticipado = metaData?.inicio_anticipado
-                let horaReal = cultoMostrado.hora_inicio?.slice(0, 5) || '19:00'
-
-                if (inicioAnticipado?.activo && cultoMostrado.hora_inicio) {
-                    try {
-                        const [hours, minutes] = cultoMostrado.hora_inicio.split(':').map(Number)
-                        const minsBefore = inicioAnticipado.minutos || 5
-                        let newMins = minutes - minsBefore
-                        let newHours = hours
-                        if (newMins < 0) {
-                            newMins += 60
-                            newHours -= 1
-                        }
-                        if (newHours < 0) {
-                            newHours += 24
-                        }
-                        horaReal = `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`
-                    } catch (e) {
-                        console.error('Error calculating initiation time:', e)
-                        horaReal = cultoMostrado.hora_inicio?.slice(0, 5) || '19:00'
-                    }
-                }
-
-                estudioBiblicoData = {
-                    esEstudio: true,
-                    oracionInicio: metaData?.protocolo?.oracion_inicio ?? true,
-                    congregacionPie: metaData?.protocolo?.congregacion_pie ?? false,
-                    inicioAnticipado: inicioAnticipado?.activo ? {
-                        activo: true,
-                        minutos: inicioAnticipado.minutos || 5,
-                        horaReal,
-                        observaciones: inicioAnticipado.observaciones || ''
-                    } : null
-                }
-            }
-        }
+        // Pre-compute culto details on server (single source of truth via computeCultoDetails)
+        const details = cultoMostrado ? computeCultoDetails(cultoMostrado as any) : null
+        const lecturaData = details?.lecturaData ?? null
+        const estudioBiblicoData = details?.estudioBiblicoData ?? null
 
         // Pre-compute observaciones data (Universal - for ALL cult types)
         const observacionesData = cultoMostrado ?

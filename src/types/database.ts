@@ -79,11 +79,14 @@ export interface Culto {
             oracion_inicio: boolean
             congregacion_pie: boolean
         }
+        protocolo_definido?: boolean
         inicio_anticipado?: {
             activo: boolean
             minutos: number
             observaciones?: string
         }
+        inicio_anticipado_definido?: boolean
+        tema_introduccion_alabanza?: string
     }
 
     // Plan de himnos/coros (join desde plan_himnos_coros)

@@ -17,23 +17,25 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
-import { Calendar, Clock, User, BookOpen, Music, AlertCircle, CheckCircle, Sparkles, AlertTriangle, Info } from 'lucide-react'
+import { Calendar, Clock, User, BookOpen, Music, BookMarked, AlertCircle, CheckCircle, Sparkles, AlertTriangle, Info, ChevronDown, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import UserSelector from '@/components/UserSelector'
 import HimnoCoroSelector from '@/components/HimnoCoroSelector'
 import BibleReadingManager from '@/components/BibleReadingManager'
-import { updateAssignment, toggleFestivo, updateCultoProtocol, updateInicioAnticipado, updateCultoObservaciones } from './actions'
+import { updateAssignment, toggleFestivo, updateCultoProtocol, updateInicioAnticipado, updateCultoObservaciones, resetCultoProtocol, updateTemaIntroduccionAlabanza } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import BackButton from '@/components/BackButton'
 import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LIMITES } from '@/lib/constants'
+import { TEMAS_ALABANZA_KEYS } from '@/lib/constants/temasAlabanza'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/Dialog'
 import { Culto, Profile } from '@/types/database'
 import NextImage from 'next/image'
 
@@ -304,6 +306,15 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
     const [pendingAssignment, setPendingAssignment] = useState<{ type: 'introduccion' | 'finalizacion' | 'ensenanza' | 'testimonios', userId: string } | null>(null)
     const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false)
     const [instruccionesModalRol, setInstruccionesModalRol] = useState<'introduccion' | 'ensenanza' | 'testimonios' | 'finalizacion' | null>(null)
+    const [temaDropdownOpen, setTemaDropdownOpen] = useState(false)
+    const [temaTriggerRect, setTemaTriggerRect] = useState<DOMRect | null>(null)
+    const [temaConfirmState, setTemaConfirmState] = useState<{ tipo: 'assign' | 'modify' | 'delete'; temaKey: string | null } | null>(null)
+    const [temaMounted, setTemaMounted] = useState(false)
+    const temaTriggerRef = useRef<HTMLButtonElement>(null)
+
+    useEffect(() => {
+        setTemaMounted(true)
+    }, [])
 
     const handleToggleFestivo = async () => {
         setIsUpdating(true)
@@ -493,6 +504,160 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 </div>
             </motion.div>
 
+            {/* Tema Introducción Alabanza (solo cultos de Alabanza) - Desplegable con confirmar/eliminar/modificar */}
+            {tipoCulto.toLowerCase().includes('alabanza') && temaMounted && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full"
+                >
+                    <div className="glass rounded-4xl p-4 sm:p-5 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                        <div className="flex flex-col gap-4 sm:gap-6 relative z-10">
+                            <div className="flex items-center gap-3 sm:gap-4">
+                                <div className="p-2.5 sm:p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 shrink-0">
+                                    <BookMarked className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="text-base sm:text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
+                                        {t('alabanza.tema.title')}
+                                    </h3>
+                                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                                        {t('alabanza.tema.desc')}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="relative">
+                                <button
+                                    ref={temaTriggerRef}
+                                    type="button"
+                                    onClick={() => {
+                                        if (readOnlyAssignments) return
+                                        if (temaTriggerRef.current) setTemaTriggerRect(temaTriggerRef.current.getBoundingClientRect())
+                                        setTemaDropdownOpen((o) => !o)
+                                    }}
+                                    disabled={readOnlyAssignments}
+                                    className={`flex w-full min-h-[44px] items-center justify-between gap-3 px-4 py-3 rounded-2xl border-2 transition-all touch-manipulation text-left ${(culto.meta_data as any)?.tema_introduccion_alabanza
+                                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300'
+                                        : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                                        } ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-blue-300 dark:hover:border-blue-700'}`}
+                                >
+                                    <span className="text-sm font-bold truncate">
+                                        {(culto.meta_data as any)?.tema_introduccion_alabanza
+                                            ? t((culto.meta_data as any).tema_introduccion_alabanza)
+                                            : t('alabanza.tema.sinAsignar')}
+                                    </span>
+                                    <ChevronDown className={`w-5 h-5 shrink-0 transition-transform ${temaDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {temaDropdownOpen && !readOnlyAssignments && temaTriggerRect && createPortal(
+                                    <>
+                                        <div className="fixed inset-0 z-[9998]" onClick={() => setTemaDropdownOpen(false)} />
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="fixed z-[9999] mt-2 min-w-[200px] max-w-[min(400px,calc(100vw-2rem))] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden"
+                                            style={{
+                                                top: temaTriggerRect.bottom + 8,
+                                                left: temaTriggerRect.left,
+                                                width: Math.max(temaTriggerRect.width, 200),
+                                            }}
+                                        >
+                                            <div className="p-1.5 max-h-[280px] overflow-y-auto no-scrollbar">
+                                                {TEMAS_ALABANZA_KEYS.map((key) => {
+                                                    const isSelected = (culto.meta_data as any)?.tema_introduccion_alabanza === key
+                                                    return (
+                                                        <button
+                                                            key={key}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setTemaDropdownOpen(false)
+                                                                const current = (culto.meta_data as any)?.tema_introduccion_alabanza
+                                                                setTemaConfirmState({
+                                                                    tipo: current ? 'modify' : 'assign',
+                                                                    temaKey: key,
+                                                                })
+                                                            }}
+                                                            className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl text-left text-sm font-bold transition-colors touch-manipulation ${isSelected
+                                                                ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
+                                                                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                                                                }`}
+                                                        >
+                                                            {isSelected && <CheckCircle className="w-4 h-4 shrink-0 text-blue-500" />}
+                                                            <span className="line-clamp-2">{t(key)}</span>
+                                                        </button>
+                                                    )
+                                                })}
+                                                {(culto.meta_data as any)?.tema_introduccion_alabanza && (
+                                                    <>
+                                                        <div className="h-px bg-slate-200 dark:bg-slate-700 my-1.5" />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setTemaDropdownOpen(false)
+                                                                setTemaConfirmState({ tipo: 'delete', temaKey: null })
+                                                            }}
+                                                            className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-left text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors touch-manipulation"
+                                                        >
+                                                            <Trash2 className="w-4 h-4 shrink-0" />
+                                                            {t('alabanza.tema.sinAsignar')}
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    </>,
+                                    document.body
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Dialog confirmar / eliminar / modificar */}
+                    <Dialog open={!!temaConfirmState} onOpenChange={(open) => !open && setTemaConfirmState(null)}>
+                        <DialogContent className="max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-3xl">
+                            <DialogHeader>
+                                <DialogTitle className="text-slate-900 dark:text-white font-black uppercase tracking-tight">
+                                    {temaConfirmState?.tipo === 'delete' && t('alabanza.tema.confirmDelete')}
+                                    {temaConfirmState?.tipo === 'assign' && t('alabanza.tema.confirmAssign')}
+                                    {temaConfirmState?.tipo === 'modify' && t('alabanza.tema.confirmModify')}
+                                </DialogTitle>
+                                <DialogDescription className="text-slate-600 dark:text-slate-400">
+                                    {temaConfirmState?.tipo === 'assign' && temaConfirmState?.temaKey && t(temaConfirmState.temaKey)}
+                                    {temaConfirmState?.tipo === 'modify' && temaConfirmState?.temaKey && t(temaConfirmState.temaKey)}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter className="gap-2 sm:gap-0">
+                                <button
+                                    type="button"
+                                    onClick={() => setTemaConfirmState(null)}
+                                    className="px-4 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                >
+                                    {t('common.cancel')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (!temaConfirmState) return
+                                        const newTema = temaConfirmState.tipo === 'delete' ? null : temaConfirmState.temaKey
+                                        await updateTemaIntroduccionAlabanza(culto.id, newTema)
+                                        toast.success(newTema ? 'Tema asignado' : 'Tema eliminado')
+                                        setTemaConfirmState(null)
+                                        router.refresh()
+                                    }}
+                                    className={`px-4 py-2.5 rounded-xl font-bold transition-colors ${temaConfirmState?.tipo === 'delete'
+                                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                        }`}
+                                >
+                                    {t('himnario.confirm')}
+                                </button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </motion.div>
+            )}
+
             {/* Protocol Configuration (Solo Estudio Bíblico, oculto para SONIDO) */}
             {!readOnlyAssignments && (tipoCulto.toLowerCase().includes('estudio') || tipoCulto.toLowerCase().includes('biblico')) && (
                 <motion.div
@@ -500,85 +665,148 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full"
                 >
-                    <div className="glass rounded-4xl p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
-                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
-                                    <Sparkles className="w-6 h-6 text-indigo-500" />
+                    <div className="glass rounded-4xl p-4 sm:p-5 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                        <div className="flex flex-col gap-4 sm:gap-6 relative z-10">
+                            {/* Header + Toggle maestro (como Inicio anticipado) */}
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div className="flex items-center gap-3 sm:gap-4">
+                                    <div className="p-2.5 sm:p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shrink-0">
+                                        <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-500" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h3 className="text-base sm:text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
+                                            {t('culto.protocol.title')}
+                                        </h3>
+                                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                                            {t('culto.protocol.desc')}
+                                        </p>
+                                        <p className="text-[10px] text-muted-foreground/80 mt-1.5 sm:mt-2 opacity-90">
+                                            {t('culto.protocol.helpDashboard')}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
-                                        {t('culto.protocol.title')}
-                                    </h3>
-                                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                                        {t('culto.protocol.desc')}
-                                    </p>
-                                </div>
-                            </div>
 
-                            <div className="flex flex-wrap gap-4 w-full md:w-auto">
-                                {/* Switch Oración */}
+                                {/* Toggle maestro: Activado = interactuar con oración/congregación; Desactivado = Por definir */}
                                 <button
+                                    type="button"
                                     onClick={async () => {
-                                        const current = culto.meta_data?.protocolo?.oracion_inicio ?? true
-                                        await updateCultoProtocol(culto.id, {
-                                            oracion_inicio: !current,
-                                            congregacion_pie: culto.meta_data?.protocolo?.congregacion_pie ?? false
-                                        })
-                                        toast.success(!current ? 'Oración activada' : 'Oración desactivada')
+                                        const definido = culto.meta_data?.protocolo_definido === true
+                                        if (definido) {
+                                            const err = await resetCultoProtocol(culto.id)
+                                            if (err?.error) return toast.error(err.error)
+                                            toast.success('Protocolo vuelve a Por definir')
+                                        } else {
+                                            await updateCultoProtocol(culto.id, {
+                                                oracion_inicio: true,
+                                                congregacion_pie: false
+                                            })
+                                            toast.success('Protocolo activado')
+                                        }
+                                        router.refresh()
                                     }}
-                                    className={`flex items-center justify-between gap-4 px-5 py-3 rounded-2xl border-2 transition-all flex-1 md:flex-none cursor-pointer ${(culto.meta_data?.protocolo?.oracion_inicio ?? true)
-                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                                        : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'
+                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] sm:min-h-0 rounded-2xl border-2 transition-all cursor-pointer touch-manipulation shrink-0 w-full sm:w-auto sm:min-w-[180px] ${culto.meta_data?.protocolo_definido === true
+                                        ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-700 dark:text-indigo-300'
+                                        : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
                                         }`}
                                 >
-                                    <div className="flex flex-col items-start min-w-[100px]">
-                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-70 leading-none mb-1">{t('culto.protocol.prayer')}</span>
-                                        <span className={`text-xs font-black uppercase tracking-tight ${(culto.meta_data?.protocolo?.oracion_inicio ?? true) ? '' : 'text-slate-400 dark:text-slate-500'
-                                            }`}>
-                                            {(culto.meta_data?.protocolo?.oracion_inicio ?? true) ? t('culto.protocol.yesPray') : t('culto.protocol.noPray')}
-                                        </span>
-                                    </div>
-                                    <div className={`w-12 h-7 rounded-full p-1 transition-colors border ${(culto.meta_data?.protocolo?.oracion_inicio ?? true)
-                                        ? 'bg-emerald-500 border-emerald-600'
+                                    <span className="text-xs sm:text-sm font-black uppercase tracking-tight">
+                                        {culto.meta_data?.protocolo_definido === true
+                                            ? t('culto.protocol.activated')
+                                            : t('culto.protocol.deactivated')}
+                                    </span>
+                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${culto.meta_data?.protocolo_definido === true
+                                        ? 'bg-indigo-500 border-indigo-600'
                                         : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
                                         }`}>
-                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${(culto.meta_data?.protocolo?.oracion_inicio ?? true) ? 'translate-x-5' : 'translate-x-0'
-                                            }`} />
-                                    </div>
-                                </button>
-
-                                {/* Switch Congregación */}
-                                <button
-                                    onClick={async () => {
-                                        const current = culto.meta_data?.protocolo?.congregacion_pie ?? false
-                                        await updateCultoProtocol(culto.id, {
-                                            oracion_inicio: culto.meta_data?.protocolo?.oracion_inicio ?? true,
-                                            congregacion_pie: !current
-                                        })
-                                        toast.success(!current ? 'Congregación de pie' : 'Congregación sentada')
-                                    }}
-                                    className={`flex items-center justify-between gap-4 px-5 py-3 rounded-2xl border-2 transition-all flex-1 md:flex-none cursor-pointer ${(culto.meta_data?.protocolo?.congregacion_pie ?? false)
-                                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300'
-                                        : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'
-                                        }`}
-                                >
-                                    <div className="flex flex-col items-start min-w-[100px]">
-                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-70 leading-none mb-1">{t('culto.protocol.congregation')}</span>
-                                        <span className={`text-xs font-black uppercase tracking-tight ${(culto.meta_data?.protocolo?.congregacion_pie ?? false) ? '' : 'text-slate-400 dark:text-slate-500'
-                                            }`}>
-                                            {(culto.meta_data?.protocolo?.congregacion_pie ?? false) ? t('culto.protocol.standing') : t('culto.protocol.seated')}
-                                        </span>
-                                    </div>
-                                    <div className={`w-12 h-7 rounded-full p-1 transition-colors border ${(culto.meta_data?.protocolo?.congregacion_pie ?? false)
-                                        ? 'bg-blue-500 border-blue-600'
-                                        : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
-                                        }`}>
-                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${(culto.meta_data?.protocolo?.congregacion_pie ?? false) ? 'translate-x-5' : 'translate-x-0'
-                                            }`} />
+                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${culto.meta_data?.protocolo_definido === true ? 'translate-x-5 sm:translate-x-5' : 'translate-x-0'}`} />
                                     </div>
                                 </button>
                             </div>
+
+                            {/* Oración y Congregación: solo visibles e interactivos cuando protocolo está Activado */}
+                            {culto.meta_data?.protocolo_definido === true && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    className="space-y-3 sm:space-y-4"
+                                >
+                                    <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+                                        {/* Switch Oración */}
+                                        {(() => {
+                                            const oracionActual = culto.meta_data?.protocolo?.oracion_inicio ?? true
+                                            const congregacionActual = culto.meta_data?.protocolo?.congregacion_pie ?? false
+                                            const oracionActivo = oracionActual
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        await updateCultoProtocol(culto.id, {
+                                                            oracion_inicio: !oracionActual,
+                                                            congregacion_pie: congregacionActual
+                                                        })
+                                                        toast.success(!oracionActual ? 'Oración activada' : 'Oración desactivada')
+                                                        router.refresh()
+                                                    }}
+                                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] rounded-2xl border-2 transition-all flex-1 min-w-0 cursor-pointer touch-manipulation ${oracionActivo
+                                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                                                        : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
+                                                        }`}
+                                                >
+                                                    <div className="flex flex-col items-start min-w-0">
+                                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-70 leading-none mb-0.5">{t('culto.protocol.prayer')}</span>
+                                                        <span className={`text-xs font-black uppercase tracking-tight truncate ${oracionActivo ? '' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                            {oracionActual ? t('culto.protocol.yesPray') : t('culto.protocol.noPray')}
+                                                        </span>
+                                                    </div>
+                                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${oracionActivo
+                                                        ? 'bg-emerald-500 border-emerald-600'
+                                                        : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
+                                                        }`}>
+                                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${oracionActivo ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                    </div>
+                                                </button>
+                                            )
+                                        })()}
+
+                                        {/* Switch Congregación */}
+                                        {(() => {
+                                            const oracionActual = culto.meta_data?.protocolo?.oracion_inicio ?? true
+                                            const congregacionActual = culto.meta_data?.protocolo?.congregacion_pie ?? false
+                                            const congregacionActivo = congregacionActual
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        await updateCultoProtocol(culto.id, {
+                                                            oracion_inicio: oracionActual,
+                                                            congregacion_pie: !congregacionActual
+                                                        })
+                                                        toast.success(!congregacionActual ? 'Congregación de pie' : 'Congregación sentada')
+                                                        router.refresh()
+                                                    }}
+                                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] rounded-2xl border-2 transition-all flex-1 min-w-0 cursor-pointer touch-manipulation ${congregacionActivo
+                                                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300'
+                                                        : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
+                                                        }`}
+                                                >
+                                                    <div className="flex flex-col items-start min-w-0">
+                                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-70 leading-none mb-0.5">{t('culto.protocol.congregation')}</span>
+                                                        <span className={`text-xs font-black uppercase tracking-tight truncate ${congregacionActivo ? '' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                            {congregacionActual ? t('culto.protocol.standing') : t('culto.protocol.seated')}
+                                                        </span>
+                                                    </div>
+                                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${congregacionActivo
+                                                        ? 'bg-blue-500 border-blue-600'
+                                                        : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
+                                                        }`}>
+                                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${congregacionActivo ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                    </div>
+                                                </button>
+                                            )
+                                        })()}
+                                    </div>
+                                </motion.div>
+                            )}
                         </div>
                     </div>
                 </motion.div>
@@ -591,26 +819,30 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full"
                 >
-                    <div className="glass rounded-4xl p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
-                        <div className="flex flex-col gap-6 relative z-10">
+                    <div className="glass rounded-4xl p-4 sm:p-5 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                        <div className="flex flex-col gap-4 sm:gap-6 relative z-10">
                             {/* Header */}
-                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20">
-                                        <Clock className="w-6 h-6 text-amber-500" />
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div className="flex items-center gap-3 sm:gap-4">
+                                    <div className="p-2.5 sm:p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20 shrink-0">
+                                        <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
                                     </div>
-                                    <div>
-                                        <h3 className="text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
+                                    <div className="min-w-0">
+                                        <h3 className="text-base sm:text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
                                             Inicio Anticipado
                                         </h3>
                                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
                                             Por duración del video
+                                        </p>
+                                        <p className="text-[10px] text-muted-foreground/80 mt-1.5 sm:mt-2 opacity-90">
+                                            {t('culto.protocol.helpDashboard')}
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Toggle Switch */}
                                 <button
+                                    type="button"
                                     onClick={async () => {
                                         const current = culto.meta_data?.inicio_anticipado?.activo ?? false
                                         await updateInicioAnticipado(culto.id, {
@@ -619,21 +851,21 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                             observaciones: culto.meta_data?.inicio_anticipado?.observaciones
                                         })
                                         toast.success(!current ? 'Inicio anticipado activado' : 'Inicio anticipado desactivado')
+                                        router.refresh()
                                     }}
-                                    className={`flex items-center gap-4 px-5 py-3 rounded-2xl border-2 transition-all cursor-pointer ${(culto.meta_data?.inicio_anticipado?.activo ?? false)
+                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] sm:min-h-0 rounded-2xl border-2 transition-all cursor-pointer touch-manipulation shrink-0 w-full sm:w-auto sm:min-w-[180px] ${(culto.meta_data?.inicio_anticipado?.activo ?? false)
                                         ? 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300'
                                         : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
                                         }`}
                                 >
-                                    <span className="text-xs font-black uppercase tracking-tight">
+                                    <span className="text-xs sm:text-sm font-black uppercase tracking-tight">
                                         {(culto.meta_data?.inicio_anticipado?.activo ?? false) ? 'Activado' : 'Desactivado'}
                                     </span>
-                                    <div className={`w-12 h-7 rounded-full p-1 transition-colors border ${(culto.meta_data?.inicio_anticipado?.activo ?? false)
+                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${(culto.meta_data?.inicio_anticipado?.activo ?? false)
                                         ? 'bg-amber-500 border-amber-600'
                                         : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
                                         }`}>
-                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${(culto.meta_data?.inicio_anticipado?.activo ?? false) ? 'translate-x-5' : 'translate-x-0'
-                                            }`} />
+                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${(culto.meta_data?.inicio_anticipado?.activo ?? false) ? 'translate-x-5' : 'translate-x-0'}`} />
                                     </div>
                                 </button>
                             </div>
@@ -654,6 +886,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                             {[5, 7, 10].map((mins) => (
                                                 <button
                                                     key={mins}
+                                                    type="button"
                                                     onClick={async () => {
                                                         await updateInicioAnticipado(culto.id, {
                                                             activo: true,
@@ -661,8 +894,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                             observaciones: culto.meta_data?.inicio_anticipado?.observaciones
                                                         })
                                                         toast.success(`Inicio ${mins} minutos antes`)
+                                                        router.refresh()
                                                     }}
-                                                    className={`px-6 py-3 rounded-2xl font-black text-sm transition-all ${(culto.meta_data?.inicio_anticipado?.minutos ?? 5) === mins
+                                                    className={`min-h-[44px] px-5 sm:px-6 py-3 rounded-2xl font-black text-sm transition-all touch-manipulation ${(culto.meta_data?.inicio_anticipado?.minutos ?? 5) === mins
                                                         ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
                                                         : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                                                         }`}

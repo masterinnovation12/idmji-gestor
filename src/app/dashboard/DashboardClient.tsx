@@ -41,8 +41,10 @@ interface DashboardClientProps {
     lecturaData: { showAddButton: boolean; lecturaIntro: any; lecturaFinal: any } | null
     estudioBiblicoData: {
         esEstudio: boolean
+        protocoloDefinido: boolean
         oracionInicio: boolean
         congregacionPie: boolean
+        inicioAnticipadoDefinido: boolean
         inicioAnticipado: { activo: boolean; minutos: number; horaReal: string; observaciones?: string } | null
     } | null
     observacionesData: string
@@ -239,6 +241,11 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                                                                 </span>
                                                             ))}
                                                         </div>
+                                                        {asg.id_usuario_intro === user.id && asg.tipo_culto?.nombre?.toLowerCase().includes('alabanza') && (asg.meta_data as { tema_introduccion_alabanza?: string })?.tema_introduccion_alabanza && (
+                                                            <p className="mt-2 text-[10px] font-bold text-blue-600 dark:text-blue-400 leading-tight line-clamp-2">
+                                                                {t((asg.meta_data as { tema_introduccion_alabanza: string }).tema_introduccion_alabanza)}
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </Link>
                                                 {firstRol && asg.tipo_culto_id && (

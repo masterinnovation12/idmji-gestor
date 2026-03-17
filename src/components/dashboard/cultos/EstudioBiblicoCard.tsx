@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/Card'
-import { Clock, Plus } from 'lucide-react'
+import { Clock, Plus, Heart, Users, ArrowRight, HelpCircle } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { AssignmentPill } from './AssignmentPill'
 import { computeCultoDetails } from '@/lib/utils/computeCultoDetails'
@@ -45,49 +45,100 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                     </div>
 
                     {/* Info Principal */}
-                    <div className="mb-8">
+                    <div className="mb-6">
                         <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter mb-2">
                             {getTranslatedCultoName(culto.tipo_culto?.nombre)}
                         </h2>
 
-                        {/* Hora - con inicio anticipado */}
-                        <div className="flex items-center gap-2 text-slate-500 font-bold mb-4">
-                            <Clock className="w-5 h-5 text-blue-500" />
-                            <div className="flex items-center gap-2 flex-wrap">
-                                {estudioBiblicoData?.inicioAnticipado ? (
-                                    <>
-                                        <span className="text-lg line-through opacity-50">{(culto.hora_inicio || '').slice(0, 5)}</span>
-                                        <span className="text-lg font-black text-amber-600 dark:text-amber-400">
-                                            {estudioBiblicoData.inicioAnticipado.horaReal}
-                                        </span>
-                                        <span className="px-2 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-lg text-[10px] font-black uppercase">
-                                            {estudioBiblicoData.inicioAnticipado.minutos} {t('dashboard.minBefore')}
-                                        </span>
-                                    </>
-                                ) : (
-                                    <span className="text-lg">{(culto.hora_inicio || '').slice(0, 5)}</span>
-                                )}
-                            </div>
+                        {/* Hora / Inicio anticipado - con estado Por definir */}
+                        <div className="flex items-center gap-3 text-slate-500 font-bold mb-2">
+                            <Clock className="w-5 h-5 text-blue-500 shrink-0" />
+                            {!estudioBiblicoData?.inicioAnticipadoDefinido ? (
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                                    <span className="text-base text-slate-400 dark:text-slate-500 italic">
+                                        {t('dashboard.inicioToDefine')}
+                                    </span>
+                                    <Link
+                                        href={`/dashboard/cultos/${culto.id}`}
+                                        className="inline-flex items-center gap-1.5 min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold text-primary hover:bg-primary/10 border border-primary/20 transition-colors touch-manipulation"
+                                    >
+                                        <span>{t('dashboard.defineInDetail')}</span>
+                                        <ArrowRight className="w-4 h-4" />
+                                    </Link>
+                                </div>
+                            ) : estudioBiblicoData?.inicioAnticipado ? (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-lg line-through opacity-50">{(culto.hora_inicio || '').slice(0, 5)}</span>
+                                    <span className="text-lg font-black text-amber-600 dark:text-amber-400">
+                                        {estudioBiblicoData.inicioAnticipado.horaReal}
+                                    </span>
+                                    <span className="px-2.5 py-1 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-xl text-[10px] font-black uppercase">
+                                        {estudioBiblicoData.inicioAnticipado.minutos} {t('dashboard.minBefore')}
+                                    </span>
+                                </div>
+                            ) : (
+                                <span className="text-lg">{(culto.hora_inicio || '').slice(0, 5)}</span>
+                            )}
                         </div>
                     </div>
 
-                    {/* Protocol Badges - Solo Estudio Bíblico */}
+                    {/* Protocolo (oración + congregación) - Premium cards con estado Por definir */}
                     {estudioBiblicoData?.esEstudio && (
-                        <div className="flex flex-wrap gap-2 mb-6">
-                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border ${estudioBiblicoData.oracionInicio
-                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
-                                }`}>
-                                <span>🙏</span>
-                                <span>{t('dashboard.oracion')}: {estudioBiblicoData.oracionInicio ? t('dashboard.yes') : t('dashboard.no')}</span>
-                            </div>
-                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border ${estudioBiblicoData.congregacionPie
-                                ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
-                                }`}>
-                                <span>🪑</span>
-                                <span>{estudioBiblicoData.congregacionPie ? t('dashboard.standing') : t('dashboard.seated')}</span>
-                            </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
+                            {!estudioBiblicoData.protocoloDefinido ? (
+                                <Link
+                                    href={`/dashboard/cultos/${culto.id}`}
+                                    className="flex items-center gap-4 p-4 sm:p-5 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 hover:border-primary/30 hover:bg-primary/5 transition-all min-h-[72px] touch-manipulation"
+                                >
+                                    <div className="p-2.5 rounded-xl bg-slate-200/50 dark:bg-slate-700/50">
+                                        <HelpCircle className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">
+                                            {t('dashboard.protocolToDefine')}
+                                        </p>
+                                        <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                                            {t('dashboard.toDefine')}
+                                        </p>
+                                    </div>
+                                    <ArrowRight className="w-5 h-5 text-primary shrink-0" />
+                                </Link>
+                            ) : (
+                                <>
+                                    <div className={`flex items-center gap-4 p-4 sm:p-5 rounded-2xl border-2 transition-all min-h-[72px] ${estudioBiblicoData.oracionInicio
+                                        ? 'bg-emerald-500/10 border-emerald-500/20'
+                                        : 'bg-slate-100/80 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
+                                        }`}>
+                                        <div className={`p-2.5 rounded-xl shrink-0 ${estudioBiblicoData.oracionInicio ? 'bg-emerald-500/20' : 'bg-slate-200/50 dark:bg-slate-700/50'}`}>
+                                            <Heart className={`w-5 h-5 ${estudioBiblicoData.oracionInicio ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-0.5">
+                                                {t('dashboard.oracion')}
+                                            </p>
+                                            <p className={`text-sm font-bold ${estudioBiblicoData.oracionInicio ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                {estudioBiblicoData.oracionInicio ? t('dashboard.yes') : t('dashboard.no')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className={`flex items-center gap-4 p-4 sm:p-5 rounded-2xl border-2 transition-all min-h-[72px] ${estudioBiblicoData.congregacionPie
+                                        ? 'bg-blue-500/10 border-blue-500/20'
+                                        : 'bg-slate-100/80 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
+                                        }`}>
+                                        <div className={`p-2.5 rounded-xl shrink-0 ${estudioBiblicoData.congregacionPie ? 'bg-blue-500/20' : 'bg-slate-200/50 dark:bg-slate-700/50'}`}>
+                                            <Users className={`w-5 h-5 ${estudioBiblicoData.congregacionPie ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-0.5">
+                                                {t('culto.protocol.congregation')}
+                                            </p>
+                                            <p className={`text-sm font-bold ${estudioBiblicoData.congregacionPie ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                {estudioBiblicoData.congregacionPie ? t('dashboard.standing') : t('dashboard.seated')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
 

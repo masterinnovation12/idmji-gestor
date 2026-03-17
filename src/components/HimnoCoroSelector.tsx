@@ -513,6 +513,11 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                     const result = await updateSequencePointer(key, pendingCoroId, cultoDate)
                     if (result.success) {
                         toast.success('Secuencia global actualizada')
+                        // Refrescar la lista para mostrar los coros añadidos sin recargar
+                        if (cultoId) {
+                            const { data } = await getHimnosCorosByCulto(cultoId)
+                            if (data) setSelected(data)
+                        }
                     } else {
                         toast.error('Error al actualizar secuencia')
                     }

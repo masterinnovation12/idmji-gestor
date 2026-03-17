@@ -40,7 +40,7 @@ function InstrIconBtn({ rol, onOpen }: InstrIconBtnProps) {
 export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ culto: Culto; esHoy: boolean; currentUserId: string }>) {
     const { t } = useI18n()
     const router = useRouter()
-    const { observacionesData, lecturaData } = computeCultoDetails(culto)
+    const { observacionesData, lecturaData, temaIntroduccionAlabanza } = computeCultoDetails(culto)
     const [instrModal, setInstrModal] = useState<InstrModal>(null)
     const [addLecturaModalOpen, setAddLecturaModalOpen] = useState(false)
 
@@ -124,6 +124,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                         lectura={lecturaData?.lecturaIntro}
                                         himnario={culto.plan_himnos_coros}
                                         tipoCulto={cultoNombre}
+                                        temaIntroduccionAlabanza={cultoNombre.toLowerCase().includes('alabanza') ? temaIntroduccionAlabanza : undefined}
                         action={cultoTypeId ? <InstrIconBtn rol="introduccion" onOpen={openModal} /> : undefined}
                         footerAction={(lecturaData?.showAddButton || showAddHimnos) ? (
                             <div className="flex flex-col gap-2 w-full">

@@ -229,10 +229,11 @@ export async function updateCultoProtocol(
 
     const currentMeta = (culto?.meta_data as Record<string, unknown>) || {}
 
-    // 2. Mezclar con nuevo protocolo
+    // 2. Mezclar con nuevo protocolo y marcar como definido
     const newMeta = {
         ...currentMeta,
-        protocolo: protocol
+        protocolo: protocol,
+        protocolo_definido: true
     }
 
     const { error } = await supabase
@@ -245,6 +246,41 @@ export async function updateCultoProtocol(
     }
 
     revalidatePath(`/dashboard/cultos/${cultoId}`)
+    revalidatePath('/dashboard')
+    return { success: true }
+}
+
+/**
+ * Resetear protocolo del estudio bíblico a estado "Por definir"
+ */
+export async function resetCultoProtocol(cultoId: string) {
+    const supabase = await createClient()
+
+    const { data: culto } = await supabase
+        .from('cultos')
+        .select('meta_data')
+        .eq('id', cultoId)
+        .single()
+
+    const currentMeta = (culto?.meta_data as Record<string, unknown>) || {}
+    const { protocolo, protocolo_definido, ...rest } = currentMeta
+
+    const newMeta = {
+        ...rest,
+        protocolo_definido: false
+    }
+
+    const { error } = await supabase
+        .from('cultos')
+        .update({ meta_data: newMeta })
+        .eq('id', cultoId)
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    revalidatePath(`/dashboard/cultos/${cultoId}`)
+    revalidatePath('/dashboard')
     return { success: true }
 }
 
@@ -267,15 +303,88 @@ export async function updateInicioAnticipado(
 
     const currentMeta = (culto?.meta_data as Record<string, unknown>) || {}
 
-    // 2. Mezclar con nuevo inicio_anticipado
+    // 2. Mezclar con nuevo inicio_anticipado y marcar como definido
     const newMeta = {
         ...currentMeta,
         inicio_anticipado: {
             activo: config.activo,
             minutos: config.minutos,
             observaciones: config.observaciones || ''
-        }
+        },
+        inicio_anticipado_definido: true
     }
+
+    const { error } = await supabase
+        .from('cultos')
+        .update({ meta_data: newMeta })
+        .eq('id', cultoId)
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    revalidatePath(`/dashboard/cultos/${cultoId}`)
+    revalidatePath('/dashboard')
+    return { success: true }
+}
+
+/**
+ * Resetear inicio anticipado a estado "Por definir"
+ */
+export async function resetInicioAnticipado(cultoId: string) {
+    const supabase = await createClient()
+
+    const { data: culto } = await supabase
+        .from('cultos')
+        .select('meta_data')
+        .eq('id', cultoId)
+        .single()
+
+    const currentMeta = (culto?.meta_data as Record<string, unknown>) || {}
+    const { inicio_anticipado, inicio_anticipado_definido, ...rest } = currentMeta
+
+    const newMeta = {
+        ...rest,
+        inicio_anticipado_definido: false
+    }
+
+    const { error } = await supabase
+        .from('cultos')
+        .update({ meta_data: newMeta })
+        .eq('id', cultoId)
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    revalidatePath(`/dashboard/cultos/${cultoId}`)
+    revalidatePath('/dashboard')
+    return { success: true }
+}
+
+/**
+ * Actualizar tema de introducción para cultos de Alabanza (metadata)
+ */
+export async function updateTemaIntroduccionAlabanza(
+    cultoId: string,
+    temaKey: string | null
+) {
+    const supabase = await createClient()
+
+    const { data: culto } = await supabase
+        .from('cultos')
+        .select('meta_data')
+        .eq('id', cultoId)
+        .single()
+
+    const currentMeta = (culto?.meta_data as Record<string, unknown>) || {}
+
+    const newMeta = temaKey === null
+        ? (() => {
+            const { tema_introduccion_alabanza: _, ...rest } = currentMeta
+            return rest
+        })()
+        : { ...currentMeta, tema_introduccion_alabanza: temaKey }
 
     const { error } = await supabase
         .from('cultos')

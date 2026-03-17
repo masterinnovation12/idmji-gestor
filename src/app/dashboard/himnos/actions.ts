@@ -125,8 +125,10 @@ export async function autoFillAlabanzaSequence(targetDate?: Date): Promise<Actio
     const allInserts: any[] = []
     const cultosToClear: string[] = []
 
+    const ALABANZA_COROS_COUNT = 4
+
     for (const culto of cultos) {
-        if (culto.fecha <= pointer.date) {
+        if (culto.fecha < pointer.date) {
             const { data: lastCoro } = await supabase
                 .from('plan_himnos_coros')
                 .select('coro_id')
@@ -139,7 +141,39 @@ export async function autoFillAlabanzaSequence(targetDate?: Date): Promise<Actio
             continue
         }
 
-        const nextCoros = await getNextSequentialItems('coros', pointer.id, 4)
+        if (culto.fecha === pointer.date) {
+            const { data: existingCoros } = await supabase
+                .from('plan_himnos_coros')
+                .select('coro_id, orden')
+                .eq('culto_id', culto.id)
+                .eq('tipo', 'coro')
+                .order('orden', { ascending: true })
+
+            const count = existingCoros?.length || 0
+            if (count >= ALABANZA_COROS_COUNT) {
+                const last = existingCoros![existingCoros!.length - 1]
+                pointer.id = last.coro_id
+                pointer.date = culto.fecha
+                continue
+            }
+
+            const lastCoroId = existingCoros?.length ? existingCoros[existingCoros.length - 1].coro_id : pointer.id
+            const toAdd = ALABANZA_COROS_COUNT - count
+            const nextCoros = await getNextSequentialItems('coros', lastCoroId, toAdd)
+            if (nextCoros.length === 0) continue
+
+            const baseOrden = existingCoros?.length ? Math.max(...existingCoros.map(c => c.orden)) : 0
+            nextCoros.forEach((coro, index) => {
+                allInserts.push({ culto_id: culto.id, tipo: 'coro', coro_id: coro.id, orden: baseOrden + index + 1 })
+            })
+
+            totalAssigned++
+            pointer.id = nextCoros[nextCoros.length - 1].id
+            pointer.date = culto.fecha
+            continue
+        }
+
+        const nextCoros = await getNextSequentialItems('coros', pointer.id, ALABANZA_COROS_COUNT)
         if (nextCoros.length === 0) continue
 
         cultosToClear.push(culto.id)
@@ -154,7 +188,9 @@ export async function autoFillAlabanzaSequence(targetDate?: Date): Promise<Actio
 
     if (cultosToClear.length > 0) {
         await supabase.from('plan_himnos_coros').delete().in('culto_id', cultosToClear).eq('tipo', 'coro')
-        if (allInserts.length > 0) await supabase.from('plan_himnos_coros').insert(allInserts)
+    }
+    if (allInserts.length > 0) {
+        await supabase.from('plan_himnos_coros').insert(allInserts)
     }
 
     if (totalAssigned > 0) {
