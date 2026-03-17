@@ -41,4 +41,29 @@ describe('AssignmentPill', () => {
     )
     expect(screen.queryByText('alabanza.tema.prepararnos')).not.toBeInTheDocument()
   })
+
+  it('ordena himnos primero y luego coros en cultos de Enseñanza', () => {
+    const himnario = [
+      { tipo: 'coro', orden: 4, coro: { numero: 10, titulo: 'Coro A', duracion_segundos: 90 } },
+      { tipo: 'himno', orden: 2, himno: { numero: 2, titulo: 'Himno 2', duracion_segundos: 120 } },
+      { tipo: 'himno', orden: 1, himno: { numero: 1, titulo: 'Himno 1', duracion_segundos: 90 } },
+      { tipo: 'coro', orden: 5, coro: { numero: 11, titulo: 'Coro B', duracion_segundos: 80 } },
+    ]
+    render(
+      <AssignmentPill
+        label="Intro"
+        himnario={himnario}
+        tipoCulto="Enseñanza"
+      />
+    )
+    expect(screen.getByText('Himno 1')).toBeInTheDocument()
+    expect(screen.getByText('Himno 2')).toBeInTheDocument()
+    expect(screen.getByText('Coro A')).toBeInTheDocument()
+    expect(screen.getByText('Coro B')).toBeInTheDocument()
+    const items = document.querySelectorAll('.space-y-2 > div')
+    expect(items[0].textContent).toContain('Himno 1')
+    expect(items[1].textContent).toContain('Himno 2')
+    expect(items[2].textContent).toContain('Coro A')
+    expect(items[3].textContent).toContain('Coro B')
+  })
 })

@@ -18,7 +18,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#1e293b",
+  themeColor: "#ffffff",
 };
 
 export const metadata: Metadata = {
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "IDMJI Sabadell",
     startupImage: [
       // iPhone 14 Pro Max, 15 Plus, 15 Pro Max (1290x2796)
@@ -91,7 +91,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-167x167.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="IDMJI Sabadell" />
       </head>
       <body className={`${inter.variable} font-sans antialiased no-scrollbar`}>

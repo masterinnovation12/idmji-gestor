@@ -62,7 +62,8 @@ export async function updateSequencePointer(key: string, itemId: number, date?: 
         if (key.includes('alabanza')) {
             await autoFillAlabanzaSequence(new Date(date))
         } else {
-            await autoFillEnsenanzaSequence(new Date(date))
+            const onlyCategory = key.includes('himno') ? 'himno' as const : key.includes('coro') ? 'coro' as const : undefined
+            await autoFillEnsenanzaSequence(new Date(date), onlyCategory)
         }
     }
 
@@ -203,8 +204,9 @@ export async function autoFillAlabanzaSequence(targetDate?: Date): Promise<Actio
 
 /**
  * Auto-rellenar secuencia de Enseñanza (3 himnos + 3 coros)
+ * @param onlyCategory Si se indica, solo completa esa categoría (cuando el usuario confirma tras añadir himno o coro)
  */
-export async function autoFillEnsenanzaSequence(targetDate?: Date): Promise<ActionResponse<{ count: number }>> {
+export async function autoFillEnsenanzaSequence(targetDate?: Date, onlyCategory?: 'himno' | 'coro'): Promise<ActionResponse<{ count: number }>> {
     const supabase = await createClient()
     const baseDate = targetDate || new Date()
     const start = format(startOfWeek(baseDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
@@ -228,13 +230,14 @@ export async function autoFillEnsenanzaSequence(targetDate?: Date): Promise<Acti
     const allInserts: any[] = []
     const cultosToClear: string[] = []
 
-    for (const culto of cultos) {
-        // Lógica de "Cadena de Verdad" para Enseñanza (Himnos y Coros)
-        const isPastOrEqualH = culto.fecha <= hPointer.date
-        const isPastOrEqualC = culto.fecha <= cPointer.date
+    const ENSENANZA_HIMNOS = 3
+    const ENSENANZA_COROS = 3
 
-        if (isPastOrEqualH || isPastOrEqualC) {
-            // Actualizar punteros desde DB si existen
+    for (const culto of cultos) {
+        const isSameDay = culto.fecha === hPointer.date || culto.fecha === cPointer.date
+
+        // Cultos pasados: actualizar punteros desde DB
+        if (culto.fecha < hPointer.date && culto.fecha < cPointer.date) {
             const { data: plan } = await supabase
                 .from('plan_himnos_coros')
                 .select('tipo, himno_id, coro_id')
@@ -244,39 +247,98 @@ export async function autoFillEnsenanzaSequence(targetDate?: Date): Promise<Acti
             if (plan && plan.length > 0) {
                 const lastHimno = plan.find(p => p.tipo === 'himno')
                 const lastCoro = plan.find(p => p.tipo === 'coro')
-                if (lastHimno && isPastOrEqualH) { hPointer.id = lastHimno.himno_id; hPointer.date = culto.fecha }
-                if (lastCoro && isPastOrEqualC) { cPointer.id = lastCoro.coro_id; cPointer.date = culto.fecha }
+                if (lastHimno) { hPointer.id = lastHimno.himno_id; hPointer.date = culto.fecha }
+                if (lastCoro) { cPointer.id = lastCoro.coro_id; cPointer.date = culto.fecha }
             }
-            if (isPastOrEqualH && isPastOrEqualC) continue
+            continue
         }
 
-        // Obtener los siguientes 3 de cada uno
-        const nextHimnos = await getNextSequentialItems('himnos', hPointer.id, 3)
-        const nextCoros = await getNextSequentialItems('coros', cPointer.id, 3)
-        
-        if (nextHimnos.length === 0 || nextCoros.length === 0) continue
+        // Mismo día: añadir solo la categoría que el usuario confirmó (himno o coro)
+        if (isSameDay) {
+            const { data: plan } = await supabase
+                .from('plan_himnos_coros')
+                .select('tipo, himno_id, coro_id, orden')
+                .eq('culto_id', culto.id)
+                .order('orden', { ascending: true })
+
+            const existingHimnos = (plan || []).filter(p => p.tipo === 'himno')
+            const existingCoros = (plan || []).filter(p => p.tipo === 'coro')
+            let didAdd = false
+
+            const shouldAddHimnos = (!onlyCategory || onlyCategory === 'himno') && existingHimnos.length < ENSENANZA_HIMNOS
+            if (shouldAddHimnos) {
+                const lastHimnoId = existingHimnos.length ? existingHimnos[existingHimnos.length - 1].himno_id : hPointer.id
+                const toAdd = ENSENANZA_HIMNOS - existingHimnos.length
+                const nextHimnos = await getNextSequentialItems('himnos', lastHimnoId, toAdd)
+                if (nextHimnos.length > 0) {
+                    const baseOrden = existingHimnos.length ? Math.max(...existingHimnos.map(h => h.orden)) : 0
+                    nextHimnos.forEach((h, i) => {
+                        allInserts.push({ culto_id: culto.id, tipo: 'himno', himno_id: h.id, orden: baseOrden + i + 1 })
+                    })
+                    hPointer.id = nextHimnos[nextHimnos.length - 1].id
+                    didAdd = true
+                }
+            } else if (existingHimnos.length > 0) {
+                hPointer.id = existingHimnos[existingHimnos.length - 1].himno_id
+            }
+
+            const shouldAddCoros = (!onlyCategory || onlyCategory === 'coro') && existingCoros.length < ENSENANZA_COROS
+            if (shouldAddCoros) {
+                const lastCoroId = existingCoros.length ? existingCoros[existingCoros.length - 1].coro_id : cPointer.id
+                const toAdd = ENSENANZA_COROS - existingCoros.length
+                const nextCoros = await getNextSequentialItems('coros', lastCoroId, toAdd)
+                if (nextCoros.length > 0) {
+                    const baseOrden = existingCoros.length ? Math.max(...existingCoros.map(c => c.orden)) : 4
+                    nextCoros.forEach((c, i) => {
+                        allInserts.push({ culto_id: culto.id, tipo: 'coro', coro_id: c.id, orden: baseOrden + i + 1 })
+                    })
+                    cPointer.id = nextCoros[nextCoros.length - 1].id
+                    didAdd = true
+                }
+            } else if (existingCoros.length > 0) {
+                cPointer.id = existingCoros[existingCoros.length - 1].coro_id
+            }
+
+            hPointer.date = culto.fecha
+            cPointer.date = culto.fecha
+            if (didAdd) totalAssigned++
+            continue
+        }
+
+        // Futuros: reemplazar solo la categoría indicada (o ambas si no hay onlyCategory)
+        const doHimnos = !onlyCategory || onlyCategory === 'himno'
+        const doCoros = !onlyCategory || onlyCategory === 'coro'
+
+        const nextHimnos = doHimnos ? await getNextSequentialItems('himnos', hPointer.id, ENSENANZA_HIMNOS) : []
+        const nextCoros = doCoros ? await getNextSequentialItems('coros', cPointer.id, ENSENANZA_COROS) : []
+        if ((doHimnos && nextHimnos.length === 0) || (doCoros && nextCoros.length === 0)) continue
 
         cultosToClear.push(culto.id)
-        
-        // Himnos (orden 1-3)
-        nextHimnos.forEach((h, i) => {
-            allInserts.push({ culto_id: culto.id, tipo: 'himno', himno_id: h.id, orden: i + 1 })
-        })
-        // Coros (orden 4-6)
-        nextCoros.forEach((c, i) => {
-            allInserts.push({ culto_id: culto.id, tipo: 'coro', coro_id: c.id, orden: i + 4 })
-        })
+        if (doHimnos && nextHimnos.length > 0) {
+            nextHimnos.forEach((h, i) => {
+                allInserts.push({ culto_id: culto.id, tipo: 'himno', himno_id: h.id, orden: i + 1 })
+            })
+            hPointer.id = nextHimnos[nextHimnos.length - 1].id
+        }
+        if (doCoros && nextCoros.length > 0) {
+            nextCoros.forEach((c, i) => {
+                allInserts.push({ culto_id: culto.id, tipo: 'coro', coro_id: c.id, orden: (doHimnos ? 4 : 1) + i })
+            })
+            cPointer.id = nextCoros[nextCoros.length - 1].id
+        }
 
         totalAssigned++
-        hPointer.id = nextHimnos[nextHimnos.length - 1].id
         hPointer.date = culto.fecha
-        cPointer.id = nextCoros[nextCoros.length - 1].id
         cPointer.date = culto.fecha
     }
 
     if (cultosToClear.length > 0) {
-        await supabase.from('plan_himnos_coros').delete().in('culto_id', cultosToClear)
-        if (allInserts.length > 0) await supabase.from('plan_himnos_coros').insert(allInserts)
+        let deleteQuery = supabase.from('plan_himnos_coros').delete().in('culto_id', cultosToClear)
+        if (onlyCategory) deleteQuery = deleteQuery.eq('tipo', onlyCategory)
+        await deleteQuery
+    }
+    if (allInserts.length > 0) {
+        await supabase.from('plan_himnos_coros').insert(allInserts)
     }
 
     if (totalAssigned > 0) {

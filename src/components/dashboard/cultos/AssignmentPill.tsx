@@ -29,6 +29,14 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
         ? t('dashboard.himnario.timeEnsenanza')
         : t('dashboard.himnario.timeAlabanza')
 
+    // En Enseñanza: 3 himnos primero (ordenados), luego 3 coros (ordenados)
+    const himnarioOrdenado = himnario && (tipoCulto?.toLowerCase().includes('enseñanza') || tipoCulto?.toLowerCase().includes('ensenanza'))
+        ? [...himnario].sort((a, b) => {
+            if (a.tipo !== b.tipo) return a.tipo === 'himno' ? -1 : 1
+            return (a.orden ?? 0) - (b.orden ?? 0)
+        })
+        : himnario
+
     const hasExtraContent = lectura || (himnario && himnario.length > 0) || !!temaIntroduccionAlabanza
     const hasFooter = footerAction != null
 
@@ -117,7 +125,7 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
                     </div>
 
                     <div className="space-y-2">
-                        {himnario.map((item, idx) => {
+                        {(himnarioOrdenado ?? himnario ?? []).map((item, idx) => {
                             const details = item.tipo === 'himno' ? item.himno : item.coro
                             if (!details) return null
                             return (
