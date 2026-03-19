@@ -21,8 +21,6 @@ import type { TranslationKey } from '@/lib/i18n/types'
 import { Culto, Profile } from '@/types/database'
 import { getUserAssignments } from './cultos/actions'
 import { toast } from 'sonner'
-import { useEffect } from 'react'
-import { NotificationPrompt } from '@/components/NotificationPrompt'
 import { isSonidoUser } from '@/lib/utils/isSonido'
 import CultoNavigator from '@/components/CultoNavigator'
 import { UserAvatar } from '@/components/dashboard/cultos/UserAvatar'
@@ -279,8 +277,6 @@ export default function DashboardClient({ user, culto, esHoy, lecturaData, estud
                 <QuickActionLink href="/dashboard/festivos" icon={<MapPin className="text-amber-500" />} title={t('dashboard.festivos')} />
                 <QuickActionLink href="/dashboard/hermanos" icon={<Users className="text-emerald-500" />} title={t('dashboard.hermanos')} />
             </div>
-
-            <NotificationPrompt />
 
             {instruccionesModal && (
                 <InstruccionesCultoModal

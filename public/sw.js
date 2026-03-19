@@ -58,7 +58,10 @@ self.addEventListener('install', (event) => {
                     )
                 );
             })
-            .then(() => self.skipWaiting())
+            .then(() => {
+                // No llamar skipWaiting() aquí: dejamos que el usuario decida con el toast "Actualizar ahora"
+                // Si se llama aquí, la página recarga automáticamente y el toast desaparece al instante
+            })
     );
 });
 

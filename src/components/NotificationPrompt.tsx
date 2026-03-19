@@ -95,6 +95,10 @@ export function NotificationPrompt() {
             const permission = await Notification.requestPermission()
             if (permission !== 'granted') {
                 setShow(false)
+                prompts?.setActivePrompt(null)
+                if (permission === 'denied') {
+                    toast.info(t('notifications.status.denied'))
+                }
                 return
             }
 
@@ -160,7 +164,7 @@ export function NotificationPrompt() {
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                 className="fixed bottom-4 left-3 right-3 z-50 md:left-auto md:right-6 md:w-[380px]"
             >
-                <div className={`glass rounded-3xl p-6 shadow-2xl border ${isDark ? 'border-white/10' : 'border-black/5'} flex flex-col gap-4 relative overflow-hidden`}>
+                <div className={`glass-panel rounded-3xl p-6 shadow-2xl border flex flex-col gap-4 relative overflow-hidden ${isDark ? 'border-white/10' : 'border-black/5'}`}>
                     <div className="absolute top-0 right-0 p-2">
                         <button onClick={handleDismiss} className="text-muted-foreground hover:text-foreground transition-colors p-1">
                             <X size={16} />

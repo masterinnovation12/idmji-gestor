@@ -45,6 +45,7 @@ import { useTheme } from '@/lib/theme/ThemeProvider'
 import type { TranslationKey, Language } from '@/lib/i18n/types'
 import NextImage from 'next/image'
 import { LogoModal } from '@/components/LogoModal'
+import { NotificationPrompt } from '@/components/NotificationPrompt'
 import { isSonidoUser } from '@/lib/utils/isSonido'
 
 export default function DashboardLayout({
@@ -435,6 +436,9 @@ export default function DashboardLayout({
 
             {/* Logo Modal */}
             <LogoModal isOpen={isLogoModalOpen} onClose={() => setIsLogoModalOpen(false)} />
+
+            {/* Notification prompt: solo tras iniciar sesión (layout dashboard) */}
+            <NotificationPrompt />
         </div>
     )
 }

@@ -181,36 +181,10 @@ export function PushNotificationToggle() {
 
         try {
             const result = await sendTestNotification()
-            const title = t('notifications.test.title')
-            const body = t('notifications.test.body')
 
             if (result.success) {
                 toast.success('Notificación de prueba enviada')
-                // Mostrar notificación: 1) vía SW (más fiable), 2) fallback Notification API
-                let shown = false
-                try {
-                    const reg = await navigator.serviceWorker.ready
-                    if (reg.active) {
-                        reg.active.postMessage({
-                            type: 'SHOW_NOTIFICATION',
-                            payload: { title, body, url: '/dashboard' }
-                        })
-                        shown = true
-                    }
-                } catch (e) {
-                    console.warn('[Push] SW showNotification:', e)
-                }
-                if (!shown && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                    try {
-                        new Notification(title, { body, icon: '/icons/icon-192x192.png', tag: 'idmji-test' })
-                        shown = true
-                    } catch (e) {
-                        console.warn('[Push] Notification API:', e)
-                    }
-                }
-                if (!shown) {
-                    toast.info('Revisa el centro de notificaciones del sistema (esquina de la pantalla)', { duration: 5000 })
-                }
+                // Solo el push del servidor muestra la notificación (evitar duplicado con SHOW_NOTIFICATION)
             } else {
                 toast.error(result.error || 'Error al enviar notificación')
             }
