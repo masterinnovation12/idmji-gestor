@@ -11,7 +11,7 @@
  * - Stale-while-revalidate: Para recursos que cambian ocasionalmente
  */
 
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const STATIC_CACHE = `idmji-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `idmji-dynamic-${CACHE_VERSION}`;
 
@@ -278,6 +278,21 @@ self.addEventListener('message', (event) => {
             caches.keys().then((names) =>
                 Promise.all(names.map((name) => caches.delete(name)))
             )
+        );
+    }
+
+    // Mostrar notificación de prueba desde el cliente (más fiable que Notification en main thread)
+    if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+        const { title, body, url } = event.data.payload || {};
+        event.waitUntil(
+            self.registration.showNotification(title || 'IDMJI Sabadell', {
+                body: body || 'Notificación de prueba',
+                icon: '/icons/icon-192x192.png',
+                badge: '/icons/icon-192x192.png',
+                tag: 'idmji-test',
+                data: { url: url || '/dashboard' },
+                requireInteraction: false
+            }).catch(err => console.error('[SW] SHOW_NOTIFICATION failed:', err))
         );
     }
 });
