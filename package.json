@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "ngrok": "ngrok http 3000",
     "gh": "./.tools/gh-cli/bin/gh.exe"
   },
   "dependencies": {
@@ -51,6 +52,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.7",
     "happy-dom": "^20.8.4",
+    "ngrok": "^5.0.0-beta.2",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5",

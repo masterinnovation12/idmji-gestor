@@ -109,7 +109,7 @@ npm run test -- src/app/actions/notifications.test.ts
 
 **Nota**: Chrome en localhost puede mostrar "push service not available". Es una limitación del navegador. Alternativas:
 - Probar en **producción** (HTTPS)
-- Usar **ngrok** para exponer localhost con HTTPS: `ngrok http 3000`
+- Usar **ngrok**: `npm run ngrok` (requiere cuenta gratis y NGROK_AUTHTOKEN). Ver `docs/PRUEBAS_PUSH_LOCAL.md`
 
 ### E. Chrome DevTools – simular push
 
