@@ -184,6 +184,19 @@ export function PushNotificationToggle() {
 
             if (result.success) {
                 toast.success('Notificación de prueba enviada')
+                // Mostrar notificación directamente en este dispositivo (el push puede tardar o ir a otra pestaña)
+                if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                    try {
+                        new Notification(t('notifications.test.title'), {
+                            body: t('notifications.test.body'),
+                            icon: '/icons/icon-192x192.png',
+                            tag: 'idmji-test',
+                            requireInteraction: false
+                        })
+                    } catch (e) {
+                        console.warn('No se pudo mostrar notificación local:', e)
+                    }
+                }
             } else {
                 toast.error(result.error || 'Error al enviar notificación')
             }

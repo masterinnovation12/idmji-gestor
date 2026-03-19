@@ -207,11 +207,15 @@ async function staleWhileRevalidate(request) {
 
 // ============ PUSH NOTIFICATIONS ============
 self.addEventListener('push', (event) => {
-    let data = { title: 'IDMJI Sabadell', body: 'Nueva notificación' };
+    let data = { title: 'IDMJI Sabadell', body: 'Nueva notificación', url: '/dashboard' };
 
     try {
         if (event.data) {
-            data = event.data.json();
+            if (typeof event.data.json === 'function') {
+                data = event.data.json();
+            } else if (typeof event.data.text === 'function') {
+                data = JSON.parse(event.data.text());
+            }
         }
     } catch (e) {
         console.warn('[SW] Error parsing push data:', e);
@@ -222,6 +226,7 @@ self.addEventListener('push', (event) => {
         icon: '/icons/icon-192x192.png',
         badge: '/icons/icon-192x192.png',
         vibrate: [100, 50, 100],
+        tag: 'idmji-push',
         data: {
             url: data.url || '/dashboard',
             dateOfArrival: Date.now()
@@ -230,11 +235,12 @@ self.addEventListener('push', (event) => {
             { action: 'open', title: 'Ver' },
             { action: 'close', title: 'Cerrar' }
         ],
-        requireInteraction: true
+        requireInteraction: false
     };
 
     event.waitUntil(
         self.registration.showNotification(data.title || 'IDMJI Sabadell', options)
+            .catch(err => console.error('[SW] showNotification failed:', err))
     );
 });
 
