@@ -133,7 +133,11 @@ export function NotificationPrompt() {
             }
         } catch (error) {
             console.error('Error enabling notifications:', error)
-            toast.error('No se pudieron activar las notificaciones')
+            const msg = error instanceof Error ? error.message : String(error)
+            const isPushServiceUnavailable = /push service not available|push service unavailable/i.test(msg)
+            toast.error(isPushServiceUnavailable
+                ? t('notifications.error.pushServiceUnavailable')
+                : 'No se pudieron activar las notificaciones')
         } finally {
             setIsLoading(false)
         }

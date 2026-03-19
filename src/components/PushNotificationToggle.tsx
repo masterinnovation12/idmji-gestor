@@ -138,8 +138,13 @@ export function PushNotificationToggle() {
             }
         } catch (error: unknown) {
             console.error('Error subscribing:', error)
-            const errorMsg = error instanceof Error ? error.message : 'Error desconocido'
-            setErrorMessage(`Error al activar: ${errorMsg}`)
+            const errorMsg = error instanceof Error ? error.message : String(error)
+            const isPushServiceUnavailable = /push service not available|push service unavailable/i.test(errorMsg)
+            if (isPushServiceUnavailable) {
+                setErrorMessage(t('notifications.error.pushServiceUnavailable'))
+            } else {
+                setErrorMessage(`Error al activar: ${errorMsg}`)
+            }
             setStatus('error')
         } finally {
             setIsLoading(false)

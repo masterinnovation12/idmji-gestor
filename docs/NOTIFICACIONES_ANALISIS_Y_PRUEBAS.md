@@ -22,7 +22,7 @@
 | **Web (Firefox)** | ✅ | Soporta Web Push. |
 | **Android (Chrome PWA)** | ✅ | PWA instalada o en navegador. |
 | **Android (Firefox)** | ✅ | Soporta Web Push. |
-| **iOS (Safari)** | ⚠️ Limitado | Solo en PWA instalada (Add to Home Screen), iOS 16.4+. No en Safari en navegador. |
+| **iOS (Safari)** | ⚠️ Limitado | Solo en PWA instalada (Add to Home Screen), iOS 16.4+. No en Safari en navegador. Ver `docs/IOS_PWA_Y_WEB_PUSH_ANALISIS.md`. |
 | **iOS (Chrome)** | ❌ | Chrome en iOS usa WebKit; no soporta push. |
 
 ### Flujo técnico
@@ -106,6 +106,10 @@ npm run test -- src/app/actions/notifications.test.ts
 1. Añadir a `.env.local`: `NEXT_PUBLIC_ENABLE_PUSH_DEV=true`
 2. Reiniciar `npm run dev`
 3. Ir a Perfil → Notificaciones → Activar → Enviar prueba
+
+**Nota**: Chrome en localhost puede mostrar "push service not available". Es una limitación del navegador. Alternativas:
+- Probar en **producción** (HTTPS)
+- Usar **ngrok** para exponer localhost con HTTPS: `ngrok http 3000`
 
 ### E. Chrome DevTools – simular push
 

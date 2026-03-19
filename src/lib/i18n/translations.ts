@@ -564,7 +564,7 @@ export const translations = {
         'pwa.share': 'Compartir',
         'pwa.inSafari': 'en la barra de navegación',
         'pwa.iosStep2': 'Selecciona',
-        'pwa.addToHome': 'Añadir a Inicio',
+        'pwa.addToHome': 'Añadir a pantalla de inicio',
         'pwa.iosStep3': 'Pulsa',
         'pwa.add': 'Añadir',
         'pwa.understood': 'Entendido',
@@ -595,6 +595,7 @@ export const translations = {
         'notifications.error.denied': 'Permiso de notificaciones denegado',
         'notifications.error.noPermission': 'No se otorgó el permiso de notificaciones',
         'notifications.error.db': 'La base de datos no está configurada para notificaciones',
+        'notifications.error.pushServiceUnavailable': 'El servicio push no está disponible en localhost. Prueba en producción (HTTPS) o usa ngrok para exponer tu servidor local.',
     },
     'ca-ES': {
         // Login
@@ -1162,7 +1163,7 @@ export const translations = {
         'pwa.share': 'Compartir',
         'pwa.inSafari': 'a la barra de navegació',
         'pwa.iosStep2': 'Selecciona',
-        'pwa.addToHome': 'Afegir a l\'Inici',
+        'pwa.addToHome': 'Afegir a la pantalla d\'inici',
         'pwa.iosStep3': 'Prem',
         'pwa.add': 'Afegir',
         'pwa.understood': 'Entès',
@@ -1193,5 +1194,6 @@ export const translations = {
         'notifications.error.denied': 'Permís de notificacions denegat',
         'notifications.error.noPermission': 'No s\'ha concedit el permís de notificacions',
         'notifications.error.db': 'La base de dades no està configurada per a notificacions',
+        'notifications.error.pushServiceUnavailable': 'El servei push no està disponible a localhost. Prova en producció (HTTPS) o usa ngrok per exposar el teu servidor local.',
     },
 } as const
