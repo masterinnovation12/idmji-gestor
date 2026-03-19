@@ -167,7 +167,7 @@ export default function DashboardLayout({
     const sidebarItems = useMemo(() => [
         { icon: LayoutDashboard, label: t('nav.dashboard'), href: '/dashboard' },
         { icon: Calendar, label: t('nav.cultos'), href: '/dashboard/cultos' },
-        { icon: BookOpen, label: t('nav.lecturas'), href: '/dashboard/lecturas' },
+        { icon: BookOpen, label: t('nav.historial'), href: '/dashboard/historial/lecturas' },
         { icon: Music, label: t('nav.himnario'), href: '/dashboard/himnario' },
         { icon: Users, label: t('nav.hermanos'), href: '/dashboard/hermanos' },
         { icon: FileSpreadsheet, label: t('nav.archivos'), href: '/dashboard/archivos' },
