@@ -167,7 +167,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 pb-12 px-4 no-scrollbar">
+        <div className="max-w-5xl mx-auto space-y-8 pb-28 sm:pb-12 px-4 no-scrollbar">
             {/* Header con Animación */}
             <div className="space-y-2">
                 <motion.div

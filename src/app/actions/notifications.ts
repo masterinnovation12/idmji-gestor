@@ -50,14 +50,20 @@ export async function subscribeToPush(subscription: PushSubscription): Promise<A
                 p256dh: subscription.keys.p256dh,
                 auth: subscription.keys.auth,
                 updated_at: new Date().toISOString()
-            })
+            }, { onConflict: 'endpoint' })
 
         if (error) throw error
 
         return { success: true }
     } catch (error) {
         console.error('Error subscribing to push:', error)
-        return { success: false, error: 'Error al suscribirse' }
+        const msg = error instanceof Error ? error.message : String(error)
+        const isTableMissing = /42P01|does not exist|relation.*user_subscriptions/i.test(msg)
+        const isAuthError = msg.includes('No autenticado') || msg.includes('JWT')
+        let errorMsg = 'Error al suscribirse'
+        if (isTableMissing) errorMsg = 'La tabla de suscripciones no existe. Ejecuta la migración en Supabase SQL Editor.'
+        else if (isAuthError) errorMsg = 'Sesión expirada. Recarga la página e intenta de nuevo.'
+        return { success: false, error: errorMsg }
     }
 }
 

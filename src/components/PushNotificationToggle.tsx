@@ -21,10 +21,15 @@ type NotificationStatus = 'checking' | 'unsupported' | 'denied' | 'inactive' | '
 
 export function PushNotificationToggle() {
     const { t } = useI18n()
+    const [mounted, setMounted] = useState(false)
     const [status, setStatus] = useState<NotificationStatus>('checking')
     const [isLoading, setIsLoading] = useState(false)
     const [subscription, setSubscription] = useState<PushSubscription | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     // Check subscription status on mount
     const checkSubscription = useCallback(async () => {
@@ -61,8 +66,8 @@ export function PushNotificationToggle() {
     }, [t])
 
     useEffect(() => {
-        checkSubscription()
-    }, [checkSubscription])
+        if (mounted) checkSubscription()
+    }, [mounted, checkSubscription])
 
     async function handleSubscribe() {
         setIsLoading(true)
@@ -302,6 +307,17 @@ export function PushNotificationToggle() {
                     </div>
                 )
         }
+    }
+
+    if (!mounted) {
+        return (
+            <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700">
+                <div className="flex items-center gap-3 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-sm">{t('notifications.status.checking')}</span>
+                </div>
+            </div>
+        )
     }
 
     return (
