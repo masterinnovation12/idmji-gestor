@@ -7,13 +7,15 @@ import { RefreshCw } from 'lucide-react'
 export function PWARegister() {
     useEffect(() => {
         // No registrar Service Worker en desarrollo (localhost)
+        // Excepción: NEXT_PUBLIC_ENABLE_PUSH_DEV=true permite probar notificaciones push en local
+        const enablePushInDev = process.env.NEXT_PUBLIC_ENABLE_PUSH_DEV === 'true'
         const isDevelopment = 
             typeof window !== 'undefined' && 
             (window.location.hostname === 'localhost' || 
              window.location.hostname === '127.0.0.1' ||
              process.env.NODE_ENV === 'development')
         
-        if (isDevelopment) {
+        if (isDevelopment && !enablePushInDev) {
             // En desarrollo, desregistrar cualquier SW existente y limpiar caché
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then((registrations) => {
