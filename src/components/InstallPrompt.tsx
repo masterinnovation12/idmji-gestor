@@ -104,16 +104,18 @@ export function InstallPrompt() {
     useEffect(() => {
         if (!shouldShowPrompt()) return
 
+        let isMounted = true
+
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault()
-            setDeferredPrompt(e as BeforeInstallPromptEvent)
+            if (isMounted) setDeferredPrompt(e as BeforeInstallPromptEvent)
 
             // Marcar como mostrado en esta sesión
             sessionStorage.setItem(SESSION_SHOWN_KEY, 'true')
 
             // Esperar un poco antes de mostrar para no interrumpir la carga inicial
             setTimeout(() => {
-                if (prompts?.activePrompt === null) {
+                if (isMounted && prompts?.activePrompt === null) {
                     prompts.setActivePrompt('install')
                     setShowPrompt(true)
                 }
@@ -126,7 +128,7 @@ export function InstallPrompt() {
         if (platform?.name === 'ios') {
             const timer = setTimeout(() => {
                 // Solo mostrar si no se ha mostrado en esta sesión
-                if (!sessionStorage.getItem(SESSION_SHOWN_KEY) && prompts?.activePrompt === null) {
+                if (isMounted && !sessionStorage.getItem(SESSION_SHOWN_KEY) && prompts?.activePrompt === null) {
                     sessionStorage.setItem(SESSION_SHOWN_KEY, 'true')
                     prompts?.setActivePrompt('install')
                     setShowPrompt(true)
@@ -134,23 +136,31 @@ export function InstallPrompt() {
             }, 4000) // 4 segundos para iOS
 
             return () => {
+                isMounted = false
                 clearTimeout(timer)
                 window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
             }
         }
 
-        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+        return () => {
+            isMounted = false
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+        }
     }, [platform, shouldShowPrompt, prompts?.activePrompt])
 
     // Detectar si se instaló la app
     useEffect(() => {
+        let isMounted = true
         const handleAppInstalled = () => {
             localStorage.setItem(PROMPT_INSTALLED_KEY, 'true')
-            setShowPrompt(false)
+            if (isMounted) setShowPrompt(false)
         }
 
         window.addEventListener('appinstalled', handleAppInstalled)
-        return () => window.removeEventListener('appinstalled', handleAppInstalled)
+        return () => {
+            isMounted = false
+            window.removeEventListener('appinstalled', handleAppInstalled)
+        }
     }, [])
 
     const handleInstall = async () => {

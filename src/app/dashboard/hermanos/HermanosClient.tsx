@@ -20,7 +20,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Search, Users, ShieldCheck, Mail, Sparkles, Award, CheckCircle2, XCircle, X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import BackButton from '@/components/BackButton'
-import { Profile } from '@/types/database'
+import { Profile, UserRole } from '@/types/database'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent } from '@/components/ui/Dialog'
@@ -95,11 +95,45 @@ function HermanoAvatar({ hermano, size = "md" }: { hermano: Profile, size?: "sm"
     )
 }
 
+const ROLE_FILTERS: readonly ('ALL' | UserRole)[] = ['ALL', 'ADMIN', 'EDITOR', 'USER', 'SONIDO'] as const
+type FilterRole = (typeof ROLE_FILTERS)[number]
+
+function getRoleLabelKey(role: string): string {
+    const map: Record<string, string> = {
+        ALL: 'hermanos.filterAll',
+        ADMIN: 'hermanos.filterAdmin',
+        EDITOR: 'hermanos.filterEditor',
+        USER: 'hermanos.filterUser',
+        SONIDO: 'hermanos.filterSonido',
+    }
+    return map[role] || role
+}
+
+function getRoleStyles(rol: UserRole): { bg: string; border: string; text: string } {
+    switch (rol) {
+        case 'ADMIN': return { bg: 'bg-red-500/10', border: 'border-red-500/20', text: 'text-red-500' }
+        case 'EDITOR': return { bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-500' }
+        case 'USER': return { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-500' }
+        case 'SONIDO': return { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-500' }
+        default: return { bg: 'bg-primary/10', border: 'border-primary/20', text: 'text-primary' }
+    }
+}
+
+function getRoleGlowColor(rol: UserRole): string {
+    switch (rol) {
+        case 'ADMIN': return 'bg-red-500'
+        case 'EDITOR': return 'bg-blue-500'
+        case 'USER': return 'bg-emerald-500'
+        case 'SONIDO': return 'bg-amber-500'
+        default: return 'bg-primary'
+    }
+}
+
 export default function HermanosClient({ initialHermanos, stats }: HermanosClientProps) {
     const { t } = useI18n()
     const [hermanos, setHermanos] = useState<Profile[]>(initialHermanos)
     const [searchTerm, setSearchTerm] = useState('')
-    const [filterRole, setFilterRole] = useState<'ALL' | 'ADMIN' | 'EDITOR' | 'VIEWER'>('ALL')
+    const [filterRole, setFilterRole] = useState<FilterRole>('ALL')
     const [selectedHermano, setSelectedHermano] = useState<Profile | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -216,10 +250,10 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                     </h2>
 
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar w-full sm:w-auto -mx-2 sm:mx-0 px-2 sm:px-0">
-                        {['ALL', 'ADMIN', 'EDITOR'].map((role) => (
+                        {ROLE_FILTERS.map((role) => (
                             <button
                                 key={role}
-                                onClick={() => setFilterRole(role as 'ALL' | 'ADMIN' | 'EDITOR')}
+                                onClick={() => setFilterRole(role)}
                                 className={cn(
                                     "px-5 py-3 sm:px-4 sm:py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 whitespace-nowrap min-w-[80px] sm:min-w-0 flex items-center justify-center",
                                     filterRole === role
@@ -227,7 +261,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                         : "bg-white/60 dark:bg-white/5 border-zinc-300 dark:border-white/10 text-zinc-700 dark:text-muted-foreground hover:bg-white/80 dark:hover:bg-white/10 backdrop-blur-md"
                                 )}
                             >
-                                {role === 'ALL' ? t('hermanos.filterAll') : role}
+                                <span suppressHydrationWarning>{t(getRoleLabelKey(role))}</span>
                             </button>
                         ))}
                     </div>
@@ -271,7 +305,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                     {/* Fondo de tarjeta con hover glow */}
                                     <div className={cn(
                                         "absolute inset-0 rounded-4xl blur-xl transition-all opacity-0 group-hover:opacity-10",
-                                        hermano.rol === 'ADMIN' ? 'bg-red-500' : 'bg-primary'
+                                        getRoleGlowColor(hermano.rol)
                                     )} />
 
                                     <div className="relative h-full glass border border-white/10 rounded-4xl p-5 hover:bg-white/5 dark:hover:bg-muted/30 transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 flex flex-col items-center text-center overflow-hidden">
@@ -296,11 +330,11 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                             <div className="pt-2 flex flex-wrap justify-center gap-1">
                                                 <span className={cn(
                                                     "px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-full border shadow-sm",
-                                                    hermano.rol === 'ADMIN'
-                                                        ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                                                        : 'bg-primary/10 text-primary border-primary/20'
+                                                    getRoleStyles(hermano.rol).bg,
+                                                    getRoleStyles(hermano.rol).text,
+                                                    getRoleStyles(hermano.rol).border
                                                 )}>
-                                                    {hermano.rol}
+                                                    <span suppressHydrationWarning>{t(getRoleLabelKey(hermano.rol))}</span>
                                                 </span>
 
                                                 {hermano.pulpito && (
@@ -327,7 +361,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                             {/* Glow de fondo */}
                             <div className={cn(
                                 "absolute -top-24 -right-24 w-64 h-64 blur-[100px] opacity-20 rounded-full",
-                                selectedHermano.rol === 'ADMIN' ? 'bg-red-500' : 'bg-primary'
+                                getRoleGlowColor(selectedHermano.rol)
                             )} />
 
                             <button
@@ -350,11 +384,11 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                     <div className="flex items-center justify-center gap-2 pt-2">
                                         <span className={cn(
                                             "px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border shadow-sm",
-                                            selectedHermano.rol === 'ADMIN'
-                                                ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                                                : 'bg-primary/10 text-primary border-primary/20'
+                                            getRoleStyles(selectedHermano.rol).bg,
+                                            getRoleStyles(selectedHermano.rol).text,
+                                            getRoleStyles(selectedHermano.rol).border
                                         )}>
-                                            {selectedHermano.rol}
+                                            <span suppressHydrationWarning>{t(getRoleLabelKey(selectedHermano.rol))}</span>
                                         </span>
                                         {selectedHermano.pulpito && (
                                             <div className="flex items-center gap-1.5 px-4 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase tracking-widest">

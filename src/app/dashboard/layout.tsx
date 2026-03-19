@@ -100,9 +100,12 @@ export default function DashboardLayout({
     // Fetch user profile on mount & Subscribe to Realtime changes
     useEffect(() => {
         let channel: ReturnType<typeof supabase.channel> | null = null
+        let isMounted = true
 
         async function fetchAndSubscribe() {
             const { data: { user } } = await supabase.auth.getUser()
+
+            if (!isMounted) return
 
             if (user) {
                 // 1. Initial Fetch
@@ -113,7 +116,7 @@ export default function DashboardLayout({
                         .eq('id', user.id)
                         .single()
 
-                    if (profile) {
+                    if (profile && isMounted) {
                         setUserProfile({
                             nombre: profile.nombre || null,
                             apellidos: profile.apellidos || null,
@@ -125,6 +128,8 @@ export default function DashboardLayout({
                 }
 
                 await fetchProfile()
+
+                if (!isMounted) return
 
                 // 2. Realtime Subscription
                 channel = supabase
@@ -138,6 +143,7 @@ export default function DashboardLayout({
                             filter: `id=eq.${user.id}`
                         },
                         (payload) => {
+                            if (!isMounted) return
                             console.log('Profile updated realtime:', payload)
                             const newData = payload.new as { nombre?: string, apellidos?: string, avatar_url?: string, rol?: string }
                             setUserProfile(prev => ({
@@ -157,6 +163,7 @@ export default function DashboardLayout({
         fetchAndSubscribe()
 
         return () => {
+            isMounted = false
             if (channel) supabase.removeChannel(channel)
         }
     }, [supabase])

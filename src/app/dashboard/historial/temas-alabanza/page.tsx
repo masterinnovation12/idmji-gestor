@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { getAllTemasAlabanza } from './actions'
 import TemasAlabanzaClient from './TemasAlabanzaClient'
 import { unstable_noStore as noStore } from 'next/cache'
@@ -26,10 +27,12 @@ export default async function TemasAlabanzaPage({ searchParams }: Props) {
     })
 
     return (
-        <TemasAlabanzaClient
-            initialData={data || []}
-            initialTotalPages={totalPages || 1}
-            initialPage={page}
-        />
+        <Suspense fallback={<div className="p-8 animate-pulse bg-muted/30 rounded-xl" />}>
+            <TemasAlabanzaClient
+                initialData={data || []}
+                initialTotalPages={totalPages || 1}
+                initialPage={page}
+            />
+        </Suspense>
     )
 }

@@ -151,6 +151,7 @@ export default function LecturasPageClient({
     const [lecturaToDelete, setLecturaToDelete] = useState<LecturaExt | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [showExportDropdown, setShowExportDropdown] = useState(false)
+    const [showSuggestions, setShowSuggestions] = useState(true)
     const [mounted, setMounted] = useState(false)
     const filtersPanelRef = useRef<HTMLDivElement>(null)
 
@@ -660,12 +661,29 @@ export default function LecturasPageClient({
         }
     }, [showFilters, mounted])
 
+    // Cerrar dropdown de autocompletado al hacer scroll (evita solapamiento en móvil)
+    useEffect(() => {
+        if (!mounted) return
+
+        const handleScroll = () => {
+            setShowSuggestions(false)
+        }
+
+        window.addEventListener('scroll', handleScroll, { passive: true })
+        return () => window.removeEventListener('scroll', handleScroll)
+    }, [mounted])
+
+    // Mostrar sugerencias cuando hay término y resultados
+    useEffect(() => {
+        if (libroSuggestions.length > 0) setShowSuggestions(true)
+    }, [libroSuggestions.length])
+
     return (
         <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pb-8 sm:pb-12">
             <div suppressHydrationWarning className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 space-y-4 sm:space-y-6 lg:space-y-8 pt-4 sm:pt-6">
 
-                {/* Header Responsive */}
-                <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+                {/* Header + Búsqueda sticky en móvil: evita solapamiento al hacer scroll */}
+                <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border/50 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-4 md:space-y-0">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center gap-3">
                             <BackButton fallbackUrl="/dashboard" />
@@ -775,12 +793,9 @@ export default function LecturasPageClient({
                             </Button>
                         </div>
                     </div>
-                </div>
 
-                {/* Búsqueda y Filtros Rápidos - Responsive */}
-                <div className="space-y-3 sm:space-y-4">
-                    {/* Búsqueda Principal */}
-                    <div className="relative group">
+                    {/* Búsqueda dentro del sticky: evita solapamiento con resultados al hacer scroll en móvil */}
+                    <div className="relative group" data-testid="lecturas-search-wrap">
                         <div className="absolute inset-0 bg-blue-500/10 blur-lg rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         <div className="relative flex items-center bg-card border border-border/50 shadow-lg rounded-xl sm:rounded-2xl h-11 sm:h-12 md:h-14 focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary/50 transition-all overflow-hidden">
                             <SearchIcon className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground ml-3 sm:ml-4 shrink-0 group-focus-within:text-primary transition-colors" />
@@ -790,6 +805,7 @@ export default function LecturasPageClient({
                                 className="w-full bg-transparent border-none outline-none px-3 sm:px-4 text-sm sm:text-base font-medium placeholder:text-muted-foreground/60 h-full text-foreground"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
+                                onFocus={() => libroSuggestions.length > 0 && setShowSuggestions(true)}
                                 aria-label="Buscar lecturas"
                                 suppressHydrationWarning
                             />
@@ -804,25 +820,36 @@ export default function LecturasPageClient({
                             )}
                         </div>
 
-                        {/* Autocompletado */}
-                        {libroSuggestions.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-2xl z-[9999] max-h-60 overflow-y-auto">
+                        {/* Autocompletado: fondo opaco para que sea visible, se cierra al scroll */}
+                        {libroSuggestions.length > 0 && showSuggestions && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-900 border border-border rounded-xl shadow-2xl z-[60] max-h-60 overflow-y-auto ring-1 ring-black/5 dark:ring-white/10">
                                 {libroSuggestions.map((libro, idx) => (
                                     <button
                                         key={idx}
+                                        type="button"
                                         onClick={() => {
                                             setSearchTerm(libro.nombre)
+                                            setShowSuggestions(false)
                                         }}
-                                        className="w-full px-4 py-2 text-left hover:bg-muted flex items-center gap-2 text-sm"
+                                        className="w-full px-4 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2 text-sm text-foreground transition-colors"
                                     >
-                                        <BookOpen className="w-4 h-4" />
-                                        <span>{libro.nombre}</span>
+                                        <BookOpen className="w-4 h-4 shrink-0 text-primary" />
+                                        <span className="font-medium">{libro.nombre}</span>
                                         <span className="text-muted-foreground text-xs">({libro.abreviatura})</span>
                                     </button>
                                 ))}
                             </div>
                         )}
                     </div>
+
+                    {/* Espaciador cuando dropdown visible: evita que "Todas" solape el autocompletado */}
+                    {libroSuggestions.length > 0 && showSuggestions && (
+                        <div className="min-h-[14rem] md:min-h-0" aria-hidden />
+                    )}
+                </div>
+
+                {/* Filtros Rápidos - fuera del sticky para que hagan scroll */}
+                <div className="space-y-3 sm:space-y-4">
 
                     {/* Filtros Rápidos - Responsive Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3">

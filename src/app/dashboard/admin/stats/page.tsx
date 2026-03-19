@@ -1,4 +1,9 @@
-import { getParticipationStats } from './actions'
+import {
+    getParticipationStats,
+    getStatsSummary,
+    getBibleReadingStats,
+    getCultoTypes
+} from './actions'
 import StatsClient from './StatsClient'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -24,11 +29,20 @@ export default async function AdminStatsPage() {
     if (profile?.rol !== 'ADMIN') redirect('/dashboard')
 
     const currentYear = new Date().getFullYear()
-    const result = await getParticipationStats(currentYear)
+
+    const [statsRes, summaryRes, bibleRes, typesRes] = await Promise.all([
+        getParticipationStats(currentYear),
+        getStatsSummary(currentYear),
+        getBibleReadingStats(currentYear),
+        getCultoTypes()
+    ])
 
     return (
         <StatsClient
-            initialStats={result.data || []}
+            initialStats={statsRes.data || []}
+            initialSummary={summaryRes.data ?? { totalCultos: 0, totalParticipaciones: 0, hermanosActivos: 0 }}
+            initialBibleStats={bibleRes.data ?? { topReadings: [], readingsByType: [], totalLecturas: 0 }}
+            cultoTypes={typesRes.data || []}
             currentYear={currentYear}
         />
     )

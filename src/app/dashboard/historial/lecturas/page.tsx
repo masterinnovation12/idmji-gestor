@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { getAllLecturas } from '@/app/dashboard/lecturas/actions'
 import LecturasPageClient from '@/app/dashboard/lecturas/LecturasPageClient'
 import { unstable_noStore as noStore } from 'next/cache'
@@ -36,10 +37,12 @@ export default async function HistorialLecturasPage({ searchParams }: Props) {
     })
 
     return (
-        <LecturasPageClient
-            initialLecturas={lecturas || []}
-            initialTotalPages={totalPages || 1}
-            initialPage={page}
-        />
+        <Suspense fallback={<div className="p-8 animate-pulse bg-muted/30 rounded-xl" />}>
+            <LecturasPageClient
+                initialLecturas={lecturas || []}
+                initialTotalPages={totalPages || 1}
+                initialPage={page}
+            />
+        </Suspense>
     )
 }
