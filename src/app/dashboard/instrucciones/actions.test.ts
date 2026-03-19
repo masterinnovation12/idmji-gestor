@@ -32,6 +32,7 @@ describe('getInstruccionCulto', () => {
         titulo_ca: 'Intro Alabança',
         contenido_es: 'Texto ES',
         contenido_ca: 'Text CA',
+        publicado: true,
       },
       error: null,
     })
@@ -49,6 +50,7 @@ describe('getInstruccionCulto', () => {
         titulo_ca: 'Intro Alabança',
         contenido_es: 'Texto ES',
         contenido_ca: 'Text CA',
+        publicado: true,
       },
       error: null,
     })

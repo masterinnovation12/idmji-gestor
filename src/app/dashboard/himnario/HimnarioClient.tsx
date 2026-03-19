@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { motion, AnimatePresence, useMotionValue, useDragControls } from 'framer-motion'
+import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { getHimnos, getCoros } from './actions'
 import { Music, Search, Clock, Sparkles, AudioLines, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -361,6 +361,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsCalcModalOpen(true)}
                 className="lg:hidden fixed bottom-6 right-6 w-16 h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-2xl shadow-blue-500/40 flex items-center justify-center z-50 border-2 border-white/30"
+                data-testid="calculator-fab"
             >
                 <div className="relative">
                     <Clock className="w-7 h-7" />
@@ -368,16 +369,18 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 </div>
             </motion.button>
 
-            {/* Mobile Calculator Modal */}
+            {/* Mobile Calculator Modal - Bottom sheet fluido tipo TikTok/YouTube */}
             <AnimatePresence>
                 {isCalcModalOpen && (
-                    <div className="fixed inset-0 z-110 lg:hidden flex items-end justify-center">
+                    <div className="fixed inset-0 z-[110] lg:hidden flex items-end justify-center">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
                             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                             onClick={() => setIsCalcModalOpen(false)}
+                            data-testid="calculator-modal-overlay"
                         />
                         <CalculatorModal
                             onClose={() => setIsCalcModalOpen(false)}
@@ -396,9 +399,29 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
     )
 }
 
+const DRAG_THRESHOLD_PX = 8 // Si el dedo se mueve más de esto = gesto de arrastre, no toque
+
 function CalculatorModal({ children, onClose }: { children: React.ReactNode, onClose: () => void }) {
-    const y = useMotionValue(0)
     const controls = useDragControls()
+    const contentScrollRef = useRef<HTMLDivElement>(null)
+    const didDragRef = useRef(false)
+
+    // Swipe-to-close: si scrollTop=0 y usuario arrastra, cerramos. Si solo toca, no interferir.
+    const handleContentPointerDown = (e: React.PointerEvent) => {
+        didDragRef.current = false
+        const el = contentScrollRef.current
+        if (el && el.scrollTop <= 2) {
+            controls.start(e)
+        }
+    }
+
+    // Si hubo arrastre, bloquear el click para que no active botones (Limpiar todo, Guardar lista, etc.)
+    const handleContentClickCapture = (e: React.MouseEvent) => {
+        if (didDragRef.current) {
+            e.preventDefault()
+            e.stopPropagation()
+        }
+    }
 
     return (
         <motion.div
@@ -406,51 +429,61 @@ function CalculatorModal({ children, onClose }: { children: React.ReactNode, onC
             dragControls={controls}
             dragListener={false}
             dragDirectionLock
-            dragConstraints={{ top: 0, bottom: 300 }}
-            dragElastic={{ top: 0.05, bottom: 0.7 }}
-            onDragEnd={(e, info) => {
-                // Solo cerrar si se arrastra HACIA ABAJO (offset positivo)
+            dragConstraints={{ top: 0, bottom: 400 }}
+            dragElastic={{ top: 0.02, bottom: 0.6 }}
+            onDrag={(_, info) => {
+                if (Math.abs(info.offset.y) > DRAG_THRESHOLD_PX) {
+                    didDragRef.current = true
+                }
+            }}
+            onDragEnd={(_, info) => {
                 const draggedDown = info.offset.y > 0
-                const sufficientDistance = info.offset.y > 80
-                const sufficientVelocity = info.velocity.y > 300
-
+                const sufficientDistance = info.offset.y > 60
+                const sufficientVelocity = info.velocity.y > 250
                 if (draggedDown && (sufficientDistance || sufficientVelocity)) {
                     onClose()
                 }
-            }}
-            // CLAVE: Capturar eventos en fase de captura ANTES de que lleguen a los hijos
-            onPointerDownCapture={(e) => {
-                controls.start(e)
+                didDragRef.current = false
             }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300, mass: 0.8 }}
-            style={{ y, overscrollBehavior: 'contain', touchAction: 'none' }}
-            className="relative bg-white dark:bg-zinc-900 w-full rounded-t-[3rem] shadow-2xl overflow-hidden border-t border-white/20 z-10"
+            transition={{ type: 'spring', damping: 28, stiffness: 350, mass: 0.7 }}
+            style={{ overscrollBehavior: 'contain' }}
+            className="relative bg-white dark:bg-zinc-900 w-full rounded-t-[3rem] shadow-2xl overflow-hidden border-t border-white/20 z-10 flex flex-col max-h-[90dvh] pb-[env(safe-area-inset-bottom)] touch-manipulation"
+            data-testid="calculator-modal"
         >
-            {/* Handle visual premium */}
+            {/* Handle: siempre arrastrable, estilo TikTok/YouTube */}
             <div
-                className="pt-4 pb-6 w-full flex justify-center cursor-grab active:cursor-grabbing"
+                className="pt-4 pb-3 w-full flex justify-center cursor-grab active:cursor-grabbing shrink-0 touch-none"
                 onPointerDown={(e) => controls.start(e)}
             >
-                <div className="w-16 h-1.5 rounded-full bg-gray-200 dark:bg-zinc-800" />
+                <div className="w-14 h-1.5 rounded-full bg-gray-300 dark:bg-zinc-600" />
             </div>
 
-            {/* Content con padding optimizado */}
-            <div className="px-6 pb-10">
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex flex-col">
-                        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 dark:text-white leading-none">Calculadora</h2>
-                        <span className="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] mt-1">Planificación de Tiempo</span>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-zinc-800 rounded-full active:scale-90 transition-transform"
-                    >
-                        <Plus className="w-6 h-6 rotate-45 text-gray-500" />
-                    </button>
+            {/* Header fijo */}
+            <div className="px-6 pb-4 flex items-center justify-between shrink-0">
+                <div className="flex flex-col">
+                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 dark:text-white leading-none">Calculadora</h2>
+                    <span className="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] mt-1">Planificación de Tiempo</span>
                 </div>
+                <button
+                    onClick={onClose}
+                    className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-zinc-800 rounded-full active:scale-90 transition-transform touch-manipulation"
+                    aria-label="Cerrar"
+                >
+                    <Plus className="w-6 h-6 rotate-45 text-gray-500" />
+                </button>
+            </div>
+
+            {/* Contenido: toque = interactuar; arrastre = cerrar (sin activar botones) */}
+            <div
+                ref={contentScrollRef}
+                onPointerDownCapture={handleContentPointerDown}
+                onClickCapture={handleContentClickCapture}
+                className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-6 pb-10 -webkit-overflow-scrolling-touch"
+                data-testid="calculator-modal-content"
+            >
                 {children}
             </div>
         </motion.div>

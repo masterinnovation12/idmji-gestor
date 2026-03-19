@@ -462,6 +462,12 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                     ? 'bg-amber-500/20 text-amber-600 border-amber-500/30'
                                                     : 'bg-primary/10 text-primary border-primary/20'
                                                 }`}>
+                                                <span className={`text-[8px] font-bold uppercase tracking-wider leading-none mb-0.5 ${status === 'complete' ? 'text-emerald-700 dark:text-emerald-400' :
+                                                    event.es_laborable_festivo ? 'text-amber-700 dark:text-amber-400' :
+                                                        'text-primary/60'
+                                                    }`}>
+                                                    {format(new Date(event.fecha), 'EEE', { locale })}
+                                                </span>
                                                 <span className={`text-[9px] font-black uppercase tracking-tighter leading-none mb-0.5 ${status === 'complete' ? 'text-emerald-700 dark:text-emerald-400' :
                                                     event.es_laborable_festivo ? 'text-amber-700 dark:text-amber-400' :
                                                         'text-primary/60'
