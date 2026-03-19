@@ -2,30 +2,58 @@
 
 /**
  * AuditClient - IDMJI Gestor de Púlpito
- * 
- * Componente cliente para visualizar el historial de auditoría del sistema.
- * Permite filtrar por tipo de movimiento, buscar por descripción y exportar los datos.
- * 
- * Características:
- * - Filtrado dinámico por tipo de acción.
- * - Búsqueda en tiempo real con debounce.
- * - Exportación a formato CSV.
- * - Diseño Glassmorphism responsive con animaciones Framer Motion.
- * 
+ *
+ * Historial de auditoría: filtros, búsqueda por descripción/usuario,
+ * rango de fechas, exportación total, responsive (cards móvil, tabla desktop).
+ *
  * @author Antigravity AI
- * @date 2025-12-24
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { getMovimientos, MovimientoData } from './actions'
-import { FileText, ChevronLeft, ChevronRight, Calendar, Search, Download, RefreshCcw, LayoutList, Filter } from 'lucide-react'
+import Link from 'next/link'
+import { getMovimientos, getMovimientosForExport, MovimientoData } from './actions'
+import {
+    FileText,
+    ChevronLeft,
+    ChevronRight,
+    Calendar,
+    Search,
+    Download,
+    RefreshCcw,
+    Filter,
+    ExternalLink
+} from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
-import { motion, AnimatePresence } from 'framer-motion'
+import type { Locale } from 'date-fns'
+import { motion } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Button } from '@/components/ui/Button'
 import { useDebounce } from '@/hooks/use-debounce'
+import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
+
+const TIPO_TO_KEY: Record<string, string> = {
+    cambio_asignacion: 'audit.type.cambio_asignacion',
+    cambio_festivo: 'audit.type.cambio_festivo',
+    cambio_himnos_coros: 'audit.type.cambio_himnos_coros',
+    asignacion: 'audit.type.assignment',
+    lectura: 'audit.type.reading',
+    himno: 'audit.type.hymn',
+    coro: 'audit.type.chorus',
+    culto: 'audit.type.culto'
+}
+
+function getTipoColor(tipo: string): string {
+    const t = tipo.toLowerCase()
+    if (t.includes('asignacion') || t === 'assignment') return 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+    if (t.includes('festivo')) return 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+    if (t.includes('himnos') || t.includes('coros') || t === 'himno' || t === 'chorus')
+        return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+    if (t === 'lectura' || t === 'reading') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+    if (t === 'culto') return 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+    return 'bg-slate-500/10 text-slate-600 dark:text-slate-400'
+}
 
 interface AuditClientProps {
     initialData: MovimientoData[]
@@ -41,321 +69,450 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
     const [page, setPage] = useState(1)
     const [tipoFilter, setTipoFilter] = useState<string>('')
     const [searchQuery, setSearchQuery] = useState('')
+    const [dateFrom, setDateFrom] = useState('')
+    const [dateTo, setDateTo] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [isExporting, setIsExporting] = useState(false)
     const debouncedSearch = useDebounce(searchQuery, 500)
 
     const limit = 20
     const totalPages = Math.ceil(total / limit)
     const dateLocale = language === 'ca-ES' ? ca : es
 
-    const loadData = useCallback(async () => {
-        setIsLoading(true)
-        const result = await getMovimientos(page, limit, tipoFilter || undefined, debouncedSearch || undefined)
-        if (result.success && result.data) {
-            setMovimientos(result.data.data)
-            setTotal(result.data.total)
-        }
-        setIsLoading(false)
-    }, [page, limit, tipoFilter, debouncedSearch])
+    const loadData = useCallback(
+        async (pageOverride?: number) => {
+            setIsLoading(true)
+            const p = pageOverride ?? page
+            const result = await getMovimientos(
+                p,
+                limit,
+                tipoFilter || undefined,
+                debouncedSearch || undefined,
+                dateFrom || undefined,
+                dateTo || undefined
+            )
+            if (result.success && result.data) {
+                setMovimientos(result.data.data)
+                setTotal(result.data.total)
+            } else {
+                toast.error(t('audit.errorLoad'))
+            }
+            setIsLoading(false)
+        },
+        [page, limit, tipoFilter, debouncedSearch, dateFrom, dateTo, t]
+    )
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            loadData()
-        }, 0)
-        return () => clearTimeout(timer)
+        loadData()
     }, [loadData])
 
-    // Reiniciar página al filtrar o buscar
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setPage(1)
-        }, 0)
-        return () => clearTimeout(timer)
-    }, [tipoFilter, debouncedSearch])
+    const handleFilterChange = useCallback((newTipo: string) => {
+        setTipoFilter(newTipo)
+        setPage(1)
+    }, [])
 
-    function getTipoColor(tipo: string): string {
-        switch (tipo.toLowerCase()) {
-            case 'asignacion':
-            case 'assignment': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-            case 'lectura':
-            case 'reading': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-            case 'himno':
-            case 'hymn': return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
-            case 'coro':
-            case 'chorus': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-            case 'culto': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-            default: return 'bg-slate-500/10 text-slate-600 dark:text-slate-400'
-        }
-    }
+    const handleSearchChange = useCallback((value: string) => {
+        setSearchQuery(value)
+        setPage(1)
+    }, [])
 
-    const exportToExcel = () => {
-        const headers = ["Fecha", "Usuario", "Tipo", "Descripción", "Culto"]
-        const rows = movimientos.map(m => [
-            format(new Date(m.fecha_hora), "dd/MM/yyyy HH:mm"),
-            m.usuario ? `${m.usuario.nombre} ${m.usuario.apellidos}` : t('audit.system'),
-            m.tipo,
-            m.descripcion || "",
-            m.culto ? format(new Date(m.culto.fecha), "dd/MM/yyyy") : ""
-        ])
+    const handleDateFromChange = useCallback((value: string) => {
+        setDateFrom(value)
+        setPage(1)
+    }, [])
 
-        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows])
-        const workbook = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Auditoría")
+    const handleDateToChange = useCallback((value: string) => {
+        setDateTo(value)
+        setPage(1)
+    }, [])
 
-        // Ajustar anchos de columna
-        const wscols = [
-            { wch: 20 },
-            { wch: 30 },
-            { wch: 15 },
-            { wch: 50 },
-            { wch: 15 }
-        ]
-        worksheet['!cols'] = wscols
+    const getTipoLabel = (tipo: string) => t(TIPO_TO_KEY[tipo] || tipo)
 
-        XLSX.writeFile(workbook, `auditoria_idmji_${format(new Date(), "yyyyMMdd")}.xlsx`)
-    }
+    const exportToExcel = useCallback(
+        async (exportAll: boolean) => {
+            setIsExporting(true)
+            try {
+                let rows: MovimientoData[]
+                if (exportAll) {
+                    const result = await getMovimientosForExport(
+                        tipoFilter || undefined,
+                        debouncedSearch || undefined,
+                        dateFrom || undefined,
+                        dateTo || undefined
+                    )
+                    if (!result.success || !result.data) {
+                        toast.error(result.error || t('audit.errorLoad'))
+                        return
+                    }
+                    rows = result.data
+                } else {
+                    rows = movimientos
+                }
+                const headers = [
+                    t('audit.tableDate'),
+                    t('audit.tableUser'),
+                    t('audit.tableType'),
+                    t('audit.tableDescription'),
+                    t('audit.tableCulto')
+                ]
+                const dataRows = rows.map((m) => [
+                    format(new Date(m.fecha_hora), 'dd/MM/yyyy HH:mm'),
+                    m.usuario ? `${m.usuario.nombre} ${m.usuario.apellidos}` : t('audit.system'),
+                    getTipoLabel(m.tipo),
+                    m.descripcion || '',
+                    m.culto ? format(new Date(m.culto.fecha), 'dd/MM/yyyy') : ''
+                ])
+                const worksheet = XLSX.utils.aoa_to_sheet([headers, ...dataRows])
+                const workbook = XLSX.utils.book_new()
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Auditoría')
+                worksheet['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 18 }, { wch: 50 }, { wch: 15 }]
+                XLSX.writeFile(workbook, `auditoria_idmji_${format(new Date(), 'yyyyMMdd')}.xlsx`)
+                toast.success(exportAll ? t('audit.exportAll') : t('audit.exportPage'))
+            } catch (err) {
+                toast.error(t('audit.errorLoad'))
+            } finally {
+                setIsExporting(false)
+            }
+        },
+        [movimientos, tipoFilter, debouncedSearch, dateFrom, dateTo, t]
+    )
 
     return (
-        <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-            {/* Header con estilo Premium */}
+        <div data-testid="audit-page" className="space-y-6 md:space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+            {/* Header */}
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass rounded-[2.5rem] p-8 md:p-10 flex flex-col lg:flex-row gap-8 justify-between items-center shadow-2xl relative overflow-visible z-50"
+                className="glass-panel rounded-2xl md:rounded-[2.5rem] p-6 md:p-10 flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center shadow-xl"
             >
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
-
-                <div className="flex items-center gap-6 relative z-10">
-                    <div className="p-5 bg-gradient-to-br from-primary/20 to-accent/20 rounded-[1.5rem] shadow-inner-white">
-                        <FileText className="w-8 h-8 text-primary" />
+                <div className="flex items-center gap-4 md:gap-6">
+                    <div className="p-4 md:p-5 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl md:rounded-[1.5rem]">
+                        <FileText className="w-6 h-6 md:w-8 md:h-8 text-primary" />
                     </div>
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+                        <h1 className="text-2xl md:text-4xl font-black tracking-tight">
                             {t('audit.title')}
                         </h1>
-                        <p className="text-muted-foreground font-medium mt-1">
+                        <p className="text-muted-foreground text-sm md:text-base mt-1">
                             {t('audit.desc')}
                         </p>
                     </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3 w-full lg:w-auto relative z-10">
+                <div className="flex flex-wrap gap-2 w-full lg:w-auto">
                     <Button
-                        onClick={exportToExcel}
-                        className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 hover:shadow-primary/40 bg-primary text-black dark:text-white hover:scale-105 transition-all duration-300 border-none"
+                        onClick={() => exportToExcel(false)}
+                        disabled={isExporting || movimientos.length === 0}
+                        variant="outline"
+                        className="rounded-xl md:rounded-2xl h-12 px-4 md:px-6 font-bold text-xs"
                     >
-                        <Download className="w-5 h-5 mr-2" />
-                        {t('audit.export')}
+                        <Download className="w-4 h-4 mr-2" />
+                        {t('audit.exportPage')}
+                    </Button>
+                    <Button
+                        onClick={() => exportToExcel(true)}
+                        disabled={isExporting}
+                        className="rounded-xl md:rounded-2xl h-12 px-4 md:px-6 font-black uppercase tracking-widest text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                        {isExporting ? (
+                            <RefreshCcw className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                            <Download className="w-4 h-4 mr-2" />
+                        )}
+                        {t('audit.exportAll')}
                     </Button>
                 </div>
             </motion.div>
 
-            {/* Filtros y Búsqueda */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 relative z-40">
-                <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="lg:col-span-3 glass rounded-[2rem] p-5 flex flex-col md:flex-row gap-5 shadow-xl border border-white/10"
-                >
-                    <div className="relative flex-1 group">
-                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5 group-focus-within:text-primary transition-colors" />
+            {/* Filtros */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="glass-panel rounded-2xl p-4 md:p-6 space-y-4"
+            >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="relative">
+                        <Search
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4"
+                            aria-hidden
+                        />
                         <input
-                            type="text"
+                            data-testid="audit-search"
+                            type="search"
                             placeholder={t('audit.searchPlaceholder')}
-                            className="w-full pl-14 pr-6 h-14 bg-muted/30 dark:bg-muted/10 rounded-2xl border-none outline-none focus:ring-2 focus:ring-primary/30 transition-all font-bold tracking-tight text-sm placeholder:font-medium"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                            aria-label={t('audit.searchPlaceholder')}
+                            className="w-full pl-10 pr-4 h-12 rounded-xl border border-border bg-muted/30 text-sm font-medium"
                         />
                     </div>
 
-                    <div className="relative min-w-[240px] group">
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 p-2 bg-primary/10 rounded-xl pointer-events-none group-focus-within:bg-primary/20 transition-all">
-                            <Filter className="text-primary w-4 h-4" />
-                        </div>
+                    <div className="relative">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-primary w-4 h-4" aria-hidden />
                         <select
-                            className="w-full pl-16 pr-10 h-14 bg-white/80 dark:bg-muted/20 backdrop-blur-md rounded-2xl border-2 border-primary/20 outline-none appearance-none cursor-pointer focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all font-black uppercase tracking-widest text-[11px] text-primary shadow-sm"
+                            data-testid="audit-filter-type"
                             value={tipoFilter}
-                            onChange={(e) => {
-                                setPage(1)
-                                setTipoFilter(e.target.value)
-                            }}
+                            onChange={(e) => handleFilterChange(e.target.value)}
+                            aria-label={t('audit.filterType')}
+                            className="w-full pl-10 pr-10 h-12 rounded-xl border border-border bg-muted/30 text-sm font-bold appearance-none cursor-pointer"
                         >
-                            <option value="" className="font-bold text-foreground">{t('audit.filterType')}</option>
-                            {tipos.map(t => (
-                                <option key={t} value={t} className="font-bold text-foreground">{t.toUpperCase()}</option>
+                            <option value="">{t('audit.filterType')}</option>
+                            {tipos.map((tipo) => (
+                                <option key={tipo} value={tipo}>
+                                    {getTipoLabel(tipo)}
+                                </option>
                             ))}
                         </select>
-                        <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
-                            <ChevronRight className="w-4 h-4 text-primary rotate-90" />
-                        </div>
+                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground rotate-90 pointer-events-none" />
                     </div>
-                </motion.div>
 
-                <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="glass rounded-[2rem] p-6 flex items-center justify-between shadow-xl border border-white/10 group hover:border-primary/30 transition-all"
-                >
-                    <div className="space-y-1">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                            {t('audit.totalRecords')}
-                        </p>
-                        <span className="text-4xl font-black text-primary drop-shadow-md group-hover:scale-110 transition-transform block">
-                            {total}
-                        </span>
-                    </div>
-                    <div className="p-4 bg-primary/10 rounded-2xl group-hover:bg-primary/20 transition-all">
-                        <LayoutList className="w-8 h-8 text-primary" />
-                    </div>
-                </motion.div>
-            </div>
+                    <input
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => handleDateFromChange(e.target.value)}
+                        aria-label={t('audit.datesFrom')}
+                        className="h-12 rounded-xl border border-border bg-muted/30 px-4 text-sm font-medium"
+                    />
 
-            {/* Tabla de Resultados */}
+                    <input
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => handleDateToChange(e.target.value)}
+                        aria-label={t('audit.datesTo')}
+                        className="h-12 rounded-xl border border-border bg-muted/30 px-4 text-sm font-medium"
+                    />
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                        {t('audit.totalRecords')}: <span className="text-primary text-lg">{total}</span>
+                    </p>
+                </div>
+            </motion.div>
+
+            {/* Contenido: Cards móvil / Tabla desktop */}
             <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="glass rounded-[2.5rem] overflow-hidden shadow-2xl border-none no-scrollbar"
+                transition={{ delay: 0.1 }}
+                className="glass-panel rounded-2xl overflow-hidden shadow-xl"
             >
-                <div className="overflow-x-auto no-scrollbar">
-                    <table className="w-full border-collapse">
-                        <thead>
-                            <tr className="bg-muted/50 border-b border-border/20">
-                                <th className="p-6 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('audit.tableDate')}</th>
-                                <th className="p-6 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('audit.tableUser')}</th>
-                                <th className="p-6 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('audit.tableType')}</th>
-                                <th className="p-6 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('audit.tableDescription')}</th>
-                                <th className="p-6 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('audit.tableCulto')}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/10">
-                            <AnimatePresence mode="popLayout">
-                                {isLoading ? (
-                                    <motion.tr
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                    >
-                                        <td colSpan={5} className="p-20 text-center">
-                                            <div className="flex flex-col items-center gap-4">
-                                                <RefreshCcw className="w-10 h-10 text-primary/40 animate-spin" />
-                                                <p className="text-muted-foreground font-medium animate-pulse">{t('common.loading')}</p>
-                                            </div>
-                                        </td>
-                                    </motion.tr>
-                                ) : movimientos.length === 0 ? (
-                                    <motion.tr
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                    >
-                                        <td colSpan={5} className="p-20 text-center">
-                                            <div className="flex flex-col items-center gap-4 opacity-40">
-                                                <Search className="w-12 h-12" />
-                                                <p className="text-xl font-bold">{t('audit.noResults')}</p>
-                                            </div>
-                                        </td>
-                                    </motion.tr>
-                                ) : (
-                                    movimientos.map((m, index) => (
+                {isLoading ? (
+                    <div className="p-16 md:p-20 flex flex-col items-center gap-4">
+                        <RefreshCcw className="w-10 h-10 text-primary/40 animate-spin" aria-hidden />
+                        <p className="text-muted-foreground font-medium">{t('common.loading')}</p>
+                    </div>
+                ) : movimientos.length === 0 ? (
+                    <div className="p-16 md:p-20 flex flex-col items-center gap-4 text-muted-foreground/60">
+                        <Search className="w-12 h-12" aria-hidden />
+                        <p className="text-lg font-bold">{t('audit.noResults')}</p>
+                    </div>
+                ) : (
+                    <>
+                        {/* Vista móvil: cards */}
+                        <div data-testid="audit-cards" className="block md:hidden divide-y divide-border/50">
+                            {movimientos.map((m, index) => (
+                                <AuditCard
+                                    key={m.id}
+                                    m={m}
+                                    index={index}
+                                    getTipoLabel={getTipoLabel}
+                                    getTipoColor={getTipoColor}
+                                    t={t}
+                                    dateLocale={dateLocale}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Vista desktop: tabla */}
+                        <div data-testid="audit-table" className="hidden md:block overflow-x-auto">
+                            <table className="w-full border-collapse" role="table">
+                                <thead>
+                                    <tr className="bg-muted/50 border-b border-border/20">
+                                        <th scope="col" className="p-4 lg:p-6 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                            {t('audit.tableDate')}
+                                        </th>
+                                        <th scope="col" className="p-4 lg:p-6 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                            {t('audit.tableUser')}
+                                        </th>
+                                        <th scope="col" className="p-4 lg:p-6 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                            {t('audit.tableType')}
+                                        </th>
+                                        <th scope="col" className="p-4 lg:p-6 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                            {t('audit.tableDescription')}
+                                        </th>
+                                        <th scope="col" className="p-4 lg:p-6 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                            {t('audit.tableCulto')}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border/10">
+                                    {movimientos.map((m, index) => (
                                         <motion.tr
                                             key={m.id}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: index * 0.03 }}
-                                            className="group hover:bg-primary/[0.02] transition-colors"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="hover:bg-muted/30 transition-colors"
                                         >
-                                            <td className="p-6">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-muted/50 rounded-xl group-hover:bg-primary/10 transition-colors">
-                                                        <Calendar className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                                                    </div>
+                                            <td className="p-4 lg:p-6">
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
                                                     <div>
-                                                        <p className="text-sm font-bold">{format(new Date(m.fecha_hora), "dd MMM yyyy", { locale: dateLocale })}</p>
-                                                        <p className="text-[10px] text-muted-foreground font-medium">{format(new Date(m.fecha_hora), "HH:mm")}</p>
+                                                        <p className="text-sm font-bold">
+                                                            {format(new Date(m.fecha_hora), 'dd MMM yyyy', { locale: dateLocale })}
+                                                        </p>
+                                                        <p className="text-[10px] text-muted-foreground">
+                                                            {format(new Date(m.fecha_hora), 'HH:mm')}
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="p-6">
+                                            <td className="p-4 lg:p-6">
                                                 {m.usuario ? (
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-black text-[10px] text-primary">
-                                                            {m.usuario.nombre[0]}{m.usuario.apellidos[0]}
-                                                        </div>
-                                                        <span className="text-sm font-bold">{m.usuario.nombre} {m.usuario.apellidos}</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-3 opacity-60">
-                                                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                            <RefreshCcw className="w-4 h-4 text-slate-400" />
-                                                        </div>
-                                                        <span className="text-sm font-medium italic">{t('audit.system')}</span>
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="p-6">
-                                                <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${getTipoColor(m.tipo)}`}>
-                                                    {m.tipo}
-                                                </span>
-                                            </td>
-                                            <td className="p-6">
-                                                <p className="text-sm text-muted-foreground font-medium max-w-sm line-clamp-2">
-                                                    {m.descripcion || '-'}
-                                                </p>
-                                            </td>
-                                            <td className="p-6">
-                                                {m.culto ? (
                                                     <div className="flex items-center gap-2">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                                                        <span className="text-xs font-bold font-mono">
-                                                            {format(new Date(m.culto.fecha), "dd/MM/yyyy")}
+                                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-[10px] text-primary shrink-0">
+                                                            {m.usuario.nombre[0]}
+                                                            {m.usuario.apellidos[0]}
+                                                        </div>
+                                                        <span className="text-sm font-bold">
+                                                            {m.usuario.nombre} {m.usuario.apellidos}
                                                         </span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-xs text-muted-foreground/40">—</span>
+                                                    <span className="text-sm italic text-muted-foreground">{t('audit.system')}</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4 lg:p-6">
+                                                <span
+                                                    className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${getTipoColor(m.tipo)}`}
+                                                >
+                                                    {getTipoLabel(m.tipo)}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 lg:p-6">
+                                                <p className="text-sm text-muted-foreground max-w-xs line-clamp-2">
+                                                    {m.descripcion || '—'}
+                                                </p>
+                                            </td>
+                                            <td className="p-4 lg:p-6">
+                                                {m.culto ? (
+                                                    m.culto.id ? (
+                                                        <Link
+                                                            href={`/dashboard/cultos/${m.culto.id}`}
+                                                            className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline"
+                                                        >
+                                                            {format(new Date(m.culto.fecha), 'dd/MM/yyyy')}
+                                                            <ExternalLink className="w-3.5 h-3.5" />
+                                                        </Link>
+                                                    ) : (
+                                                        <span className="text-sm font-mono">
+                                                            {format(new Date(m.culto.fecha), 'dd/MM/yyyy')}
+                                                        </span>
+                                                    )
+                                                ) : (
+                                                    <span className="text-muted-foreground/50">—</span>
                                                 )}
                                             </td>
                                         </motion.tr>
-                                    ))
-                                )}
-                            </AnimatePresence>
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Pagination Premium */}
-                {totalPages > 1 && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between p-8 bg-muted/30 border-t border-border/10 gap-4">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Página</span>
-                            <div className="flex items-center justify-center w-8 h-8 bg-primary text-white rounded-lg font-black text-xs shadow-lg shadow-primary/30">
-                                {page}
-                            </div>
-                            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">de {totalPages}</span>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                        <div className="flex gap-3">
+                    </>
+                )}
+
+                {/* Paginación */}
+                {totalPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between p-4 md:p-6 bg-muted/30 border-t border-border/10 gap-4">
+                        <p className="text-xs font-bold text-muted-foreground">
+                            Página {page} / {totalPages}
+                        </p>
+                        <div className="flex gap-2">
                             <Button
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
                                 disabled={page === 1 || isLoading}
                                 variant="outline"
-                                className="w-12 h-12 p-0 rounded-2xl hover:bg-primary hover:text-white transition-all duration-300 disabled:opacity-30 border-none shadow-lg"
+                                className="h-10 w-10 p-0 rounded-xl"
+                                aria-label="Página anterior"
                             >
-                                <ChevronLeft className="w-6 h-6" />
+                                <ChevronLeft className="w-5 h-5" />
                             </Button>
                             <Button
-                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                                 disabled={page === totalPages || isLoading}
                                 variant="outline"
-                                className="w-12 h-12 p-0 rounded-2xl hover:bg-primary hover:text-white transition-all duration-300 disabled:opacity-30 border-none shadow-lg"
+                                className="h-10 w-10 p-0 rounded-xl"
+                                aria-label="Página siguiente"
                             >
-                                <ChevronRight className="w-6 h-6" />
+                                <ChevronRight className="w-5 h-5" />
                             </Button>
                         </div>
                     </div>
                 )}
             </motion.div>
         </div>
+    )
+}
+
+function AuditCard({
+    m,
+    index,
+    getTipoLabel,
+    getTipoColor,
+    t,
+    dateLocale
+}: {
+    m: MovimientoData
+    index: number
+    getTipoLabel: (t: string) => string
+    getTipoColor: (t: string) => string
+    t: (k: string) => string
+    dateLocale: Locale
+}) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            className="p-4"
+        >
+            <div className="flex justify-between items-start gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <div>
+                        <p className="text-sm font-bold">
+                            {format(new Date(m.fecha_hora), 'dd MMM yyyy', { locale: dateLocale })}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                            {format(new Date(m.fecha_hora), 'HH:mm')}
+                        </p>
+                    </div>
+                </div>
+                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${getTipoColor(m.tipo)}`}>
+                    {getTipoLabel(m.tipo)}
+                </span>
+            </div>
+            <p className="text-sm font-medium mb-1">
+                {m.usuario ? `${m.usuario.nombre} ${m.usuario.apellidos}` : t('audit.system')}
+            </p>
+            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{m.descripcion || '—'}</p>
+            {m.culto && (
+                <div className="flex items-center gap-1">
+                    {m.culto.id ? (
+                        <Link
+                            href={`/dashboard/cultos/${m.culto.id}`}
+                            className="text-xs font-bold text-primary inline-flex items-center gap-1"
+                        >
+                            {format(new Date(m.culto.fecha), 'dd/MM/yyyy')}
+                            <ExternalLink className="w-3 h-3" />
+                        </Link>
+                    ) : (
+                        <span className="text-xs font-mono">{format(new Date(m.culto.fecha), 'dd/MM/yyyy')}</span>
+                    )}
+                </div>
+            )}
+        </motion.div>
     )
 }

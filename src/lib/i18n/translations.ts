@@ -553,6 +553,14 @@ export const translations = {
         'audit.type.hymn': 'Himno',
         'audit.type.chorus': 'Coro',
         'audit.type.culto': 'Culto',
+        'audit.type.cambio_asignacion': 'Cambio asignación',
+        'audit.type.cambio_festivo': 'Cambio festivo',
+        'audit.type.cambio_himnos_coros': 'Himnos/Coros',
+        'audit.datesFrom': 'Desde',
+        'audit.datesTo': 'Hasta',
+        'audit.exportAll': 'Exportar todo',
+        'audit.exportPage': 'Exportar página',
+        'audit.errorLoad': 'Error al cargar. Intenta de nuevo.',
 
         // PWA Install Prompt
         'pwa.installTitle': 'Instalar Aplicación',
@@ -1152,6 +1160,14 @@ export const translations = {
         'audit.type.hymn': 'Himne',
         'audit.type.chorus': 'Coro',
         'audit.type.culto': 'Culte',
+        'audit.type.cambio_asignacion': 'Canvi assignació',
+        'audit.type.cambio_festivo': 'Canvi festiu',
+        'audit.type.cambio_himnos_coros': 'Himnes/Coros',
+        'audit.datesFrom': 'Des de',
+        'audit.datesTo': 'Fins a',
+        'audit.exportAll': 'Exportar tot',
+        'audit.exportPage': 'Exportar pàgina',
+        'audit.errorLoad': 'Error en carregar. Torna a intentar.',
 
         // PWA Install Prompt
         'pwa.installTitle': 'Instal·lar Aplicació',
