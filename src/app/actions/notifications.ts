@@ -2,9 +2,15 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { ActionResponse } from '@/types/database'
-import { PushSubscription } from '@/types/notifications'
+import { PushSubscription, type PushClientType } from '@/types/notifications'
+import { selectSubscriptionsForSend } from '@/app/actions/notifications-subscriptions'
 import { translations } from '@/lib/i18n/translations'
 import type { Language } from '@/lib/i18n/types'
+
+function normalizeClientType(raw: PushSubscription['clientType'] | undefined): PushClientType {
+    if (raw === 'pwa' || raw === 'browser') return raw
+    return 'browser'
+}
 
 // VAPID keys configuration
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
@@ -42,6 +48,8 @@ export async function subscribeToPush(subscription: PushSubscription): Promise<A
             return { success: false, error: 'No autenticado' }
         }
 
+        const clientType = normalizeClientType(subscription.clientType)
+
         const { error } = await supabase
             .from('user_subscriptions')
             .upsert({
@@ -49,10 +57,20 @@ export async function subscribeToPush(subscription: PushSubscription): Promise<A
                 endpoint: subscription.endpoint,
                 p256dh: subscription.keys.p256dh,
                 auth: subscription.keys.auth,
+                client_type: clientType,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'endpoint' })
 
         if (error) throw error
+
+        if (clientType === 'pwa') {
+            const { error: delErr } = await supabase
+                .from('user_subscriptions')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('client_type', 'browser')
+            if (delErr) throw delErr
+        }
 
         return { success: true }
     } catch (error) {
@@ -112,7 +130,9 @@ export async function sendTestNotification(): Promise<ActionResponse<void>> {
 
         if (error) throw error
 
-        if (!subscriptions || subscriptions.length === 0) {
+        const toSend = selectSubscriptionsForSend(subscriptions ?? [])
+
+        if (toSend.length === 0) {
             const { data: profile } = await supabase.from('profiles').select('language').eq('id', user.id).single()
             const lang = (profile?.language || 'es-ES') as Language
             const t = (key: keyof typeof translations['es-ES']) => translations[lang]?.[key] ?? translations['es-ES'][key] ?? String(key)
@@ -129,7 +149,7 @@ export async function sendTestNotification(): Promise<ActionResponse<void>> {
             url: '/dashboard'
         })
 
-        const promises = subscriptions.map(sub => {
+        const promises = toSend.map(sub => {
             const pushSubscription = {
                 endpoint: sub.endpoint,
                 keys: {
@@ -170,13 +190,15 @@ export async function sendNotificationToUser(
 
         if (error) throw error
 
-        if (!subscriptions || subscriptions.length === 0) {
+        const toSend = selectSubscriptionsForSend(subscriptions ?? [])
+
+        if (toSend.length === 0) {
             return { success: false, error: 'Usuario sin suscripciones' }
         }
 
         const payload = JSON.stringify({ title, body, url })
 
-        const promises = subscriptions.map(sub => {
+        const promises = toSend.map(sub => {
             const pushSubscription = {
                 endpoint: sub.endpoint,
                 keys: {

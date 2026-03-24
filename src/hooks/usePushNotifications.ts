@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { subscribeToPush as subscribeUser } from '@/app/actions/notifications'
+import { getPushClientType } from '@/lib/push-client-type'
+import type { PushSubscription as AppPushSubscription } from '@/types/notifications'
 import { toast } from 'sonner'
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -73,9 +75,9 @@ export function usePushNotifications() {
                 applicationServerKey: urlBase64ToUint8Array(publicKey),
             })
 
-            // Save to DB
-            // Need to serialise properly to match PushSubscriptionJSON
-            await subscribeUser(JSON.parse(JSON.stringify(sub)))
+            // Save to DB (serialización JSON + clientType standalone)
+            const raw = JSON.parse(JSON.stringify(sub)) as Omit<AppPushSubscription, 'clientType'>
+            await subscribeUser({ ...raw, clientType: getPushClientType() })
             toast.success('Notificaciones activadas correctamente')
             setSubscription(sub)
         } catch (error) {

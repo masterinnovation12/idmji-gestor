@@ -13,6 +13,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Bell, BellOff, Send, AlertCircle, Check, Loader2 } from 'lucide-react'
 import { subscribeToPush, unsubscribeFromPush, sendTestNotification } from '@/app/actions/notifications'
+import { getPushClientType } from '@/lib/push-client-type'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -121,7 +122,8 @@ export function PushNotificationToggle() {
                 keys: {
                     p256dh: arrayBufferToBase64(p256dh),
                     auth: arrayBufferToBase64(auth)
-                }
+                },
+                clientType: getPushClientType(),
             }
 
             const result = await subscribeToPush(subscriptionData)

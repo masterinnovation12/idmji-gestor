@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, X, Loader2 } from 'lucide-react'
 import { subscribeToPush } from '@/app/actions/notifications'
+import { getPushClientType } from '@/lib/push-client-type'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
@@ -125,7 +126,8 @@ export function NotificationPrompt() {
                 keys: {
                     p256dh: arrayBufferToBase64(sub.getKey('p256dh')),
                     auth: arrayBufferToBase64(sub.getKey('auth'))
-                }
+                },
+                clientType: getPushClientType(),
             })
 
             if (result.success) {
