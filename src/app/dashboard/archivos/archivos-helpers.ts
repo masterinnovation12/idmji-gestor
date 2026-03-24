@@ -8,6 +8,7 @@ const PRIMARY_COL_PREFERENCE: Record<SheetSourceId, string[]> = {
   estudios: ['titulo', 'estudio', 'biblico', 'bíblico'],
   instituto: ['nombre', 'audio', 'clase'],
   pastorado: ['tema', 'titulo', 'título'],
+  profecia: ['clase', 'video', 'profecia', 'profecía'],
 }
 
 /** Normaliza para comparación: sin acentos, minúsculas, sin espacios/guiones bajos */

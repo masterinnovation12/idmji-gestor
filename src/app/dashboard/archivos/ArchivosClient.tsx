@@ -7,7 +7,7 @@ import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Modal } from '@/components/ui/Modal'
 import {
   Loader2, AlertCircle, ChevronRight, ChevronDown,
-  BookOpen, BookText, GraduationCap, UsersRound, Filter,
+  BookOpen, BookText, GraduationCap, UsersRound, HandHeart, Filter,
   RefreshCw, Search, X, ArrowUpDown, ArrowUp, ArrowDown, ChevronsUpDown
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -37,6 +37,7 @@ const TABS_BASE = [
   { id: 'estudios'   as SheetSourceId, labelKey: 'archivos.tab.estudios',   icon: BookText,       color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40', activeBg: 'bg-emerald-600 dark:bg-emerald-500' },
   { id: 'instituto'  as SheetSourceId, labelKey: 'archivos.tab.instituto',  icon: GraduationCap, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40', activeBg: 'bg-violet-600 dark:bg-violet-500' },
   { id: 'pastorado'  as SheetSourceId, labelKey: 'archivos.tab.pastorado',  icon: UsersRound,    color: 'text-amber-600  dark:text-amber-400',  bg: 'bg-amber-50  dark:bg-amber-950/40',  activeBg: 'bg-amber-600  dark:bg-amber-500'  },
+  { id: 'profecia'   as SheetSourceId, labelKey: 'archivos.tab.profecia',   icon: HandHeart,     color: 'text-rose-600   dark:text-rose-400',   bg: 'bg-rose-50   dark:bg-rose-950/40',   activeBg: 'bg-rose-600   dark:bg-rose-500'   },
 ]
 
 /* ─── Helpers ────────────────────────────────────────────── */
@@ -228,11 +229,34 @@ function extractMonthYears(
   )
 }
 
+/** Una palabra con mayúscula inicial respetando ñ, vocales acentuadas, etc. */
+function capitalizeWordEs(word: string): string {
+  const w = word.trim().toLocaleLowerCase('es-ES')
+  if (!w) return ''
+  return w.replace(/^(\p{L})(.*)$/u, (__, first: string, rest: string) =>
+    first.toLocaleUpperCase('es-ES') + rest
+  )
+}
+
+/**
+ * Etiqueta legible para cabeceras CSV (underscores → espacios, title case por palabra).
+ * \b\w de JS no trata í, ñ, etc. como letras de palabra → "Día" se veía como "DiA".
+ */
 function prettyKey(k: string) {
+  if (!k) return ''
   return k
     .replaceAll('_', ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .split('/')
+    .map((segment) =>
+      segment
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(capitalizeWordEs)
+        .join(' ')
+    )
+    .filter(Boolean)
+    .join(' / ')
 }
 
 /** Detecta el tipo de dato de una columna para determinar cómo ordenar */

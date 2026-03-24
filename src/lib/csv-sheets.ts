@@ -9,6 +9,7 @@
  */
 
 const FETCH_TIMEOUT_MS = 15_000
+const MAX_RETRIES = 3
 
 /**
  * Parsea una línea CSV respetando comillas dobles (RFC 4180 básico).
@@ -124,24 +125,54 @@ function removeEmptyColumns(data: Record<string, string>[]): Record<string, stri
  * Headers tipo navegador para que Google Sheets no devuelva 500 en algunos documentos
  * (Enseñanzas, Pastorado, etc.) cuando la petición viene de servidor.
  */
-async function fetchCSVText(url: string): Promise<string> {
+async function fetchOnce(url: string, headers: HeadersInit): Promise<Response> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
-  const res = await fetch(url, {
-    signal: controller.signal,
-    headers: {
-      Accept: 'text/csv, text/plain; charset=utf-8',
-      'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-      Referer: 'https://docs.google.com/',
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    },
-  })
-  clearTimeout(timeout)
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+  try {
+    return await fetch(url, {
+      signal: controller.signal,
+      cache: 'no-store',
+      headers,
+    })
+  } finally {
+    clearTimeout(timeout)
   }
-  return res.text()
+}
+
+async function fetchCSVText(url: string): Promise<string> {
+  const browserLikeHeaders: HeadersInit = {
+    Accept: 'text/csv, text/plain; charset=utf-8',
+    'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+    Referer: 'https://docs.google.com/',
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  }
+
+  const fallbackHeaders: HeadersInit = {
+    Accept: 'text/csv, text/plain; charset=utf-8',
+    'User-Agent': 'Mozilla/5.0',
+  }
+
+  let lastStatus: number | null = null
+  let lastStatusText = 'Unknown'
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const headers = attempt === 1 ? browserLikeHeaders : fallbackHeaders
+    const res = await fetchOnce(url, headers)
+
+    if (res.ok) return res.text()
+
+    lastStatus = res.status
+    lastStatusText = res.statusText
+
+    // Reintentar solo en errores transitorios de red/servidor
+    if (res.status < 500 || res.status >= 600 || attempt === MAX_RETRIES) break
+
+    // Backoff simple: 200ms, 400ms
+    await new Promise((resolve) => setTimeout(resolve, 200 * attempt))
+  }
+
+  throw new Error(`HTTP ${lastStatus ?? 500}: ${lastStatusText}`)
 }
 
 /**
@@ -181,13 +212,14 @@ export function parseAdaptiveCSV(csvText: string): Record<string, string>[] {
   return removeEmptyColumns(data)
 }
 
-export type SheetSourceId = 'ensenanzas' | 'estudios' | 'instituto' | 'pastorado'
+export type SheetSourceId = 'ensenanzas' | 'estudios' | 'instituto' | 'pastorado' | 'profecia'
 
 const ENV_KEYS: Record<SheetSourceId, string> = {
   ensenanzas: 'SHEET_ENSENANZAS_CSV_URL',
   estudios: 'SHEET_ESTUDIOS_CSV_URL',
   instituto: 'SHEET_INSTITUTO_CSV_URL',
   pastorado: 'SHEET_PASTORADO_CSV_URL',
+  profecia: 'SHEET_PROFECIA_CSV_URL',
 }
 
 /**

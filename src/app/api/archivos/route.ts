@@ -14,7 +14,7 @@ import {
   type SheetSourceId,
 } from '@/lib/csv-sheets'
 
-const VALID_SOURCES = new Set<SheetSourceId>(['ensenanzas', 'estudios', 'instituto', 'pastorado'])
+const VALID_SOURCES = new Set<SheetSourceId>(['ensenanzas', 'estudios', 'instituto', 'pastorado', 'profecia'])
 
 function isValidSource(id: string): id is SheetSourceId {
   return VALID_SOURCES.has(id as SheetSourceId)

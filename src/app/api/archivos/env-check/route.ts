@@ -12,6 +12,7 @@ const SHEET_KEYS = [
   'SHEET_ESTUDIOS_CSV_URL',
   'SHEET_INSTITUTO_CSV_URL',
   'SHEET_PASTORADO_CSV_URL',
+  'SHEET_PROFECIA_CSV_URL',
 ] as const
 
 export async function GET() {
