@@ -38,6 +38,7 @@ import { TEMAS_ALABANZA_KEYS } from '@/lib/constants/temasAlabanza'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/Dialog'
 import { Culto, Profile } from '@/types/database'
 import NextImage from 'next/image'
+import { computeTemaDropdownStyle, shouldCloseTemaDropdown } from './temaDropdownPosition'
 
 interface CultoDetailClientProps {
     culto: Culto
@@ -316,6 +317,32 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         setTemaMounted(true)
     }, [])
 
+    useEffect(() => {
+        if (!temaDropdownOpen) return
+
+        const syncDropdownPosition = () => {
+            const trigger = temaTriggerRef.current
+            if (!trigger) {
+                setTemaDropdownOpen(false)
+                return
+            }
+            const rect = trigger.getBoundingClientRect()
+            if (shouldCloseTemaDropdown(rect, window.innerHeight)) {
+                setTemaDropdownOpen(false)
+                return
+            }
+            setTemaTriggerRect(rect)
+        }
+
+        syncDropdownPosition()
+        window.addEventListener('scroll', syncDropdownPosition, { passive: true, capture: true })
+        window.addEventListener('resize', syncDropdownPosition)
+        return () => {
+            window.removeEventListener('scroll', syncDropdownPosition, true)
+            window.removeEventListener('resize', syncDropdownPosition)
+        }
+    }, [temaDropdownOpen])
+
     const handleToggleFestivo = async () => {
         setIsUpdating(true)
         try {
@@ -530,6 +557,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                             <div className="relative">
                                 <button
                                     ref={temaTriggerRef}
+                                    data-testid="tema-introduccion-trigger"
                                     type="button"
                                     onClick={() => {
                                         if (readOnlyAssignments) return
@@ -553,14 +581,18 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 {temaDropdownOpen && !readOnlyAssignments && temaTriggerRect && createPortal(
                                     <>
                                         <div className="fixed inset-0 z-[9998]" onClick={() => setTemaDropdownOpen(false)} />
+                                        {(() => {
+                                            const dropdownStyle = computeTemaDropdownStyle(temaTriggerRect)
+                                            return (
                                         <motion.div
                                             initial={{ opacity: 0, y: -8 }}
                                             animate={{ opacity: 1, y: 0 }}
+                                            data-testid="tema-introduccion-dropdown"
                                             className="fixed z-[9999] mt-2 min-w-[200px] max-w-[min(400px,calc(100vw-2rem))] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden"
                                             style={{
-                                                top: temaTriggerRect.bottom + 8,
-                                                left: temaTriggerRect.left,
-                                                width: Math.max(temaTriggerRect.width, 200),
+                                                top: dropdownStyle.top,
+                                                left: dropdownStyle.left,
+                                                width: dropdownStyle.width,
                                             }}
                                         >
                                             <div className="p-1.5 max-h-[280px] overflow-y-auto no-scrollbar">
@@ -606,6 +638,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                 )}
                                             </div>
                                         </motion.div>
+                                            )
+                                        })()}
                                     </>,
                                     document.body
                                 )}
