@@ -29,6 +29,7 @@ const AFTER_INSTALL_CLOSED_MS = 1500
 
 function shouldShowNotificationPrompt(): boolean {
     if (typeof window === 'undefined') return false
+    if (getPushClientType() !== 'pwa') return false
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
     if (Notification.permission === 'granted' || Notification.permission === 'denied') return false
     const dismissedAt = localStorage.getItem(DISMISS_KEY)
@@ -91,6 +92,10 @@ export function NotificationPrompt() {
     }, [prompts, prompts?.activePrompt, tryShow])
 
     const handleActivate = async () => {
+        if (getPushClientType() !== 'pwa') {
+            toast.error(t('notifications.error.pwaOnly'))
+            return
+        }
         setIsLoading(true)
         try {
             const permission = await Notification.requestPermission()

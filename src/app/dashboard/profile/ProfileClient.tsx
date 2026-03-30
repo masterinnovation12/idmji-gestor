@@ -62,7 +62,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
         apellidos: profile?.apellidos || '',
         email_contacto: profile?.email_contacto || '',
         telefono: profile?.telefono || '',
-        language: profile?.language || (language as 'es-ES' | 'ca-ES'),
+        language: (profile?.language ?? profile?.idioma_preferido ?? language) as 'es-ES' | 'ca-ES',
         availability: initialAvailability
     })
     const [isLoading, setIsLoading] = useState(false)

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { subscribeToPush as subscribeUser } from '@/app/actions/notifications'
 import { getPushClientType } from '@/lib/push-client-type'
+import { translations } from '@/lib/i18n/translations'
 import type { PushSubscription as AppPushSubscription } from '@/types/notifications'
 import { toast } from 'sonner'
 
@@ -60,6 +61,17 @@ export function usePushNotifications() {
 
     async function subscribeToPush() {
         if (!isSupported) return
+        if (getPushClientType() !== 'pwa') {
+            const lang =
+                typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('ca')
+                    ? 'ca-ES'
+                    : 'es-ES'
+            const msg =
+                translations[lang]['notifications.error.pwaOnly'] ??
+                translations['es-ES']['notifications.error.pwaOnly']
+            toast.error(msg)
+            return
+        }
         setLoading(true)
         try {
             const registration = await navigator.serviceWorker.ready

@@ -20,6 +20,9 @@ export interface Profile {
     rol: UserRole
     avatar_url: string | null
     pulpito: boolean
+    /** Preferencia de idioma en BD (nombre real de columna en Supabase) */
+    idioma_preferido?: 'es-ES' | 'ca-ES' | string | null
+    /** Alias usado en código antiguo; en producción suele mapearse desde idioma_preferido */
     language?: 'es-ES' | 'ca-ES'
     availability?: {
         template?: Record<string, {

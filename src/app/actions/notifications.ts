@@ -5,7 +5,7 @@ import { ActionResponse } from '@/types/database'
 import { PushSubscription, type PushClientType } from '@/types/notifications'
 import { selectSubscriptionsForSend } from '@/app/actions/notifications-subscriptions'
 import { translations } from '@/lib/i18n/translations'
-import type { Language } from '@/lib/i18n/types'
+import { profilePreferredLanguage } from '@/lib/profile-language'
 
 function normalizeClientType(raw: PushSubscription['clientType'] | undefined): PushClientType {
     if (raw === 'pwa' || raw === 'browser') return raw
@@ -39,6 +39,8 @@ async function getWebPush() {
     return null
 }
 
+const PWA_ONLY_ERROR = 'Las notificaciones push solo se pueden activar desde la app instalada (PWA), no desde el navegador.'
+
 export async function subscribeToPush(subscription: PushSubscription): Promise<ActionResponse<void>> {
     try {
         const supabase = await createClient()
@@ -49,6 +51,9 @@ export async function subscribeToPush(subscription: PushSubscription): Promise<A
         }
 
         const clientType = normalizeClientType(subscription.clientType)
+        if (clientType !== 'pwa') {
+            return { success: false, error: PWA_ONLY_ERROR }
+        }
 
         const { error } = await supabase
             .from('user_subscriptions')
@@ -63,14 +68,12 @@ export async function subscribeToPush(subscription: PushSubscription): Promise<A
 
         if (error) throw error
 
-        if (clientType === 'pwa') {
-            const { error: delErr } = await supabase
-                .from('user_subscriptions')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('client_type', 'browser')
-            if (delErr) throw delErr
-        }
+        const { error: delErr } = await supabase
+            .from('user_subscriptions')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('client_type', 'browser')
+        if (delErr) throw delErr
 
         return { success: true }
     } catch (error) {
@@ -133,14 +136,14 @@ export async function sendTestNotification(): Promise<ActionResponse<void>> {
         const toSend = selectSubscriptionsForSend(subscriptions ?? [])
 
         if (toSend.length === 0) {
-            const { data: profile } = await supabase.from('profiles').select('language').eq('id', user.id).single()
-            const lang = (profile?.language || 'es-ES') as Language
+            const { data: profile } = await supabase.from('profiles').select('idioma_preferido').eq('id', user.id).single()
+            const lang = profilePreferredLanguage(profile)
             const t = (key: keyof typeof translations['es-ES']) => translations[lang]?.[key] ?? translations['es-ES'][key] ?? String(key)
             return { success: false, error: t('notifications.error.noSubscriptions' as keyof typeof translations['es-ES']) }
         }
 
-        const { data: profile } = await supabase.from('profiles').select('language').eq('id', user.id).single()
-        const lang = (profile?.language || 'es-ES') as Language
+        const { data: profile } = await supabase.from('profiles').select('idioma_preferido').eq('id', user.id).single()
+        const lang = profilePreferredLanguage(profile)
         const t = (key: keyof typeof translations['es-ES']) => translations[lang]?.[key] ?? translations['es-ES'][key] ?? String(key)
 
         const payload = JSON.stringify({

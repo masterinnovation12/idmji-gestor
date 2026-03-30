@@ -1,28 +1,29 @@
 'use client'
 
+import type { ReactNode } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { Bell } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useI18n } from '@/lib/i18n/I18nProvider'
+import { getPushClientType } from '@/lib/push-client-type'
 
 export default function NotificationToggle() {
     const { isSupported, subscription, subscribeToPush, loading } = usePushNotifications()
     const { t } = useI18n()
+    const [isPwa, setIsPwa] = useState<boolean | null>(null)
+
+    useLayoutEffect(() => {
+        setIsPwa(getPushClientType() === 'pwa')
+    }, [])
 
     const isEnabled = !!subscription
+    const desc =
+        isPwa === false ? t('notifications.pwaOnly.desc') : t('profile.notifications.desc')
 
-    return (
-        <div className="flex items-center justify-between p-4 rounded-xl bg-background/30 border border-border">
-            <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                    <Bell className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                    <p className="font-medium">{t('profile.notifications')}</p>
-                    <p className="text-xs text-muted-foreground">{t('profile.notifications.desc')}</p>
-                </div>
-            </div>
-
-            {isSupported ? (
+    let toggleControl: ReactNode = null
+    if (isPwa !== false) {
+        if (isSupported) {
+            toggleControl = (
                 <button
                     onClick={isEnabled ? undefined : subscribeToPush}
                     disabled={isEnabled || loading}
@@ -39,9 +40,24 @@ export default function NotificationToggle() {
                         `}
                     />
                 </button>
-            ) : (
-                <span className="text-xs text-muted-foreground">No soportado</span>
-            )}
+            )
+        } else {
+            toggleControl = <span className="text-xs text-muted-foreground">No soportado</span>
+        }
+    }
+
+    return (
+        <div className="flex items-center justify-between p-4 rounded-xl bg-background/30 border border-border">
+            <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                    <Bell className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                    <p className="font-medium">{t('profile.notifications')}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                </div>
+            </div>
+            {toggleControl}
         </div>
     )
 }

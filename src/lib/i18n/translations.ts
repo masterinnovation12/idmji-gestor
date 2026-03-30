@@ -90,6 +90,7 @@ export const translations = {
         'dashboard.himnario.totalTime': 'Tiempo Himnos y Coros',
         'dashboard.himnario.totalTimeHymns': 'Tiempo Himnos',
         'dashboard.himnario.totalTimeChoruses': 'Tiempo Coros',
+        'dashboard.himnario.timeTotal': 'Tiempo total',
         'dashboard.navigator.today': 'HOY',
         'dashboard.navigator.noService': 'Sin culto programado',
         'dashboard.navigator.loading': 'Cargando...',
@@ -605,6 +606,10 @@ export const translations = {
         'notifications.error.noPermission': 'No se otorgó el permiso de notificaciones',
         'notifications.error.db': 'La base de datos no está configurada para notificaciones',
         'notifications.error.pushServiceUnavailable': 'El servicio push no está disponible en localhost. Prueba en producción (HTTPS) o usa ngrok para exponer tu servidor local.',
+        'notifications.error.pwaOnly': 'Las notificaciones solo se activan desde la app instalada (PWA), no desde el navegador.',
+        'notifications.pwaOnly.title': 'Solo en la app instalada',
+        'notifications.pwaOnly.desc': 'Abre el acceso directo de IDMJI en tu pantalla de inicio y activa las notificaciones ahí. Así evitas avisos duplicados (Chrome + app).',
+        'notifications.pwaOnly.revokeBrowser': 'Quitar permiso en este navegador',
     },
     'ca-ES': {
         // Login
@@ -697,6 +702,7 @@ export const translations = {
         'dashboard.himnario.totalTime': 'Temps Himnes i Coros',
         'dashboard.himnario.totalTimeHymns': 'Temps Himnes',
         'dashboard.himnario.totalTimeChoruses': 'Temps Coros',
+        'dashboard.himnario.timeTotal': 'Temps total',
         'dashboard.navigator.today': 'AVUI',
         'dashboard.navigator.noService': 'Sense culte programat',
         'dashboard.navigator.loading': 'Carregant...',
@@ -1213,5 +1219,9 @@ export const translations = {
         'notifications.error.noPermission': 'No s\'ha concedit el permís de notificacions',
         'notifications.error.db': 'La base de dades no està configurada per a notificacions',
         'notifications.error.pushServiceUnavailable': 'El servei push no està disponible a localhost. Prova en producció (HTTPS) o usa ngrok per exposar el teu servidor local.',
+        'notifications.error.pwaOnly': 'Les notificacions només es poden activar des de l\'app instal·lada (PWA), no des del navegador.',
+        'notifications.pwaOnly.title': 'Només a l\'app instal·lada',
+        'notifications.pwaOnly.desc': 'Obre la drecera d\'IDMJI a la pantalla d\'inici i activa les notificacions allà. Així evites avisos duplicats (Chrome + app).',
+        'notifications.pwaOnly.revokeBrowser': 'Treure permís en aquest navegador',
     },
 } as const

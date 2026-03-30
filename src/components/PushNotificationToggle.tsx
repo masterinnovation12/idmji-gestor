@@ -10,7 +10,7 @@
 
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useLayoutEffect } from 'react'
 import { Bell, BellOff, Send, AlertCircle, Check, Loader2 } from 'lucide-react'
 import { subscribeToPush, unsubscribeFromPush, sendTestNotification } from '@/app/actions/notifications'
 import { getPushClientType } from '@/lib/push-client-type'
@@ -23,6 +23,7 @@ type NotificationStatus = 'checking' | 'unsupported' | 'denied' | 'inactive' | '
 export function PushNotificationToggle() {
     const { t } = useI18n()
     const [mounted, setMounted] = useState(false)
+    const [isPwa, setIsPwa] = useState<boolean | null>(null)
     const [status, setStatus] = useState<NotificationStatus>('checking')
     const [isLoading, setIsLoading] = useState(false)
     const [subscription, setSubscription] = useState<PushSubscription | null>(null)
@@ -30,6 +31,10 @@ export function PushNotificationToggle() {
 
     useEffect(() => {
         setMounted(true)
+    }, [])
+
+    useLayoutEffect(() => {
+        setIsPwa(getPushClientType() === 'pwa')
     }, [])
 
     // Check subscription status on mount
@@ -71,6 +76,10 @@ export function PushNotificationToggle() {
     }, [mounted, checkSubscription])
 
     async function handleSubscribe() {
+        if (getPushClientType() !== 'pwa') {
+            toast.error(t('notifications.error.pwaOnly'))
+            return
+        }
         setIsLoading(true)
         setErrorMessage(null)
 
@@ -200,6 +209,30 @@ export function PushNotificationToggle() {
 
     // Render based on status
     const renderContent = () => {
+        if (isPwa === false) {
+            return (
+                <div className="space-y-3">
+                    <div className="flex items-start gap-3 text-amber-700 dark:text-amber-400">
+                        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-medium text-sm">{t('notifications.pwaOnly.title')}</p>
+                            <p className="text-xs opacity-90 mt-1 leading-relaxed">{t('notifications.pwaOnly.desc')}</p>
+                        </div>
+                    </div>
+                    {subscription && (
+                        <button
+                            type="button"
+                            onClick={handleUnsubscribe}
+                            disabled={isLoading}
+                            className="text-xs font-bold text-muted-foreground hover:text-foreground underline underline-offset-2"
+                        >
+                            {t('notifications.pwaOnly.revokeBrowser')}
+                        </button>
+                    )}
+                </div>
+            )
+        }
+
         switch (status) {
             case 'checking':
                 return (
@@ -312,7 +345,7 @@ export function PushNotificationToggle() {
         }
     }
 
-    if (!mounted) {
+    if (!mounted || isPwa === null) {
         return (
             <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700">
                 <div className="flex items-center gap-3 text-muted-foreground">

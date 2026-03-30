@@ -80,7 +80,7 @@ export async function updateProfile(
                 apellidos: updates.apellidos,
                 email_contacto: updates.email_contacto || null,
                 telefono: updates.telefono || null,
-                language: updates.language,
+                idioma_preferido: updates.language ?? 'es-ES',
                 availability: updates.availability || {}
             })
             .eq('id', user.id)

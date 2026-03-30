@@ -81,10 +81,10 @@ describe('selectSubscriptionsForSend', () => {
         expect(selectSubscriptionsForSend([])).toEqual([])
     })
 
-    it('solo browser → todas las browser', () => {
+    it('solo browser → ninguna (solo se envía a PWA)', () => {
         const a = row('browser', 'e1')
         const b = row('browser', 'e2')
-        expect(selectSubscriptionsForSend([a, b])).toEqual([a, b])
+        expect(selectSubscriptionsForSend([a, b])).toEqual([])
     })
 
     it('solo pwa → todas las pwa', () => {
@@ -99,10 +99,15 @@ describe('selectSubscriptionsForSend', () => {
         expect(selectSubscriptionsForSend([a, b])).toEqual([b])
     })
 
-    it('client_type null o vacío se trata como browser', () => {
+    it('client_type null no recibe envío', () => {
         const a = row(null, 'e1')
         const b = row('pwa', 'e2')
         expect(selectSubscriptionsForSend([a, b])).toEqual([b])
+    })
+
+    it('solo null o browser sin pwa → vacío', () => {
+        const a = row(null, 'e1')
+        expect(selectSubscriptionsForSend([a])).toEqual([])
     })
 })
 
@@ -111,7 +116,7 @@ describe('subscribeToPush', () => {
         vi.clearAllMocks()
     })
 
-    it('devuelve success cuando el usuario está autenticado y upsert ok', async () => {
+    it('devuelve success cuando el usuario está autenticado y upsert ok (solo PWA)', async () => {
         const { createClient } = await import('@/lib/supabase/server')
         ;(createClient as ReturnType<typeof vi.fn>).mockResolvedValue({
             auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }) },
@@ -120,9 +125,24 @@ describe('subscribeToPush', () => {
         const result = await subscribeToPush({
             endpoint: 'https://fcm.googleapis.com/fcm/send/xxx',
             keys: { p256dh: 'key1', auth: 'key2' },
-            clientType: 'browser',
+            clientType: 'pwa',
         })
         expect(result.success).toBe(true)
+    })
+
+    it('rechaza suscripción desde navegador (browser)', async () => {
+        const { createClient } = await import('@/lib/supabase/server')
+        ;(createClient as ReturnType<typeof vi.fn>).mockResolvedValue({
+            auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }) },
+            from: vi.fn(),
+        })
+        const result = await subscribeToPush({
+            endpoint: 'https://fcm.googleapis.com/fcm/send/xxx',
+            keys: { p256dh: 'key1', auth: 'key2' },
+            clientType: 'browser',
+        })
+        expect(result.success).toBe(false)
+        expect(result.error).toContain('PWA')
     })
 
     it('upsert incluye client_type pwa cuando el payload lo trae', async () => {
@@ -244,7 +264,7 @@ describe('sendTestNotification', () => {
         )
     })
 
-    it('solo browser envía a todas las browser', async () => {
+    it('solo browser no envía (solo PWA)', async () => {
         const { createClient } = await import('@/lib/supabase/server')
         ;(createClient as ReturnType<typeof vi.fn>).mockResolvedValue({
             auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } }, error: null }) },
@@ -267,8 +287,8 @@ describe('sendTestNotification', () => {
                 }),
         })
         const result = await sendTestNotification()
-        expect(result.success).toBe(true)
-        expect(mockSendNotification).toHaveBeenCalledTimes(2)
+        expect(result.success).toBe(false)
+        expect(mockSendNotification).not.toHaveBeenCalled()
     })
 })
 

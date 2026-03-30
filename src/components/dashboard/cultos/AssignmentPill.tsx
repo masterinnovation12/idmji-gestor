@@ -14,16 +14,7 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
         return `${mins}:${secs.toString().padStart(2, '0')}`
     }
 
-    const hasHimnos = himnario?.some(item => item.tipo === 'himno')
-    const hasCoros = himnario?.some(item => item.tipo === 'coro')
     const totalSeconds = himnario?.reduce((acc, item) => acc + (item.himno?.duracion_segundos || item.coro?.duracion_segundos || 0), 0) || 0
-
-    const tiempoLabel = () => {
-        if (hasHimnos && hasCoros) return t('dashboard.himnario.totalTime')
-        if (hasHimnos) return t('dashboard.himnario.totalTimeHymns')
-        if (hasCoros) return t('dashboard.himnario.totalTimeChoruses')
-        return ""
-    }
 
     const himnarioTitle = tipoCulto?.toLowerCase().includes('enseñanza') || tipoCulto?.toLowerCase().includes('ensenanza')
         ? t('dashboard.himnario.timeEnsenanza')
@@ -160,18 +151,25 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
                         })}
                     </div>
 
-                    {/* Pie inteligente Flotante */}
-                    <div className="flex items-center justify-center mt-3 pt-4 border-t border-indigo-500/10 dark:border-indigo-400/10">
-                        <div className="px-5 py-2.5 bg-slate-900 dark:bg-white rounded-2xl shadow-xl shadow-indigo-500/20 flex items-center gap-3 border border-white/10 dark:border-black/5 hover:scale-105 transition-transform cursor-default group/total">
-                            <div className="w-8 h-8 rounded-full bg-blue-500/20 dark:bg-blue-100 flex items-center justify-center">
-                                <Clock className="w-4 h-4 text-blue-400 dark:text-blue-600 animate-pulse" />
+                    {/* Total de tiempo: fondo más visible, alineado con el bloque himnario (indigo) */}
+                    <div className="flex items-center justify-center mt-3 pt-4 border-t border-indigo-200/50 dark:border-indigo-500/25">
+                        <div
+                            className="px-4 py-3 sm:px-5 sm:py-3.5 w-full max-w-sm rounded-2xl flex items-center gap-3 cursor-default
+                            border border-indigo-200/90 dark:border-indigo-400/35
+                            bg-linear-to-br from-indigo-50 via-white to-blue-50/90 dark:from-indigo-950/70 dark:via-zinc-900/85 dark:to-slate-950/90
+                            shadow-md shadow-indigo-500/10 dark:shadow-indigo-950/40
+                            ring-1 ring-indigo-500/20 dark:ring-indigo-400/25"
+                        >
+                            <div className="w-9 h-9 rounded-xl bg-indigo-600/15 dark:bg-indigo-400/20 flex items-center justify-center shrink-0 border border-indigo-300/50 dark:border-indigo-500/40 shadow-inner">
+                                <Clock className="w-[18px] h-[18px] text-indigo-700 dark:text-indigo-300" />
                             </div>
-                            <div className="flex flex-col items-start leading-none">
-                                <span className="text-[8px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1">
-                                    {tiempoLabel()}
+                            <div className="flex flex-col items-start leading-none min-w-0">
+                                <span className="text-xs sm:text-sm font-black uppercase tracking-wide mb-1 text-indigo-800/90 dark:text-indigo-200">
+                                    {t('dashboard.himnario.timeTotal')}
                                 </span>
-                                <span className="text-white dark:text-slate-900 font-mono text-sm font-black tracking-tighter">
-                                    {formatDuration(totalSeconds)} <span className="text-[9px] opacity-60">min</span>
+                                <span className="text-indigo-950 dark:text-white font-mono text-base font-black tracking-tighter tabular-nums">
+                                    {formatDuration(totalSeconds)}{' '}
+                                    <span className="text-[9px] font-sans font-bold text-indigo-600/80 dark:text-indigo-300/90">min</span>
                                 </span>
                             </div>
                         </div>

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { sendNotificationToUser } from '@/app/actions/notifications'
+import { formatHoraNotificacion } from '@/lib/format-hora-notificacion'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -74,12 +75,15 @@ export async function updateAssignment(
                 const tipoCulto = (culto.tipo_culto as unknown as { nombre: string })?.nombre || 'Culto'
                 const tipoLabel = tipoAsignacionLabels[tipoAsignacion] || tipoAsignacion
 
-                await sendNotificationToUser(
+                const notifResult = await sendNotificationToUser(
                     userId,
                     '¡Nueva Asignación!',
-                    `${tipoLabel} - ${tipoCulto} del ${fechaFormateada} a las ${culto.hora_inicio}`,
+                    `${tipoLabel} - ${tipoCulto} del ${fechaFormateada} a las ${formatHoraNotificacion(culto.hora_inicio)}`,
                     `/dashboard/cultos/${cultoId}`
                 )
+                if (!notifResult.success) {
+                    console.error('Notificación de asignación no enviada:', notifResult.error, { userId })
+                }
             }
         } catch (notifError) {
             // No bloquear si falla la notificación

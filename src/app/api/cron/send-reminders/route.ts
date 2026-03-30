@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { sendNotificationToUser } from '@/app/actions/notifications'
 import { translations } from '@/lib/i18n/translations'
-import type { Language } from '@/lib/i18n/types'
+import { profilePreferredLanguage } from '@/lib/profile-language'
+import { formatHoraNotificacion } from '@/lib/format-hora-notificacion'
 import { format } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
@@ -49,16 +50,16 @@ export async function GET(request: Request) {
                     // Obtener perfil del usuario para saber su idioma
                     const { data: profile } = await supabase
                         .from('profiles')
-                        .select('language, nombre')
+                        .select('idioma_preferido, nombre')
                         .eq('id', role.id)
                         .single()
 
-                    const lang = (profile?.language || 'es-ES') as Language
+                    const lang = profilePreferredLanguage(profile)
                     const t = (key: any) => translations[lang][key as keyof typeof translations['es-ES']] || key
 
                     const roleLabel = t(role.key)
                     const cultoTypeLabel = culto.tipo_culto?.nombre || 'Culto'
-                    const timeLabel = culto.hora_inicio ? culto.hora_inicio.substring(0, 5) : '--:--'
+                    const timeLabel = formatHoraNotificacion(culto.hora_inicio)
 
                     const title = t('notifications.reminder.title')
                     const body = t('notifications.reminder.body')
