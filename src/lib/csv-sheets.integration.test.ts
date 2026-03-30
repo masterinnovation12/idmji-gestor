@@ -1,9 +1,9 @@
 /**
- * Test de integración: fetch real + parse.
- * Requiere .env.local con SHEET_*_CSV_URL.
- * Ejecutar: npm run test -- src/lib/csv-sheets.integration.test.ts
+ * Test de integración: parse + fetch con red simulada.
+ * El fetch global se mockea para que no dependa de Google Sheets (500/timeout en CI).
+ * Para probar URLs reales, ejecutar manualmente con RUN_CSV_LIVE=1 o quitar el mock.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
 import {
   getSheetCSVUrl,
   fetchAndParseSheetCSV,
@@ -13,7 +13,28 @@ import {
 
 const SOURCES: SheetSourceId[] = ['ensenanzas', 'estudios', 'instituto', 'pastorado']
 
+const SAMPLE_CSV_BODY = 'MES,DÍA,TÍTULO,NOTAS\nEnero,1,Fila de prueba,\n'
+
 describe('csv-sheets integration', () => {
+  beforeAll(() => {
+    if (process.env.RUN_CSV_LIVE === '1') return
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        return new Response(SAMPLE_CSV_BODY, {
+          status: 200,
+          statusText: 'OK',
+          headers: { 'Content-Type': 'text/csv; charset=utf-8' },
+        })
+      })
+    )
+  })
+
+  afterAll(() => {
+    if (process.env.RUN_CSV_LIVE === '1') return
+    vi.unstubAllGlobals()
+  })
+
   for (const id of SOURCES) {
     it(`${id}: URL configurada y fetch devuelve datos`, async () => {
       const url = getSheetCSVUrl(id)

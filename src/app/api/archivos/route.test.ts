@@ -1,9 +1,15 @@
 /**
  * Test del API route /api/archivos.
  * Verifica que con auth mockeada devuelve datos para cada source.
+ * Las hojas CSV reales no se llaman: se mockea csv-sheets para CI/red estable.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GET } from './route'
+
+vi.mock('@/lib/csv-sheets', () => ({
+  getSheetCSVUrl: vi.fn((sourceId: string) => `https://example.com/mock-${sourceId}.csv`),
+  fetchAndParseSheetCSV: vi.fn(async () => [{ DIA: '1', TITULO: 'Fila de prueba' }]),
+}))
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() =>
