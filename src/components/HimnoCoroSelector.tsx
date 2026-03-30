@@ -17,10 +17,10 @@
 
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Search, Plus, Trash2, Music, Clock, ChevronUp, ChevronDown } from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
-import { searchHimnos, searchCoros, addHimnoCoro, removeHimnoCoro, getHimnosCorosByCulto, updateHimnosCorosOrder, updateSequencePointer } from '@/app/dashboard/himnos/actions'
+import { searchHimnos, searchCoros, addHimnoCoro, removeHimnoCoro, getHimnosCorosByCulto, updateHimnosCorosOrder, replaceCultoPlanAfterSequenceConfirm, updateSequencePointer } from '@/app/dashboard/himnos/actions'
 import { Himno, Coro, PlanHimnoCoro, Profile } from '@/types/database'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -43,6 +43,12 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
 import { LIMITES } from '@/lib/constants'
+import {
+    isTipoCultoEnsenanza,
+    displayListEnsenanza,
+    assignGlobalOrden,
+    needsEnsenanzaOrderNormalization,
+} from '@/lib/utils/himnoCoroEnsenanzaOrder'
 
 interface HimnoCoroSelectorProps {
     cultoId?: string // Now optional for calculator mode
@@ -196,6 +202,8 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
     const [isSequenceModalOpen, setIsSequenceModalOpen] = useState(false)
     const [isUpdatingSequence, setIsUpdatingSequence] = useState(false)
     const [pendingCoroId, setPendingCoroId] = useState<number | null>(null)
+    /** Tipo del ítem recién añadido al abrir el modal (no la pestaña activa tras cambiar de tab). */
+    const [pendingSequenceTipo, setPendingSequenceTipo] = useState<'himno' | 'coro' | null>(null)
     const [userProfile, setUserProfile] = useState<Profile | null>(null)
 
     const debouncedQuery = useDebounce(query, 300)
@@ -216,6 +224,17 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
     const sortedSelected = useMemo(() => {
         return [...selected].sort((a, b) => a.orden - b.orden)
     }, [selected])
+
+    const isAlabanza = tipoCulto?.toLowerCase().includes('alabanza')
+    const isEnsenanza = isTipoCultoEnsenanza(tipoCulto)
+
+    /** En enseñanza: siempre himnos primero y coros después (orden relativo dentro de cada bloque). */
+    const listForUi = useMemo(() => {
+        if (!isEnsenanza) return sortedSelected
+        return displayListEnsenanza(sortedSelected)
+    }, [sortedSelected, isEnsenanza])
+
+    const lastEnsenanzaNormalizeSigRef = useRef<string>('')
 
     const supabase = createClient()
     const [userId, setUserId] = useState<string | null>(null)
@@ -267,6 +286,38 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
         }
         loadData()
     }, [cultoId, userId])
+
+    useEffect(() => {
+        lastEnsenanzaNormalizeSigRef.current = ''
+    }, [cultoId])
+
+    // Persistir orden global coherente (himnos → coros) si la BD tenía orden mezclado
+    useEffect(() => {
+        if (!cultoId || !isEnsenanza || selected.length === 0) return
+        if (!needsEnsenanzaOrderNormalization(selected)) return
+
+        const sig = [cultoId, ...selected.map((s) => `${String(s.id)}:${String(s.orden)}`)].join('|')
+        if (lastEnsenanzaNormalizeSigRef.current === sig) return
+
+        let cancelled = false
+        ;(async () => {
+            const updated = assignGlobalOrden(displayListEnsenanza(selected))
+            const result = await updateHimnosCorosOrder(
+                cultoId,
+                updated.map((u) => ({ id: u.id, orden: u.orden }))
+            )
+            if (cancelled) return
+            lastEnsenanzaNormalizeSigRef.current = sig
+            if (!result.error) {
+                setSelected(updated)
+            } else {
+                toast.error('No se pudo normalizar el orden de himnos/coros')
+            }
+        })()
+        return () => {
+            cancelled = true
+        }
+    }, [cultoId, isEnsenanza, selected])
 
     // Guardar sesión actual en cada cambio (modo calculadora)
     useEffect(() => {
@@ -325,11 +376,9 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                 toast.success(`${tipo === 'himno' ? 'Himno' : 'Coro'} añadido`)
                 
                 // --- LÓGICA DE SECUENCIA AUTOMÁTICA (SOLO ADMIN) ---
-                const isAlabanza = tipoCulto?.toLowerCase().includes('alabanza')
-                const isEnsenanza = tipoCulto?.toLowerCase().includes('enseñanza') || tipoCulto?.toLowerCase().includes('ensenanza')
-
                 if (userProfile?.rol === 'ADMIN') {
                     if ((isAlabanza && tipo === 'coro') || (isEnsenanza)) {
+                        setPendingSequenceTipo(tipo)
                         setPendingCoroId(item.id)
                         setIsSequenceModalOpen(true)
                     }
@@ -375,18 +424,22 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
     }
 
     const handleMoveUp = async (id: string) => {
-        const index = sortedSelected.findIndex(item => item.id === id)
+        const list = listForUi
+        const index = list.findIndex(item => item.id === id)
         if (index <= 0) return
+        if (isEnsenanza && list[index - 1].tipo !== list[index].tipo) return
 
-        const newSelected = arrayMove(sortedSelected, index, index - 1)
+        const newSelected = arrayMove(list, index, index - 1)
         await updateOrder(newSelected)
     }
 
     const handleMoveDown = async (id: string) => {
-        const index = sortedSelected.findIndex(item => item.id === id)
-        if (index < 0 || index >= sortedSelected.length - 1) return
+        const list = listForUi
+        const index = list.findIndex(item => item.id === id)
+        if (index < 0 || index >= list.length - 1) return
+        if (isEnsenanza && list[index + 1].tipo !== list[index].tipo) return
 
-        const newSelected = arrayMove(sortedSelected, index, index + 1)
+        const newSelected = arrayMove(list, index, index + 1)
         await updateOrder(newSelected)
     }
 
@@ -394,10 +447,14 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
         const { active, over } = event
 
         if (over && active.id !== over.id) {
-            const oldIndex = sortedSelected.findIndex(item => item.id === active.id)
-            const newIndex = sortedSelected.findIndex(item => item.id === over.id)
+            const list = listForUi
+            const oldIndex = list.findIndex(item => item.id === active.id)
+            const newIndex = list.findIndex(item => item.id === over.id)
+            if (oldIndex < 0 || newIndex < 0) return
 
-            const newSelected = arrayMove(sortedSelected, oldIndex, newIndex)
+            if (isEnsenanza && list[oldIndex].tipo !== list[newIndex].tipo) return
+
+            const newSelected = arrayMove(list, oldIndex, newIndex)
             await updateOrder(newSelected)
         }
     }
@@ -498,28 +555,39 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
     }
 
     const handleConfirmUpdateSequence = async () => {
-        if (pendingCoroId) {
+        if (pendingCoroId != null) {
             setIsUpdatingSequence(true)
             try {
-                const isAlabanza = tipoCulto?.toLowerCase().includes('alabanza')
-                const isEnsenanza = tipoCulto?.toLowerCase().includes('enseñanza') || tipoCulto?.toLowerCase().includes('ensenanza')
-                
+                const addedType = pendingSequenceTipo ?? tipo
                 let key = ''
-                if (isAlabanza && tipo === 'coro') key = 'ultimo_coro_id_alabanza'
-                else if (isEnsenanza && tipo === 'himno') key = 'ultimo_himno_id_ensenanza'
-                else if (isEnsenanza && tipo === 'coro') key = 'ultimo_coro_id_ensenanza'
+                if (isAlabanza && addedType === 'coro') key = 'ultimo_coro_id_alabanza'
+                else if (isEnsenanza && addedType === 'himno') key = 'ultimo_himno_id_ensenanza'
+                else if (isEnsenanza && addedType === 'coro') key = 'ultimo_coro_id_ensenanza'
 
                 if (key) {
-                    const result = await updateSequencePointer(key, pendingCoroId, cultoDate)
+                    const result =
+                        cultoId && tipoCulto && cultoDate
+                            ? await replaceCultoPlanAfterSequenceConfirm(
+                                  cultoId,
+                                  key,
+                                  pendingCoroId,
+                                  cultoDate,
+                                  tipoCulto
+                              )
+                            : await updateSequencePointer(key, pendingCoroId, cultoDate)
+
                     if (result.success) {
-                        toast.success('Secuencia global actualizada')
-                        // Refrescar la lista para mostrar los coros añadidos sin recargar
+                        toast.success(
+                            cultoId && tipoCulto && cultoDate
+                                ? 'Secuencia actualizada: lista sustituida por la secuencia automática'
+                                : 'Secuencia global actualizada'
+                        )
                         if (cultoId) {
                             const { data } = await getHimnosCorosByCulto(cultoId)
                             if (data) setSelected(data)
                         }
                     } else {
-                        toast.error('Error al actualizar secuencia')
+                        toast.error('error' in result && result.error ? result.error : 'Error al actualizar secuencia')
                     }
                 }
             } catch (error) {
@@ -528,6 +596,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                 setIsUpdatingSequence(false)
                 setIsSequenceModalOpen(false)
                 setPendingCoroId(null)
+                setPendingSequenceTipo(null)
             }
         }
     }
@@ -536,10 +605,19 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
     const durationCoros = corosSelected.reduce((acc, curr) => acc + (curr.coro?.duracion_segundos || 0), 0)
     const totalDuration = durationHimnos + durationCoros
 
-    const isAlabanza = tipoCulto?.toLowerCase().includes('alabanza')
-    const isEnsenanza = tipoCulto?.toLowerCase().includes('enseñanza') || tipoCulto?.toLowerCase().includes('ensenanza')
     const sequenceTargetName = isEnsenanza ? 'Enseñanza' : 'Alabanza'
-    const sequenceItemName = tipo === 'himno' ? 'himno' : 'coro'
+    const sequenceItemName = (pendingSequenceTipo ?? tipo) === 'himno' ? 'himno' : 'coro'
+
+    const canMoveUpInList = (index: number) => {
+        if (index <= 0) return false
+        if (isEnsenanza && listForUi[index - 1].tipo !== listForUi[index].tipo) return false
+        return true
+    }
+    const canMoveDownInList = (index: number) => {
+        if (index >= listForUi.length - 1) return false
+        if (isEnsenanza && listForUi[index + 1].tipo !== listForUi[index].tipo) return false
+        return true
+    }
 
     return (
         <div className={`space-y-3 md:space-y-5 ${className} overflow-hidden w-full`}>
@@ -682,9 +760,14 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-1">
                     {cultoId ? 'Himnos y Coros del Culto' : 'Elementos en la calculadora'}
                 </h3>
+                {isEnsenanza && himnosSelected.length > 0 && corosSelected.length > 0 && (
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1 leading-relaxed">
+                        En culto de enseñanza se muestran primero los himnos y después los coros.
+                    </p>
+                )}
 
                 <AnimatePresence mode='popLayout'>
-                    {sortedSelected.length === 0 && (
+                    {listForUi.length === 0 && (
                         <motion.div
                             key="empty-state"
                             initial={{ opacity: 0 }}
@@ -703,11 +786,11 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                         onDragEnd={handleDragEnd}
                     >
                         <SortableContext
-                            items={sortedSelected.map((item, idx) => item.id || `sortable-item-${idx}-${item.item_id || item.orden || idx}`)}
+                            items={listForUi.map((item, idx) => item.id || `sortable-item-${idx}-${item.item_id || item.orden || idx}`)}
                             strategy={verticalListSortingStrategy}
                         >
                             <div className="space-y-2">
-                                {sortedSelected.map((item, index) => (
+                                {listForUi.map((item, index) => (
                                     <SortableItem
                                         key={item.id || `sortable-item-${index}-${item.item_id || item.orden || index}`}
                                         id={item.id || `sortable-item-${index}-${item.item_id || item.orden || index}`}
@@ -715,8 +798,8 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                                         onRemove={handleRemove}
                                         onMoveUp={handleMoveUp}
                                         onMoveDown={handleMoveDown}
-                                        isFirst={index === 0}
-                                        isLast={index === sortedSelected.length - 1}
+                                        isFirst={!canMoveUpInList(index)}
+                                        isLast={!canMoveDownInList(index)}
                                     />
                                 ))}
                             </div>
@@ -783,7 +866,11 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             className="absolute inset-0 bg-black/70 backdrop-blur-xl"
-                            onClick={() => setIsSequenceModalOpen(false)}
+                            onClick={() => {
+                                setIsSequenceModalOpen(false)
+                                setPendingCoroId(null)
+                                setPendingSequenceTipo(null)
+                            }}
                         />
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
@@ -798,6 +885,13 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                             <h2 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white mb-4 uppercase italic">Actualizar Secuencia</h2>
                             <p className="text-sm font-bold text-gray-500 dark:text-zinc-400 mb-8 leading-relaxed">
                                 ¿Deseas que los futuros cultos de {sequenceTargetName} sigan la secuencia automática a partir de este {sequenceItemName}?
+                                {cultoId ? (
+                                    <span className="block mt-3 text-xs font-semibold text-amber-700 dark:text-amber-400/90">
+                                        {isEnsenanza
+                                            ? `Solo se sustituyen los ${sequenceItemName === 'himno' ? 'himnos' : 'coros'} de este culto por la secuencia automática; la otra parte de la lista no se cambia.`
+                                            : 'En este culto se quitarán los coros actuales y se pondrán los que marque la secuencia automática.'}
+                                    </span>
+                                ) : null}
                             </p>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -805,6 +899,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                                     onClick={() => {
                                         setIsSequenceModalOpen(false)
                                         setPendingCoroId(null)
+                                        setPendingSequenceTipo(null)
                                     }}
                                     className="h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all"
                                 >

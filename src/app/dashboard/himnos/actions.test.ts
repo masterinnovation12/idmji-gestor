@@ -60,6 +60,9 @@ vi.mock('@/lib/supabase/server', () => ({
         if (table === 'himnos') {
           return {
             select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
+              }),
               gt: vi.fn().mockReturnValue({
                 order: vi.fn().mockReturnValue({
                   limit: vi.fn().mockResolvedValue({
@@ -74,6 +77,9 @@ vi.mock('@/lib/supabase/server', () => ({
         if (table === 'coros') {
           return {
             select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: 10 }, error: null }),
+              }),
               gt: vi.fn().mockReturnValue({
                 order: vi.fn().mockReturnValue({
                   limit: vi.fn().mockResolvedValue({
@@ -160,6 +166,9 @@ describe('autoFillEnsenanzaSequence', () => {
         if (table === 'himnos') {
           return {
             select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
+              }),
               gt: vi.fn().mockReturnValue({
                 order: vi.fn().mockReturnValue({
                   limit: vi.fn().mockResolvedValue({
@@ -174,6 +183,9 @@ describe('autoFillEnsenanzaSequence', () => {
         if (table === 'coros') {
           return {
             select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: 10 }, error: null }),
+              }),
               gt: vi.fn().mockReturnValue({
                 order: vi.fn().mockReturnValue({
                   limit: vi.fn().mockResolvedValue({
