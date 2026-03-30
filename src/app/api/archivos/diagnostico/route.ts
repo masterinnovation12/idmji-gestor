@@ -28,9 +28,9 @@ export async function GET() {
         results[sourceId] = { url: null, rowCount: 0, firstKeys: [], error: 'URL no configurada' }
         continue
       }
-      const data = await fetchAndParseSheetCSV(url)
+      const { data, meta } = await fetchAndParseSheetCSV(url)
       const firstKeys = data.length > 0 ? Object.keys(data[0]) : []
-      results[sourceId] = { url, rowCount: data.length, firstKeys }
+      results[sourceId] = { url, rowCount: data.length, firstKeys, stale: meta.stale }
     } catch (e) {
       results[sourceId] = {
         url: getSheetCSVUrl(sourceId) ?? null,

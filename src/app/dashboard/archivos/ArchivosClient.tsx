@@ -11,11 +11,26 @@ import {
   RefreshCw, Search, X, ArrowUpDown, ArrowUp, ArrowDown, ChevronsUpDown
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { SheetSourceId } from '@/lib/csv-sheets'
+import type { SheetSourceId, SheetFetchMeta } from '@/lib/csv-sheets'
 import { pickPrimaryColumn, type DateColResult } from './archivos-helpers'
 
 /* ─── Constants ─────────────────────────────────────────── */
 const POLLING_INTERVAL_MS = 45_000
+/** Si la pestaña está en caché, reintentar más a menudo hasta recuperar datos en vivo */
+const POLLING_STALE_MS = 12_000
+
+function formatCachedAtLabel(iso: string | undefined, lang: string): string {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    return new Intl.DateTimeFormat(lang === 'ca-ES' ? 'ca' : 'es', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    }).format(d)
+  } catch {
+    return iso
+  }
+}
 
 const MONTHS_ES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -723,11 +738,12 @@ function RowCard({ row, columns, dateInfo, tabId, accentBg, accentText, onClick,
 /* ─── Main component ─────────────────────────────────────── */
 type ArchivosClientProps = {
   initialData?: Partial<Record<SheetSourceId, Record<string, string>[]>>
+  initialMeta?: Partial<Record<SheetSourceId, SheetFetchMeta>>
   initialErrors?: Partial<Record<SheetSourceId, string>>
 }
 
-export default function ArchivosClient({ initialData = {}, initialErrors }: ArchivosClientProps) {
-  const { t } = useI18n()
+export default function ArchivosClient({ initialData = {}, initialMeta, initialErrors }: ArchivosClientProps) {
+  const { t, language } = useI18n()
 
   // Tabs con etiquetas traducidas
   const TABS: TabConfig[] = TABS_BASE.map((tab) => ({
@@ -752,6 +768,11 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const initialDataRef = useRef(initialData)
+  const initialMetaRef = useRef(initialMeta)
+  const [staleInfo, setStaleInfo] = useState<{ stale: boolean; cachedAt?: string } | null>(() => {
+    const m = initialMeta?.ensenanzas
+    return m?.stale ? { stale: true, cachedAt: m.cachedAt } : null
+  })
 
   const activeTabConfig = TABS.find((t) => t.id === activeTab)!
 
@@ -773,8 +794,10 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
       if (!result.success) {
         setError(result.error ?? t('archivos.error'))
         setData(null)
+        setStaleInfo(null)
         return
       }
+      setStaleInfo(result.stale ? { stale: true, cachedAt: result.cachedAt } : null)
       setData(result.data ?? [])
     } catch (err) {
       setLoading(false)
@@ -791,13 +814,16 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
     setSortConfig(null)
     const serverRows = initialDataRef.current[activeTab]
     const serverErr = initialErrors?.[activeTab]
+    const serverMeta = initialMetaRef.current?.[activeTab]
     if (Array.isArray(serverRows) && serverRows.length > 0) {
       setData(serverRows)
       setError(null)
+      setStaleInfo(serverMeta?.stale ? { stale: true, cachedAt: serverMeta.cachedAt } : null)
       setLoading(false)
     } else if (serverErr) {
       setError(serverErr)
       setData(null)
+      setStaleInfo(null)
       setLoading(false)
     } else {
       fetchTab(activeTab)
@@ -805,18 +831,19 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])
 
+  const pollIntervalMs = staleInfo?.stale ? POLLING_STALE_MS : POLLING_INTERVAL_MS
   useEffect(() => {
     pollingRef.current = setInterval(() => {
       setRefreshing(true)
       fetchTab(activeTab, true)
-    }, POLLING_INTERVAL_MS)
+    }, pollIntervalMs)
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current)
         pollingRef.current = null
       }
     }
-  }, [activeTab, fetchTab])
+  }, [activeTab, fetchTab, pollIntervalMs])
 
   /* ── Derived ── */
   const columns = useMemo(() => (data && data.length > 0 ? Object.keys(data[0]) : []), [data])
@@ -936,12 +963,30 @@ export default function ArchivosClient({ initialData = {}, initialErrors }: Arch
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground" suppressHydrationWarning>{t('archivos.title')}</h1>
             <p className="text-xs text-muted-foreground mt-0.5" suppressHydrationWarning>
-              Sincronizado desde Google Drive
+              {staleInfo?.stale ? t('archivos.syncStaleHint' as Parameters<typeof t>[0]) : t('archivos.syncSubtitle' as Parameters<typeof t>[0])}
               {refreshing && <span className="ml-2 inline-flex items-center gap-1 text-primary"><RefreshCw className="w-3 h-3 animate-spin" />actualizando…</span>}
             </p>
           </div>
         </div>
       </div>
+
+      {staleInfo?.stale && (
+        <div
+          role="status"
+          className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:text-amber-50 dark:border-amber-400/35 dark:bg-amber-500/15"
+        >
+          <p className="font-semibold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {t('archivos.staleBanner' as Parameters<typeof t>[0])}
+          </p>
+          <p className="text-xs mt-1.5 opacity-95 leading-relaxed">
+            {(t('archivos.staleDetail' as Parameters<typeof t>[0]) as string).replace(
+              '{date}',
+              formatCachedAtLabel(staleInfo.cachedAt, language)
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Tabs — grid 2x2 en móvil, fila horizontal en desktop */}
       <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap gap-2" suppressHydrationWarning>

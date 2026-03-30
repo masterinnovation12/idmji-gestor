@@ -8,7 +8,10 @@ import { GET } from './route'
 
 vi.mock('@/lib/csv-sheets', () => ({
   getSheetCSVUrl: vi.fn((sourceId: string) => `https://example.com/mock-${sourceId}.csv`),
-  fetchAndParseSheetCSV: vi.fn(async () => [{ DIA: '1', TITULO: 'Fila de prueba' }]),
+  fetchAndParseSheetCSV: vi.fn(async () => ({
+    data: [{ DIA: '1', TITULO: 'Fila de prueba' }],
+    meta: { stale: false },
+  })),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -40,6 +43,7 @@ describe('GET /api/archivos', () => {
 
       expect(res.status).toBe(200)
       expect(json.success).toBe(true)
+      expect(json.stale).toBe(false)
       expect(Array.isArray(json.data)).toBe(true)
       expect(json.data.length).toBeGreaterThan(0)
       const firstRow = json.data[0]

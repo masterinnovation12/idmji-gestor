@@ -44,8 +44,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'URL de la hoja no configurada' }, { status: 400 })
     }
 
-    const data = await fetchAndParseSheetCSV(url)
-    return NextResponse.json({ success: true, data })
+    const { data, meta } = await fetchAndParseSheetCSV(url)
+    return NextResponse.json({
+      success: true,
+      data,
+      stale: meta.stale,
+      ...(meta.cachedAt ? { cachedAt: meta.cachedAt } : {}),
+    })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Error al cargar los datos'
     return NextResponse.json({ success: false, error: message }, { status: 500 })

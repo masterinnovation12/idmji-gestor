@@ -11,6 +11,10 @@ export type ArchivosResult = {
   success: boolean
   error?: string
   data?: Record<string, string>[]
+  /** true si se muestra copia en caché (Google no respondió) */
+  stale?: boolean
+  /** ISO 8601 de la copia en caché */
+  cachedAt?: string
 }
 
 const VALID_SOURCES = new Set<SheetSourceId>(['ensenanzas', 'estudios', 'instituto', 'pastorado', 'profecia'])
@@ -43,8 +47,13 @@ export async function getSheetData(sourceId: string): Promise<ArchivosResult> {
       return { success: false, error: 'URL de la hoja no configurada' }
     }
 
-    const data = await fetchAndParseSheetCSV(url)
-    return { success: true, data }
+    const { data, meta } = await fetchAndParseSheetCSV(url)
+    return {
+      success: true,
+      data,
+      stale: meta.stale,
+      ...(meta.cachedAt ? { cachedAt: meta.cachedAt } : {}),
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Error al cargar los datos'
     return { success: false, error: message }

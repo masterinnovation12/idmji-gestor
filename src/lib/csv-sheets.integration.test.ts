@@ -42,8 +42,9 @@ describe('csv-sheets integration', () => {
         console.warn(`[skip] ${id}: SHEET_*_CSV_URL no configurada. Crear .env.local con las URLs.`)
         return
       }
-      const data = await fetchAndParseSheetCSV(url)
+      const { data, meta } = await fetchAndParseSheetCSV(url)
       expect(Array.isArray(data)).toBe(true)
+      expect(meta.stale).toBe(false)
       expect(data.length).toBeGreaterThan(0)
       expect(data[0]).toBeDefined()
       const keys = Object.keys(data[0])

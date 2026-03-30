@@ -11,7 +11,10 @@ vi.mock('@/lib/supabase/server', () => ({
 
 vi.mock('@/lib/csv-sheets', () => ({
   getSheetCSVUrl: vi.fn((id: string) => (id === 'ensenanzas' ? 'https://example.com/sheet.csv' : null)),
-  fetchAndParseSheetCSV: vi.fn().mockResolvedValue([{ col1: 'a', col2: 'b' }]),
+  fetchAndParseSheetCSV: vi.fn().mockResolvedValue({
+    data: [{ col1: 'a', col2: 'b' }],
+    meta: { stale: false },
+  }),
 }))
 
 describe('getSheetData', () => {

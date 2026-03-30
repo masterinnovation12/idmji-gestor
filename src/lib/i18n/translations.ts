@@ -176,6 +176,11 @@ export const translations = {
         'archivos.tab.profecia': 'Profecía',
         'archivos.loading': 'Cargando...',
         'archivos.error': 'No se pudieron cargar los datos.',
+        'archivos.syncSubtitle': 'Sincronizado desde Google Drive',
+        'archivos.syncStaleHint': 'Reintentando para mostrar datos en vivo desde Google…',
+        'archivos.staleBanner': 'Vista en caché (puede no estar al día)',
+        'archivos.staleDetail':
+            'Google no respondió al exportar el CSV. Se muestra la última copia válida guardada el {date}. Se sigue reintentando en segundo plano.',
         'archivos.empty': 'No hay datos en esta hoja.',
         'archivos.verDetalle': 'Ver detalle',
         'archivos.cerrar': 'Cerrar',
@@ -788,6 +793,11 @@ export const translations = {
         'archivos.tab.profecia': 'Profecia',
         'archivos.loading': 'Carregant...',
         'archivos.error': 'No s\'han pogut carregar les dades.',
+        'archivos.syncSubtitle': 'Sincronitzat des de Google Drive',
+        'archivos.syncStaleHint': 'Reintentant per mostrar dades en viu des de Google…',
+        'archivos.staleBanner': 'Vista en memòria cau (pot no estar al dia)',
+        'archivos.staleDetail':
+            'Google no ha respost en exportar el CSV. Es mostra la darrera còpia vàlida desada el {date}. Es segueix reintentant en segon pla.',
         'archivos.empty': 'No hi ha dades en aquesta fulla.',
         'archivos.verDetalle': 'Veure detall',
         'archivos.cerrar': 'Tancar',

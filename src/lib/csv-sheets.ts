@@ -6,10 +6,60 @@
  * - Excluye filas totalmente vacías
  * - Excluye columnas totalmente vacías
  * - Normaliza cabeceras (trim, espacios → _) para claves JSON
+ *
+ * Caché: si el export de Google falla (500/429), se sirve la última copia válida
+ * (memoria + archivo en tmp del runtime) hasta 30 días, para que Archivos siga mostrando datos.
  */
 
-const FETCH_TIMEOUT_MS = 15_000
-const MAX_RETRIES = 3
+import crypto from 'node:crypto'
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+
+const FETCH_TIMEOUT_MS = 20_000
+/** Google a veces responde 500/429 al export CSV desde IPs de datacenter; varios reintentos con backoff ayudan. */
+const MAX_RETRIES = 5
+
+/** Antigüedad máxima para usar CSV en caché cuando Google falla (30 días). */
+const STALE_CACHE_MAX_MS = 30 * 24 * 60 * 60 * 1000
+
+type CachedCsvPayload = { text: string; at: number }
+
+function getMemoryCsvCache(): Map<string, CachedCsvPayload> {
+  const g = globalThis as unknown as { __idmjiCsvCache?: Map<string, CachedCsvPayload> }
+  g.__idmjiCsvCache ??= new Map()
+  return g.__idmjiCsvCache
+}
+
+function cacheFilePathForUrl(url: string): string {
+  const hash = crypto.createHash('sha256').update(url).digest('hex').slice(0, 48)
+  return path.join(os.tmpdir(), `idmji-sheet-${hash}.json`)
+}
+
+async function persistCsvCache(url: string, text: string): Promise<void> {
+  const payload: CachedCsvPayload = { text, at: Date.now() }
+  getMemoryCsvCache().set(url, payload)
+  try {
+    await fs.writeFile(cacheFilePathForUrl(url), JSON.stringify(payload), 'utf8')
+  } catch {
+    // Sin permiso en tmp o entorno de solo lectura: solo memoria
+  }
+}
+
+async function readDiskCsvCache(url: string): Promise<CachedCsvPayload | null> {
+  try {
+    const raw = await fs.readFile(cacheFilePathForUrl(url), 'utf8')
+    const parsed = JSON.parse(raw) as CachedCsvPayload
+    if (parsed && typeof parsed.text === 'string' && typeof parsed.at === 'number') return parsed
+  } catch {
+    /* no hay archivo */
+  }
+  return null
+}
+
+function isStaleUsable(entry: CachedCsvPayload): boolean {
+  return Date.now() - entry.at <= STALE_CACHE_MAX_MS
+}
 
 /**
  * Parsea una línea CSV respetando comillas dobles (RFC 4180 básico).
@@ -157,7 +207,7 @@ async function fetchCSVText(url: string): Promise<string> {
   let lastStatusText = 'Unknown'
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const headers = attempt === 1 ? browserLikeHeaders : fallbackHeaders
+    const headers = attempt % 2 === 1 ? browserLikeHeaders : fallbackHeaders
     const res = await fetchOnce(url, headers)
 
     if (res.ok) return res.text()
@@ -165,11 +215,12 @@ async function fetchCSVText(url: string): Promise<string> {
     lastStatus = res.status
     lastStatusText = res.statusText
 
-    // Reintentar solo en errores transitorios de red/servidor
-    if (res.status < 500 || res.status >= 600 || attempt === MAX_RETRIES) break
+    // Reintentar en 429 (rate limit) y 5xx (Google suele devolver 500 intermitente en export CSV)
+    const retryable = res.status === 429 || (res.status >= 500 && res.status < 600)
+    if (!retryable || attempt === MAX_RETRIES) break
 
-    // Backoff simple: 200ms, 400ms
-    await new Promise((resolve) => setTimeout(resolve, 200 * attempt))
+    const backoffMs = Math.min(2500, 350 * 2 ** (attempt - 1))
+    await new Promise((resolve) => setTimeout(resolve, backoffMs))
   }
 
   throw new Error(`HTTP ${lastStatus ?? 500}: ${lastStatusText}`)
@@ -232,10 +283,44 @@ export function getSheetCSVUrl(sourceId: SheetSourceId): string | null {
   return url.trim()
 }
 
+/** Metadatos de la última lectura: `stale` true = copia en caché porque Google falló. */
+export type SheetFetchMeta = {
+  stale: boolean
+  /** ISO 8601; solo cuando stale es true */
+  cachedAt?: string
+}
+
+export type SheetFetchResult = {
+  data: Record<string, string>[]
+  meta: SheetFetchMeta
+}
+
 /**
  * Descarga y parsea el CSV de una URL con lógica adaptativa.
+ * Ante fallo de Google, reutiliza la última descarga correcta (memoria / disco, hasta 30 días).
  */
-export async function fetchAndParseSheetCSV(url: string): Promise<Record<string, string>[]> {
-  const text = await fetchCSVText(url)
-  return parseAdaptiveCSV(text)
+export async function fetchAndParseSheetCSV(url: string): Promise<SheetFetchResult> {
+  try {
+    const text = await fetchCSVText(url)
+    await persistCsvCache(url, text)
+    return { data: parseAdaptiveCSV(text), meta: { stale: false } }
+  } catch (err) {
+    const mem = getMemoryCsvCache().get(url)
+    if (mem && isStaleUsable(mem)) {
+      const cachedAt = new Date(mem.at).toISOString()
+      console.warn(
+        '[csv-sheets] Export CSV falló; usando caché en memoria (antigüedad %ds)',
+        Math.round((Date.now() - mem.at) / 1000)
+      )
+      return { data: parseAdaptiveCSV(mem.text), meta: { stale: true, cachedAt } }
+    }
+    const disk = await readDiskCsvCache(url)
+    if (disk && isStaleUsable(disk)) {
+      getMemoryCsvCache().set(url, disk)
+      const cachedAt = new Date(disk.at).toISOString()
+      console.warn('[csv-sheets] Export CSV falló; usando caché en disco (tmp)')
+      return { data: parseAdaptiveCSV(disk.text), meta: { stale: true, cachedAt } }
+    }
+    throw err
+  }
 }

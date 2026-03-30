@@ -10,6 +10,7 @@ import {
   getSheetCSVUrl,
   fetchAndParseSheetCSV,
   type SheetSourceId,
+  type SheetFetchMeta,
 } from '@/lib/csv-sheets'
 
 export const dynamic = 'force-dynamic'
@@ -30,6 +31,7 @@ export default async function ArchivosPage() {
 
   // Carga en servidor: evita problemas de cookies/sesión en fetch cliente
   const initialData: Partial<Record<SheetSourceId, Record<string, string>[]>> = {}
+  const initialMeta: Partial<Record<SheetSourceId, SheetFetchMeta>> = {}
   const initialErrors: Partial<Record<SheetSourceId, string>> = {}
 
   await Promise.all(
@@ -40,8 +42,9 @@ export default async function ArchivosPage() {
           initialErrors[sourceId] = 'URL no configurada'
           return
         }
-        const data = await fetchAndParseSheetCSV(url)
+        const { data, meta } = await fetchAndParseSheetCSV(url)
         initialData[sourceId] = data
+        initialMeta[sourceId] = meta
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Error al cargar'
         initialErrors[sourceId] = msg
@@ -52,6 +55,7 @@ export default async function ArchivosPage() {
   return (
     <ArchivosClient
       initialData={initialData}
+      initialMeta={Object.keys(initialMeta).length > 0 ? initialMeta : undefined}
       initialErrors={Object.keys(initialErrors).length > 0 ? initialErrors : undefined}
     />
   )
