@@ -113,7 +113,7 @@ export async function getAllTemasAlabanza(
     }
 
     const cultoIds = (rawData || []).map((c: any) => c.id).filter(Boolean)
-    let lecturasMap: Record<string, LecturaIntro> = {}
+    const lecturasMap: Record<string, LecturaIntro> = {}
 
     if (cultoIds.length > 0) {
         const { data: lecturasData } = await supabase

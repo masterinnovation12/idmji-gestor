@@ -18,24 +18,29 @@ export default async function DashboardPage() {
             redirect('/login')
         }
 
-        // Get user profile
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single()
-
-        // Get today's culto
-        // Get today's culto (Force Europe/Madrid timezone)
         const today = new Intl.DateTimeFormat('en-CA', {
             timeZone: 'Europe/Madrid',
             year: 'numeric',
             month: '2-digit',
             day: '2-digit'
         }).format(new Date())
-        const { data: cultosData } = await supabase
-            .from('cultos')
-            .select(`
+
+        const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }) // Monday start
+        const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
+
+        // 1. DISPATCH CONCURRENT REQUESTS (Paralelización de llamadas para reducir TTFB)
+        const [
+            profileRes,
+            cultosDataRes,
+            initialAssignmentsRes,
+            totalCultosRes,
+            totalLecturasRes
+        ] = await Promise.all([
+            // Get user profile
+            supabase.from('profiles').select('*').eq('id', user.id).single(),
+
+            // Get today's culto
+            supabase.from('cultos').select(`
                 *,
                 lecturas:lecturas_biblicas(*),
                 plan_himnos_coros(
@@ -48,10 +53,21 @@ export default async function DashboardPage() {
                 usuario_finalizacion:profiles!id_usuario_finalizacion(nombre, apellidos, avatar_url),
                 usuario_ensenanza:profiles!id_usuario_ensenanza(nombre, apellidos, avatar_url),
                 usuario_testimonios:profiles!id_usuario_testimonios(nombre, apellidos, avatar_url)
-            `)
-            .eq('fecha', today)
-            .order('hora_inicio', { ascending: true })
-            .limit(1)
+            `).eq('fecha', today).order('hora_inicio', { ascending: true }).limit(1),
+
+            // Get user assignments for current week
+            getUserAssignments(user.id, format(weekStart, 'yyyy-MM-dd'), format(weekEnd, 'yyyy-MM-dd')),
+
+            // Get stats
+            supabase.from('cultos').select('*', { count: 'exact', head: true }),
+            supabase.from('lecturas_biblicas').select('*', { count: 'exact', head: true })
+        ])
+
+        const profile = profileRes.data
+        const cultosData = cultosDataRes.data
+        const initialAssignments = initialAssignmentsRes.data
+        const totalCultos = totalCultosRes.count
+        const totalLecturas = totalLecturasRes.count
 
         let cultoMostrado = cultosData && cultosData.length > 0 ? cultosData[0] : null
         let esCultoHoy = true
@@ -79,48 +95,13 @@ export default async function DashboardPage() {
             }
         }
 
-        // Pre-compute culto details on server (single source of truth via computeCultoDetails)
-        const details = cultoMostrado ? computeCultoDetails(cultoMostrado as any) : null
-        const lecturaData = details?.lecturaData ?? null
-        const estudioBiblicoData = details?.estudioBiblicoData ?? null
-
-        // Pre-compute observaciones data (Universal - for ALL cult types)
-        const observacionesData = cultoMostrado ?
-            ((cultoMostrado.meta_data as any)?.observaciones || '') : ''
-
-        // Get user assignments for current week
-        const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }) // Monday start
-        const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
-
-        const { data: initialAssignments } = await getUserAssignments(
-            user.id,
-            format(weekStart, 'yyyy-MM-dd'),
-            format(weekEnd, 'yyyy-MM-dd')
-        )
-
-        // Get stats
-        const { count: totalCultos } = await supabase
-            .from('cultos')
-            .select('*', { count: 'exact', head: true })
-
-        const { count: totalLecturas } = await supabase
-            .from('lecturas_biblicas')
-            .select('*', { count: 'exact', head: true })
-
         return (
             <DashboardClient
                 user={{ ...profile, id: user.id }}
                 culto={cultoMostrado}
                 esHoy={esCultoHoy}
-                lecturaData={lecturaData}
-                estudioBiblicoData={estudioBiblicoData}
-                observacionesData={observacionesData}
                 initialAssignments={initialAssignments || []}
                 initialDate={cultoMostrado?.fecha || today}
-                stats={{
-                    totalCultos: totalCultos || 0,
-                    totalLecturas: totalLecturas || 0
-                }}
             />
         )
     } catch (error) {

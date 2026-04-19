@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent } from '@/components/ui/Dialog'
 import NextImage from 'next/image'
+import type { TranslationKey } from '@/lib/i18n/types'
 
 interface HermanosClientProps {
     initialHermanos: Profile[]
@@ -98,7 +99,7 @@ function HermanoAvatar({ hermano, size = "md" }: { hermano: Profile, size?: "sm"
 const ROLE_FILTERS: readonly ('ALL' | UserRole)[] = ['ALL', 'ADMIN', 'EDITOR', 'USER', 'SONIDO'] as const
 type FilterRole = (typeof ROLE_FILTERS)[number]
 
-function getRoleLabelKey(role: string): string {
+function getRoleLabelKey(role: string): TranslationKey {
     const map: Record<string, string> = {
         ALL: 'hermanos.filterAll',
         ADMIN: 'hermanos.filterAdmin',
@@ -106,7 +107,7 @@ function getRoleLabelKey(role: string): string {
         USER: 'hermanos.filterUser',
         SONIDO: 'hermanos.filterSonido',
     }
-    return map[role] || role
+    return (map[role] || role) as TranslationKey
 }
 
 function getRoleStyles(rol: UserRole): { bg: string; border: string; text: string } {

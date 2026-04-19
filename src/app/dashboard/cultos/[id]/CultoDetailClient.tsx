@@ -39,6 +39,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Culto, Profile } from '@/types/database'
 import NextImage from 'next/image'
 import { computeTemaDropdownStyle, shouldCloseTemaDropdown } from './temaDropdownPosition'
+import type { TranslationKey } from '@/lib/i18n/types'
 
 interface CultoDetailClientProps {
     culto: Culto
@@ -657,8 +658,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     {temaConfirmState?.tipo === 'modify' && t('alabanza.tema.confirmModify')}
                                 </DialogTitle>
                                 <DialogDescription className="text-slate-600 dark:text-slate-400">
-                                    {temaConfirmState?.tipo === 'assign' && temaConfirmState?.temaKey && t(temaConfirmState.temaKey)}
-                                    {temaConfirmState?.tipo === 'modify' && temaConfirmState?.temaKey && t(temaConfirmState.temaKey)}
+                                    {temaConfirmState?.tipo === 'assign' && temaConfirmState?.temaKey && t(temaConfirmState.temaKey as TranslationKey)}
+                                    {temaConfirmState?.tipo === 'modify' && temaConfirmState?.temaKey && t(temaConfirmState.temaKey as TranslationKey)}
                                 </DialogDescription>
                             </DialogHeader>
                             <DialogFooter className="gap-2 sm:gap-0">

@@ -26,6 +26,7 @@ import {
     type TemaAlabanzaStats,
     type HermanosConTemas
 } from './actions'
+import type { TranslationKey } from '@/lib/i18n/types'
 
 function formatCita(lectura: LecturaIntro): string {
     if (lectura.capitulo_inicio === lectura.capitulo_fin && lectura.versiculo_inicio === lectura.versiculo_fin) {
@@ -281,7 +282,7 @@ export default function TemasAlabanzaClient({
                                                 >
                                                     <option value="" suppressHydrationWarning>{t('temasAlabanza.filtersTemaAll')}</option>
                                                     {temasKeys.map((key) => (
-                                                        <option key={key} value={key} suppressHydrationWarning>{t(key)}</option>
+                                                        <option key={key} value={key} suppressHydrationWarning>{t(key as TranslationKey)}</option>
                                                     ))}
                                                 </select>
                                             </div>
@@ -347,7 +348,7 @@ export default function TemasAlabanzaClient({
                                                     {t('temasAlabanza.statsTemaMasUsado')}
                                                 </span>
                                                 <p className="text-lg sm:text-2xl font-black mt-1 truncate">
-                                                    {stats.temaMasUsado ? t(stats.temaMasUsado.temaKey) : '---'}
+                                                    {stats.temaMasUsado ? t(stats.temaMasUsado.temaKey as TranslationKey) : '---'}
                                                 </p>
                                                 <p className="text-xs opacity-80 mt-1">
                                                     {stats.temaMasUsado?.count ?? 0} usos
@@ -362,7 +363,7 @@ export default function TemasAlabanzaClient({
                                                         {stats.hermanoMasUsaTema.hermanoNombre}
                                                     </p>
                                                     <p className="text-xs opacity-80 mt-1">
-                                                        {t(stats.hermanoMasUsaTema.temaKey)} · {stats.hermanoMasUsaTema.count} veces
+                                                        {t(stats.hermanoMasUsaTema.temaKey as TranslationKey)} · {stats.hermanoMasUsaTema.count} veces
                                                     </p>
                                                 </div>
                                             )}
@@ -373,7 +374,7 @@ export default function TemasAlabanzaClient({
                                                 <div className="space-y-2">
                                                     {stats.temasPorUso.slice(0, 6).map((item) => (
                                                         <div key={item.temaKey} className="flex items-center justify-between gap-2 text-sm">
-                                                            <span className="truncate">{t(item.temaKey)}</span>
+                                                            <span className="truncate">{t(item.temaKey as TranslationKey)}</span>
                                                             <span className="font-bold text-primary">{item.count}</span>
                                                         </div>
                                                     ))}
@@ -438,7 +439,7 @@ export default function TemasAlabanzaClient({
                                                     {r.tipo_culto?.nombre || 'Alabanza'}
                                                 </td>
                                                 <td className="py-3 px-4 text-sm font-semibold text-primary">
-                                                    {t(r.tema_key)}
+                                                    {t(r.tema_key as TranslationKey)}
                                                 </td>
                                                 <td className="py-3 px-4 text-sm">
                                                     {r.lectura_intro ? formatCita(r.lectura_intro) : t('temasAlabanza.noLectura')}
@@ -472,7 +473,7 @@ export default function TemasAlabanzaClient({
                                         className="flex items-start justify-between gap-2 p-4 hover:bg-muted/20 transition-colors cursor-pointer touch-manipulation"
                                     >
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-bold text-primary">{t(r.tema_key)}</p>
+                                            <p className="text-sm font-bold text-primary">{t(r.tema_key as TranslationKey)}</p>
                                             <p className="text-xs text-muted-foreground mt-0.5">
                                                 {format(parseISO(r.fecha), 'PP', { locale })} · {r.tipo_culto?.nombre || 'Alabanza'}
                                             </p>
@@ -534,7 +535,7 @@ export default function TemasAlabanzaClient({
                 <Modal
                     isOpen={!!selectedRegistro}
                     onClose={() => setSelectedRegistro(null)}
-                    title={selectedRegistro ? t(selectedRegistro.tema_key) : ''}
+                    title={selectedRegistro ? t(selectedRegistro.tema_key as TranslationKey) : ''}
                     size="md"
                     keyPrefix="temas-alabanza-detail"
                 >

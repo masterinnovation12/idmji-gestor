@@ -187,7 +187,7 @@ export default function DashboardLayout({
             { icon: UserCog, label: t('nav.users'), href: '/dashboard/admin/users' },
             { icon: FileText, label: t('nav.audit'), href: '/dashboard/admin/audit' },
         ] : [])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     ], [t, userProfile?.rol, isSonido])
 
     // Cerrar menú móvil al cambiar de ruta
@@ -421,16 +421,9 @@ export default function DashboardLayout({
                     </div>
                 </header>
 
-                {/* Page Content with Entrance Animation */}
+                {/* Page Content — entrance animation is handled by template.tsx */}
                 <div className={`p-6 md:p-10 lg:p-12 max-w-7xl mx-auto ${pathname?.includes('/admin/users') || pathname?.includes('/hermanos') ? 'no-scrollbar' : ''}`}>
-                    <motion.div
-                        key={pathname}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, ease: 'easeOut' }}
-                    >
-                        {children}
-                    </motion.div>
+                    {children}
                 </div>
             </main>
 

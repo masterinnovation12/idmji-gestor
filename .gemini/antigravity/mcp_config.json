@@ -1,0 +1,14 @@
+{
+    "mcpServers": {
+        "Supabase-IDMJI": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@supabase/mcp-server-supabase@latest",
+                "--access-token",
+                "sbp_v0_14a097b7a59bd1d5d971a1ff812c0822a37955d0"
+            ],
+            "env": {}
+        }
+    }
+}

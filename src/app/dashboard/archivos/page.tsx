@@ -29,28 +29,25 @@ export default async function ArchivosPage() {
   }
   // Sin comprobación de rol: cualquier usuario autenticado puede ver Archivos
 
-  // Carga en servidor: evita problemas de cookies/sesión en fetch cliente
+  // SSR: Solamente cargamos la pestaña inicial (ensenanzas) para mejorar el TTFB.
+  // El resto de pestañas se cargarán bajo demanda en el cliente.
   const initialData: Partial<Record<SheetSourceId, Record<string, string>[]>> = {}
   const initialMeta: Partial<Record<SheetSourceId, SheetFetchMeta>> = {}
   const initialErrors: Partial<Record<SheetSourceId, string>> = {}
 
-  await Promise.all(
-    SOURCES.map(async (sourceId) => {
-      try {
-        const url = getSheetCSVUrl(sourceId)
-        if (!url) {
-          initialErrors[sourceId] = 'URL no configurada'
-          return
-        }
-        const { data, meta } = await fetchAndParseSheetCSV(url)
-        initialData[sourceId] = data
-        initialMeta[sourceId] = meta
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Error al cargar'
-        initialErrors[sourceId] = msg
-      }
-    })
-  )
+  const primarySource: SheetSourceId = 'ensenanzas'
+  try {
+    const url = getSheetCSVUrl(primarySource)
+    if (url) {
+      const { data, meta } = await fetchAndParseSheetCSV(url)
+      initialData[primarySource] = data
+      initialMeta[primarySource] = meta
+    } else {
+      initialErrors[primarySource] = 'URL no configurada'
+    }
+  } catch (e) {
+    initialErrors[primarySource] = e instanceof Error ? e.message : 'Error al cargar'
+  }
 
   return (
     <ArchivosClient

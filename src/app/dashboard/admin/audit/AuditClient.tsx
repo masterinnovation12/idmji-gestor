@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/Button'
 import { useDebounce } from '@/hooks/use-debounce'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
+import type { TranslationKey } from '@/lib/i18n/types'
 
 const TIPO_TO_KEY: Record<string, string> = {
     cambio_asignacion: 'audit.type.cambio_asignacion',
@@ -126,7 +127,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
         setPage(1)
     }, [])
 
-    const getTipoLabel = (tipo: string) => t(TIPO_TO_KEY[tipo] || tipo)
+    const getTipoLabel = (tipo: string) => t((TIPO_TO_KEY[tipo] || tipo) as TranslationKey)
 
     const exportToExcel = useCallback(
         async (exportAll: boolean) => {
@@ -468,7 +469,7 @@ function AuditCard({
     index: number
     getTipoLabel: (t: string) => string
     getTipoColor: (t: string) => string
-    t: (k: string) => string
+    t: (k: TranslationKey) => string
     dateLocale: Locale
 }) {
     return (

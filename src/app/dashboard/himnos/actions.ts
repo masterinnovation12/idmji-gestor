@@ -117,10 +117,10 @@ export async function replaceCultoPlanAfterSequenceConfirm(
 
     if (t.includes('alabanza')) {
         const r = await autoFillAlabanzaSequence(new Date(storedFecha), true)
-        if (r.error) return r
+        if (r.error) return { error: r.error }
     } else if (isEns) {
         const r = await autoFillEnsenanzaSequence(new Date(storedFecha), onlyEnsCategory, true)
-        if (r.error) return r
+        if (r.error) return { error: r.error }
     } else {
         return { error: 'Solo aplica a cultos de Alabanza o Enseñanza' }
     }
@@ -291,7 +291,7 @@ export async function autoFillAlabanzaSequence(
     if (!cultos || cultos.length === 0) return { data: { count: 0 } }
 
     let totalAssigned = 0
-    let pointer = await getSequencePointer('ultimo_coro_id_alabanza')
+    const pointer = await getSequencePointer('ultimo_coro_id_alabanza')
     const allInserts: any[] = []
     const cultosToClear: string[] = []
 
@@ -407,8 +407,8 @@ export async function autoFillEnsenanzaSequence(
     if (!cultos || cultos.length === 0) return { data: { count: 0 } }
 
     let totalAssigned = 0
-    let hPointer = await getSequencePointer('ultimo_himno_id_ensenanza')
-    let cPointer = await getSequencePointer('ultimo_coro_id_ensenanza')
+    const hPointer = await getSequencePointer('ultimo_himno_id_ensenanza')
+    const cPointer = await getSequencePointer('ultimo_coro_id_ensenanza')
     
     const allInserts: any[] = []
     const cultosToClear: string[] = []

@@ -66,7 +66,7 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
                 <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-blue-50/80 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/40 w-full min-w-0">
                     <BookMarked className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 shrink-0" />
                     <p className="text-[10px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 leading-tight line-clamp-2">
-                        {t(temaIntroduccionAlabanza)}
+                        {t(temaIntroduccionAlabanza as import('@/lib/i18n/types').TranslationKey)}
                     </p>
                 </div>
             )}

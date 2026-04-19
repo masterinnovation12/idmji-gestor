@@ -223,7 +223,9 @@ async function fetchCSVText(url: string): Promise<string> {
     await new Promise((resolve) => setTimeout(resolve, backoffMs))
   }
 
-  throw new Error(`HTTP ${lastStatus ?? 500}: ${lastStatusText}`)
+  const error = new Error(`HTTP ${lastStatus ?? 500}: ${lastStatusText}`)
+  ;(error as any).status = lastStatus
+  throw error
 }
 
 /**
@@ -288,6 +290,8 @@ export type SheetFetchMeta = {
   stale: boolean
   /** ISO 8601; solo cuando stale es true */
   cachedAt?: string
+  /** Código de error HTTP si falló el fetch más reciente */
+  lastErrorCode?: number
 }
 
 export type SheetFetchResult = {
@@ -306,20 +310,21 @@ export async function fetchAndParseSheetCSV(url: string): Promise<SheetFetchResu
     return { data: parseAdaptiveCSV(text), meta: { stale: false } }
   } catch (err) {
     const mem = getMemoryCsvCache().get(url)
+    const errorCode = (err as any).status
     if (mem && isStaleUsable(mem)) {
       const cachedAt = new Date(mem.at).toISOString()
       console.warn(
         '[csv-sheets] Export CSV falló; usando caché en memoria (antigüedad %ds)',
         Math.round((Date.now() - mem.at) / 1000)
       )
-      return { data: parseAdaptiveCSV(mem.text), meta: { stale: true, cachedAt } }
+      return { data: parseAdaptiveCSV(mem.text), meta: { stale: true, cachedAt, lastErrorCode: errorCode } }
     }
     const disk = await readDiskCsvCache(url)
     if (disk && isStaleUsable(disk)) {
       getMemoryCsvCache().set(url, disk)
       const cachedAt = new Date(disk.at).toISOString()
       console.warn('[csv-sheets] Export CSV falló; usando caché en disco (tmp)')
-      return { data: parseAdaptiveCSV(disk.text), meta: { stale: true, cachedAt } }
+      return { data: parseAdaptiveCSV(disk.text), meta: { stale: true, cachedAt, lastErrorCode: errorCode } }
     }
     throw err
   }

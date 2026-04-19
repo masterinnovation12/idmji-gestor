@@ -19,7 +19,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Solo en desarrollo' }, { status: 403 })
   }
 
-  const results: Record<string, { url: string | null; rowCount: number; firstKeys: string[]; error?: string }> = {}
+  const results: Record<string, { url: string | null; rowCount: number; firstKeys: string[]; error?: string; stale?: boolean }> = {}
 
   for (const sourceId of SOURCES) {
     try {

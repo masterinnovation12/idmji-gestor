@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Music, BookOpen, GraduationCap,
@@ -77,16 +77,39 @@ function parseContent(text: string) {
   for (const raw of lines) {
     const line = raw.trim()
     if (!line) continue
-    const isHeading = /^\d+\.\s+[A-ZÁÉÍÓÚÑÜÀÈÌÒÙÇ]/.test(line)
+    // QA FIX: La RegEx original era frágil (solo permitía TODAS MAYÚSCULAS). 
+    // Ahora permite minúsculas y formato Markdown básico (# Título).
+    const isHeading = /^\d+\.\s+/.test(line) || /^#+\s+/.test(line)
     if (isHeading) {
       if (current.items.length > 0 || current.heading) sections.push(current)
-      current = { heading: line, items: [] }
+      current = { heading: line.replace(/^#+\s+/, '').trim(), items: [] }
     } else {
       current.items.push(line)
     }
   }
   if (current.items.length > 0 || current.heading) sections.push(current)
   return sections
+}
+
+/**
+ * QA Feature: Permite renderizar **negritas** en el texto de instrucciones, 
+ * lo que ayuda enormemente a resaltar la información clave para los líderes.
+ */
+function renderFormattedText(text: string) {
+  // Dividir por sintaxis de negrita (ej: "Hola **mundo**")
+  const parts = text.split(/(\*\*.*?\*\*)/g)
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+           
+          return <strong key={i} className="font-bold text-foreground/90">{part.slice(2, -2)}</strong>
+        }
+         
+        return <span key={i}>{part}</span>
+      })}
+    </>
+  )
 }
 
 /* ─── ComingSoonCard ─────────────────────────────────────────── */
@@ -132,12 +155,15 @@ function InstruccionCard({ rolInfo, style, defaultOpen = false }: InstruccionCar
   const [open, setOpen] = useState(defaultOpen)
   const meta = ROL_META[rolInfo.rol] ?? ROL_META.introduccion
   const { icon: RolIcon } = meta
-  const sections = parseContent(rolInfo.contenido)
+  // QA FIX: Memoizar para evitar bloqueos en el hilo principal durante re-renders
+  const sections = useMemo(() => parseContent(rolInfo.contenido), [rolInfo.contenido])
 
   return (
-    <div className={`rounded-2xl border ${style.border} overflow-hidden transition-shadow ${open ? 'shadow-md' : 'shadow-sm hover:shadow-md'}`}>
+    <div className={`rounded-2xl border ${style.border} overflow-hidden transition-shadow duration-300 ${open ? 'shadow-md ring-1 ring-black/5 dark:ring-white/5' : 'shadow-sm hover:shadow-md'}`}>
       <button
         type="button"
+        aria-expanded={open}
+        aria-controls={`instruccion-content-${rolInfo.rol}`}
         onClick={() => setOpen((o) => !o)}
         className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors touch-manipulation
           ${open ? style.accentBg : 'bg-background hover:bg-muted/30'}`}
@@ -155,16 +181,17 @@ function InstruccionCard({ rolInfo, style, defaultOpen = false }: InstruccionCar
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
+            id={`instruccion-content-${rolInfo.rol}`}
             key="content"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: 'easeInOut' }}
+            transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }} // Curva fluida tipo "spring" CSS
             className="overflow-hidden"
           >
             <div className="px-5 py-5 space-y-5 border-t border-border/40">
               {sections.map((sec, si) => (
-                // eslint-disable-next-line react/no-array-index-key
+                 
                 <div key={si}>
                   {sec.heading && (
                     <div className={`inline-flex items-center gap-2 mb-2 px-2.5 py-1 rounded-lg ${style.pill} text-xs font-bold uppercase tracking-wide`}>
@@ -177,12 +204,12 @@ function InstruccionCard({ rolInfo, style, defaultOpen = false }: InstruccionCar
                       const text = isBullet ? item.slice(1).trim() : item
                       const accentClass = style.accentText.replace('text-', 'bg-')
                       return (
-                        // eslint-disable-next-line react/no-array-index-key
+                         
                         <li key={ii} className={`flex gap-2 text-sm text-foreground/80 leading-relaxed`}>
                           {isBullet && (
                             <span className={`mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full ${accentClass}`} />
                           )}
-                          <span className={isBullet ? '' : 'font-medium'}>{text}</span>
+                          <span className={isBullet ? '' : 'font-medium'}>{renderFormattedText(text)}</span>
                         </li>
                       )
                     })}
@@ -253,8 +280,8 @@ export default function InstruccionesPageClient({ cultos }: Props) {
         </div>
       </div>
 
-      {/* ── Tabs ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 sm:flex sm:flex-row gap-2">
+      {/* ── Tabs ── Accesibilidad: Añadidos roles de pestañas ──────── */}
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Tipos de Culto">
         {cultos.map((c) => {
           const style = getCultoStyle(c.nombre)
           const { icon: Icon } = style
@@ -263,12 +290,15 @@ export default function InstruccionesPageClient({ cultos }: Props) {
             <button
               key={c.cultoTypeId}
               type="button"
+              role="tab"
+              aria-selected={isActive}
               onClick={() => setActiveTab(c.cultoTypeId)}
               className={`
-                min-h-[52px] px-3 py-2.5 sm:px-5 sm:py-3 rounded-xl
-                font-semibold text-[11px] sm:text-sm leading-tight
+                flex-1 sm:flex-none
+                min-h-[52px] px-3 py-2 sm:px-5 sm:py-3 rounded-xl
+                font-semibold text-[10px] sm:text-sm leading-tight
                 transition-all duration-200 touch-manipulation
-                flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1.5 sm:gap-2
+                flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-2
                 ${isActive
                   ? `${style.tabActive} text-white shadow-lg`
                   : `${style.accentBg} ${style.accentText} hover:brightness-95`
@@ -295,10 +325,11 @@ export default function InstruccionesPageClient({ cultos }: Props) {
           return (
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.18 }}
+              role="tabpanel"
+              initial={{ opacity: 0, y: 12, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.99 }}
+              transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }} // Soft deceleration
               className="space-y-4"
             >
               {/* Banner del culto */}

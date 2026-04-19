@@ -52,7 +52,8 @@ describe('AssignmentPill', () => {
     render(
       <AssignmentPill
         label="Intro"
-        himnario={himnario}
+        usuario={undefined}
+        himnario={himnario as any}
         tipoCulto="Enseñanza"
       />
     )

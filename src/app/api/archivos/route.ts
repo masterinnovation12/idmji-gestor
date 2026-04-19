@@ -49,6 +49,7 @@ export async function GET(request: Request) {
       success: true,
       data,
       stale: meta.stale,
+      lastErrorCode: meta.lastErrorCode,
       ...(meta.cachedAt ? { cachedAt: meta.cachedAt } : {}),
     })
   } catch (e) {

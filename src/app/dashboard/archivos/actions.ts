@@ -15,6 +15,8 @@ export type ArchivosResult = {
   stale?: boolean
   /** ISO 8601 de la copia en caché */
   cachedAt?: string
+  /** Último código de error HTTP de Google Sheets */
+  lastErrorCode?: number
 }
 
 const VALID_SOURCES = new Set<SheetSourceId>(['ensenanzas', 'estudios', 'instituto', 'pastorado', 'profecia'])
@@ -52,6 +54,7 @@ export async function getSheetData(sourceId: string): Promise<ArchivosResult> {
       success: true,
       data,
       stale: meta.stale,
+      lastErrorCode: meta.lastErrorCode,
       ...(meta.cachedAt ? { cachedAt: meta.cachedAt } : {}),
     }
   } catch (e) {
