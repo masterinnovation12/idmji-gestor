@@ -442,3 +442,151 @@ export async function updateCultoObservaciones(
     revalidatePath('/dashboard')
     return { success: true }
 }
+
+interface CultoDraftPayload {
+    cultoId: string
+    assignments: Partial<Record<'introduccion' | 'finalizacion' | 'ensenanza' | 'testimonios', string | null>>
+    observaciones: string
+    temaIntroduccionAlabanza: string | null
+    protocolo: { oracion_inicio: boolean; congregacion_pie: boolean } | null
+    protocoloDefinido: boolean
+    inicioAnticipado: { activo: boolean; minutos: number; observaciones?: string } | null
+    inicioAnticipadoDefinido: boolean
+    esLaborableFestivo: boolean
+    horaInicio: string
+    himnosCoros?: Array<{
+        tipo: 'himno' | 'coro'
+        item_id: number
+        orden: number
+    }>
+    lecturas?: Array<{
+        tipo_lectura: 'introduccion' | 'finalizacion'
+        libro: string
+        capitulo_inicio: number
+        versiculo_inicio: number
+        capitulo_fin: number
+        versiculo_fin: number
+        id_usuario_lector: string
+        es_repetida?: boolean
+        lectura_original_id?: string | null
+    }>
+}
+
+export async function saveCultoDraft(payload: CultoDraftPayload) {
+    const supabase = await createClient()
+    const { cultoId } = payload
+    const { data: cultoActual, error: cultoError } = await supabase
+        .from('cultos')
+        .select('meta_data, id_usuario_intro, id_usuario_finalizacion, id_usuario_ensenanza, id_usuario_testimonios')
+        .eq('id', cultoId)
+        .single()
+
+    if (cultoError || !cultoActual) {
+        return { success: false, error: cultoError?.message || 'Culto no encontrado' }
+    }
+
+    const currentMeta = (cultoActual.meta_data as Record<string, unknown>) || {}
+    const nextMeta: Record<string, unknown> = {
+        ...currentMeta,
+        observaciones: payload.observaciones ?? '',
+    }
+
+    if (payload.temaIntroduccionAlabanza) {
+        nextMeta.tema_introduccion_alabanza = payload.temaIntroduccionAlabanza
+    } else {
+        delete nextMeta.tema_introduccion_alabanza
+    }
+
+    if (payload.protocoloDefinido && payload.protocolo) {
+        nextMeta.protocolo = payload.protocolo
+        nextMeta.protocolo_definido = true
+    } else {
+        delete nextMeta.protocolo
+        nextMeta.protocolo_definido = false
+    }
+
+    if (payload.inicioAnticipadoDefinido && payload.inicioAnticipado) {
+        nextMeta.inicio_anticipado = payload.inicioAnticipado
+        nextMeta.inicio_anticipado_definido = true
+    } else {
+        delete nextMeta.inicio_anticipado
+        nextMeta.inicio_anticipado_definido = false
+    }
+
+    const updateData = {
+        id_usuario_intro: payload.assignments.introduccion ?? cultoActual.id_usuario_intro ?? null,
+        id_usuario_finalizacion: payload.assignments.finalizacion ?? cultoActual.id_usuario_finalizacion ?? null,
+        id_usuario_ensenanza: payload.assignments.ensenanza ?? cultoActual.id_usuario_ensenanza ?? null,
+        id_usuario_testimonios: payload.assignments.testimonios ?? cultoActual.id_usuario_testimonios ?? null,
+        es_laborable_festivo: payload.esLaborableFestivo,
+        hora_inicio: payload.horaInicio,
+        meta_data: nextMeta,
+    }
+
+    const { error: updateError } = await supabase
+        .from('cultos')
+        .update(updateData)
+        .eq('id', cultoId)
+
+    if (updateError) {
+        return { success: false, error: updateError.message }
+    }
+
+    if (payload.himnosCoros) {
+        const { error: deletePlanError } = await supabase
+            .from('plan_himnos_coros')
+            .delete()
+            .eq('culto_id', cultoId)
+        if (deletePlanError) {
+            return { success: false, error: deletePlanError.message }
+        }
+
+        if (payload.himnosCoros.length > 0) {
+            const planRows = payload.himnosCoros.map((item) => ({
+                culto_id: cultoId,
+                tipo: item.tipo,
+                himno_id: item.tipo === 'himno' ? item.item_id : null,
+                coro_id: item.tipo === 'coro' ? item.item_id : null,
+                orden: item.orden,
+            }))
+            const { error: insertPlanError } = await supabase.from('plan_himnos_coros').insert(planRows)
+            if (insertPlanError) {
+                return { success: false, error: insertPlanError.message }
+            }
+        }
+    }
+
+    if (payload.lecturas) {
+        const { error: deleteLecturasError } = await supabase
+            .from('lecturas_biblicas')
+            .delete()
+            .eq('culto_id', cultoId)
+        if (deleteLecturasError) {
+            return { success: false, error: deleteLecturasError.message }
+        }
+
+        if (payload.lecturas.length > 0) {
+            const lecturaRows = payload.lecturas.map((l) => ({
+                culto_id: cultoId,
+                tipo_lectura: l.tipo_lectura,
+                libro: l.libro,
+                capitulo_inicio: l.capitulo_inicio,
+                versiculo_inicio: l.versiculo_inicio,
+                capitulo_fin: l.capitulo_fin,
+                versiculo_fin: l.versiculo_fin,
+                id_usuario_lector: l.id_usuario_lector,
+                es_repetida: l.es_repetida ?? false,
+                lectura_original_id: l.lectura_original_id ?? null,
+            }))
+            const { error: insertLecturasError } = await supabase.from('lecturas_biblicas').insert(lecturaRows)
+            if (insertLecturasError) {
+                return { success: false, error: insertLecturasError.message }
+            }
+        }
+    }
+
+    revalidatePath(`/dashboard/cultos/${cultoId}`)
+    revalidatePath('/dashboard')
+    revalidatePath('/dashboard/cultos')
+    return { success: true }
+}

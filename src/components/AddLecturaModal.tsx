@@ -17,6 +17,15 @@ export interface AddLecturaModalProps {
   userId: string
   tipo: 'introduccion' | 'finalizacion'
   onSuccess?: () => void
+  mode?: 'commit' | 'draft'
+  onDraftSave?: (payload: {
+    tipo: 'introduccion' | 'finalizacion'
+    libro: string
+    capituloInicio: number
+    versiculoInicio: number
+    capituloFin: number
+    versiculoFin: number
+  }) => void
   /** Si true, el título del modal dice "Modificar" en lugar de "Añadir" */
   isEdit?: boolean
 }
@@ -42,6 +51,8 @@ export default function AddLecturaModal({
   tipo,
   onSuccess,
   isEdit = false,
+  mode = 'commit',
+  onDraftSave,
 }: AddLecturaModalProps) {
   const { t, language } = useI18n()
   const locale = language === 'ca-ES' ? ca : es
@@ -60,6 +71,21 @@ export default function AddLecturaModal({
     capFin?: number,
     versFin?: number
   ) => {
+    if (mode === 'draft') {
+      onDraftSave?.({
+        tipo,
+        libro,
+        capituloInicio: capInicio,
+        versiculoInicio: versInicio,
+        capituloFin: capFin ?? capInicio,
+        versiculoFin: versFin ?? versInicio,
+      })
+      toast.success('Lectura añadida al borrador')
+      onSuccess?.()
+      handleClose()
+      return
+    }
+
     setIsActionLoading(true)
     try {
       const result = await saveLectura(
@@ -99,6 +125,21 @@ export default function AddLecturaModal({
 
   const handleConfirmRepetida = async () => {
     if (!repetitionData) return
+    if (mode === 'draft') {
+      onDraftSave?.({
+        tipo,
+        libro: repetitionData.libro,
+        capituloInicio: repetitionData.capInicio,
+        versiculoInicio: repetitionData.versInicio,
+        capituloFin: repetitionData.capFin,
+        versiculoFin: repetitionData.versFin,
+      })
+      toast.success('Lectura repetida añadida al borrador')
+      setRepetitionData(null)
+      onSuccess?.()
+      handleClose()
+      return
+    }
     setIsActionLoading(true)
     try {
       const result = await confirmRepeatedLectura(

@@ -27,7 +27,7 @@ export default function DashboardClient({
     const { t } = useI18n()
 
     return (
-        <div className="space-y-4 md:space-y-8 animate-fade-in-up pb-20">
+        <div className="space-y-4 md:space-y-8 animate-fade-in-up pb-16 md:pb-20">
             {/* 1. Header Premium */}
             <DashboardHeader user={user} />
 

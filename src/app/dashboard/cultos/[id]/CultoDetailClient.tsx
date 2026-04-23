@@ -27,7 +27,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import UserSelector from '@/components/UserSelector'
 import HimnoCoroSelector from '@/components/HimnoCoroSelector'
 import BibleReadingManager from '@/components/BibleReadingManager'
-import { updateAssignment, toggleFestivo, updateCultoProtocol, updateInicioAnticipado, updateCultoObservaciones, resetCultoProtocol, updateTemaIntroduccionAlabanza } from './actions'
+import { saveCultoDraft } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import BackButton from '@/components/BackButton'
 import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
@@ -40,6 +40,7 @@ import { Culto, Profile } from '@/types/database'
 import NextImage from 'next/image'
 import { computeTemaDropdownStyle, shouldCloseTemaDropdown } from './temaDropdownPosition'
 import type { TranslationKey } from '@/lib/i18n/types'
+import SaveChangesBar from './SaveChangesBar'
 
 interface CultoDetailClientProps {
     culto: Culto
@@ -67,6 +68,8 @@ interface AssignmentSectionProps {
     onVerInstrucciones?: () => void,
     /** Solo lectura: muestra el asignado pero no permite editar (rol SONIDO) */
     readOnly?: boolean,
+    readingMode?: 'commit' | 'draft',
+    onReadingDraftChange?: (lecturas: import('@/types/database').LecturaBiblica[]) => void,
 }
 
 function AssignmentSection({
@@ -83,6 +86,8 @@ function AssignmentSection({
     isFestivo,
     onVerInstrucciones,
     readOnly = false,
+    readingMode = 'commit',
+    onReadingDraftChange,
 }: AssignmentSectionProps) {
     // En modo readOnly nunca se edita; si hay usuario asignado tampoco se empieza editando
     const [isEditing, setIsEditing] = useState(readOnly ? false : !selectedUserId)
@@ -277,6 +282,8 @@ function AssignmentSection({
                                                     tiene_lectura_introduccion: true,
                                                     tiene_lectura_finalizacion: false
                                                 }}
+                                                mode={readingMode}
+                                                onDraftChange={onReadingDraftChange}
                                             />
                                         </motion.div>
                                     )}
@@ -313,10 +320,84 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
     const [temaConfirmState, setTemaConfirmState] = useState<{ tipo: 'assign' | 'modify' | 'delete'; temaKey: string | null } | null>(null)
     const [temaMounted, setTemaMounted] = useState(false)
     const temaTriggerRef = useRef<HTMLButtonElement>(null)
+    const [draftAssignments, setDraftAssignments] = useState({
+        introduccion: culto.id_usuario_intro ?? null,
+        ensenanza: culto.id_usuario_ensenanza ?? null,
+        testimonios: culto.id_usuario_testimonios ?? null,
+        finalizacion: culto.id_usuario_finalizacion ?? null,
+    })
+    const [draftObservaciones, setDraftObservaciones] = useState<string>((culto.meta_data as any)?.observaciones || '')
+    const [draftTema, setDraftTema] = useState<string | null>((culto.meta_data as any)?.tema_introduccion_alabanza ?? null)
+    const [draftProtocolo, setDraftProtocolo] = useState<{ oracion_inicio: boolean; congregacion_pie: boolean } | null>(
+        (culto.meta_data as any)?.protocolo ?? null
+    )
+    const [draftProtocoloDefinido, setDraftProtocoloDefinido] = useState<boolean>((culto.meta_data as any)?.protocolo_definido ?? false)
+    const [draftInicioAnticipado, setDraftInicioAnticipado] = useState<{ activo: boolean; minutos: number; observaciones?: string } | null>(
+        (culto.meta_data as any)?.inicio_anticipado ?? null
+    )
+    const [draftInicioAnticipadoDefinido, setDraftInicioAnticipadoDefinido] = useState<boolean>((culto.meta_data as any)?.inicio_anticipado_definido ?? false)
+    const [draftFestivo, setDraftFestivo] = useState<boolean>(!!culto.es_laborable_festivo)
+    const [draftHoraInicio, setDraftHoraInicio] = useState<string>(culto.hora_inicio)
+    const [isDirty, setIsDirty] = useState(false)
+    const [draftLecturas, setDraftLecturas] = useState<import('@/types/database').LecturaBiblica[]>([])
+    const [draftLecturasChanged, setDraftLecturasChanged] = useState(false)
+    const [draftHimnosCoros, setDraftHimnosCoros] = useState<import('@/types/database').PlanHimnoCoro[]>(culto.plan_himnos_coros || [])
+    const [draftHimnosChanged, setDraftHimnosChanged] = useState(false)
+    const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
+    const [pendingNavigationHref, setPendingNavigationHref] = useState<string | null>(null)
+    const initialRef = useRef({
+        assignments: {
+            introduccion: culto.id_usuario_intro ?? null,
+            ensenanza: culto.id_usuario_ensenanza ?? null,
+            testimonios: culto.id_usuario_testimonios ?? null,
+            finalizacion: culto.id_usuario_finalizacion ?? null,
+        },
+        observaciones: (culto.meta_data as any)?.observaciones || '',
+        tema: (culto.meta_data as any)?.tema_introduccion_alabanza ?? null,
+        protocolo: (culto.meta_data as any)?.protocolo ?? null,
+        protocoloDefinido: (culto.meta_data as any)?.protocolo_definido ?? false,
+        inicioAnticipado: (culto.meta_data as any)?.inicio_anticipado ?? null,
+        inicioAnticipadoDefinido: (culto.meta_data as any)?.inicio_anticipado_definido ?? false,
+        festivo: !!culto.es_laborable_festivo,
+        hora: culto.hora_inicio,
+    })
+    const normalizePlan = (items: import('@/types/database').PlanHimnoCoro[] = []) => items.map((h, index) => ({
+        tipo: h.tipo,
+        item_id: h.item_id ?? (h.tipo === 'himno' ? h.himno?.id : h.coro?.id) ?? 0,
+        orden: Number(h.orden ?? index + 1),
+    }))
+    const initialPlanSignatureRef = useRef(JSON.stringify(normalizePlan(culto.plan_himnos_coros || [])))
 
     useEffect(() => {
         setTemaMounted(true)
     }, [])
+
+    useEffect(() => {
+        const handler = (event: BeforeUnloadEvent) => {
+            if (!isDirty) return
+            event.preventDefault()
+            event.returnValue = ''
+        }
+        window.addEventListener('beforeunload', handler)
+        return () => window.removeEventListener('beforeunload', handler)
+    }, [isDirty])
+
+    useEffect(() => {
+        const clickHandler = (event: MouseEvent) => {
+            if (!isDirty) return
+            const target = event.target as HTMLElement | null
+            const anchor = target?.closest('a[href]') as HTMLAnchorElement | null
+            if (!anchor) return
+            const href = anchor.getAttribute('href')
+            if (!href || href.startsWith('#')) return
+            event.preventDefault()
+            event.stopPropagation()
+            setPendingNavigationHref(href)
+            setLeaveConfirmOpen(true)
+        }
+        document.addEventListener('click', clickHandler, true)
+        return () => document.removeEventListener('click', clickHandler, true)
+    }, [isDirty])
 
     useEffect(() => {
         if (!temaDropdownOpen) return
@@ -345,21 +426,15 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
     }, [temaDropdownOpen])
 
     const handleToggleFestivo = async () => {
-        setIsUpdating(true)
-        try {
-            const result = await toggleFestivo(culto.id, !!culto.es_laborable_festivo, culto.hora_inicio)
-            if (result.success) {
-                toast.success(culto.es_laborable_festivo ? 'Horario normal restaurado' : 'Horario festivo aplicado (-1h)', {
-                    icon: <Sparkles className="w-5 h-5 text-primary" />
-                })
-            } else {
-                toast.error(result.error || 'Error al cambiar estado festivo')
-            }
-        } catch {
-            toast.error('Error de conexión')
-        } finally {
-            setIsUpdating(false)
-        }
+        const [h, m] = draftHoraInicio.split(':').map(Number)
+        const newH = draftFestivo ? (h + 1) % 24 : (h - 1 + 24) % 24
+        const newHora = `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+        setDraftFestivo((v) => !v)
+        setDraftHoraInicio(newHora)
+        setIsDirty(true)
+        toast.success('Cambio pendiente. Recuerda guardar cambios.', {
+            icon: <Sparkles className="w-5 h-5 text-primary" />
+        })
     }
 
     const handleConfirmAssignment = async () => {
@@ -380,28 +455,118 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
             return
         }
 
+        setDraftAssignments((prev) => ({ ...prev, [tipo]: selectedUserId }))
+        setIsDirty(true)
+        toast.success('Cambio pendiente. Recuerda guardar cambios.', {
+            icon: <CheckCircle className="w-5 h-5 text-emerald-500" />
+        })
+    }
+
+    const handleSaveDraft = async () => {
         setIsUpdating(true)
         try {
-            const result = await updateAssignment(culto.id, tipo, selectedUserId)
-            if (result.success) {
-                toast.success(t('common.success'), {
-                    icon: <CheckCircle className="w-5 h-5 text-emerald-500" />
-                })
-            } else {
-                toast.error(result.error || t('common.error'))
+            const result = await saveCultoDraft({
+                cultoId: culto.id,
+                assignments: draftAssignments,
+                observaciones: draftObservaciones,
+                temaIntroduccionAlabanza: draftTema,
+                protocolo: draftProtocolo,
+                protocoloDefinido: draftProtocoloDefinido,
+                inicioAnticipado: draftInicioAnticipado,
+                inicioAnticipadoDefinido: draftInicioAnticipadoDefinido,
+                esLaborableFestivo: draftFestivo,
+                horaInicio: draftHoraInicio,
+                himnosCoros: draftHimnosChanged
+                    ? draftHimnosCoros.map((item, index) => ({
+                        tipo: item.tipo,
+                        item_id: item.item_id ?? (item.tipo === 'himno' ? item.himno?.id : item.coro?.id) ?? 0,
+                        orden: index + 1,
+                    }))
+                    : undefined,
+                lecturas: draftLecturasChanged
+                    ? draftLecturas.map((l) => ({
+                        tipo_lectura: l.tipo_lectura as 'introduccion' | 'finalizacion',
+                        libro: l.libro,
+                        capitulo_inicio: l.capitulo_inicio,
+                        versiculo_inicio: l.versiculo_inicio,
+                        capitulo_fin: l.capitulo_fin,
+                        versiculo_fin: l.versiculo_fin,
+                        id_usuario_lector: l.id_usuario_lector,
+                        es_repetida: l.es_repetida ?? false,
+                        lectura_original_id: l.lectura_original_id ?? null,
+                    }))
+                    : undefined,
+            })
+            if (!result.success) {
+                toast.error(result.error || 'No se pudieron guardar los cambios')
+                return
             }
+            initialRef.current = {
+                assignments: { ...draftAssignments },
+                observaciones: draftObservaciones,
+                tema: draftTema,
+                protocolo: draftProtocolo,
+                protocoloDefinido: draftProtocoloDefinido,
+                inicioAnticipado: draftInicioAnticipado,
+                inicioAnticipadoDefinido: draftInicioAnticipadoDefinido,
+                festivo: draftFestivo,
+                hora: draftHoraInicio,
+            }
+            initialPlanSignatureRef.current = JSON.stringify(normalizePlan(draftHimnosCoros))
+            setIsDirty(false)
+            setDraftLecturasChanged(false)
+            setDraftHimnosChanged(false)
+            toast.success('Cambios guardados correctamente')
+            router.refresh()
         } catch {
-            toast.error('Error de conexión')
+            toast.error('Error al guardar cambios')
         } finally {
             setIsUpdating(false)
         }
     }
 
+    const handleDiscardDraft = () => {
+        const initial = initialRef.current
+        setDraftAssignments(initial.assignments)
+        setDraftObservaciones(initial.observaciones)
+        setDraftTema(initial.tema)
+        setDraftProtocolo(initial.protocolo)
+        setDraftProtocoloDefinido(initial.protocoloDefinido)
+        setDraftInicioAnticipado(initial.inicioAnticipado)
+        setDraftInicioAnticipadoDefinido(initial.inicioAnticipadoDefinido)
+        setDraftFestivo(initial.festivo)
+        setDraftHoraInicio(initial.hora)
+        setDraftLecturas([])
+        setDraftLecturasChanged(false)
+        setDraftHimnosChanged(false)
+        setDraftHimnosCoros(culto.plan_himnos_coros || [])
+        setIsDirty(false)
+        toast.success('Cambios descartados')
+    }
+
+    const pendingCount = [
+        JSON.stringify(draftAssignments) !== JSON.stringify(initialRef.current.assignments),
+        draftObservaciones !== initialRef.current.observaciones,
+        draftTema !== initialRef.current.tema,
+        JSON.stringify(draftProtocolo) !== JSON.stringify(initialRef.current.protocolo),
+        draftProtocoloDefinido !== initialRef.current.protocoloDefinido,
+        JSON.stringify(draftInicioAnticipado) !== JSON.stringify(initialRef.current.inicioAnticipado),
+        draftInicioAnticipadoDefinido !== initialRef.current.inicioAnticipadoDefinido,
+        draftFestivo !== initialRef.current.festivo,
+        draftHoraInicio !== initialRef.current.hora,
+        draftLecturasChanged,
+        draftHimnosChanged,
+    ].filter(Boolean).length
+
+    useEffect(() => {
+        setIsDirty(pendingCount > 0)
+    }, [pendingCount])
+
     const tipoCulto = culto.tipo_culto?.nombre || 'Culto'
     const config = culto.tipo_culto || {}
 
     return (
-        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto space-y-4 md:space-y-6 lg:space-y-8 pb-20 px-4 md:px-8 no-scrollbar w-full">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto space-y-3 md:space-y-6 lg:space-y-8 pb-16 md:pb-20 px-3 md:px-8 no-scrollbar w-full">
             {/* Header / Breadcrumb */}
             <div className="space-y-4 md:space-y-6 w-full">
                 <BackButton fallbackUrl="/dashboard/cultos" />
@@ -409,25 +574,25 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="glass rounded-[2.5rem] md:rounded-[3rem] p-3 md:p-4 lg:p-6 xl:p-8 shadow-2xl relative overflow-hidden border border-white/20 dark:border-white/5 w-full"
+                    className="glass rounded-[2rem] md:rounded-[3rem] p-3 md:p-4 lg:p-6 xl:p-8 shadow-2xl relative overflow-hidden border border-white/20 dark:border-white/5 w-full"
                 >
                     <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl animate-pulse" />
 
                     <div className="relative z-10">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-4">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-8">
+                            <div className="space-y-3 md:space-y-4">
+                                <div className="flex items-center gap-3 md:gap-4">
                                     <div
                                         className="w-6 h-6 md:w-8 md:h-8 rounded-xl md:rounded-2xl shadow-2xl animate-bounce shrink-0"
                                         style={{ backgroundColor: config.color || '#4A90E2', boxShadow: `0 10px 25px -5px ${config.color || '#4A90E2'}40` }}
                                     />
-                                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase italic leading-none truncate py-1">
+                                    <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase italic leading-none truncate py-1">
                                         {tipoCulto}
                                     </h1>
                                 </div>
 
-                                <div className="flex flex-wrap items-center gap-6 md:gap-10">
-                                    <div className="flex items-center gap-4 bg-white/40 dark:bg-black/20 backdrop-blur-md px-8 py-4 rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30">
+                                <div className="flex flex-wrap items-center gap-3 md:gap-10">
+                                    <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 backdrop-blur-md px-4 md:px-8 py-2.5 md:py-4 rounded-2xl md:rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30">
                                         <Calendar className="w-6 h-6 text-primary" />
                                         <div className="flex flex-col">
                                             <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none mb-1">Fecha del Culto</p>
@@ -437,40 +602,40 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4 bg-white/40 dark:bg-black/20 backdrop-blur-md px-8 py-4 rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30 font-black">
+                                    <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 backdrop-blur-md px-4 md:px-8 py-2.5 md:py-4 rounded-2xl md:rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30 font-black">
                                         <Clock className="w-6 h-6 text-primary" />
                                         <div className="flex flex-col">
                                             <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none mb-1">Hora Inicio</p>
                                             <span className="text-base md:text-xl uppercase tracking-widest">
-                                                {culto.hora_inicio.slice(0, 5)}
+                                                {draftHoraInicio.slice(0, 5)}
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Toggle Festivo Premium */}
-                                    <div className="flex flex-col gap-2">
+                                    <div className="flex flex-col gap-2 w-full sm:w-auto">
                                         <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-4 leading-none">Estado de Jornada</p>
                                         <button
                                             onClick={readOnlyAssignments ? undefined : handleToggleFestivo}
                                             disabled={isUpdating || readOnlyAssignments}
-                                            className={`flex items-center gap-4 px-8 py-4 rounded-3xl border transition-all font-black group relative overflow-hidden h-full ${culto.es_laborable_festivo
+                                            className={`flex items-center gap-3 px-4 md:px-8 py-2.5 md:py-4 rounded-2xl md:rounded-3xl border transition-all font-black group relative overflow-hidden h-full ${draftFestivo
                                                 ? 'bg-amber-500 text-white border-amber-600 shadow-xl shadow-amber-500/30 scale-105'
                                                 : 'bg-white/40 dark:bg-black/20 backdrop-blur-md text-muted-foreground border-white/20 hover:border-amber-500/50 hover:bg-amber-50/10'
                                                 }`}
                                         >
-                                            <div className={`absolute inset-0 bg-linear-to-r from-white/20 to-transparent -translate-x-full transition-transform duration-1000 ${culto.es_laborable_festivo ? 'group-hover:translate-x-full' : ''}`} />
-                                            <div className={`p-2 rounded-xl transition-colors ${culto.es_laborable_festivo ? 'bg-white/20' : 'bg-amber-500/10'}`}>
-                                                <AlertCircle className={`w-6 h-6 ${culto.es_laborable_festivo ? 'text-white' : 'text-amber-500'}`} />
+                                            <div className={`absolute inset-0 bg-linear-to-r from-white/20 to-transparent -translate-x-full transition-transform duration-1000 ${draftFestivo ? 'group-hover:translate-x-full' : ''}`} />
+                                            <div className={`p-2 rounded-xl transition-colors ${draftFestivo ? 'bg-white/20' : 'bg-amber-500/10'}`}>
+                                                <AlertCircle className={`w-6 h-6 ${draftFestivo ? 'text-white' : 'text-amber-500'}`} />
                                             </div>
                                             <div className="flex flex-col items-start">
-                                                <span className={`text-[10px] uppercase tracking-widest leading-none mb-1 ${culto.es_laborable_festivo ? 'text-white/80' : 'text-muted-foreground'}`}>
-                                                    {culto.es_laborable_festivo ? 'Día Especial' : 'Día Laborable'}
+                                                <span className={`text-[10px] uppercase tracking-widest leading-none mb-1 ${draftFestivo ? 'text-white/80' : 'text-muted-foreground'}`}>
+                                                    {draftFestivo ? 'Día Especial' : 'Día Laborable'}
                                                 </span>
                                                 <span className="text-sm uppercase tracking-tight relative z-10 whitespace-nowrap">
-                                                    {culto.es_laborable_festivo ? 'Festivo Aplicado' : 'Marcar como Festivo'}
+                                                    {draftFestivo ? 'Festivo Aplicado' : 'Marcar como Festivo'}
                                                 </span>
                                             </div>
-                                            {culto.es_laborable_festivo && (
+                                            {draftFestivo && (
                                                 <motion.div
                                                     layoutId="festivo-sparkle"
                                                     className="ml-2"
@@ -497,7 +662,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 animate={{ opacity: 1, y: 0 }}
                 className="w-full"
             >
-                <div className="glass rounded-4xl p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                <div className="glass rounded-3xl md:rounded-4xl p-3 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
                     <div className="flex flex-col gap-4 relative z-10">
                         {/* Header */}
                         <div className="flex items-center gap-4">
@@ -517,16 +682,14 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                         {/* Textarea */}
                         <textarea
                             placeholder="Escribe aquí las observaciones del culto..."
-                            defaultValue={(culto.meta_data as any)?.observaciones || ''}
+                            value={draftObservaciones}
                             readOnly={readOnlyAssignments}
-                            onBlur={readOnlyAssignments ? undefined : async (e) => {
-                                await updateCultoObservaciones(culto.id, e.target.value)
-                                if (e.target.value.trim()) {
-                                    toast.success('Observaciones guardadas')
-                                }
+                            onChange={readOnlyAssignments ? undefined : (e) => {
+                                setDraftObservaciones(e.target.value)
+                                setIsDirty(true)
                             }}
                             className={`w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-amber-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
-                            rows={3}
+                            rows={2}
                         />
                     </div>
                 </div>
@@ -539,8 +702,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full"
                 >
-                    <div className="glass rounded-4xl p-4 sm:p-5 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
-                        <div className="flex flex-col gap-4 sm:gap-6 relative z-10">
+                    <div className="glass rounded-3xl md:rounded-4xl p-3 sm:p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                        <div className="flex flex-col gap-3 sm:gap-6 relative z-10">
                             <div className="flex items-center gap-3 sm:gap-4">
                                 <div className="p-2.5 sm:p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 shrink-0">
                                     <BookMarked className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
@@ -566,14 +729,14 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         setTemaDropdownOpen((o) => !o)
                                     }}
                                     disabled={readOnlyAssignments}
-                                    className={`flex w-full min-h-[44px] items-center justify-between gap-3 px-4 py-3 rounded-2xl border-2 transition-all touch-manipulation text-left ${(culto.meta_data as any)?.tema_introduccion_alabanza
+                                    className={`flex w-full min-h-[44px] items-center justify-between gap-3 px-4 py-3 rounded-2xl border-2 transition-all touch-manipulation text-left ${draftTema
                                         ? 'bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300'
                                         : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
                                         } ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-blue-300 dark:hover:border-blue-700'}`}
                                 >
                                     <span className="text-sm font-bold truncate">
-                                        {(culto.meta_data as any)?.tema_introduccion_alabanza
-                                            ? t((culto.meta_data as any).tema_introduccion_alabanza)
+                                        {draftTema
+                                            ? t(draftTema as TranslationKey)
                                             : t('alabanza.tema.sinAsignar')}
                                     </span>
                                     <ChevronDown className={`w-5 h-5 shrink-0 transition-transform ${temaDropdownOpen ? 'rotate-180' : ''}`} />
@@ -598,14 +761,14 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         >
                                             <div className="p-1.5 max-h-[280px] overflow-y-auto no-scrollbar">
                                                 {TEMAS_ALABANZA_KEYS.map((key) => {
-                                                    const isSelected = (culto.meta_data as any)?.tema_introduccion_alabanza === key
+                                                    const isSelected = draftTema === key
                                                     return (
                                                         <button
                                                             key={key}
                                                             type="button"
                                                             onClick={() => {
                                                                 setTemaDropdownOpen(false)
-                                                                const current = (culto.meta_data as any)?.tema_introduccion_alabanza
+                                                                const current = draftTema
                                                                 setTemaConfirmState({
                                                                     tipo: current ? 'modify' : 'assign',
                                                                     temaKey: key,
@@ -621,7 +784,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                         </button>
                                                     )
                                                 })}
-                                                {(culto.meta_data as any)?.tema_introduccion_alabanza && (
+                                                {draftTema && (
                                                     <>
                                                         <div className="h-px bg-slate-200 dark:bg-slate-700 my-1.5" />
                                                         <button
@@ -675,10 +838,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     onClick={async () => {
                                         if (!temaConfirmState) return
                                         const newTema = temaConfirmState.tipo === 'delete' ? null : temaConfirmState.temaKey
-                                        await updateTemaIntroduccionAlabanza(culto.id, newTema)
-                                        toast.success(newTema ? 'Tema asignado' : 'Tema eliminado')
+                                        setDraftTema(newTema)
+                                        setIsDirty(true)
+                                        toast.success('Cambio pendiente. Recuerda guardar cambios.')
                                         setTemaConfirmState(null)
-                                        router.refresh()
                                     }}
                                     className={`px-4 py-2.5 rounded-xl font-bold transition-colors ${temaConfirmState?.tipo === 'delete'
                                         ? 'bg-red-600 hover:bg-red-700 text-white'
@@ -700,8 +863,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full"
                 >
-                    <div className="glass rounded-4xl p-4 sm:p-5 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
-                        <div className="flex flex-col gap-4 sm:gap-6 relative z-10">
+                    <div className="glass rounded-3xl md:rounded-4xl p-3 sm:p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                        <div className="flex flex-col gap-3 sm:gap-6 relative z-10">
                             {/* Header + Toggle maestro (como Inicio anticipado) */}
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                 <div className="flex items-center gap-3 sm:gap-4">
@@ -725,41 +888,42 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 <button
                                     type="button"
                                     onClick={async () => {
-                                        const definido = culto.meta_data?.protocolo_definido === true
+                                        const definido = draftProtocoloDefinido === true
                                         if (definido) {
-                                            const err = await resetCultoProtocol(culto.id)
-                                            if (err?.error) return toast.error(err.error)
+                                            setDraftProtocolo(null)
+                                            setDraftProtocoloDefinido(false)
                                             toast.success('Protocolo vuelve a Por definir')
                                         } else {
-                                            await updateCultoProtocol(culto.id, {
+                                            setDraftProtocolo({
                                                 oracion_inicio: true,
                                                 congregacion_pie: false
                                             })
+                                            setDraftProtocoloDefinido(true)
                                             toast.success('Protocolo activado')
                                         }
-                                        router.refresh()
+                                        setIsDirty(true)
                                     }}
-                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] sm:min-h-0 rounded-2xl border-2 transition-all cursor-pointer touch-manipulation shrink-0 w-full sm:w-auto sm:min-w-[180px] ${culto.meta_data?.protocolo_definido === true
+                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] sm:min-h-0 rounded-2xl border-2 transition-all cursor-pointer touch-manipulation shrink-0 w-full sm:w-auto sm:min-w-[180px] ${draftProtocoloDefinido === true
                                         ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-700 dark:text-indigo-300'
                                         : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
                                         }`}
                                 >
                                     <span className="text-xs sm:text-sm font-black uppercase tracking-tight">
-                                        {culto.meta_data?.protocolo_definido === true
+                                        {draftProtocoloDefinido === true
                                             ? t('culto.protocol.activated')
                                             : t('culto.protocol.deactivated')}
                                     </span>
-                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${culto.meta_data?.protocolo_definido === true
+                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${draftProtocoloDefinido === true
                                         ? 'bg-indigo-500 border-indigo-600'
                                         : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
                                         }`}>
-                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${culto.meta_data?.protocolo_definido === true ? 'translate-x-5 sm:translate-x-5' : 'translate-x-0'}`} />
+                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${draftProtocoloDefinido === true ? 'translate-x-5 sm:translate-x-5' : 'translate-x-0'}`} />
                                     </div>
                                 </button>
                             </div>
 
                             {/* Oración y Congregación: solo visibles e interactivos cuando protocolo está Activado */}
-                            {culto.meta_data?.protocolo_definido === true && (
+                            {draftProtocoloDefinido === true && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
@@ -768,19 +932,19 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
                                         {/* Switch Oración */}
                                         {(() => {
-                                            const oracionActual = culto.meta_data?.protocolo?.oracion_inicio ?? true
-                                            const congregacionActual = culto.meta_data?.protocolo?.congregacion_pie ?? false
+                                            const oracionActual = draftProtocolo?.oracion_inicio ?? true
+                                            const congregacionActual = draftProtocolo?.congregacion_pie ?? false
                                             const oracionActivo = oracionActual
                                             return (
                                                 <button
                                                     type="button"
                                                     onClick={async () => {
-                                                        await updateCultoProtocol(culto.id, {
+                                                        setDraftProtocolo({
                                                             oracion_inicio: !oracionActual,
                                                             congregacion_pie: congregacionActual
                                                         })
+                                                        setIsDirty(true)
                                                         toast.success(!oracionActual ? 'Oración activada' : 'Oración desactivada')
-                                                        router.refresh()
                                                     }}
                                                     className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] rounded-2xl border-2 transition-all flex-1 min-w-0 cursor-pointer touch-manipulation ${oracionActivo
                                                         ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
@@ -805,19 +969,19 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
 
                                         {/* Switch Congregación */}
                                         {(() => {
-                                            const oracionActual = culto.meta_data?.protocolo?.oracion_inicio ?? true
-                                            const congregacionActual = culto.meta_data?.protocolo?.congregacion_pie ?? false
+                                            const oracionActual = draftProtocolo?.oracion_inicio ?? true
+                                            const congregacionActual = draftProtocolo?.congregacion_pie ?? false
                                             const congregacionActivo = congregacionActual
                                             return (
                                                 <button
                                                     type="button"
                                                     onClick={async () => {
-                                                        await updateCultoProtocol(culto.id, {
+                                                        setDraftProtocolo({
                                                             oracion_inicio: oracionActual,
                                                             congregacion_pie: !congregacionActual
                                                         })
+                                                        setIsDirty(true)
                                                         toast.success(!congregacionActual ? 'Congregación de pie' : 'Congregación sentada')
-                                                        router.refresh()
                                                     }}
                                                     className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] rounded-2xl border-2 transition-all flex-1 min-w-0 cursor-pointer touch-manipulation ${congregacionActivo
                                                         ? 'bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300'
@@ -879,34 +1043,35 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 <button
                                     type="button"
                                     onClick={async () => {
-                                        const current = culto.meta_data?.inicio_anticipado?.activo ?? false
-                                        await updateInicioAnticipado(culto.id, {
+                                        const current = draftInicioAnticipado?.activo ?? false
+                                        setDraftInicioAnticipadoDefinido(true)
+                                        setDraftInicioAnticipado({
                                             activo: !current,
-                                            minutos: culto.meta_data?.inicio_anticipado?.minutos ?? 5,
-                                            observaciones: culto.meta_data?.inicio_anticipado?.observaciones
+                                            minutos: draftInicioAnticipado?.minutos ?? 5,
+                                            observaciones: draftInicioAnticipado?.observaciones
                                         })
+                                        setIsDirty(true)
                                         toast.success(!current ? 'Inicio anticipado activado' : 'Inicio anticipado desactivado')
-                                        router.refresh()
                                     }}
-                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] sm:min-h-0 rounded-2xl border-2 transition-all cursor-pointer touch-manipulation shrink-0 w-full sm:w-auto sm:min-w-[180px] ${(culto.meta_data?.inicio_anticipado?.activo ?? false)
+                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] sm:min-h-0 rounded-2xl border-2 transition-all cursor-pointer touch-manipulation shrink-0 w-full sm:w-auto sm:min-w-[180px] ${(draftInicioAnticipado?.activo ?? false)
                                         ? 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300'
                                         : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
                                         }`}
                                 >
                                     <span className="text-xs sm:text-sm font-black uppercase tracking-tight">
-                                        {(culto.meta_data?.inicio_anticipado?.activo ?? false) ? 'Activado' : 'Desactivado'}
+                                        {(draftInicioAnticipado?.activo ?? false) ? 'Activado' : 'Desactivado'}
                                     </span>
-                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${(culto.meta_data?.inicio_anticipado?.activo ?? false)
+                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${(draftInicioAnticipado?.activo ?? false)
                                         ? 'bg-amber-500 border-amber-600'
                                         : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
                                         }`}>
-                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${(culto.meta_data?.inicio_anticipado?.activo ?? false) ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${(draftInicioAnticipado?.activo ?? false) ? 'translate-x-5' : 'translate-x-0'}`} />
                                     </div>
                                 </button>
                             </div>
 
                             {/* Content - Only shown when active */}
-                            {(culto.meta_data?.inicio_anticipado?.activo ?? false) && (
+                            {(draftInicioAnticipado?.activo ?? false) && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
@@ -923,15 +1088,15 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                     key={mins}
                                                     type="button"
                                                     onClick={async () => {
-                                                        await updateInicioAnticipado(culto.id, {
+                                                        setDraftInicioAnticipado({
                                                             activo: true,
                                                             minutos: mins,
-                                                            observaciones: culto.meta_data?.inicio_anticipado?.observaciones
+                                                            observaciones: draftInicioAnticipado?.observaciones
                                                         })
+                                                        setIsDirty(true)
                                                         toast.success(`Inicio ${mins} minutos antes`)
-                                                        router.refresh()
                                                     }}
-                                                    className={`min-h-[44px] px-5 sm:px-6 py-3 rounded-2xl font-black text-sm transition-all touch-manipulation ${(culto.meta_data?.inicio_anticipado?.minutos ?? 5) === mins
+                                                    className={`min-h-[44px] px-5 sm:px-6 py-3 rounded-2xl font-black text-sm transition-all touch-manipulation ${(draftInicioAnticipado?.minutos ?? 5) === mins
                                                         ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
                                                         : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                                                         }`}
@@ -946,19 +1111,20 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                     min={1}
                                                     max={30}
                                                     defaultValue={
-                                                        ![5, 7, 10].includes(culto.meta_data?.inicio_anticipado?.minutos ?? 5)
-                                                            ? culto.meta_data?.inicio_anticipado?.minutos
+                                                        ![5, 7, 10].includes(draftInicioAnticipado?.minutos ?? 5)
+                                                            ? draftInicioAnticipado?.minutos
                                                             : ''
                                                     }
                                                     placeholder="min"
                                                     onBlur={async (e) => {
                                                         const val = parseInt(e.target.value)
                                                         if (val && val > 0 && val <= 30) {
-                                                            await updateInicioAnticipado(culto.id, {
+                                                            setDraftInicioAnticipado({
                                                                 activo: true,
                                                                 minutos: val,
-                                                                observaciones: culto.meta_data?.inicio_anticipado?.observaciones
+                                                                observaciones: draftInicioAnticipado?.observaciones
                                                             })
+                                                            setIsDirty(true)
                                                             toast.success(`Inicio ${val} minutos antes`)
                                                         }
                                                     }}
@@ -978,8 +1144,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                 </p>
                                                 <p className="text-xl font-black text-amber-700 dark:text-amber-300">
                                                     {(() => {
-                                                        const [hours, minutes] = culto.hora_inicio.split(':').map(Number)
-                                                        const minsBefore = culto.meta_data?.inicio_anticipado?.minutos ?? 5
+                                                        const [hours, minutes] = draftHoraInicio.split(':').map(Number)
+                                                        const minsBefore = draftInicioAnticipado?.minutos ?? 5
                                                         let newMins = minutes - minsBefore
                                                         let newHours = hours
                                                         if (newMins < 0) {
@@ -989,7 +1155,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                         return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`
                                                     })()}
                                                     <span className="text-sm font-bold text-amber-600/60 ml-2">
-                                                        ({culto.meta_data?.inicio_anticipado?.minutos ?? 5} min antes de {culto.hora_inicio.slice(0, 5)})
+                                                        ({draftInicioAnticipado?.minutos ?? 5} min antes de {draftHoraInicio.slice(0, 5)})
                                                     </span>
                                                 </p>
                                             </div>
@@ -1003,7 +1169,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
             )}
 
             {/* Cuadrícula de Contenido Responsiva */}
-            <div className="space-y-6 md:space-y-8 w-full">
+            <div className="space-y-3 md:space-y-8 w-full">
                 {/* Fila 1: Responsables (Diseño Inteligente: Se expanden para ocupar el espacio) */}
                 <div className="flex flex-wrap gap-4 md:gap-6 w-full overflow-visible relative z-30">
                     {config.tiene_lectura_introduccion && (
@@ -1011,7 +1177,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                             <AssignmentSection
                                 label={t('culto.introduccion')}
                                 icon={<User className="w-5 h-5" />}
-                                selectedUserId={culto.id_usuario_intro}
+                                selectedUserId={draftAssignments.introduccion}
                                 usuarioActual={culto.usuario_intro}
                                 onSelect={(id, confirmed) => handleAssignment('introduccion', id, confirmed)}
                                 disabled={isUpdating}
@@ -1022,6 +1188,11 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 isFestivo={culto.es_laborable_festivo}
                                 onVerInstrucciones={() => setInstruccionesModalRol('introduccion')}
                                 readOnly={readOnlyAssignments}
+                                readingMode="draft"
+                                onReadingDraftChange={(items, dirty) => {
+                                    setDraftLecturas(items)
+                                    if (dirty) setDraftLecturasChanged(true)
+                                }}
                             />
                         </div>
                     )}
@@ -1031,7 +1202,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                             <AssignmentSection
                                 label={t('culto.ensenanza')}
                                 icon={<BookOpen className="w-5 h-5" />}
-                                selectedUserId={culto.id_usuario_ensenanza}
+                                selectedUserId={draftAssignments.ensenanza}
                                 usuarioActual={culto.usuario_ensenanza}
                                 onSelect={(id, confirmed) => handleAssignment('ensenanza', id, confirmed)}
                                 disabled={isUpdating}
@@ -1051,7 +1222,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                             <AssignmentSection
                                 label={t('culto.testimonios')}
                                 icon={<User className="w-5 h-5" />}
-                                selectedUserId={culto.id_usuario_testimonios}
+                                selectedUserId={draftAssignments.testimonios}
                                 usuarioActual={culto.usuario_testimonios}
                                 onSelect={(id, confirmed) => handleAssignment('testimonios', id, confirmed)}
                                 disabled={isUpdating}
@@ -1071,7 +1242,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                             <AssignmentSection
                                 label={t('culto.finalizacion')}
                                 icon={<User className="w-5 h-5" />}
-                                selectedUserId={culto.id_usuario_finalizacion}
+                                selectedUserId={draftAssignments.finalizacion}
                                 usuarioActual={culto.usuario_finalizacion}
                                 onSelect={(id, confirmed) => handleAssignment('finalizacion', id, confirmed)}
                                 disabled={isUpdating}
@@ -1171,6 +1342,11 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         maxHimnos={5}
                                         maxCoros={5}
                                         tipoCulto={culto.tipo_culto?.nombre}
+                                        mode="draft"
+                                        onDraftChange={(items) => {
+                                            setDraftHimnosCoros(items)
+                                        }}
+                                        onDraftDirty={() => setDraftHimnosChanged(true)}
                                     />
                                 </CardContent>
                             </Card>
@@ -1179,21 +1355,13 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 </div>
             </div>
 
-            {/* Botón Finalizar Edición */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="flex justify-center pt-8"
-            >
-                <button
-                    onClick={() => router.back()}
-                    className="h-16 px-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-2xl shadow-blue-500/30 flex items-center justify-center gap-3 transition-all hover:scale-[1.05] active:scale-[0.95] border-b-4 border-blue-800"
-                >
-                    <CheckCircle className="w-5 h-5" />
-                    Finalizar y Guardar
-                </button>
-            </motion.div>
+            <SaveChangesBar
+                isDirty={isDirty}
+                isSaving={isUpdating}
+                pendingCount={pendingCount}
+                onSave={handleSaveDraft}
+                onDiscard={handleDiscardDraft}
+            />
 
             <InstruccionesCultoModal
                 isOpen={!!instruccionesModalRol}
@@ -1202,6 +1370,44 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 cultoTypeNombre={tipoCulto}
                 rol={instruccionesModalRol ?? 'introduccion'}
             />
+
+            <Dialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
+                <DialogContent className="max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-3xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-slate-900 dark:text-white font-black uppercase tracking-tight">
+                            Tienes cambios sin guardar
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-600 dark:text-slate-400">
+                            Si sales ahora, perderás los cambios pendientes de este culto.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setLeaveConfirmOpen(false)
+                                setPendingNavigationHref(null)
+                            }}
+                            className="px-4 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        >
+                            Quedarme
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const targetHref = pendingNavigationHref
+                                setLeaveConfirmOpen(false)
+                                setPendingNavigationHref(null)
+                                setIsDirty(false)
+                                if (targetHref) window.location.href = targetHref
+                            }}
+                            className="px-4 py-2.5 rounded-xl font-bold transition-colors bg-red-600 hover:bg-red-700 text-white"
+                        >
+                            Salir sin guardar
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

@@ -101,6 +101,7 @@ export async function saveLectura(
     }
 
     revalidatePath(`/dashboard/cultos/${cultoId}`)
+    revalidatePath('/dashboard')
     return { success: true, data: result.data }
 }
 
@@ -163,6 +164,7 @@ export async function confirmRepeatedLectura(
     }
 
     revalidatePath(`/dashboard/cultos/${cultoId}`)
+    revalidatePath('/dashboard')
     return { success: true, data: result.data }
 }
 
@@ -183,6 +185,7 @@ export async function deleteLectura(id: string, cultoId?: string) {
 
     if (cultoId) {
         revalidatePath(`/dashboard/cultos/${cultoId}`)
+        revalidatePath('/dashboard')
     }
 
     return { success: true }

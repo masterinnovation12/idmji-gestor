@@ -33,6 +33,8 @@ interface BibleReadingManagerProps {
         tiene_lectura_introduccion: boolean
         tiene_lectura_finalizacion: boolean
     }
+    mode?: 'commit' | 'draft'
+    onDraftChange?: (lecturas: LecturaBiblica[], dirty?: boolean) => void
 }
 
 interface ReadingItemProps {
@@ -123,7 +125,7 @@ function ReadingItem({ lectura, onEdit, onDelete }: ReadingItemProps) {
     )
 }
 
-export default function BibleReadingManager({ cultoId, userId, config }: BibleReadingManagerProps) {
+export default function BibleReadingManager({ cultoId, userId, config, mode = 'commit', onDraftChange }: BibleReadingManagerProps) {
     const { t } = useI18n()
     const [lecturas, setLecturas] = useState<LecturaBiblica[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -133,6 +135,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
 
     // Cargar lecturas actuales
     const loadLecturas = useCallback(async () => {
+        if (mode === 'draft') return
         setIsLoading(true)
         try {
             const { data, error } = await getLecturasByCulto(cultoId)
@@ -148,7 +151,7 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
         } finally {
             setIsLoading(false)
         }
-    }, [cultoId])
+    }, [cultoId, mode])
 
     useEffect(() => {
         loadLecturas()
@@ -160,6 +163,16 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
     }
 
     const handleDelete = async (id: string) => {
+        if (mode === 'draft') {
+            setLecturas(prev => {
+                const updated = prev.filter(l => l.id !== id)
+                onDraftChange?.(updated, true)
+                return updated
+            })
+            setDeleteConfirmId(null)
+            toast.success('Lectura eliminada del borrador')
+            return
+        }
         setIsLoading(true)
         try {
             // Optimismo: Eliminar de la UI primero para evitar el "flash"
@@ -314,6 +327,30 @@ export default function BibleReadingManager({ cultoId, userId, config }: BibleRe
                     tipo={activeTipo}
                     onSuccess={loadLecturas}
                     isEdit={lecturas.some(l => l.tipo_lectura === activeTipo)}
+                    mode={mode}
+                    onDraftSave={(payload) => {
+                        setLecturas((prev) => {
+                            const base = prev.filter((l) => l.tipo_lectura !== payload.tipo)
+                            const lectura: LecturaBiblica = {
+                                id: `draft-${payload.tipo}-${Date.now()}`,
+                                culto_id: cultoId,
+                                tipo_lectura: payload.tipo,
+                                libro: payload.libro,
+                                capitulo_inicio: payload.capituloInicio,
+                                versiculo_inicio: payload.versiculoInicio,
+                                capitulo_fin: payload.capituloFin,
+                                versiculo_fin: payload.versiculoFin,
+                                id_usuario_lector: userId,
+                                es_repetida: false,
+                                lectura_original_id: null,
+                                created_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString(),
+                            }
+                            const updated = [...base, lectura]
+                            onDraftChange?.(updated, true)
+                            return updated
+                        })
+                    }}
                 />
             )}
         </div>

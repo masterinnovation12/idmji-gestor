@@ -57,6 +57,9 @@ interface HimnoCoroSelectorProps {
     maxCoros?: number
     className?: string
     tipoCulto?: string
+    mode?: 'commit' | 'draft'
+    onDraftChange?: (items: PlanHimnoCoro[]) => void
+    onDraftDirty?: () => void
 }
 
 /**
@@ -184,7 +187,10 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
         maxHimnos = LIMITES.MAX_HIMNOS_POR_CULTO,
         maxCoros = LIMITES.MAX_COROS_POR_CULTO,
         className,
-        tipoCulto
+        tipoCulto,
+        mode = 'commit',
+        onDraftChange,
+        onDraftDirty,
     } = props
 
     // Para cultos de Alabanza, seleccionamos Coros por defecto
@@ -363,7 +369,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
             return
         }
 
-        if (cultoId) {
+        if (cultoId && mode === 'commit') {
             // Modo Real: Guardar en DB
             // Calcular el orden global: simplemente al final de la lista actual
             const orden = selected.length > 0 ? Math.max(...selected.map(s => s.orden)) + 1 : 1
@@ -403,7 +409,12 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                 orden,
                 [tipo === 'himno' ? 'himno' : 'coro']: item
             }
-            setSelected([...selected, newItem])
+            const updated = [...selected, newItem]
+            setSelected(updated)
+            if (mode === 'draft') {
+                onDraftChange?.(updated)
+                onDraftDirty?.()
+            }
             setQuery('')
             setResults([])
             toast.success('Añadido a la lista temporal')
@@ -411,14 +422,19 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
     }
 
     const handleRemove = async (planId: string) => {
-        if (cultoId) {
+        if (cultoId && mode === 'commit') {
             await removeHimnoCoro(planId, cultoId)
             const { data } = await getHimnosCorosByCulto(cultoId)
             if (data) {
                 setSelected(data)
             }
         } else {
-            setSelected(selected.filter(s => s.id !== planId))
+            const updated = selected.filter(s => s.id !== planId)
+            setSelected(updated)
+            if (mode === 'draft') {
+                onDraftChange?.(updated)
+                onDraftDirty?.()
+            }
         }
         toast.success(cultoId ? 'Eliminado del culto' : 'Eliminado de la lista')
     }
@@ -468,8 +484,12 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
 
         // Actualizar el estado local inmediatamente para feedback visual fluido
         setSelected(updated)
+        if (mode === 'draft') {
+            onDraftChange?.(updated)
+            onDraftDirty?.()
+        }
 
-        if (cultoId) {
+        if (cultoId && mode === 'commit') {
             // Actualizar en la base de datos
             const updates = updated.map(item => ({
                 id: item.id,
