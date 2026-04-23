@@ -61,10 +61,28 @@ describe('AssignmentPill', () => {
     expect(screen.getByText('Himno 2')).toBeInTheDocument()
     expect(screen.getByText('Coro A')).toBeInTheDocument()
     expect(screen.getByText('Coro B')).toBeInTheDocument()
-    const items = document.querySelectorAll('.space-y-2 > div')
+    const items = document.querySelectorAll('.space-y-1\\.5 > div, .space-y-2 > div')
     expect(items[0].textContent).toContain('Himno 1')
     expect(items[1].textContent).toContain('Himno 2')
     expect(items[2].textContent).toContain('Coro A')
     expect(items[3].textContent).toContain('Coro B')
+  })
+
+  it('usa layout compacto en items de himnario', () => {
+    const himnario = [
+      { tipo: 'himno', orden: 1, himno: { numero: 1, titulo: 'Himno Compacto', duracion_segundos: 120 } },
+    ]
+    const { container } = render(
+      <AssignmentPill
+        label="Intro"
+        usuario={undefined}
+        himnario={himnario as any}
+        tipoCulto="Alabanza"
+      />
+    )
+
+    const itemRow = container.querySelector('.group\\/item')
+    expect(itemRow?.className).toContain('flex items-center')
+    expect(itemRow?.className).not.toContain('flex-col')
   })
 })

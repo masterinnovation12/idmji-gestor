@@ -30,6 +30,7 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
 
     const hasExtraContent = lectura || (himnario && himnario.length > 0) || !!temaIntroduccionAlabanza
     const hasFooter = footerAction != null
+    const allCoros = (himnarioOrdenado ?? himnario ?? []).length > 0 && (himnarioOrdenado ?? himnario ?? []).every((item) => item.tipo === 'coro')
 
     const nombreCompleto = usuario ? `${usuario.nombre ?? ''} ${(usuario.apellidos ?? '').split(' ')[0] ?? ''}`.trim() : ''
 
@@ -103,7 +104,7 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
 
             {/* Himnario integrado */}
             {himnario && himnario.length > 0 && (
-                <div className={`flex flex-col gap-4 p-4 bg-white/40 dark:bg-white/5 rounded-2xl border border-white/60 dark:border-white/10 shadow-sm relative w-full ${lectura ? 'mt-1' : ''}`}>
+                <div className={`flex flex-col gap-3 p-3 sm:p-4 bg-white/40 dark:bg-white/5 rounded-2xl border border-white/60 dark:border-white/10 shadow-sm relative w-full ${lectura ? 'mt-1' : ''}`}>
                     {/* Header del Himnario - Ahora más integrado */}
                     <div className="flex items-center gap-3 pb-3 border-b border-black/5 dark:border-white/5">
                         <div className="w-10 h-10 rounded-xl bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0 text-white">
@@ -115,32 +116,38 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
                         </div>
                     </div>
 
-                    <div className="space-y-2">
+                    {allCoros && (
+                        <div className="flex items-center justify-start mb-1.5">
+                            <span className="text-[9px] font-black uppercase tracking-[0.2em] px-2 py-1 rounded-full bg-purple-50 text-purple-600 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700/50">
+                                Coros
+                            </span>
+                        </div>
+                    )}
+                    <div className="space-y-1.5 sm:space-y-2">
                         {(himnarioOrdenado ?? himnario ?? []).map((item, idx) => {
                             const details = item.tipo === 'himno' ? item.himno : item.coro
                             if (!details) return null
                             return (
-                                <div key={idx} className="flex flex-col gap-2 group/item p-2 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-all">
-                                    <div className="flex items-center gap-3 min-w-0 w-full">
+                                <div key={idx} className="flex items-center gap-2 sm:gap-3 group/item p-2 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-all min-w-0 w-full">
                                         {/* Número redondo y limpio */}
-                                        <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black shadow-sm ${item.tipo === 'himno' ? 'bg-indigo-500 text-white' : 'bg-purple-500 text-white'}`}>
+                                        <div className={`shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-black shadow-sm ${item.tipo === 'himno' ? 'bg-indigo-500 text-white' : 'bg-purple-500 text-white'}`}>
                                             {details.numero}
                                         </div>
 
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <span className={`text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded ${item.tipo === 'himno' ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/30' : 'text-purple-600 bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800/30'}`}>
-                                                    {item.tipo}
-                                                </span>
-                                            </div>
-                                            <p className="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm leading-tight group-hover/item:text-blue-600 dark:group-hover/item:text-blue-400 transition-colors">
+                                        <div className="min-w-0 flex-1 flex items-center gap-2">
+                                            {!allCoros && (
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    <span className={`text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded ${item.tipo === 'himno' ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/30' : 'text-purple-600 bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800/30'}`}>
+                                                        {item.tipo}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <p className="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm leading-tight break-words group-hover/item:text-blue-600 dark:group-hover/item:text-blue-400 transition-colors">
                                                 {details.titulo}
                                             </p>
                                         </div>
-                                    </div>
 
-                                    {/* Duración debajo del título */}
-                                    <div className="flex items-center gap-1.5 ml-11 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-black/5 dark:border-white/10 shadow-sm w-fit">
+                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-black/5 dark:border-white/10 shadow-sm shrink-0">
                                         <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                                         <span className="font-mono text-[11px] font-black text-slate-600 dark:text-slate-300">
                                             {formatDuration(details.duracion_segundos)}
@@ -152,22 +159,22 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
                     </div>
 
                     {/* Total de tiempo: fondo más visible, alineado con el bloque himnario (indigo) */}
-                    <div className="flex items-center justify-center mt-3 pt-4 border-t border-indigo-200/50 dark:border-indigo-500/25">
+                    <div className="flex items-center justify-center mt-2 pt-3 border-t border-indigo-200/50 dark:border-indigo-500/25">
                         <div
-                            className="px-4 py-3 sm:px-5 sm:py-3.5 w-full max-w-sm rounded-2xl flex items-center gap-3 cursor-default
+                            className="px-3 py-2.5 sm:px-5 sm:py-3.5 w-full max-w-sm rounded-2xl flex items-center gap-2.5 sm:gap-3 cursor-default
                             border border-indigo-200/90 dark:border-indigo-400/35
                             bg-linear-to-br from-indigo-50 via-white to-blue-50/90 dark:from-indigo-950/70 dark:via-zinc-900/85 dark:to-slate-950/90
                             shadow-md shadow-indigo-500/10 dark:shadow-indigo-950/40
                             ring-1 ring-indigo-500/20 dark:ring-indigo-400/25"
                         >
-                            <div className="w-9 h-9 rounded-xl bg-indigo-600/15 dark:bg-indigo-400/20 flex items-center justify-center shrink-0 border border-indigo-300/50 dark:border-indigo-500/40 shadow-inner">
-                                <Clock className="w-[18px] h-[18px] text-indigo-700 dark:text-indigo-300" />
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600/15 dark:bg-indigo-400/20 flex items-center justify-center shrink-0 border border-indigo-300/50 dark:border-indigo-500/40 shadow-inner">
+                                <Clock className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-indigo-700 dark:text-indigo-300" />
                             </div>
                             <div className="flex flex-col items-start leading-none min-w-0">
-                                <span className="text-xs sm:text-sm font-black uppercase tracking-wide mb-1 text-indigo-800/90 dark:text-indigo-200">
+                                <span className="text-[11px] sm:text-sm font-black uppercase tracking-wide mb-1 text-indigo-800/90 dark:text-indigo-200">
                                     {t('dashboard.himnario.timeTotal')}
                                 </span>
-                                <span className="text-indigo-950 dark:text-white font-mono text-base font-black tracking-tighter tabular-nums">
+                                <span className="text-indigo-950 dark:text-white font-mono text-sm sm:text-base font-black tracking-tighter tabular-nums">
                                     {formatDuration(totalSeconds)}{' '}
                                     <span className="text-[9px] font-sans font-bold text-indigo-600/80 dark:text-indigo-300/90">min</span>
                                 </span>

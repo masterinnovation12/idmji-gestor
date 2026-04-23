@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
-import DashboardClient from './DashboardClient'
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
 import { getUserAssignments } from './cultos/actions'
-import { computeCultoDetails } from '@/lib/utils/computeCultoDetails'
+import nextDynamic from 'next/dynamic'
+
+const DashboardClient = nextDynamic(() => import('./DashboardClient'), { suspense: true })
 
 
 // Revalidation trigger
@@ -32,9 +34,7 @@ export default async function DashboardPage() {
         const [
             profileRes,
             cultosDataRes,
-            initialAssignmentsRes,
-            totalCultosRes,
-            totalLecturasRes
+            initialAssignmentsRes
         ] = await Promise.all([
             // Get user profile
             supabase.from('profiles').select('*').eq('id', user.id).single(),
@@ -58,17 +58,11 @@ export default async function DashboardPage() {
             // Get user assignments for current week
             getUserAssignments(user.id, format(weekStart, 'yyyy-MM-dd'), format(weekEnd, 'yyyy-MM-dd')),
 
-            // Get stats
-            supabase.from('cultos').select('*', { count: 'exact', head: true }),
-            supabase.from('lecturas_biblicas').select('*', { count: 'exact', head: true })
         ])
 
         const profile = profileRes.data
         const cultosData = cultosDataRes.data
         const initialAssignments = initialAssignmentsRes.data
-        const totalCultos = totalCultosRes.count
-        const totalLecturas = totalLecturasRes.count
-
         let cultoMostrado = cultosData && cultosData.length > 0 ? cultosData[0] : null
         let esCultoHoy = true
 
@@ -96,13 +90,15 @@ export default async function DashboardPage() {
         }
 
         return (
-            <DashboardClient
-                user={{ ...profile, id: user.id }}
-                culto={cultoMostrado}
-                esHoy={esCultoHoy}
-                initialAssignments={initialAssignments || []}
-                initialDate={cultoMostrado?.fecha || today}
-            />
+            <Suspense fallback={<div className="p-4 md:p-8 animate-pulse rounded-2xl bg-muted/30 h-[220px]" />}>
+                <DashboardClient
+                    user={{ ...profile, id: user.id }}
+                    culto={cultoMostrado}
+                    esHoy={esCultoHoy}
+                    initialAssignments={initialAssignments || []}
+                    initialDate={cultoMostrado?.fecha || today}
+                />
+            </Suspense>
         )
     } catch (error) {
         console.error('CRITICAL ERROR in Dashboard Page:', error)

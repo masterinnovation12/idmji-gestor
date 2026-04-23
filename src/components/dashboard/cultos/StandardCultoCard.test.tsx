@@ -83,4 +83,18 @@ describe('StandardCultoCard', () => {
     )
     expect(screen.queryByText('alabanza.tema.prepararnos')).not.toBeInTheDocument()
   })
+
+  it('muestra observaciones vacías en chip compacto', () => {
+    render(
+      <StandardCultoCard
+        culto={mockCultoAlabanza({ observaciones: '' })}
+        esHoy={false}
+        currentUserId="user-1"
+      />
+    )
+
+    const noObsChip = screen.getByText('dashboard.noObservaciones')
+    expect(noObsChip).toBeInTheDocument()
+    expect(noObsChip.className).toContain('italic')
+  })
 })

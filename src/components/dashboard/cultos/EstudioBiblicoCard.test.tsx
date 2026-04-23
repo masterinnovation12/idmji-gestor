@@ -74,7 +74,7 @@ describe('EstudioBiblicoCard', () => {
         currentUserId="user-1"
       />
     )
-    expect(screen.getByText('19:00')).toBeInTheDocument()
+    expect(screen.getAllByText('19:00').length).toBeGreaterThan(0)
     expect(screen.getByText(/dashboard\.minBefore/)).toBeInTheDocument()
   })
 })

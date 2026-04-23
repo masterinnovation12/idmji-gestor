@@ -182,6 +182,8 @@ export default function LoginPage() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={toggleTheme}
+                        aria-label={isDark ? 'Activar tema claro' : 'Activar tema oscuro'}
+                        title={isDark ? 'Activar tema claro' : 'Activar tema oscuro'}
                         className="glass px-3 py-2 rounded-xl hover:bg-white/30 transition-all shadow-lg backdrop-blur-md border-white/20 flex items-center gap-2"
                     >
                         {isDark ? (
@@ -279,6 +281,8 @@ export default function LoginPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
+                                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                    title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-lg transition-colors"
                                 >
                                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

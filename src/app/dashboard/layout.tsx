@@ -313,7 +313,7 @@ export default function DashboardLayout({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         style={{ opacity }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100 md:hidden touch-none"
+                        className="fixed inset-0 bg-black/55 backdrop-blur-sm z-100 md:hidden touch-none"
                         onClick={() => setIsMobileMenuOpen(false)}
                         // Bloquear scroll de fondo agresivamente
                         onTouchMove={(e) => {
@@ -422,7 +422,7 @@ export default function DashboardLayout({
                 </header>
 
                 {/* Page Content — entrance animation is handled by template.tsx */}
-                <div className={`p-6 md:p-10 lg:p-12 max-w-7xl mx-auto ${pathname?.includes('/admin/users') || pathname?.includes('/hermanos') ? 'no-scrollbar' : ''}`}>
+                <div className={`px-3 py-4 md:p-10 lg:p-12 max-w-7xl mx-auto ${pathname?.includes('/admin/users') || pathname?.includes('/hermanos') ? 'no-scrollbar' : ''}`}>
                     {children}
                 </div>
             </main>

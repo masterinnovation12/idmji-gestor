@@ -36,17 +36,19 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                 {/* Banner Superior */}
                 <div className="h-2 w-full" style={{ backgroundColor: culto.tipo_culto?.color || '#3b82f6' }} />
 
-                <CardContent className="p-6 md:p-8">
-                    {/* Badge de Estado */}
-                    <div className="flex justify-between items-start mb-6">
-                        <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg ${esHoy ? 'bg-red-500 text-white shadow-red-500/30' : 'bg-blue-600 text-white shadow-blue-500/30'}`}>
-                            {esHoy ? t('dashboard.today') : getTranslatedCultoName(culto.tipo_culto?.nombre)}
+                <CardContent className="p-4 sm:p-5 md:p-8">
+                    {/* Header compacto */}
+                    <div className="mb-4 md:mb-6">
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                            <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.18em] shadow-lg ${esHoy ? 'bg-red-500 text-white shadow-red-500/30' : 'bg-blue-600 text-white shadow-blue-500/30'}`}>
+                                {esHoy ? t('dashboard.today') : getTranslatedCultoName(culto.tipo_culto?.nombre)}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-500 font-bold">
+                                <Clock className="w-4 h-4 text-blue-500" />
+                                <span className="text-sm">{(culto.hora_inicio || '').slice(0, 5)}</span>
+                            </div>
                         </div>
-                    </div>
-
-                    {/* Info Principal */}
-                    <div className="mb-6">
-                        <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter mb-2">
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter mb-2">
                             {getTranslatedCultoName(culto.tipo_culto?.nombre)}
                         </h2>
 
@@ -148,28 +150,31 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                         const hasObs = !!obsContent && obsContent.length > 0
 
                         return (
-                            <div className={`mb-8 p-3 rounded-xl border ${hasObs
+                            <div className={`mb-4 md:mb-6 rounded-xl border ${hasObs
                                 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30'
-                                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50'
-                                }`}>
-                                <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${hasObs
+                                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50'} ${hasObs ? 'p-3' : 'p-2'}
+                                `}>
+                                <p className={`text-[10px] font-black uppercase tracking-widest ${hasObs ? 'mb-1' : 'mb-0'} ${hasObs
                                     ? 'text-amber-600 dark:text-amber-400'
                                     : 'text-slate-400 dark:text-slate-500'
                                     }`}>
                                     📝 {t('dashboard.observaciones')}
                                 </p>
-                                <p className={`text-sm font-medium leading-snug ${hasObs
-                                    ? 'text-amber-800 dark:text-amber-200'
-                                    : 'text-slate-400 dark:text-slate-500 italic'
-                                    }`}>
-                                    {hasObs ? obsContent : t('dashboard.noObservaciones')}
-                                </p>
+                                {hasObs ? (
+                                    <p className="text-sm font-medium leading-snug text-amber-800 dark:text-amber-200">
+                                        {obsContent}
+                                    </p>
+                                ) : (
+                                    <div className="inline-flex items-center rounded-full border border-slate-300 dark:border-slate-600 bg-white/80 dark:bg-slate-700/50 px-2.5 py-1 text-[11px] font-semibold text-slate-500 dark:text-slate-300 italic">
+                                        {t('dashboard.noObservaciones')}
+                                    </div>
+                                )}
                             </div>
                         )
                     })()}
 
                     {/* Distribución de Responsables */}
-                    <div className="flex flex-col md:flex-row gap-6 mb-10 items-start">
+                    <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-6 md:mb-8 items-start">
                         {culto.tipo_culto?.tiene_lectura_introduccion && (
                             <div className="w-full md:w-1/2 lg:w-[58%] shrink-0">
                                 <AssignmentPill
@@ -213,8 +218,12 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
 
                     {/* Botón de Acción: siempre Ver detalles */}
                     <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
-                        <button className="w-full py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-lg">
-                            {t('dashboard.viewFullDetails')}
+                        <button
+                            aria-label={t('dashboard.viewFullDetails')}
+                            className="w-full py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-lg"
+                        >
+                            <span className="sm:hidden">{t('dashboard.viewDetailsShort')}</span>
+                            <span className="hidden sm:inline">{t('dashboard.viewFullDetails')}</span>
                         </button>
                     </Link>
                 </CardContent>
