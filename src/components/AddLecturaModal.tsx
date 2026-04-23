@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { BookOpen, AlertCircle, CheckCircle2, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Modal } from '@/components/ui/Modal'
 import BibleSelector from '@/components/BibleSelector'
-import { saveLectura, confirmRepeatedLectura } from '@/app/dashboard/lecturas/actions'
+import { saveLectura, confirmRepeatedLectura, deleteLectura } from '@/app/dashboard/lecturas/actions'
 import { toast } from 'sonner'
 
 export interface AddLecturaModalProps {
@@ -16,7 +16,16 @@ export interface AddLecturaModalProps {
   cultoId: string
   userId: string
   tipo: 'introduccion' | 'finalizacion'
-  onSuccess?: () => void
+  onSuccess?: (savedReading?: {
+    id: string
+    tipo_lectura: 'introduccion' | 'finalizacion'
+    libro: string
+    capitulo_inicio: number
+    versiculo_inicio: number
+    capitulo_fin: number
+    versiculo_fin: number
+    created_at?: string
+  }) => void
   mode?: 'commit' | 'draft'
   onDraftSave?: (payload: {
     tipo: 'introduccion' | 'finalizacion'
@@ -28,6 +37,15 @@ export interface AddLecturaModalProps {
   }) => void
   /** Si true, el título del modal dice "Modificar" en lugar de "Añadir" */
   isEdit?: boolean
+  lecturaId?: string
+  initialReading?: {
+    libro: string
+    capitulo_inicio: number
+    versiculo_inicio: number
+    capitulo_fin?: number
+    versiculo_fin?: number
+  } | null
+  onDeleteSuccess?: (deletedId: string) => void
 }
 
 interface RepetitionData {
@@ -51,8 +69,11 @@ export default function AddLecturaModal({
   tipo,
   onSuccess,
   isEdit = false,
+  lecturaId,
+  initialReading = null,
   mode = 'commit',
   onDraftSave,
+  onDeleteSuccess,
 }: AddLecturaModalProps) {
   const { t, language } = useI18n()
   const locale = language === 'ca-ES' ? ca : es
@@ -96,7 +117,8 @@ export default function AddLecturaModal({
         versInicio,
         capFin ?? capInicio,
         versFin ?? versInicio,
-        userId
+        userId,
+        lecturaId
       )
 
       if (result.requiresConfirmation && result.existingReading) {
@@ -111,7 +133,7 @@ export default function AddLecturaModal({
         })
       } else if (result.success) {
         toast.success(t('common.success'))
-        onSuccess?.()
+        onSuccess?.(result.data as any)
         handleClose()
       } else if (result.error) {
         toast.error(result.error)
@@ -151,19 +173,39 @@ export default function AddLecturaModal({
         repetitionData.capFin,
         repetitionData.versFin,
         userId,
-        repetitionData.originalId
+        repetitionData.originalId,
+        lecturaId
       )
 
       if (result.success) {
         toast.success('Lectura guardada como repetida')
         setRepetitionData(null)
-        onSuccess?.()
+        onSuccess?.(result.data as any)
         handleClose()
       } else {
         toast.error(result.error ?? 'Error al confirmar')
       }
     } catch {
       toast.error('Error de conexión')
+    } finally {
+      setIsActionLoading(false)
+    }
+  }
+
+  const handleDeleteLectura = async () => {
+    if (!lecturaId || mode === 'draft') return
+    setIsActionLoading(true)
+    try {
+      const result = await deleteLectura(lecturaId, cultoId)
+      if ('error' in result && result.error) {
+        toast.error(result.error)
+        return
+      }
+      toast.success('Lectura eliminada')
+      onDeleteSuccess?.(lecturaId)
+      handleClose()
+    } catch {
+      toast.error('Error al eliminar la lectura')
     } finally {
       setIsActionLoading(false)
     }
@@ -194,7 +236,29 @@ export default function AddLecturaModal({
           <BibleSelector
             onSelect={handleSelectCita}
             disabled={isActionLoading}
+            initialSelection={initialReading
+              ? {
+                libro: initialReading.libro,
+                capituloInicio: initialReading.capitulo_inicio,
+                versiculoInicio: initialReading.versiculo_inicio,
+                capituloFin: initialReading.capitulo_fin,
+                versiculoFin: initialReading.versiculo_fin,
+              }
+              : null}
           />
+          {isEdit && lecturaId && mode !== 'draft' && (
+            <div className="pt-3 px-1">
+              <button
+                type="button"
+                onClick={handleDeleteLectura}
+                disabled={isActionLoading}
+                className="w-full h-12 rounded-2xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 font-black text-[10px] uppercase tracking-widest hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                <Trash2 className="w-4 h-4" />
+                Eliminar lectura
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-6 animate-in fade-in zoom-in duration-300 p-2">

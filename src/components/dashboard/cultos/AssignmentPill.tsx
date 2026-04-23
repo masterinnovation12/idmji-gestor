@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Profile } from '@/types/database'
-import { Clock, BookOpen, Music, Users, BookMarked } from 'lucide-react'
+import { Clock, BookOpen, Music, Users, BookMarked, Pencil } from 'lucide-react'
 import { UserAvatar } from './UserAvatar'
 
-export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, action, footerAction, temaIntroduccionAlabanza }: { label: string, usuario: Partial<Profile> | null | undefined, lectura?: any, himnario?: any[], tipoCulto?: string, action?: ReactNode, footerAction?: ReactNode, temaIntroduccionAlabanza?: string | null }) {
+export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, tipoCulto, action, footerAction, temaIntroduccionAlabanza, onEditReading }: { label: string, usuario: Partial<Profile> | null | undefined, lectura?: any, lecturas?: any[], himnario?: any[], tipoCulto?: string, action?: ReactNode, footerAction?: ReactNode, temaIntroduccionAlabanza?: string | null, onEditReading?: (reading: any) => void }) {
     const { t } = useI18n()
-    if (!usuario && !lectura && (!himnario || himnario.length === 0) && footerAction == null && !temaIntroduccionAlabanza) return null
+    if (!usuario && !lectura && (!lecturas || lecturas.length === 0) && (!himnario || himnario.length === 0) && footerAction == null && !temaIntroduccionAlabanza) return null
 
     const formatDuration = (seconds: number) => {
         const mins = Math.floor(seconds / 60)
@@ -28,7 +28,8 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
         })
         : himnario
 
-    const hasExtraContent = lectura || (himnario && himnario.length > 0) || !!temaIntroduccionAlabanza
+    const lecturasRegistradas = (lecturas && lecturas.length > 0) ? lecturas : (lectura ? [lectura] : [])
+    const hasExtraContent = lecturasRegistradas.length > 0 || (himnario && himnario.length > 0) || !!temaIntroduccionAlabanza
     const hasFooter = footerAction != null
     const allCoros = (himnarioOrdenado ?? himnario ?? []).length > 0 && (himnarioOrdenado ?? himnario ?? []).every((item) => item.tipo === 'coro')
 
@@ -64,40 +65,58 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
 
             {/* Tema introducción Alabanza */}
             {temaIntroduccionAlabanza && (
-                <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-blue-50/80 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/40 w-full min-w-0">
+                <div className="flex items-center justify-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-blue-50/80 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/40 w-full min-w-0">
                     <BookMarked className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 shrink-0" />
-                    <p className="text-[10px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 leading-tight line-clamp-2">
+                    <p className="text-sm sm:text-base font-black text-blue-700 dark:text-blue-300 leading-tight text-center line-clamp-2">
                         {t(temaIntroduccionAlabanza as import('@/lib/i18n/types').TranslationKey)}
                     </p>
                 </div>
             )}
 
             {/* Lectura integrada */}
-            {lectura && (
-                <div className="flex items-center gap-3 p-3.5 bg-white/40 dark:bg-white/5 rounded-2xl border border-white/60 dark:border-white/10 shadow-sm relative group w-full min-w-0">
-                    <div className="w-11 h-11 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0 text-white border border-white/20">
-                        <BookOpen className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0 flex-1 flex flex-col justify-center">
-                        <div className="flex items-center flex-wrap gap-1.5 mb-1">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">{t('dashboard.himnario.reading')}</span>
-                            <div className="w-1 h-1 rounded-full bg-blue-300 hidden xs:block" />
-                            <div className="flex items-center gap-1 bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
-                                <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 whitespace-nowrap">{t('dashboard.himnario.registered')}</span>
+            {lecturasRegistradas.length > 0 && (
+                <div className="flex flex-col gap-2 p-3.5 bg-white/40 dark:bg-white/5 rounded-2xl border border-white/60 dark:border-white/10 shadow-sm relative group w-full min-w-0">
+                    <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0 text-white border border-white/20">
+                            <BookOpen className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0 flex-1 flex flex-col justify-center">
+                            <div className="flex items-center flex-wrap gap-1.5 mb-1">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">{lecturasRegistradas.length > 1 ? 'Lecturas' : t('dashboard.himnario.reading')}</span>
+                                <div className="w-1 h-1 rounded-full bg-blue-300 hidden xs:block" />
+                                <div className="flex items-center gap-1 bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
+                                    <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 whitespace-nowrap">{t('dashboard.himnario.registered')}</span>
+                                </div>
                             </div>
                         </div>
-                        <p className="font-black text-[13px] sm:text-sm text-slate-800 dark:text-slate-100 leading-tight truncate">
-                            {lectura.libro} {lectura.capitulo_inicio}:{lectura.versiculo_inicio}
-                            {(lectura.capitulo_fin !== lectura.capitulo_inicio || lectura.versiculo_fin !== lectura.versiculo_inicio) && (
-                                <>
-                                    {' - '}
-                                    {lectura.capitulo_fin === lectura.capitulo_inicio
-                                        ? lectura.versiculo_fin
-                                        : `${lectura.capitulo_fin}:${lectura.versiculo_fin}`}
-                                </>
-                            )}
-                        </p>
+                    </div>
+                    <div className="space-y-1">
+                        {lecturasRegistradas.map((item, idx) => (
+                            <div key={item.id ?? `${item.libro}-${item.capitulo_inicio}-${item.versiculo_inicio}-${idx}`} className="flex items-center justify-between gap-2">
+                                <p className="font-black text-[13px] sm:text-sm text-slate-800 dark:text-slate-100 leading-tight">
+                                    {item.libro} {item.capitulo_inicio}:{item.versiculo_inicio}
+                                    {(item.capitulo_fin !== item.capitulo_inicio || item.versiculo_fin !== item.versiculo_inicio) && (
+                                        <>
+                                            {' - '}
+                                            {item.capitulo_fin === item.capitulo_inicio
+                                                ? item.versiculo_fin
+                                                : `${item.capitulo_fin}:${item.versiculo_fin}`}
+                                        </>
+                                    )}
+                                </p>
+                                {onEditReading && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onEditReading(item)}
+                                        className="shrink-0 w-7 h-7 rounded-full border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors flex items-center justify-center"
+                                        aria-label="Editar lectura"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
@@ -161,7 +180,7 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
                     {/* Total de tiempo: fondo más visible, alineado con el bloque himnario (indigo) */}
                     <div className="flex items-center justify-center mt-2 pt-3 border-t border-indigo-200/50 dark:border-indigo-500/25">
                         <div
-                            className="px-3 py-2.5 sm:px-5 sm:py-3.5 w-full max-w-sm rounded-2xl flex items-center gap-2.5 sm:gap-3 cursor-default
+                            className="px-3 py-2.5 sm:px-5 sm:py-3.5 w-fit max-w-full rounded-2xl flex items-center justify-center gap-2.5 sm:gap-3 cursor-default
                             border border-indigo-200/90 dark:border-indigo-400/35
                             bg-linear-to-br from-indigo-50 via-white to-blue-50/90 dark:from-indigo-950/70 dark:via-zinc-900/85 dark:to-slate-950/90
                             shadow-md shadow-indigo-500/10 dark:shadow-indigo-950/40
@@ -170,7 +189,7 @@ export function AssignmentPill({ label, usuario, lectura, himnario, tipoCulto, a
                             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600/15 dark:bg-indigo-400/20 flex items-center justify-center shrink-0 border border-indigo-300/50 dark:border-indigo-500/40 shadow-inner">
                                 <Clock className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-indigo-700 dark:text-indigo-300" />
                             </div>
-                            <div className="flex flex-col items-start leading-none min-w-0">
+                            <div className="flex flex-col items-center text-center leading-none min-w-0">
                                 <span className="text-[11px] sm:text-sm font-black uppercase tracking-wide mb-1 text-indigo-800/90 dark:text-indigo-200">
                                     {t('dashboard.himnario.timeTotal')}
                                 </span>

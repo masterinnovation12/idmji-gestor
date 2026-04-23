@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Clock, Plus, Info, Music } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { AssignmentPill } from './AssignmentPill'
 import { computeCultoDetails } from '@/lib/utils/computeCultoDetails'
+import { upsertReadingPreserveOrder } from '@/lib/utils/upsert-reading'
 import Link from 'next/link'
 import { Culto } from '@/types/database'
 import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
@@ -39,10 +39,11 @@ function InstrIconBtn({ rol, onOpen }: InstrIconBtnProps) {
 
 export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ culto: Culto; esHoy: boolean; currentUserId: string }>) {
     const { t } = useI18n()
-    const router = useRouter()
     const { observacionesData, lecturaData, temaIntroduccionAlabanza } = computeCultoDetails(culto)
     const [instrModal, setInstrModal] = useState<InstrModal>(null)
     const [addLecturaModalOpen, setAddLecturaModalOpen] = useState(false)
+    const [editingLectura, setEditingLectura] = useState<any | null>(null)
+    const [localLecturas, setLocalLecturas] = useState<any[]>((culto as any).lecturas || [])
 
     const introUserId = (culto.usuario_intro as { id?: string } | null)?.id ?? currentUserId
 
@@ -65,6 +66,8 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
     const isEnsenanza = cultoNombre.toLowerCase().includes('enseñanza') || cultoNombre.toLowerCase().includes('ensenanza')
     const showAddHimnos = !!(culto.tipo_culto?.tiene_himnos_y_coros && (!culto.plan_himnos_coros || culto.plan_himnos_coros.length === 0))
     const addHimnosText = isEnsenanza ? t('dashboard.addCorosHimnosButton') : t('dashboard.addCorosButton')
+    const canAddReading = !!culto.tipo_culto?.tiene_lectura_introduccion
+    const lecturasIntro = localLecturas.filter((l: any) => l.tipo_lectura === 'introduccion')
 
     return (
         <>
@@ -128,14 +131,18 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                     <AssignmentPill
                                         label={t('cultos.intro')}
                                         usuario={culto.usuario_intro}
-                                        lectura={lecturaData?.lecturaIntro}
+                                        lecturas={lecturasIntro}
+                                        onEditReading={(reading) => {
+                                            setEditingLectura(reading)
+                                            setAddLecturaModalOpen(true)
+                                        }}
                                         himnario={culto.plan_himnos_coros}
                                         tipoCulto={cultoNombre}
                                         temaIntroduccionAlabanza={cultoNombre.toLowerCase().includes('alabanza') ? temaIntroduccionAlabanza : undefined}
                         action={cultoTypeId ? <InstrIconBtn rol="introduccion" onOpen={openModal} /> : undefined}
-                        footerAction={(lecturaData?.showAddButton || showAddHimnos) ? (
+                        footerAction={(canAddReading || showAddHimnos) ? (
                             <div className="flex flex-col gap-2 w-full">
-                                {lecturaData?.showAddButton && (
+                                {canAddReading && (
                                     <button
                                         type="button"
                                         onClick={() => setAddLecturaModalOpen(true)}
@@ -218,13 +225,27 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
             {/* Modal añadir lectura (acceso directo desde dashboard) */}
             <AddLecturaModal
                 isOpen={addLecturaModalOpen}
-                onClose={() => setAddLecturaModalOpen(false)}
+                onClose={() => {
+                    setAddLecturaModalOpen(false)
+                    setEditingLectura(null)
+                }}
                 cultoId={culto.id}
                 userId={introUserId}
                 tipo="introduccion"
-                onSuccess={() => {
-                    router.refresh()
+                lecturaId={editingLectura?.id}
+                isEdit={!!editingLectura}
+                initialReading={editingLectura}
+                onSuccess={(savedReading) => {
+                    if (savedReading) {
+                        setLocalLecturas((prev) => upsertReadingPreserveOrder(prev, savedReading as any))
+                    }
                     setAddLecturaModalOpen(false)
+                    setEditingLectura(null)
+                }}
+                onDeleteSuccess={(deletedId) => {
+                    setLocalLecturas((prev) => prev.filter((l: any) => l.id !== deletedId))
+                    setAddLecturaModalOpen(false)
+                    setEditingLectura(null)
                 }}
             />
         </>

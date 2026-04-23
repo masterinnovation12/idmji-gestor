@@ -1,21 +1,24 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Clock, Plus, Heart, Users, ArrowRight, HelpCircle } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { AssignmentPill } from './AssignmentPill'
 import { computeCultoDetails } from '@/lib/utils/computeCultoDetails'
+import { upsertReadingPreserveOrder } from '@/lib/utils/upsert-reading'
 import Link from 'next/link'
 import { Culto } from '@/types/database'
 import AddLecturaModal from '@/components/AddLecturaModal'
 
 export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ culto: Culto; esHoy: boolean; currentUserId: string }>) {
     const { t } = useI18n()
-    const router = useRouter()
     const { estudioBiblicoData, observacionesData, lecturaData } = computeCultoDetails(culto)
     const [addLecturaModalOpen, setAddLecturaModalOpen] = useState(false)
+    const [editingLectura, setEditingLectura] = useState<any | null>(null)
+    const [localLecturas, setLocalLecturas] = useState<any[]>((culto as any).lecturas || [])
+    const canAddReading = !!culto.tipo_culto?.tiene_lectura_introduccion
+    const lecturasIntro = localLecturas.filter((l: any) => l.tipo_lectura === 'introduccion')
 
     const introUserId = (culto.usuario_intro as { id?: string } | null)?.id ?? currentUserId
 
@@ -180,10 +183,14 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                                 <AssignmentPill
                                     label={t('cultos.intro')}
                                     usuario={culto.usuario_intro}
-                                    lectura={lecturaData?.lecturaIntro}
+                                    lecturas={lecturasIntro}
+                                    onEditReading={(reading) => {
+                                        setEditingLectura(reading)
+                                        setAddLecturaModalOpen(true)
+                                    }}
                                     himnario={culto.plan_himnos_coros}
                                     tipoCulto={culto.tipo_culto?.nombre}
-                                    footerAction={lecturaData?.showAddButton ? (
+                                    footerAction={canAddReading ? (
                                         <button
                                             type="button"
                                             onClick={() => setAddLecturaModalOpen(true)}
@@ -231,13 +238,27 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
 
             <AddLecturaModal
                 isOpen={addLecturaModalOpen}
-                onClose={() => setAddLecturaModalOpen(false)}
+                onClose={() => {
+                    setAddLecturaModalOpen(false)
+                    setEditingLectura(null)
+                }}
                 cultoId={culto.id}
                 userId={introUserId}
                 tipo="introduccion"
-                onSuccess={() => {
-                    router.refresh()
+                lecturaId={editingLectura?.id}
+                isEdit={!!editingLectura}
+                initialReading={editingLectura}
+                onSuccess={(savedReading) => {
+                    if (savedReading) {
+                        setLocalLecturas((prev) => upsertReadingPreserveOrder(prev, savedReading as any))
+                    }
                     setAddLecturaModalOpen(false)
+                    setEditingLectura(null)
+                }}
+                onDeleteSuccess={(deletedId) => {
+                    setLocalLecturas((prev) => prev.filter((l: any) => l.id !== deletedId))
+                    setAddLecturaModalOpen(false)
+                    setEditingLectura(null)
                 }}
             />
         </div>

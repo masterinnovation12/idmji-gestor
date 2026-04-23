@@ -41,6 +41,7 @@ import NextImage from 'next/image'
 import { computeTemaDropdownStyle, shouldCloseTemaDropdown } from './temaDropdownPosition'
 import type { TranslationKey } from '@/lib/i18n/types'
 import SaveChangesBar from './SaveChangesBar'
+import { reconcileOptimisticUser, resolveDisplayUser } from './assignmentDisplayUser'
 
 interface CultoDetailClientProps {
     culto: Culto
@@ -98,7 +99,7 @@ function AssignmentSection({
     // Sincronizar estado cuando llega el dato real del servidor
     useEffect(() => {
         setOptimisticId(selectedUserId)
-        if (usuarioActual) setOptimisticUser(usuarioActual)
+        setOptimisticUser((prev) => reconcileOptimisticUser(selectedUserId, prev, usuarioActual))
     }, [selectedUserId, usuarioActual])
 
     // Modificamos el UserSelector para que devuelva el objeto usuario completo en el onSelect
@@ -140,7 +141,7 @@ function AssignmentSection({
         }
 
         setOptimisticId(newId)
-        if (newProfile) setOptimisticUser(newProfile)
+        setOptimisticUser(newProfile)
 
         try {
             if (newId && confirmed === false) {
@@ -159,7 +160,7 @@ function AssignmentSection({
     }
 
     // Renderizado usa los valores optimistas
-    const displayUser = optimisticUser || usuarioActual
+    const displayUser = resolveDisplayUser(optimisticId, optimisticUser, usuarioActual)
 
     return (
         <motion.div
@@ -190,7 +191,7 @@ function AssignmentSection({
                         {optimisticId && !isEditing && !readOnly && (
                             <button
                                 onClick={() => setIsEditing(true)}
-                                className="px-3 py-1 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
+                                className="px-3 py-1 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary/15 hover:text-primary dark:hover:bg-primary dark:hover:text-white transition-all shadow-sm"
                             >
                                 Modificar
                             </button>
@@ -517,7 +518,11 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
             setDraftLecturasChanged(false)
             setDraftHimnosChanged(false)
             toast.success('Cambios guardados correctamente')
-            router.refresh()
+            if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back()
+            } else {
+                router.push('/dashboard')
+            }
         } catch {
             toast.error('Error al guardar cambios')
         } finally {

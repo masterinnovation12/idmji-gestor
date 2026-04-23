@@ -39,7 +39,7 @@ interface BibleReadingManagerProps {
 
 interface ReadingItemProps {
     lectura: LecturaBiblica
-    onEdit: (tipo: 'introduccion' | 'finalizacion') => void
+    onEdit: (lectura: LecturaBiblica) => void
     onDelete: (id: string) => void
 }
 
@@ -106,7 +106,7 @@ function ReadingItem({ lectura, onEdit, onDelete }: ReadingItemProps) {
 
                 <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-primary/10">
                     <button
-                        onClick={(e) => { e.stopPropagation(); onEdit(lectura.tipo_lectura as 'introduccion' | 'finalizacion'); }}
+                        onClick={(e) => { e.stopPropagation(); onEdit(lectura); }}
                         className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white dark:bg-slate-800 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all shadow-sm border border-border/50 group/btn"
                     >
                         <Edit2 className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
@@ -128,14 +128,18 @@ function ReadingItem({ lectura, onEdit, onDelete }: ReadingItemProps) {
 export default function BibleReadingManager({ cultoId, userId, config, mode = 'commit', onDraftChange }: BibleReadingManagerProps) {
     const { t } = useI18n()
     const [lecturas, setLecturas] = useState<LecturaBiblica[]>([])
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(mode !== 'draft')
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [activeTipo, setActiveTipo] = useState<'introduccion' | 'finalizacion' | null>(null)
+    const [editingLectura, setEditingLectura] = useState<LecturaBiblica | null>(null)
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
     // Cargar lecturas actuales
     const loadLecturas = useCallback(async () => {
-        if (mode === 'draft') return
+        if (mode === 'draft') {
+            setIsLoading(false)
+            return
+        }
         setIsLoading(true)
         try {
             const { data, error } = await getLecturasByCulto(cultoId)
@@ -160,6 +164,7 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
     const handleCloseAddModal = () => {
         setIsModalOpen(false)
         setActiveTipo(null)
+        setEditingLectura(null)
     }
 
     const handleDelete = async (id: string) => {
@@ -214,7 +219,11 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                                 <ReadingItem
                                     key={lectura.id || `lectura-${lectura.tipo_lectura}-${idx}`}
                                     lectura={lectura}
-                                    onEdit={(tipo) => { setActiveTipo(tipo); setIsModalOpen(true); }}
+                                    onEdit={(item) => {
+                                        setEditingLectura(item)
+                                        setActiveTipo(item.tipo_lectura as 'introduccion' | 'finalizacion')
+                                        setIsModalOpen(true)
+                                    }}
                                     onDelete={(id) => setDeleteConfirmId(id)}
                                 />
                             ))}
@@ -229,9 +238,11 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                         className="w-full py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
                         onClick={() => {
                             if (config.tiene_lectura_introduccion) {
+                                setEditingLectura(null)
                                 setActiveTipo('introduccion');
                                 setIsModalOpen(true);
                             } else if (config.tiene_lectura_finalizacion) {
+                                setEditingLectura(null)
                                 setActiveTipo('finalizacion');
                                 setIsModalOpen(true);
                             }
@@ -245,15 +256,15 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                 )}
             </div>
 
-            {/* Botones compactos para añadir el tipo de lectura faltante */}
+            {/* Botones compactos para añadir nuevas lecturas por tipo (sin límite) */}
             <div className="flex flex-wrap gap-3 md:gap-4 pt-4 border-t border-border/50 shrink-0">
-                {lecturas.length > 0 && config.tiene_lectura_introduccion && !lecturas.some(l => l.tipo_lectura === 'introduccion') && (
+                {config.tiene_lectura_introduccion && (
                     <motion.button
                         key="btn-add-intro"
                         type="button"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => { setActiveTipo('introduccion'); setIsModalOpen(true); }}
+                        onClick={() => { setEditingLectura(null); setActiveTipo('introduccion'); setIsModalOpen(true); }}
                         className="flex-1 min-w-0 py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
                     >
                         <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" strokeWidth={2.5} />
@@ -262,13 +273,13 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                         </span>
                     </motion.button>
                 )}
-                {lecturas.length > 0 && config.tiene_lectura_finalizacion && !lecturas.some(l => l.tipo_lectura === 'finalizacion') && (
+                {config.tiene_lectura_finalizacion && (
                     <motion.button
                         key="btn-add-final"
                         type="button"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => { setActiveTipo('finalizacion'); setIsModalOpen(true); }}
+                        onClick={() => { setEditingLectura(null); setActiveTipo('finalizacion'); setIsModalOpen(true); }}
                         className="flex-1 min-w-0 py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
                     >
                         <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" strokeWidth={2.5} />
@@ -326,13 +337,13 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                     userId={userId}
                     tipo={activeTipo}
                     onSuccess={loadLecturas}
-                    isEdit={lecturas.some(l => l.tipo_lectura === activeTipo)}
+                    isEdit={!!editingLectura}
+                    lecturaId={editingLectura?.id}
                     mode={mode}
                     onDraftSave={(payload) => {
                         setLecturas((prev) => {
-                            const base = prev.filter((l) => l.tipo_lectura !== payload.tipo)
                             const lectura: LecturaBiblica = {
-                                id: `draft-${payload.tipo}-${Date.now()}`,
+                                id: editingLectura?.id || `draft-${payload.tipo}-${Date.now()}`,
                                 culto_id: cultoId,
                                 tipo_lectura: payload.tipo,
                                 libro: payload.libro,
@@ -346,7 +357,9 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                                 created_at: new Date().toISOString(),
                                 updated_at: new Date().toISOString(),
                             }
-                            const updated = [...base, lectura]
+                            const updated = editingLectura
+                                ? prev.map((l) => (l.id === editingLectura.id ? lectura : l))
+                                : [...prev, lectura]
                             onDraftChange?.(updated, true)
                             return updated
                         })

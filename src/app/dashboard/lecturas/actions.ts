@@ -24,23 +24,14 @@ export async function saveLectura(
     versiculoInicio: number,
     capituloFin: number | null,
     versiculoFin: number | null,
-    userId: string
+    userId: string,
+    lecturaId?: string
 ) {
     noStore()
     const supabase = await createClient()
 
-    // 1. Verificar si ya existe una lectura de este TIPO para este CULTO
-    // Si existe, la actualizamos en lugar de insertar una nueva
-    const { data: existenteMismoTipo } = await supabase
-        .from('lecturas_biblicas')
-        .select('id')
-        .eq('culto_id', cultoId)
-        .eq('tipo_lectura', tipoLectura)
-        .limit(1)
-        .single()
-
     // 2. Buscar si esta CITAS ya existe en otro culto (detección de repetida)
-    const { data: existenteCita } = await supabase
+    let existenteCitaQuery = supabase
         .from('lecturas_biblicas')
         .select('id, created_at, culto_id, id_usuario_lector, cultos!inner(fecha)')
         .eq('libro', libro)
@@ -50,9 +41,17 @@ export async function saveLectura(
         .eq('versiculo_fin', versiculoFin || versiculoInicio)
         .eq('es_repetida', false)
         .limit(1)
-        .single()
 
-    if (existenteCita && (!existenteMismoTipo || existenteCita.id !== existenteMismoTipo.id)) {
+    if (lecturaId) {
+        existenteCitaQuery = existenteCitaQuery.neq('id', lecturaId)
+    }
+
+    const { data: existenteCita, error: existenteCitaError } = await existenteCitaQuery.maybeSingle()
+    if (existenteCitaError) {
+        return { error: existenteCitaError.message }
+    }
+
+    if (existenteCita && (!lecturaId || existenteCita.id !== lecturaId)) {
         return {
             requiresConfirmation: true,
             existingReading: {
@@ -79,16 +78,16 @@ export async function saveLectura(
     }
 
     let result
-    if (existenteMismoTipo) {
-        // Actualizar existente
+    if (lecturaId) {
+        // En modo edición SIEMPRE actualizamos la lectura objetivo.
         result = await supabase
             .from('lecturas_biblicas')
             .update(lecturaData)
-            .eq('id', existenteMismoTipo.id)
+            .eq('id', lecturaId)
             .select()
             .single()
     } else {
-        // Insertar nueva
+        // Insertar nueva (permite múltiples lecturas por tipo en el mismo culto)
         result = await supabase
             .from('lecturas_biblicas')
             .insert(lecturaData)
@@ -117,18 +116,10 @@ export async function confirmRepeatedLectura(
     capituloFin: number | null,
     versiculoFin: number | null,
     userId: string,
-    lecturaOriginalId: string
+    lecturaOriginalId: string,
+    lecturaId?: string
 ) {
     const supabase = await createClient()
-
-    // Verificar si ya existe una para actualizar
-    const { data: existente } = await supabase
-        .from('lecturas_biblicas')
-        .select('id')
-        .eq('culto_id', cultoId)
-        .eq('tipo_lectura', tipoLectura)
-        .limit(1)
-        .single()
 
     const lecturaData = {
         culto_id: cultoId,
@@ -144,11 +135,11 @@ export async function confirmRepeatedLectura(
     }
 
     let result
-    if (existente) {
+    if (lecturaId) {
         result = await supabase
             .from('lecturas_biblicas')
             .update(lecturaData)
-            .eq('id', existente.id)
+            .eq('id', lecturaId)
             .select()
             .single()
     } else {

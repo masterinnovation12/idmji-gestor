@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, useSyncExternalStore, useMemo, useLayoutEffect } from 'react'
-import { createPortal } from 'react-dom'
-import { Search, ChevronDown, BookOpen, AlertCircle, X, ArrowLeft, Check, Command } from 'lucide-react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { Search, BookOpen, AlertCircle, ArrowLeft, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getBibliaLibros } from '@/app/dashboard/lecturas/actions'
 import { cn } from '@/lib/utils'
@@ -23,21 +22,16 @@ interface BibleBook {
 interface BibleSelectorProps {
     onSelect: (libro: string, capInicio: number, versInicio: number, capFin?: number, versFin?: number) => void
     disabled?: boolean
+    initialSelection?: {
+        libro: string
+        capituloInicio: number
+        versiculoInicio: number
+        capituloFin?: number
+        versiculoFin?: number
+    } | null
 }
 
-// Helper for detecting mounted state without setState in useEffect
-function subscribeToNothing() {
-    return () => { }
-}
-function getMountedSnapshot() {
-    return true
-}
-function getMountedServerSnapshot() {
-    return false
-}
-
-export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps) {
-    const [id] = useState(() => Math.random().toString(36).substring(2, 9))
+export default function BibleSelector({ onSelect, disabled, initialSelection = null }: BibleSelectorProps) {
     const [libros, setLibros] = useState<BibleBook[]>([])
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedLibroObj, setSelectedLibroObj] = useState<BibleBook | null>(null)
@@ -51,13 +45,9 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
     const [selectedIndex, setSelectedIndex] = useState(0)
 
     // Positioning
-    const [dropdownRect, setDropdownRect] = useState<{ top: number, left: number, width: number } | null>(null)
-    const mounted = useSyncExternalStore(subscribeToNothing, getMountedSnapshot, getMountedServerSnapshot)
-
     // Refs
     const inputRef = useRef<HTMLInputElement>(null)
     const dropdownRef = useRef<HTMLDivElement>(null)
-    const listRef = useRef<HTMLDivElement>(null)
 
     // Validation logic derived from state
     const validationError = useMemo(() => {
@@ -120,48 +110,16 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [isOpen])
 
-    // Robust Positioning Logic (Runs on every render when open to catch layout shifts)
-    const updatePosition = () => {
-        if (inputRef.current) {
-            const rect = inputRef.current.getBoundingClientRect()
-            console.log("BibleSelector: Calc Position:", rect.top, rect.left, rect.width)
-            setDropdownRect({
-                top: rect.bottom,
-                left: rect.left,
-                width: rect.width
-            })
-        }
-    }
-
-    // DEBUG: Monitor rendering conditions
-    console.log("BibleSelector Render: ", { mounted, isMobile, isOpen, rect: dropdownRect ? 'VALID' : 'NULL', books: libros.length })
-
-
-    useLayoutEffect(() => {
-        if (isOpen && !isMobile) {
-            updatePosition()
-            // Also listen to events
-            window.addEventListener('scroll', updatePosition, true)
-            window.addEventListener('resize', updatePosition)
-            return () => {
-                window.removeEventListener('scroll', updatePosition, true)
-                window.removeEventListener('resize', updatePosition)
-            }
-        }
-    }, [isOpen, isMobile, searchQuery])
-
     // Load Books with Robust Fallback
     useEffect(() => {
         async function loadLibros() {
             try {
-                console.log("BibleSelector: Attempting to load books...")
                 const { data, error } = await getBibliaLibros()
 
                 if (data && data.length > 0) {
-                    console.log("BibleSelector: Successfully loaded", data.length, "books from DB")
                     setLibros(data)
                 } else {
-                    console.warn("BibleSelector: Failed to load from DB or empty. Using Fallback Data.", error)
+                    console.warn('BibleSelector: fallback libros por respuesta vacia', error)
 
                     // Fallback Data to ensure UI works (Simplified Verses)
                     const FALLBACK_BOOKS: BibleBook[] = [
@@ -185,6 +143,17 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
         }
         loadLibros()
     }, [])
+
+    useEffect(() => {
+        if (!initialSelection || libros.length === 0) return
+        const libro = libros.find((l) => l.nombre === initialSelection.libro) ?? null
+        if (!libro) return
+        setSelectedLibroObj(libro)
+        setSearchQuery(libro.nombre)
+        setCapituloInicio(initialSelection.capituloInicio)
+        setVersiculoInicio(initialSelection.versiculoInicio)
+        setVersiculoFin(initialSelection.versiculoFin ?? initialSelection.versiculoInicio)
+    }, [initialSelection, libros])
 
     // Scroll lock for mobile
     useEffect(() => {
@@ -421,7 +390,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                         </div>
                     </div>
 
-                    {/* UNIVERSAL DROPDOWN - STANDARD ABSOLUTE POSITIONING */}
+                    {/* Dropdown de libros */}
                     <AnimatePresence>
                         {isOpen && (
                             <motion.div
@@ -430,7 +399,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
                                 transition={{ duration: 0.15 }}
-                                className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-primary/20 rounded-[1.5rem] shadow-2xl z-[100] overflow-hidden flex flex-col max-h-[350px]"
+                                className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-primary/20 rounded-[1.5rem] shadow-2xl z-100 overflow-hidden flex flex-col max-h-[350px]"
                             >
                                 {/* Scrollable List */}
                                 <div className="overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20 scrollbar-track-transparent">
@@ -448,7 +417,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                             {/* Groups */}
                                             {groupedLibros.AT.length > 0 && (
                                                 <div>
-                                                    <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-10 px-4 py-2 mb-1 border-b border-border/50">
+                                                    <div className="sticky top-0 bg-white dark:bg-slate-900 z-20 px-4 py-2.5 mb-2 border-b border-border/70 shadow-[0_3px_0_0_rgba(0,0,0,0.06)] dark:shadow-[0_3px_0_0_rgba(255,255,255,0.05)]">
                                                         <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-500">
                                                             Antiguo Testamento
                                                         </span>
@@ -461,7 +430,7 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
 
                                             {groupedLibros.NT.length > 0 && (
                                                 <div>
-                                                    <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-10 px-4 py-2 mb-1 border-b border-border/50 mt-2">
+                                                    <div className="sticky top-0 bg-white dark:bg-slate-900 z-20 px-4 py-2.5 mb-2 border-b border-border/70 mt-2 shadow-[0_3px_0_0_rgba(0,0,0,0.06)] dark:shadow-[0_3px_0_0_rgba(255,255,255,0.05)]">
                                                         <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-500">
                                                             Nuevo Testamento
                                                         </span>
@@ -484,13 +453,6 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                         )}
                     </AnimatePresence>
 
-                    {/* DIAGNOSTIC INFO (VISIBLE TO USER) */}
-                    <div className="mt-1 px-2 flex justify-between text-[9px] font-mono text-muted-foreground/50 select-none">
-                        <span>Estado: {libros.length === 66 ? 'Completo' : 'Cargando'}</span>
-                        <span>Total: {libros.length}/66</span>
-                        <span>Filtrados: {filteredLibros.length}</span>
-                        <span>Modo: {isMobile ? 'Móvil' : 'Escritorio'}</span>
-                    </div>
                 </div>
             </div>
 
@@ -506,6 +468,8 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                         </div>
                         <input
                             type="number"
+                            inputMode="numeric"
+                            step={1}
                             min="1"
                             max={getMaxChapters()}
                             value={capituloInicio}
@@ -531,6 +495,8 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground/40 uppercase">De</span>
                                 <input
                                     type="number"
+                                    inputMode="numeric"
+                                    step={1}
                                     min="1"
                                     max={getMaxVerses(Number(capituloInicio))}
                                     value={versiculoInicio}
@@ -549,6 +515,8 @@ export default function BibleSelector({ onSelect, disabled }: BibleSelectorProps
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground/40 uppercase">Hasta</span>
                                 <input
                                     type="number"
+                                    inputMode="numeric"
+                                    step={1}
                                     min={Number(versiculoInicio) || 1}
                                     max={getMaxVerses(Number(capituloInicio))}
                                     value={versiculoFin}
