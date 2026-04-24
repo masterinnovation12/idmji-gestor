@@ -173,7 +173,7 @@ export function LanguageMenu({
                 className={`${triggerBase} ${open ? triggerOpen : ''}`}
                 aria-expanded={open}
                 aria-haspopup="true"
-                aria-controls={menuId}
+                aria-controls={open ? menuId : undefined}
                 aria-label={triggerAriaLabel}
                 onClick={() => setOpen((v) => !v)}
             >
