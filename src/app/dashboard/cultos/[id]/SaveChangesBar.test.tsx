@@ -22,9 +22,11 @@ describe('SaveChangesBar', () => {
             onDiscard: () => { },
         }) as any
         expect(element.props.className).toContain('flex justify-center')
+        expect(element.props['data-testid']).toBe('save-changes-bar')
         const inner = element.props.children
         expect(inner.props.className).toContain('bg-white')
         expect(inner.props.className).toContain('dark:bg-slate-900')
+        expect(inner.props.className).toContain('flex-wrap')
     })
 
     it('ejecuta callbacks de guardar y descartar', () => {

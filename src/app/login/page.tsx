@@ -16,7 +16,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, EyeOff, Globe, Moon, Sun, LogIn, CheckCircle, Sparkles } from 'lucide-react'
+import { Eye, EyeOff, Moon, Sun, LogIn, CheckCircle, Sparkles } from 'lucide-react'
+import { LanguageMenu } from '@/components/language/LanguageMenu'
 import { login } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
@@ -104,16 +105,18 @@ export default function LoginPage() {
                 }, 1500)
             }
         } catch {
-            setError('Error al iniciar sesión')
+            setError(t('login.errorGeneric'))
             setIsLoading(false)
         }
     }
 
     return (
-        <div className="min-h-dvh flex items-center justify-center p-3 sm:p-4 relative overflow-hidden">
-            {/* Fondo con gradiente animado */}
-            <div className="absolute inset-0 gradient-mesh opacity-30" />
-            <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-accent/10" />
+        <div className="min-h-dvh flex flex-col items-center justify-center p-3 sm:p-4 relative">
+            {/* Fondos: overflow acotado aquí para no recortar menús/popovers del contenido (p. ej. idioma). */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute inset-0 gradient-mesh opacity-30" />
+                <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-accent/10" />
+            </div>
 
             {/* Animación de éxito al hacer login */}
             <AnimatePresence>
@@ -156,35 +159,24 @@ export default function LoginPage() {
                 )}
             </AnimatePresence>
 
-            {/* Contenedor Principal - Compacto para móvil */}
-            <div className="flex flex-col items-center w-full max-w-sm relative z-10">
-
+            {/* Contenedor principal: controles y card son hermanos para que el menú de idioma no quede bajo la tarjeta (stacking / pointer-events). */}
+            <div className="relative z-10 flex w-full flex-col items-center">
                 {/* Controles de idioma y tema */}
                 <motion.div
                     initial={{ y: -20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="flex gap-3 mb-4 z-50"
+                    className="relative z-30 mb-4 flex w-full max-w-sm items-center justify-center gap-2 overflow-visible"
                 >
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setLanguage(language === 'es-ES' ? 'ca-ES' : 'es-ES')}
-                        className="glass px-3 py-2 rounded-xl hover:bg-white/30 transition-all font-bold shadow-lg backdrop-blur-md border-white/20 flex items-center gap-2 text-foreground"
-                    >
-                        <Globe className="w-4 h-4" />
-                        <span className="text-xs font-black tracking-wide" suppressHydrationWarning>
-                            {language === 'es-ES' ? 'ES' : 'CA'}
-                        </span>
-                    </motion.button>
+                    <LanguageMenu language={language} setLanguage={setLanguage} t={t} variant="login" />
 
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={toggleTheme}
-                        aria-label={isDark ? 'Activar tema claro' : 'Activar tema oscuro'}
-                        title={isDark ? 'Activar tema claro' : 'Activar tema oscuro'}
-                        className="glass px-3 py-2 rounded-xl hover:bg-white/30 transition-all shadow-lg backdrop-blur-md border-white/20 flex items-center gap-2"
+                        aria-label={isDark ? t('theme.activateLight') : t('theme.activateDark')}
+                        title={isDark ? t('theme.activateLight') : t('theme.activateDark')}
+                        className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition hover:bg-white/80 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                     >
                         {isDark ? (
                             <Sun className="w-4 h-4 text-amber-400" />
@@ -199,7 +191,7 @@ export default function LoginPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="glass rounded-3xl p-5 sm:p-6 w-full relative shadow-2xl border-white/20"
+                    className="glass relative z-0 w-full max-w-sm rounded-3xl p-5 shadow-2xl sm:p-6"
                 >
                     {/* Logo más pequeño para móvil */}
                     <motion.div
@@ -254,7 +246,7 @@ export default function LoginPage() {
                                 defaultValue={credentials.email}
                                 required
                                 className="w-full bg-background/50 border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                                placeholder="ejemplo@idmji.org"
+                                placeholder={t('login.emailPlaceholder')}
                             />
                         </motion.div>
 
@@ -281,8 +273,8 @@ export default function LoginPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                                    title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                    aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                                    title={showPassword ? t('login.hidePassword') : t('login.showPassword')}
                                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-lg transition-colors"
                                 >
                                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

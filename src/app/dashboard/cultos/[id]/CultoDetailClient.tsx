@@ -17,7 +17,7 @@
 
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { Calendar, Clock, User, BookOpen, Music, BookMarked, AlertCircle, CheckCircle, Sparkles, AlertTriangle, Info, ChevronDown, Trash2 } from 'lucide-react'
@@ -193,7 +193,7 @@ function AssignmentSection({
                                 onClick={() => setIsEditing(true)}
                                 className="px-3 py-1 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary/15 hover:text-primary dark:hover:bg-primary dark:hover:text-white transition-all shadow-sm"
                             >
-                                Modificar
+                                {t('culto.detail.modify' as TranslationKey)}
                             </button>
                         )}
                     </div>
@@ -205,7 +205,9 @@ function AssignmentSection({
                         {isSaving && (
                             <div className="absolute inset-0 z-[120] bg-white/60 dark:bg-black/60 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center gap-3 animate-in fade-in duration-200">
                                 <div className="w-8 h-8 md:w-10 md:h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin shadow-lg" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">Guardando...</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">
+                                    {t('culto.detail.saving' as TranslationKey)}
+                                </span>
                             </div>
                         )}
 
@@ -256,7 +258,7 @@ function AssignmentSection({
                                         </div>
                                         <div className="absolute -bottom-2 md:-bottom-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1 whitespace-nowrap z-20">
                                             <CheckCircle className="w-3 h-3" />
-                                            Asignado
+                                            {t('culto.detail.assigned' as TranslationKey)}
                                         </div>
                                     </div>
 
@@ -297,7 +299,9 @@ function AssignmentSection({
                                     className="p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col items-center justify-center gap-3 opacity-50 mt-4"
                                 >
                                     <User className="w-8 h-8 text-slate-400" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Pendiente de asignar</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                                        {t('culto.detail.pendingAssign' as TranslationKey)}
+                                    </p>
                                 </motion.div>
                             ) : null}
                         </AnimatePresence>
@@ -433,7 +437,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         setDraftFestivo((v) => !v)
         setDraftHoraInicio(newHora)
         setIsDirty(true)
-        toast.success('Cambio pendiente. Recuerda guardar cambios.', {
+        toast.success(t('culto.detail.toast.pendingReminder' as TranslationKey), {
             icon: <Sparkles className="w-5 h-5 text-primary" />
         })
     }
@@ -458,7 +462,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
 
         setDraftAssignments((prev) => ({ ...prev, [tipo]: selectedUserId }))
         setIsDirty(true)
-        toast.success('Cambio pendiente. Recuerda guardar cambios.', {
+        toast.success(t('culto.detail.toast.pendingReminder' as TranslationKey), {
             icon: <CheckCircle className="w-5 h-5 text-emerald-500" />
         })
     }
@@ -499,7 +503,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                     : undefined,
             })
             if (!result.success) {
-                toast.error(result.error || 'No se pudieron guardar los cambios')
+                toast.error(result.error || t('culto.detail.toast.saveFailedGeneric' as TranslationKey))
                 return
             }
             initialRef.current = {
@@ -517,14 +521,14 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
             setIsDirty(false)
             setDraftLecturasChanged(false)
             setDraftHimnosChanged(false)
-            toast.success('Cambios guardados correctamente')
+            toast.success(t('culto.detail.toast.saved' as TranslationKey))
             if (typeof window !== 'undefined' && window.history.length > 1) {
                 router.back()
             } else {
                 router.push('/dashboard')
             }
         } catch {
-            toast.error('Error al guardar cambios')
+            toast.error(t('culto.detail.toast.saveError' as TranslationKey))
         } finally {
             setIsUpdating(false)
         }
@@ -546,7 +550,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         setDraftHimnosChanged(false)
         setDraftHimnosCoros(culto.plan_himnos_coros || [])
         setIsDirty(false)
-        toast.success('Cambios descartados')
+        toast.success(t('culto.detail.toast.discarded' as TranslationKey))
     }
 
     const pendingCount = [
@@ -566,6 +570,22 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
     useEffect(() => {
         setIsDirty(pendingCount > 0)
     }, [pendingCount])
+
+    const saveChangesLabels = useMemo(
+        () => ({
+            pendingBadge:
+                pendingCount > 0
+                    ? (t('profile.draftBar.withCount' as TranslationKey) as string).replace(
+                          '{count}',
+                          String(pendingCount)
+                      )
+                    : t('profile.draftBar.base' as TranslationKey),
+            discard: t('profile.draftBar.discard' as TranslationKey),
+            save: t('profile.draftBar.save' as TranslationKey),
+            saving: t('profile.draftBar.saving' as TranslationKey),
+        }),
+        [pendingCount, t]
+    )
 
     const tipoCulto = culto.tipo_culto?.nombre || 'Culto'
     const config = culto.tipo_culto || {}
@@ -600,7 +620,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 backdrop-blur-md px-4 md:px-8 py-2.5 md:py-4 rounded-2xl md:rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30">
                                         <Calendar className="w-6 h-6 text-primary" />
                                         <div className="flex flex-col">
-                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none mb-1">Fecha del Culto</p>
+                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none mb-1">
+                                                {t('culto.detail.meta.cultoDate' as TranslationKey)}
+                                            </p>
                                             <span className="text-base md:text-xl font-black uppercase tracking-tight">
                                                 {format(new Date(culto.fecha), 'PPPP', { locale })}
                                             </span>
@@ -610,7 +632,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 backdrop-blur-md px-4 md:px-8 py-2.5 md:py-4 rounded-2xl md:rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30 font-black">
                                         <Clock className="w-6 h-6 text-primary" />
                                         <div className="flex flex-col">
-                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none mb-1">Hora Inicio</p>
+                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none mb-1">
+                                                {t('culto.detail.meta.startTime' as TranslationKey)}
+                                            </p>
                                             <span className="text-base md:text-xl uppercase tracking-widest">
                                                 {draftHoraInicio.slice(0, 5)}
                                             </span>
@@ -619,7 +643,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
 
                                     {/* Toggle Festivo Premium */}
                                     <div className="flex flex-col gap-2 w-full sm:w-auto">
-                                        <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-4 leading-none">Estado de Jornada</p>
+                                        <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-4 leading-none">
+                                            {t('culto.detail.meta.workdayStatus' as TranslationKey)}
+                                        </p>
                                         <button
                                             onClick={readOnlyAssignments ? undefined : handleToggleFestivo}
                                             disabled={isUpdating || readOnlyAssignments}
@@ -634,10 +660,14 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                             </div>
                                             <div className="flex flex-col items-start">
                                                 <span className={`text-[10px] uppercase tracking-widest leading-none mb-1 ${draftFestivo ? 'text-white/80' : 'text-muted-foreground'}`}>
-                                                    {draftFestivo ? 'Día Especial' : 'Día Laborable'}
+                                                    {draftFestivo
+                                                        ? t('culto.detail.meta.specialDay' as TranslationKey)
+                                                        : t('culto.detail.meta.workday' as TranslationKey)}
                                                 </span>
                                                 <span className="text-sm uppercase tracking-tight relative z-10 whitespace-nowrap">
-                                                    {draftFestivo ? 'Festivo Aplicado' : 'Marcar como Festivo'}
+                                                    {draftFestivo
+                                                        ? t('culto.detail.meta.festivoApplied' as TranslationKey)
+                                                        : t('culto.detail.meta.markFestivo' as TranslationKey)}
                                                 </span>
                                             </div>
                                             {draftFestivo && (
@@ -845,7 +875,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         const newTema = temaConfirmState.tipo === 'delete' ? null : temaConfirmState.temaKey
                                         setDraftTema(newTema)
                                         setIsDirty(true)
-                                        toast.success('Cambio pendiente. Recuerda guardar cambios.')
+                                        toast.success(t('culto.detail.toast.pendingReminder' as TranslationKey))
                                         setTemaConfirmState(null)
                                     }}
                                     className={`px-4 py-2.5 rounded-xl font-bold transition-colors ${temaConfirmState?.tipo === 'delete'
@@ -897,14 +927,14 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         if (definido) {
                                             setDraftProtocolo(null)
                                             setDraftProtocoloDefinido(false)
-                                            toast.success('Protocolo vuelve a Por definir')
+                                            toast.success(t('culto.detail.toast.protocolUndefined' as TranslationKey))
                                         } else {
                                             setDraftProtocolo({
                                                 oracion_inicio: true,
                                                 congregacion_pie: false
                                             })
                                             setDraftProtocoloDefinido(true)
-                                            toast.success('Protocolo activado')
+                                            toast.success(t('culto.detail.toast.protocolActivated' as TranslationKey))
                                         }
                                         setIsDirty(true)
                                     }}
@@ -949,7 +979,11 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                             congregacion_pie: congregacionActual
                                                         })
                                                         setIsDirty(true)
-                                                        toast.success(!oracionActual ? 'Oración activada' : 'Oración desactivada')
+                                                        toast.success(
+                                                            !oracionActual
+                                                                ? t('culto.detail.toast.prayerOn' as TranslationKey)
+                                                                : t('culto.detail.toast.prayerOff' as TranslationKey)
+                                                        )
                                                     }}
                                                     className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] rounded-2xl border-2 transition-all flex-1 min-w-0 cursor-pointer touch-manipulation ${oracionActivo
                                                         ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
@@ -986,7 +1020,11 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                             congregacion_pie: !congregacionActual
                                                         })
                                                         setIsDirty(true)
-                                                        toast.success(!congregacionActual ? 'Congregación de pie' : 'Congregación sentada')
+                                                        toast.success(
+                                                            !congregacionActual
+                                                                ? t('culto.detail.toast.congregationStanding' as TranslationKey)
+                                                                : t('culto.detail.toast.congregationSeated' as TranslationKey)
+                                                        )
                                                     }}
                                                     className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] rounded-2xl border-2 transition-all flex-1 min-w-0 cursor-pointer touch-manipulation ${congregacionActivo
                                                         ? 'bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300'
@@ -1033,10 +1071,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     </div>
                                     <div className="min-w-0">
                                         <h3 className="text-base sm:text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
-                                            Inicio Anticipado
+                                            {t('culto.detail.inicioAnticipado.title' as TranslationKey)}
                                         </h3>
                                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                                            Por duración del video
+                                            {t('culto.detail.inicioAnticipado.subtitle' as TranslationKey)}
                                         </p>
                                         <p className="text-[10px] text-muted-foreground/80 mt-1.5 sm:mt-2 opacity-90">
                                             {t('culto.protocol.helpDashboard')}
@@ -1056,7 +1094,11 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                             observaciones: draftInicioAnticipado?.observaciones
                                         })
                                         setIsDirty(true)
-                                        toast.success(!current ? 'Inicio anticipado activado' : 'Inicio anticipado desactivado')
+                                        toast.success(
+                                            !current
+                                                ? t('culto.detail.toast.inicioAnticipadoOn' as TranslationKey)
+                                                : t('culto.detail.toast.inicioAnticipadoOff' as TranslationKey)
+                                        )
                                     }}
                                     className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] sm:min-h-0 rounded-2xl border-2 transition-all cursor-pointer touch-manipulation shrink-0 w-full sm:w-auto sm:min-w-[180px] ${(draftInicioAnticipado?.activo ?? false)
                                         ? 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300'
@@ -1064,7 +1106,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         }`}
                                 >
                                     <span className="text-xs sm:text-sm font-black uppercase tracking-tight">
-                                        {(draftInicioAnticipado?.activo ?? false) ? 'Activado' : 'Desactivado'}
+                                        {(draftInicioAnticipado?.activo ?? false)
+                                            ? t('culto.detail.inicioAnticipado.activado' as TranslationKey)
+                                            : t('culto.detail.inicioAnticipado.desactivado' as TranslationKey)}
                                     </span>
                                     <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${(draftInicioAnticipado?.activo ?? false)
                                         ? 'bg-amber-500 border-amber-600'
@@ -1085,7 +1129,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     {/* Minute Buttons */}
                                     <div className="space-y-3">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                            Minutos antes
+                                            {t('culto.detail.inicioAnticipado.minutosAntes' as TranslationKey)}
                                         </label>
                                         <div className="flex flex-wrap gap-2">
                                             {[5, 7, 10].map((mins) => (
@@ -1099,7 +1143,12 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                             observaciones: draftInicioAnticipado?.observaciones
                                                         })
                                                         setIsDirty(true)
-                                                        toast.success(`Inicio ${mins} minutos antes`)
+                                                        toast.success(
+                                                            t('culto.detail.toast.inicioMinutos' as TranslationKey).replace(
+                                                                '{mins}',
+                                                                String(mins)
+                                                            )
+                                                        )
                                                     }}
                                                     className={`min-h-[44px] px-5 sm:px-6 py-3 rounded-2xl font-black text-sm transition-all touch-manipulation ${(draftInicioAnticipado?.minutos ?? 5) === mins
                                                         ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
@@ -1110,7 +1159,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                 </button>
                                             ))}
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs text-muted-foreground font-bold">Otro:</span>
+                                                <span className="text-xs text-muted-foreground font-bold">
+                                                    {t('culto.detail.inicioAnticipado.otro' as TranslationKey)}
+                                                </span>
                                                 <input
                                                     type="number"
                                                     min={1}
@@ -1120,7 +1171,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                             ? draftInicioAnticipado?.minutos
                                                             : ''
                                                     }
-                                                    placeholder="min"
+                                                    placeholder={t('culto.detail.inicioAnticipado.placeholderMin' as TranslationKey)}
                                                     onBlur={async (e) => {
                                                         const val = parseInt(e.target.value)
                                                         if (val && val > 0 && val <= 30) {
@@ -1130,7 +1181,12 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                                 observaciones: draftInicioAnticipado?.observaciones
                                                             })
                                                             setIsDirty(true)
-                                                            toast.success(`Inicio ${val} minutos antes`)
+                                                            toast.success(
+                                                                t('culto.detail.toast.inicioMinutos' as TranslationKey).replace(
+                                                                    '{mins}',
+                                                                    String(val)
+                                                                )
+                                                            )
                                                         }
                                                     }}
                                                     className="w-20 px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center font-black text-sm outline-none focus:ring-2 focus:ring-amber-500/50"
@@ -1145,7 +1201,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                             <Clock className="w-5 h-5 text-amber-600" />
                                             <div>
                                                 <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 opacity-70">
-                                                    Hora real de inicio
+                                                    {t('culto.detail.inicioAnticipado.horaReal' as TranslationKey)}
                                                 </p>
                                                 <p className="text-xl font-black text-amber-700 dark:text-amber-300">
                                                     {(() => {
@@ -1366,6 +1422,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 pendingCount={pendingCount}
                 onSave={handleSaveDraft}
                 onDiscard={handleDiscardDraft}
+                labels={saveChangesLabels}
             />
 
             <InstruccionesCultoModal
@@ -1380,10 +1437,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 <DialogContent className="max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-3xl">
                     <DialogHeader>
                         <DialogTitle className="text-slate-900 dark:text-white font-black uppercase tracking-tight">
-                            Tienes cambios sin guardar
+                            {t('culto.detail.leaveTitle' as TranslationKey)}
                         </DialogTitle>
                         <DialogDescription className="text-slate-600 dark:text-slate-400">
-                            Si sales ahora, perderás los cambios pendientes de este culto.
+                            {t('culto.detail.leaveDesc' as TranslationKey)}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="gap-2 sm:gap-0">
@@ -1395,7 +1452,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                             }}
                             className="px-4 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
-                            Quedarme
+                            {t('profile.leave.stay' as TranslationKey)}
                         </button>
                         <button
                             type="button"
@@ -1408,7 +1465,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                             }}
                             className="px-4 py-2.5 rounded-xl font-bold transition-colors bg-red-600 hover:bg-red-700 text-white"
                         >
-                            Salir sin guardar
+                            {t('profile.leave.withoutSave' as TranslationKey)}
                         </button>
                     </DialogFooter>
                 </DialogContent>

@@ -1,28 +1,18 @@
 /**
  * ProfileClient - IDMJI Gestor de Púlpito
- * 
- * Componente cliente para la gestión integral del perfil del usuario.
- * Fusiona perfil y configuración en una sola interfaz premium.
- * 
- * Características:
- * - Edición de datos personales (Nombre, Apellidos)
- * - Sincronización de datos de contacto (Email, Teléfono)
- * - Gestión de Avatar con recorte, zoom y rotación
- * - Preferencias de aplicación (Modo Oscuro, Notificaciones)
- * - Diseño Glassmorphism ultra-premium y 100% responsivo
- * 
- * @author Antigravity AI
- * @date 2024-12-23
+ *
+ * Perfil unificado: borrador local + barra Guardar/Descartar (mismo modelo que el detalle de culto).
+ * Avatar nuevo o eliminación solo se persisten al confirmar "Guardar cambios".
  */
 
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
-    User, Mail, Phone, Shield, Moon, Globe, Sun,
+    User, Mail, Phone, Shield, Moon, Sun,
     Camera, Loader2, Sparkles, UserCircle,
-    Calendar, Save, AlertCircle, Trash2, Bell
+    Calendar, AlertCircle, Trash2, Bell,
 } from 'lucide-react'
 import NextImage from 'next/image'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -39,52 +29,127 @@ import AvatarEditor from '@/components/AvatarEditor'
 import AvailabilityManager from '@/components/AvailabilityManager'
 import { PushNotificationToggle } from '@/components/PushNotificationToggle'
 import { obtenerIniciales } from '@/lib/helpers'
+import SaveChangesBar from '@/app/dashboard/cultos/[id]/SaveChangesBar'
+import { LanguageMenu } from '@/components/language/LanguageMenu'
+import { FlagSpain } from '@/components/language/FlagSpain'
+import { FlagCatalonia } from '@/components/language/FlagCatalonia'
+import {
+    cloneProfileForm,
+    profilePendingCount,
+    type ProfileCommittedSnapshot,
+    type ProfileEditorForm,
+} from './profileDraft'
+import { cn } from '@/lib/utils'
+import type { TranslationKey } from '@/lib/i18n/types'
 
 interface ProfileClientProps {
     profile: Profile | null
     email: string
 }
 
-export default function ProfileClient({ profile, email }: ProfileClientProps) {
-    const { t, language, setLanguage } = useI18n()
-    const { isDark, toggleTheme } = useTheme()
-
-    // Detectar si es el formato antiguo (sin template/exceptions) y migrar
+function buildInitialForm(profile: Profile | null, languageFromContext: string): ProfileEditorForm {
     const initialAvailability = profile?.availability
-        ? ('template' in profile.availability)
-            ? profile.availability
-            : { template: profile.availability, exceptions: {} }
+        ? 'template' in profile.availability
+            ? (profile.availability as ProfileEditorForm['availability'])
+            : { template: profile.availability as NonNullable<ProfileEditorForm['availability']>['template'], exceptions: {} }
         : { template: {}, exceptions: {} }
 
-    // Form States
-    const [formData, setFormData] = useState({
+    return {
         nombre: profile?.nombre || '',
         apellidos: profile?.apellidos || '',
         email_contacto: profile?.email_contacto || '',
         telefono: profile?.telefono || '',
-        language: (profile?.language ?? profile?.idioma_preferido ?? language) as 'es-ES' | 'ca-ES',
-        availability: initialAvailability
-    })
-    const [isLoading, setIsLoading] = useState(false)
+        language: (profile?.language ?? profile?.idioma_preferido ?? languageFromContext) as 'es-ES' | 'ca-ES',
+        availability: initialAvailability,
+    }
+}
+
+function buildCommitted(profile: Profile | null, languageFromContext: string): ProfileCommittedSnapshot {
+    const form = buildInitialForm(profile, languageFromContext)
+    return {
+        form: cloneProfileForm(form),
+        avatarUrl: profile?.avatar_url ?? null,
+    }
+}
+
+export default function ProfileClient({ profile, email }: ProfileClientProps) {
+    const { t, language, setLanguage: setI18nLanguage } = useI18n()
+    const { isDark, toggleTheme } = useTheme()
+
+    const [formData, setFormData] = useState<ProfileEditorForm>(() => buildInitialForm(profile, language))
+    const [committed, setCommitted] = useState<ProfileCommittedSnapshot>(() => buildCommitted(profile, language))
+
     const [isSaving, setIsSaving] = useState(false)
     const [mounted, setMounted] = useState(false)
 
-    // Hydration fix: wait until mounted to render dynamic specific parts
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null)
+    const [pendingAvatarBlob, setPendingAvatarBlob] = useState<Blob | null>(null)
+    const [pendingAvatarDelete, setPendingAvatarDelete] = useState(false)
+    const blobPreviewUrlRef = useRef<string | null>(null)
+
+    const [isCropOpen, setIsCropOpen] = useState(false)
+    const [tempImageSrc, setTempImageSrc] = useState<string | null>(null)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+    const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
+    const [pendingNavigationHref, setPendingNavigationHref] = useState<string | null>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
     useEffect(() => {
         setMounted(true)
     }, [])
 
-    // Avatar States
-    const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null)
-    const [isCropOpen, setIsCropOpen] = useState(false)
-    const [tempImageSrc, setTempImageSrc] = useState<string | null>(null)
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-    const fileInputRef = useRef<HTMLInputElement>(null)
+    useEffect(() => {
+        return () => {
+            if (blobPreviewUrlRef.current) {
+                URL.revokeObjectURL(blobPreviewUrlRef.current)
+                blobPreviewUrlRef.current = null
+            }
+        }
+    }, [])
 
-    // Handlers
+    const pendingCount = useMemo(
+        () => profilePendingCount(committed, formData, pendingAvatarBlob, pendingAvatarDelete),
+        [committed, formData, pendingAvatarBlob, pendingAvatarDelete]
+    )
+    const isDirty = pendingCount > 0
+
+    const revokeBlobPreview = useCallback(() => {
+        if (blobPreviewUrlRef.current) {
+            URL.revokeObjectURL(blobPreviewUrlRef.current)
+            blobPreviewUrlRef.current = null
+        }
+    }, [])
+
+    useEffect(() => {
+        const handler = (event: BeforeUnloadEvent) => {
+            if (!isDirty) return
+            event.preventDefault()
+            event.returnValue = ''
+        }
+        window.addEventListener('beforeunload', handler)
+        return () => window.removeEventListener('beforeunload', handler)
+    }, [isDirty])
+
+    useEffect(() => {
+        const clickHandler = (event: MouseEvent) => {
+            if (!isDirty) return
+            const target = event.target as HTMLElement | null
+            const anchor = target?.closest('a[href]') as HTMLAnchorElement | null
+            if (!anchor) return
+            const href = anchor.getAttribute('href')
+            if (!href || href.startsWith('#')) return
+            event.preventDefault()
+            event.stopPropagation()
+            setPendingNavigationHref(href)
+            setLeaveConfirmOpen(true)
+        }
+        document.addEventListener('click', clickHandler, true)
+        return () => document.removeEventListener('click', clickHandler, true)
+    }, [isDirty])
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
+        setFormData((prev) => ({ ...prev, [name]: value }))
     }
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,61 +162,67 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
         }
     }
 
-    const handleCropSave = async (croppedBlob: Blob) => {
-        setIsLoading(true)
-        try {
-            const data = new FormData()
-            data.append('avatar', croppedBlob, 'avatar.jpg')
-
-            const result = await uploadAvatar(data)
-            if (result.success && result.data) {
-                setAvatarPreview(result.data)
-                toast.success(t('profile.avatarSuccess'))
-            } else {
-                toast.error(result.error || 'Error al subir avatar')
-            }
-        } catch (error) {
-            console.error(error)
-            toast.error('Error inesperado al subir avatar')
-        } finally {
-            setIsLoading(false)
-            setIsCropOpen(false)
-            setTempImageSrc(null)
-        }
+    const handleCropComplete = (croppedBlob: Blob) => {
+        revokeBlobPreview()
+        const url = URL.createObjectURL(croppedBlob)
+        blobPreviewUrlRef.current = url
+        setPendingAvatarBlob(croppedBlob)
+        setPendingAvatarDelete(false)
+        setAvatarPreview(url)
+        setIsCropOpen(false)
+        setTempImageSrc(null)
     }
 
-    const handleDeleteAvatar = async () => {
-        if (!avatarPreview) return
-
-        setIsDeleteDialogOpen(false)
-        setIsLoading(true)
-        try {
-            const result = await deleteAvatar()
-            if (result.success) {
-                setAvatarPreview(null)
-                toast.success('Avatar eliminado correctamente')
-            } else {
-                toast.error(result.error || 'Error al eliminar avatar')
-            }
-        } catch (error) {
-            console.error(error)
-            toast.error('Error inesperado al eliminar avatar')
-        } finally {
-            setIsLoading(false)
-        }
+    const handleDiscard = () => {
+        revokeBlobPreview()
+        setPendingAvatarBlob(null)
+        setPendingAvatarDelete(false)
+        setFormData(cloneProfileForm(committed.form))
+        setI18nLanguage(committed.form.language)
+        setAvatarPreview(committed.avatarUrl)
+        toast.success(t('profile.draftBar.discarded' as TranslationKey))
     }
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const handleSave = async () => {
+        if (!isDirty) return
         setIsSaving(true)
-
         try {
-            const result = await updateProfile(formData)
-            if (result.success) {
-                toast.success(t('profile.saveSuccess'))
-            } else {
-                toast.error(result.error || 'Error al actualizar perfil')
+            const profileResult = await updateProfile(formData)
+            if (!profileResult.success) {
+                toast.error(profileResult.error || 'Error al actualizar perfil')
+                return
             }
+
+            let newAvatarUrl = committed.avatarUrl
+
+            if (pendingAvatarBlob) {
+                const data = new FormData()
+                data.append('avatar', pendingAvatarBlob, 'avatar.jpg')
+                const uploadResult = await uploadAvatar(data)
+                if (!uploadResult.success || !uploadResult.data) {
+                    toast.error(uploadResult.error || 'Error al subir avatar')
+                    return
+                }
+                newAvatarUrl = uploadResult.data
+            } else if (pendingAvatarDelete && committed.avatarUrl) {
+                const delResult = await deleteAvatar()
+                if (!delResult.success) {
+                    toast.error(delResult.error || 'Error al eliminar avatar')
+                    return
+                }
+                newAvatarUrl = null
+            }
+
+            revokeBlobPreview()
+            setPendingAvatarBlob(null)
+            setPendingAvatarDelete(false)
+            setCommitted({
+                form: cloneProfileForm(formData),
+                avatarUrl: newAvatarUrl,
+            })
+            setAvatarPreview(newAvatarUrl)
+            setI18nLanguage(formData.language)
+            toast.success(t('profile.saveSuccess' as TranslationKey))
         } catch (error: unknown) {
             console.error(error)
             toast.error(error instanceof Error ? error.message : 'Error inesperado')
@@ -160,15 +231,66 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
         }
     }
 
+    const openRemoveAvatarDialog = () => {
+        setIsDeleteDialogOpen(true)
+    }
+
+    const confirmRemoveAvatar = () => {
+        revokeBlobPreview()
+        setPendingAvatarBlob(null)
+        setPendingAvatarDelete(true)
+        setAvatarPreview(null)
+        setIsDeleteDialogOpen(false)
+    }
+
+    const handleAvatarDeleteOrCancelSelection = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (pendingAvatarBlob) {
+            revokeBlobPreview()
+            setPendingAvatarBlob(null)
+            setPendingAvatarDelete(false)
+            setAvatarPreview(committed.avatarUrl)
+            return
+        }
+        if (pendingAvatarDelete) {
+            setPendingAvatarDelete(false)
+            setAvatarPreview(committed.avatarUrl)
+            return
+        }
+        openRemoveAvatarDialog()
+    }
+
+    const saveBarLabels = useMemo(
+        () => ({
+            pendingBadge:
+                pendingCount > 0
+                    ? (t('profile.draftBar.withCount' as TranslationKey) as string).replace(
+                          '{count}',
+                          String(pendingCount)
+                      )
+                    : t('profile.draftBar.base' as TranslationKey),
+            discard: t('profile.draftBar.discard' as TranslationKey),
+            save: t('profile.draftBar.save' as TranslationKey),
+            saving: t('profile.draftBar.saving' as TranslationKey),
+        }),
+        [pendingCount, t]
+    )
+
     if (!mounted) {
-        return <div className="min-h-screen bg-background flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        )
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 pb-28 sm:pb-12 px-4 no-scrollbar">
-            {/* Header con Animación */}
+        <div
+            className={cn(
+                'max-w-5xl mx-auto space-y-8 px-4 no-scrollbar',
+                isDirty ? 'pb-32 sm:pb-28' : 'pb-12 sm:pb-12'
+            )}
+        >
             <div className="space-y-2">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
@@ -193,8 +315,13 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                 </motion.p>
             </div>
 
-            <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-3">
-                {/* Panel Lateral: Avatar y Rol */}
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault()
+                    if (isDirty && !isSaving) void handleSave()
+                }}
+                className="grid gap-8 lg:grid-cols-3"
+            >
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -203,7 +330,6 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                 >
                     <Card className="rounded-[2.5rem] border-none shadow-2xl group glass">
                         <CardContent className="p-4 sm:p-6 md:p-8 text-center space-y-6 overflow-visible">
-                            {/* Avatar Editable */}
                             <div className="relative mx-auto w-44 h-44 group/avatar">
                                 <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl group-hover/avatar:bg-primary/40 transition-all" />
                                 <div
@@ -217,22 +343,28 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                                 alt="Avatar"
                                                 fill
                                                 className="object-cover"
+                                                unoptimized={avatarPreview.startsWith('blob:')}
                                             />
                                         ) : (
-                                            <div className={`w-full h-full flex flex-col items-center justify-center ${isDark ? 'bg-gradient-to-br from-primary via-accent to-primary' : 'bg-gradient-to-br from-blue-200 via-blue-100 to-blue-200'}`}>
-                                                <span className={`text-5xl font-black tracking-tighter drop-shadow-sm ${isDark ? 'text-white' : 'text-black'}`}>
+                                            <div
+                                                className={`w-full h-full flex flex-col items-center justify-center ${isDark ? 'bg-gradient-to-br from-primary via-accent to-primary' : 'bg-gradient-to-br from-blue-200 via-blue-100 to-blue-200'}`}
+                                            >
+                                                <span
+                                                    className={`text-5xl font-black tracking-tighter drop-shadow-sm ${isDark ? 'text-white' : 'text-black'}`}
+                                                >
                                                     {obtenerIniciales(formData.nombre, formData.apellidos) || 'U'}
                                                 </span>
                                             </div>
                                         )}
 
-                                        {/* Overlay de Edición */}
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center transition-opacity">
                                             <Camera className="w-8 h-8 text-white mb-2" />
-                                            <span className="text-[10px] font-black text-white uppercase tracking-widest">{t('users.form.change')}</span>
+                                            <span className="text-[10px] font-black text-white uppercase tracking-widest">
+                                                {t('users.form.change')}
+                                            </span>
                                         </div>
 
-                                        {isLoading && (
+                                        {isSaving && (
                                             <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                                                 <Loader2 className="w-8 h-8 text-white animate-spin" />
                                             </div>
@@ -247,18 +379,14 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                     onChange={handleFileChange}
                                 />
 
-                                {/* Botón Eliminar Avatar - Solo visible cuando hay avatar */}
-                                {avatarPreview && !isLoading && (
+                                {(avatarPreview || pendingAvatarDelete) && !isSaving && (
                                     <button
                                         type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            setIsDeleteDialogOpen(true)
-                                        }}
+                                        onClick={handleAvatarDeleteOrCancelSelection}
                                         className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg transition-all flex items-center gap-1.5 z-10"
                                     >
                                         <Trash2 className="w-3 h-3" />
-                                        Eliminar
+                                        {pendingAvatarBlob || pendingAvatarDelete ? t('common.cancel') : t('common.delete')}
                                     </button>
                                 )}
                             </div>
@@ -269,20 +397,27 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                 </h2>
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                                     <Shield className="w-3 h-3" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest">{profile?.rol || 'MIEMBRO'}</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest">
+                                        {profile?.rol || 'MIEMBRO'}
+                                    </span>
                                 </div>
                             </div>
 
-                            {/* Info de Acceso (Lectura) */}
                             <div className="pt-4 border-t border-border/50 space-y-4">
                                 <div className="flex items-center gap-2 text-left">
                                     <div className="p-2 bg-muted rounded-xl">
                                         <Calendar className="w-4 h-4 text-muted-foreground" />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{t('profile.registeredAt')}</p>
+                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                                            {t('profile.registeredAt')}
+                                        </p>
                                         <p className="text-sm font-bold">
-                                            {profile?.created_at ? new Date(profile.created_at).toLocaleDateString(language === 'es-ES' ? 'es' : 'ca') : '—'}
+                                            {profile?.created_at
+                                                ? new Date(profile.created_at).toLocaleDateString(
+                                                      language === 'es-ES' ? 'es' : 'ca'
+                                                  )
+                                                : '—'}
                                         </p>
                                     </div>
                                 </div>
@@ -291,14 +426,12 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                     </Card>
                 </motion.div>
 
-                {/* Panel Principal: Formulario */}
                 <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 }}
                     className="lg:col-span-2 space-y-8"
                 >
-                    {/* Sección: Datos Personales */}
                     <Card className="rounded-[2.5rem] border-none shadow-xl glass">
                         <CardContent className="p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 overflow-visible">
                             <div>
@@ -312,7 +445,10 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
 
                             <div className="grid gap-6 md:grid-cols-2">
                                 <div className="space-y-2">
-                                    <Label htmlFor="nombre" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                                    <Label
+                                        htmlFor="nombre"
+                                        className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1"
+                                    >
                                         {t('profile.firstName')}
                                     </Label>
                                     <Input
@@ -325,7 +461,10 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="apellidos" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                                    <Label
+                                        htmlFor="apellidos"
+                                        className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1"
+                                    >
                                         {t('profile.lastName')}
                                     </Label>
                                     <Input
@@ -339,7 +478,6 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                 </div>
                             </div>
 
-                            {/* Sección de Contacto */}
                             <div className="pt-4 space-y-6">
                                 <div className="flex items-center gap-2 px-2">
                                     <div className="h-px flex-1 bg-white/5" />
@@ -351,7 +489,10 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
 
                                 <div className="grid gap-6 md:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label htmlFor="email_contacto" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                                        <Label
+                                            htmlFor="email_contacto"
+                                            className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1"
+                                        >
                                             {t('profile.contactEmail')}
                                         </Label>
                                         <div className="relative">
@@ -368,7 +509,10 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="telefono" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                                        <Label
+                                            htmlFor="telefono"
+                                            className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1"
+                                        >
                                             {t('profile.phone')}
                                         </Label>
                                         <div className="relative">
@@ -385,15 +529,11 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Botón Guardar removido - ahora hay uno sticky al final */}
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Sección: Cuenta y Preferencias */}
                     <div className="grid gap-8 md:grid-cols-2">
-                        {/* Cuenta de Acceso (Lectura) */}
                         <Card className="rounded-[2.5rem] border-none shadow-xl glass">
                             <CardContent className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 overflow-visible">
                                 <h3 className="text-lg font-black uppercase tracking-tighter flex items-center gap-3">
@@ -417,14 +557,14 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                     <div className="flex items-center gap-2 p-3 bg-blue-500/5 rounded-2xl border border-blue-500/10 text-blue-600 dark:text-blue-400">
                                         <AlertCircle className="w-4 h-4 shrink-0" />
                                         <p className="text-[10px] font-bold leading-tight">
-                                            El email de inicio de sesión es gestionado por el administrador para garantizar la seguridad.
+                                            El email de inicio de sesión es gestionado por el administrador para garantizar la
+                                            seguridad.
                                         </p>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
 
-                        {/* Preferencias de Aplicación */}
                         <Card className="rounded-[2.5rem] border-none shadow-xl glass">
                             <CardContent className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 overflow-visible">
                                 <h3 className="text-lg font-black uppercase tracking-tighter flex items-center gap-3">
@@ -435,15 +575,20 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                 </h3>
 
                                 <div className="space-y-4">
-                                    {/* Selector de Tema */}
                                     <div className="flex items-center justify-between p-3 sm:p-4 rounded-2xl bg-muted/30 border border-border/50">
                                         <div className="flex items-center gap-2 sm:gap-3">
                                             <div className="p-2 bg-background rounded-xl shadow-sm">
-                                                {isDark ? <Moon className="w-4 h-4 text-primary" /> : <Sun className="w-4 h-4 text-amber-500" />}
+                                                {isDark ? (
+                                                    <Moon className="w-4 h-4 text-primary" />
+                                                ) : (
+                                                    <Sun className="w-4 h-4 text-amber-500" />
+                                                )}
                                             </div>
                                             <div>
                                                 <p className="font-bold text-xs uppercase tracking-tight">{t('profile.darkMode')}</p>
-                                                <p className="text-[10px] text-muted-foreground font-medium hidden sm:block">{t('profile.darkModeDesc')}</p>
+                                                <p className="text-[10px] text-muted-foreground font-medium hidden sm:block">
+                                                    {t('profile.darkModeDesc')}
+                                                </p>
                                             </div>
                                         </div>
                                         <button
@@ -459,64 +604,42 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                         </button>
                                     </div>
 
-                                    {/* Selector de Idioma */}
-                                    <div className="flex flex-col gap-3 p-3 sm:p-4 rounded-2xl bg-muted/30 border border-border/50">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <div className="p-2 bg-background rounded-xl shadow-sm">
-                                                <Globe className="w-4 h-4 text-blue-500" />
+                                    <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-muted/30 border border-border/50">
+                                        <div className="flex min-w-0 items-center gap-2.5">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-background shadow-sm">
+                                                {language === 'es-ES' ? (
+                                                    <FlagSpain className="h-4 w-6 rounded-sm border border-black/10 shadow-sm" aria-hidden />
+                                                ) : (
+                                                    <FlagCatalonia className="h-4 w-6 rounded-sm border border-black/10 shadow-sm" aria-hidden />
+                                                )}
                                             </div>
-                                            <p className="font-bold text-xs uppercase tracking-tight">{t('profile.language')}</p>
+                                            <p className="truncate font-bold text-xs uppercase tracking-tight">
+                                                {t('profile.language')}
+                                            </p>
                                         </div>
-                                        <div className={`flex gap-2 p-1.5 rounded-xl shadow-inner justify-center ${isDark ? 'bg-muted/50' : 'bg-muted/30'}`}>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setLanguage('es-ES')
-                                                    setFormData(prev => ({ ...prev, language: 'es-ES' }))
-                                                }}
-                                                className={`flex-1 px-4 py-2.5 sm:px-3 sm:py-1.5 rounded-lg text-sm sm:text-xs font-black transition-all ${language === 'es-ES'
-                                                    ? isDark
-                                                        ? 'bg-primary text-white shadow-lg shadow-primary/40'
-                                                        : 'bg-blue-600 text-white shadow-lg shadow-blue-500/40'
-                                                    : isDark
-                                                        ? 'bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                                                        : 'bg-white text-foreground hover:bg-muted/50 shadow-sm'
-                                                    }`}
-                                            >
-                                                ES
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setLanguage('ca-ES')
-                                                    setFormData(prev => ({ ...prev, language: 'ca-ES' }))
-                                                }}
-                                                className={`flex-1 px-4 py-2.5 sm:px-3 sm:py-1.5 rounded-lg text-sm sm:text-xs font-black transition-all ${language === 'ca-ES'
-                                                    ? isDark
-                                                        ? 'bg-primary text-white shadow-lg shadow-primary/40'
-                                                        : 'bg-blue-600 text-white shadow-lg shadow-blue-500/40'
-                                                    : isDark
-                                                        ? 'bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                                                        : 'bg-white text-foreground hover:bg-muted/50 shadow-sm'
-                                                    }`}
-                                            >
-                                                CA
-                                            </button>
-                                        </div>
+                                        <LanguageMenu
+                                            language={language}
+                                            setLanguage={(lang) => {
+                                                setI18nLanguage(lang)
+                                                setFormData((prev) => ({ ...prev, language: lang }))
+                                            }}
+                                            t={t}
+                                            variant="profile"
+                                            className="shrink-0"
+                                        />
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* Notificaciones Push */}
                     <Card className="rounded-[2.5rem] border-none shadow-xl glass overflow-hidden">
                         <CardContent className="p-4 sm:p-6 md:p-8">
                             <h3 className="text-lg font-black uppercase tracking-tighter flex items-center gap-3 mb-6">
                                 <div className="p-2 bg-blue-500/10 rounded-xl">
                                     <Bell className="w-5 h-5 text-blue-500" />
                                 </div>
-                                {t('profile.notifications' as any) || 'Notificaciones'}
+                                {t('profile.notifications')}
                             </h3>
                             <PushNotificationToggle />
                         </CardContent>
@@ -524,66 +647,33 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                 </motion.div>
             </form>
 
-            {/* Botón de Guardar Sticky (solo móvil) y Normal (desktop) */}
-            <div className="mt-8">
-                {/* Versión Desktop - Normal al final */}
-                <div className="hidden sm:flex justify-center">
-                    <Button
-                        onClick={handleSubmit}
-                        disabled={isSaving}
-                        className={`rounded-2xl px-12 py-4 font-black uppercase tracking-widest text-sm h-14 shadow-xl border-2 text-white hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark
-                            ? 'bg-primary border-primary/50 hover:bg-primary/90 shadow-primary/40'
-                            : 'bg-blue-600 border-blue-700 hover:bg-blue-700 shadow-blue-500/50'
-                            }`}
-                    >
-                        {isSaving ? <Loader2 className="w-5 h-5 animate-spin mr-2 text-white" /> : <Save className="w-5 h-5 mr-2 text-white" />}
-                        <span className="text-white font-black">{t('common.save')}</span>
-                    </Button>
-                </div>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="space-y-6"
+            >
+                <AvailabilityManager
+                    value={formData.availability}
+                    onChange={(newAvailability) =>
+                        setFormData((prev) => ({ ...prev, availability: newAvailability }))
+                    }
+                    isDark={isDark}
+                />
+            </motion.div>
 
-                {/* Versión Móvil - Sticky en la parte inferior */}
-                <div className="sm:hidden fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-xl border-t border-border/50 z-50 shadow-2xl">
-                    <Button
-                        onClick={handleSubmit}
-                        disabled={isSaving}
-                        className={`w-full rounded-2xl py-4 font-black uppercase tracking-widest text-sm h-14 shadow-xl border-2 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all ${isDark
-                            ? 'bg-primary border-primary/50 active:bg-primary/90 shadow-primary/40'
-                            : 'bg-blue-600 border-blue-700 active:bg-blue-700 shadow-blue-500/50'
-                            }`}
-                    >
-                        {isSaving ? <Loader2 className="w-5 h-5 animate-spin mr-2 text-white" /> : <Save className="w-5 h-5 mr-2 text-white" />}
-                        <span className="text-white font-black">{t('common.save')}</span>
-                    </Button>
-                </div>
-            </div>
-
-            <div className="mt-8 space-y-6 pb-24 sm:pb-6">
-                {/* Availability Manager */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                >
-                    <AvailabilityManager
-                        value={formData.availability}
-                        onChange={(newAvailability) => setFormData(prev => ({ ...prev, availability: newAvailability }))}
-                        isDark={isDark}
-                    />
-                    {/* Botón removido - ahora hay uno sticky al final */}
-                </motion.div>
-            </div>
-
-            {/* Modal de Edición de Avatar */}
             {tempImageSrc && (
                 <AvatarEditor
                     imageSrc={tempImageSrc}
                     isOpen={isCropOpen}
-                    onClose={() => { setIsCropOpen(false); setTempImageSrc(null) }}
-                    onSave={handleCropSave}
+                    onClose={() => {
+                        setIsCropOpen(false)
+                        setTempImageSrc(null)
+                    }}
+                    onSave={handleCropComplete}
                 />
             )}
 
-            {/* Diálogo de Confirmación para Eliminar Avatar */}
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <DialogContent className="rounded-2xl border-none shadow-2xl glass p-0 overflow-hidden">
                     <DialogHeader className="p-6 pb-4">
@@ -591,43 +681,75 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                             <div className="p-2 bg-red-500/10 rounded-xl">
                                 <Trash2 className="w-5 h-5 text-red-500" />
                             </div>
-                            <DialogTitle className="text-xl font-black uppercase tracking-tight">
-                                Eliminar Avatar
-                            </DialogTitle>
+                            <DialogTitle className="text-xl font-black uppercase tracking-tight">Eliminar Avatar</DialogTitle>
                         </div>
                         <DialogDescription className="text-sm text-muted-foreground">
-                            ¿Estás seguro de que deseas eliminar tu foto de perfil? Esta acción no se puede deshacer y se eliminará permanentemente del sistema.
+                            La foto se quitará al pulsar &quot;Guardar cambios&quot; en la barra inferior. Puedes descartar antes
+                            si cambias de idea.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="p-6 pt-0 gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsDeleteDialogOpen(false)}
-                            className="rounded-xl"
-                        >
-                            Cancelar
+                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="rounded-xl">
+                            {t('common.cancel')}
                         </Button>
                         <Button
                             variant="destructive"
-                            onClick={handleDeleteAvatar}
-                            disabled={isLoading}
+                            onClick={confirmRemoveAvatar}
                             className="rounded-xl bg-red-500 hover:bg-red-600 text-white"
                         >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                    Eliminando...
-                                </>
-                            ) : (
-                                <>
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Eliminar
-                                </>
-                            )}
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            {t('common.delete')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
+                <DialogContent className="max-w-md rounded-3xl">
+                    <DialogHeader>
+                        <DialogTitle className="font-black uppercase tracking-tight">
+                            {t('profile.leave.title' as TranslationKey)}
+                        </DialogTitle>
+                        <DialogDescription>{t('profile.leave.desc' as TranslationKey)}</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setLeaveConfirmOpen(false)
+                                setPendingNavigationHref(null)
+                            }}
+                            className="rounded-xl"
+                        >
+                            {t('profile.leave.stay' as TranslationKey)}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => {
+                                const targetHref = pendingNavigationHref
+                                setLeaveConfirmOpen(false)
+                                setPendingNavigationHref(null)
+                                handleDiscard()
+                                if (targetHref) globalThis.location.href = targetHref
+                            }}
+                            className="rounded-xl"
+                        >
+                            {t('profile.leave.withoutSave' as TranslationKey)}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <SaveChangesBar
+                isDirty={isDirty}
+                isSaving={isSaving}
+                pendingCount={pendingCount}
+                onSave={() => void handleSave()}
+                onDiscard={handleDiscard}
+                labels={saveBarLabels}
+            />
         </div>
     )
 }

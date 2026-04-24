@@ -25,6 +25,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         }
     }, [])
 
+    useEffect(() => {
+        if (typeof document === 'undefined') return
+        document.documentElement.lang = language === 'ca-ES' ? 'ca' : 'es'
+    }, [language])
+
     const setLanguage = (lang: Language) => {
         setLanguageState(lang)
         localStorage.setItem('language', lang)

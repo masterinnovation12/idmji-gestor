@@ -1,61 +1,77 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+    type ReactNode,
+} from 'react'
+import { ThemeProvider as NextThemesProvider, useTheme as useNextThemes } from 'next-themes'
 
-interface ThemeContextType {
+/**
+ * Tema de la aplicación: solo «light» o «dark», persistido en localStorage.
+ *
+ * Prácticas aplicadas (next-themes + Tailwind class strategy):
+ * - `enableSystem={false}`: el modo del SO (prefers-color-scheme) NO fuerza el tema.
+ *   El usuario puede usar modo claro en la app aunque el móvil/PC esté en oscuro.
+ * - `defaultTheme="light"`: primera visita sin clave guardada = día.
+ * - `attribute="class"` + clase `dark` en <html>: coherente con `@custom-variant dark` en globals.css.
+ * - `enableColorScheme`: el navegador ajusta scrollbars/controles nativos al tema elegido (menos sensación de «medio oscuro»).
+ * - Script interno de next-themes: reduce el flash al cargar (SSR vs cliente).
+ *
+ * Clave `theme` en localStorage: valores `light` | `dark` (compatible con la versión anterior).
+ */
+const STORAGE_KEY = 'theme'
+
+interface AppThemeContextType {
     isDark: boolean
     toggleTheme: () => void
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
+const AppThemeContext = createContext<AppThemeContextType | undefined>(undefined)
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-    const [isDark, setIsDark] = useState(false)
+function AppThemeBridge({ children }: Readonly<{ children: ReactNode }>) {
+    const { resolvedTheme, setTheme } = useNextThemes()
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
-        const saved = localStorage.getItem('theme')
-        if (saved === 'dark') {
-            setIsDark(true)
-            document.documentElement.classList.add('dark')
-        }
         setMounted(true)
     }, [])
 
-    useEffect(() => {
-        if (isDark) {
-            document.documentElement.classList.add('dark')
-        } else {
-            document.documentElement.classList.remove('dark')
-        }
-    }, [isDark])
+    const isDark = mounted && resolvedTheme === 'dark'
 
-    const toggleTheme = () => {
-        setIsDark(prev => {
-            const newValue = !prev
-            localStorage.setItem('theme', newValue ? 'dark' : 'light')
+    const toggleTheme = useCallback(() => {
+        setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+    }, [setTheme])
 
-            if (newValue) {
-                document.documentElement.classList.add('dark')
-            } else {
-                document.documentElement.classList.remove('dark')
-            }
+    const value = useMemo(() => ({ isDark, toggleTheme }), [isDark, toggleTheme])
 
-            return newValue
-        })
-    }
+    return <AppThemeContext.Provider value={value}>{children}</AppThemeContext.Provider>
+}
 
+export function ThemeProvider({ children }: Readonly<{ children: ReactNode }>) {
     return (
-        <ThemeContext.Provider value={{ isDark, toggleTheme }}>
-            {children}
-        </ThemeContext.Provider>
+        <NextThemesProvider
+            attribute="class"
+            defaultTheme="light"
+            themes={['light', 'dark']}
+            enableSystem={false}
+            enableColorScheme
+            storageKey={STORAGE_KEY}
+            disableTransitionOnChange
+        >
+            <AppThemeBridge>{children}</AppThemeBridge>
+        </NextThemesProvider>
     )
 }
 
 export function useTheme() {
-    const context = useContext(ThemeContext)
-    if (!context) {
+    const ctx = useContext(AppThemeContext)
+    if (!ctx) {
         throw new Error('useTheme must be used within ThemeProvider')
     }
-    return context
+    return ctx
 }

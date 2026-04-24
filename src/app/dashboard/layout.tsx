@@ -33,7 +33,6 @@ import {
     UserCog,
     ChevronRight,
     Search,
-    Globe,
     Moon,
     Sun,
     BookMarked
@@ -45,6 +44,7 @@ import { useTheme } from '@/lib/theme/ThemeProvider'
 import type { TranslationKey, Language } from '@/lib/i18n/types'
 import NextImage from 'next/image'
 import { LogoModal } from '@/components/LogoModal'
+import { LanguageMenu } from '@/components/language/LanguageMenu'
 import { NotificationPrompt } from '@/components/NotificationPrompt'
 import { isSonidoUser } from '@/lib/utils/isSonido'
 
@@ -332,7 +332,7 @@ export default function DashboardLayout({
             {/* Sidebars (Mobile) */}
             <motion.aside
                 style={{ x }}
-                className="fixed left-0 top-0 h-full w-[300px] z-110 flex flex-col md:hidden shadow-2xl touch-pan-y will-change-transform"
+                className="fixed left-0 top-0 z-110 flex h-full w-[300px] flex-col overflow-visible shadow-2xl touch-pan-y will-change-transform md:hidden"
                 drag="x"
                 dragDirectionLock
                 dragConstraints={{ left: -300, right: 0 }}
@@ -360,7 +360,7 @@ export default function DashboardLayout({
             <motion.aside
                 initial={false}
                 animate={{ width: isSidebarCollapsed ? 96 : 280 }}
-                className="hidden md:flex fixed left-0 top-0 h-full border-r border-border/50 flex-col z-50 shadow-sm"
+                className="fixed left-0 top-0 z-50 hidden h-full flex-col overflow-visible border-r border-border/50 shadow-sm md:flex"
             >
                 <SidebarContent
                     isSidebarCollapsed={isSidebarCollapsed}
@@ -488,7 +488,9 @@ function SidebarContent({
         <div className="flex flex-col h-full bg-[#063b7a] dark:bg-black/95 backdrop-blur-xl border-r border-white/10">
             {/* Logo Area */}
             {/* Logo Area */}
-            <div className={`py-8 flex flex-col ${isSidebarCollapsed ? 'items-center px-4' : 'px-8'} border-b border-border/10 gap-6`}>
+            <div
+                className={`py-8 flex flex-col overflow-visible ${isSidebarCollapsed ? 'items-center px-4' : 'px-8'} border-b border-border/10 gap-6`}
+            >
                 {/* Logo Section */}
                 {!isSidebarCollapsed ? (
                     <motion.button
@@ -532,16 +534,14 @@ function SidebarContent({
 
                 {/* Controls (Language & Theme) */}
                 {!isSidebarCollapsed && (
-                    <div className="flex items-center gap-2 w-full">
-                        <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => setLanguage(language === 'es-ES' ? 'ca-ES' : 'es-ES')}
-                            className="flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-[10px] font-black text-white shadow-sm"
-                        >
-                            <Globe className="w-4 h-4 text-blue-300" />
-                            <span className="tracking-widest">{language === 'es-ES' ? 'ESPAÑOL' : 'CATALÀ'}</span>
-                        </motion.button>
+                    <div className="flex w-full items-center gap-2 overflow-visible">
+                        <LanguageMenu
+                            language={language}
+                            setLanguage={setLanguage}
+                            t={t}
+                            variant="sidebar"
+                            className="shrink-0"
+                        />
 
                         <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -569,7 +569,7 @@ function SidebarContent({
 
                 {/* Collapsed state controls */}
                 {isSidebarCollapsed && (
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 items-center">
                         <motion.button
                             onClick={() => setIsSidebarCollapsed(false)}
                             className="p-3 hover:bg-white/10 rounded-xl transition-colors text-white/70 hover:text-white shadow-sm"
@@ -577,6 +577,13 @@ function SidebarContent({
                         >
                             <Menu size={20} />
                         </motion.button>
+                        <LanguageMenu
+                            language={language}
+                            setLanguage={setLanguage}
+                            t={t}
+                            variant="sidebarCollapsed"
+                            className="shrink-0"
+                        />
                     </div>
                 )}
             </div>
