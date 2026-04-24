@@ -70,7 +70,7 @@ interface AssignmentSectionProps {
     /** Solo lectura: muestra el asignado pero no permite editar (rol SONIDO) */
     readOnly?: boolean,
     readingMode?: 'commit' | 'draft',
-    onReadingDraftChange?: (lecturas: import('@/types/database').LecturaBiblica[]) => void,
+    onReadingDraftChange?: (lecturas: import('@/types/database').LecturaBiblica[], dirty?: boolean) => void,
 }
 
 function AssignmentSection({
@@ -346,7 +346,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
     const [isDirty, setIsDirty] = useState(false)
     const [draftLecturas, setDraftLecturas] = useState<import('@/types/database').LecturaBiblica[]>([])
     const [draftLecturasChanged, setDraftLecturasChanged] = useState(false)
-    const [draftHimnosCoros, setDraftHimnosCoros] = useState<import('@/types/database').PlanHimnoCoro[]>(culto.plan_himnos_coros || [])
+    const [draftHimnosCoros, setDraftHimnosCoros] = useState<import('@/types/database').PlanHimnoCoro[]>((culto.plan_himnos_coros as unknown as import('@/types/database').PlanHimnoCoro[]) || [])
     const [draftHimnosChanged, setDraftHimnosChanged] = useState(false)
     const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
     const [pendingNavigationHref, setPendingNavigationHref] = useState<string | null>(null)
@@ -371,7 +371,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         item_id: h.item_id ?? (h.tipo === 'himno' ? h.himno?.id : h.coro?.id) ?? 0,
         orden: Number(h.orden ?? index + 1),
     }))
-    const initialPlanSignatureRef = useRef(JSON.stringify(normalizePlan(culto.plan_himnos_coros || [])))
+    const initialPlanSignatureRef = useRef(JSON.stringify(normalizePlan((culto.plan_himnos_coros as unknown as import('@/types/database').PlanHimnoCoro[]) || [])))
 
     useEffect(() => {
         setTemaMounted(true)
@@ -548,7 +548,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         setDraftLecturas([])
         setDraftLecturasChanged(false)
         setDraftHimnosChanged(false)
-        setDraftHimnosCoros(culto.plan_himnos_coros || [])
+        setDraftHimnosCoros((culto.plan_himnos_coros as unknown as import('@/types/database').PlanHimnoCoro[]) || [])
         setIsDirty(false)
         toast.success(t('culto.detail.toast.discarded' as TranslationKey))
     }

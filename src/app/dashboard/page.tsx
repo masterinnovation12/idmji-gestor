@@ -4,8 +4,7 @@ import { redirect } from 'next/navigation'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
 import { getUserAssignments } from './cultos/actions'
 import nextDynamic from 'next/dynamic'
-
-const DashboardClient = nextDynamic(() => import('./DashboardClient'), { suspense: true })
+const DashboardClient = nextDynamic(() => import('./DashboardClient'))
 
 
 // Revalidation trigger
