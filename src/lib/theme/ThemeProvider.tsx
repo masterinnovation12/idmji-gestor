@@ -37,6 +37,7 @@ function AppThemeBridge({ children }: Readonly<{ children: ReactNode }>) {
     const { resolvedTheme, setTheme } = useNextThemes()
     const [mounted, setMounted] = useState(false)
 
+     
     useEffect(() => {
         setMounted(true)
     }, [])

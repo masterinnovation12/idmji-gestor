@@ -441,7 +441,7 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
           }
           <p className="text-muted-foreground text-sm text-center">
             {hasSearch
-              ? <>{t('archivos.noResultsFor')} <strong className="text-foreground">"{searchQuery}"</strong></>
+              ? <>{t('archivos.noResultsFor')} <strong className="text-foreground">&quot;{searchQuery}&quot;</strong></>
               : hasFilter ? 'No hay datos para este período.' : t('archivos.empty')
             }
           </p>

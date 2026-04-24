@@ -216,7 +216,6 @@ function AssignmentSection({
                             <div className="shrink-0 relative z-110">
                                 <UserSelector
                                     selectedUserId={optimisticId}
-                                    // @ts-ignore - Modificaremos UserSelector para pasar el objeto completo
                                     onSelect={handleUserSelectorSelect}
                                     disabled={disabled || isSaving}
                                     isEditing={isEditing}
