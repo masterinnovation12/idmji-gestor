@@ -83,7 +83,6 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
   const [filterMonthYear, setFilterMonthYear] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null)
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const initialDataRef = useRef(initialData)
   const initialMetaRef = useRef(initialMeta)
   const [staleInfo, setStaleInfo] = useState<{ stale: boolean; cachedAt?: string; lastErrorCode?: number } | null>(() => {
@@ -194,7 +193,6 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
   }, [activeTab, fetchTab, pollIntervalMs])
 
   /* ── Derived data ── */
-  const columns = useMemo(() => (data && data.length > 0 ? Object.keys(data[0]) : []), [data])
   const dateInfo = useMemo(() => (data ? findDateColumn(data) : { col: null, mesCol: null, diaCol: null }), [data])
   const hasDateInfo = !!(dateInfo.col || (dateInfo.mesCol && dateInfo.diaCol))
   const monthYearOptions = useMemo(

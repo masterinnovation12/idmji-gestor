@@ -268,6 +268,7 @@ export async function resetCultoProtocol(cultoId: string) {
 
     const currentMeta = (culto?.meta_data as Record<string, unknown>) || {}
     const { protocolo, protocolo_definido, ...rest } = currentMeta
+    void protocolo; void protocolo_definido;
 
     const newMeta = {
         ...rest,
@@ -346,6 +347,7 @@ export async function resetInicioAnticipado(cultoId: string) {
 
     const currentMeta = (culto?.meta_data as Record<string, unknown>) || {}
     const { inicio_anticipado, inicio_anticipado_definido, ...rest } = currentMeta
+    void inicio_anticipado; void inicio_anticipado_definido;
 
     const newMeta = {
         ...rest,
@@ -385,7 +387,8 @@ export async function updateTemaIntroduccionAlabanza(
 
     const newMeta = temaKey === null
         ? (() => {
-            const { tema_introduccion_alabanza: _, ...rest } = currentMeta
+            const { tema_introduccion_alabanza, ...rest } = currentMeta
+            void tema_introduccion_alabanza;
             return rest
         })()
         : { ...currentMeta, tema_introduccion_alabanza: temaKey }

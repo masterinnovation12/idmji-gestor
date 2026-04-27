@@ -223,9 +223,14 @@ async function fetchCSVText(url: string): Promise<string> {
     await new Promise((resolve) => setTimeout(resolve, backoffMs))
   }
 
-  const error = new Error(`HTTP ${lastStatus ?? 500}: ${lastStatusText}`)
-  ;(error as any).status = lastStatus
-  throw error
+  class HttpError extends Error {
+    status: number | null
+    constructor(message: string, status: number | null) {
+      super(message)
+      this.status = status
+    }
+  }
+  throw new HttpError(`HTTP ${lastStatus ?? 500}: ${lastStatusText}`, lastStatus)
 }
 
 /**
@@ -310,7 +315,7 @@ export async function fetchAndParseSheetCSV(url: string): Promise<SheetFetchResu
     return { data: parseAdaptiveCSV(text), meta: { stale: false } }
   } catch (err) {
     const mem = getMemoryCsvCache().get(url)
-    const errorCode = (err as any).status
+    const errorCode = err instanceof Error && 'status' in err ? (err as { status: number }).status : undefined
     if (mem && isStaleUsable(mem)) {
       const cachedAt = new Date(mem.at).toISOString()
       console.warn(

@@ -7,11 +7,11 @@ import { useI18n } from '@/lib/i18n/I18nProvider'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { MyAssignmentsPanel } from '@/components/dashboard/MyAssignmentsPanel'
 import { QuickActionsGrid } from '@/components/dashboard/QuickActionsGrid'
-import { Culto, Profile } from '@/types/database'
+import { Culto, Profile, LecturaBiblica } from '@/types/database'
 
 interface DashboardClientProps {
     user: Profile & { id: string }
-    culto: (Culto & { lecturas?: any[] }) | null
+    culto: (Culto & { lecturas?: LecturaBiblica[] }) | null
     esHoy: boolean
     initialAssignments: Culto[]
     initialDate: string
@@ -48,7 +48,7 @@ export default function DashboardClient({
                                         <div className="bg-slate-200 dark:bg-slate-800 rounded-[2.5rem] h-[500px] animate-pulse w-full"></div>
                                         <div className="absolute inset-0 flex items-center justify-center">
                                             <div className="bg-white/80 dark:bg-black/50 backdrop-blur-md px-6 py-3 rounded-full shadow-xl">
-                                                <p className="text-sm font-black text-slate-500 animate-pulse uppercase tracking-widest">{t('dashboard.navigator.loading' as any)}</p>
+                                                <p className="text-sm font-black text-slate-500 animate-pulse uppercase tracking-widest">{t('dashboard.navigator.loading')}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -57,7 +57,7 @@ export default function DashboardClient({
                                     <CultoCardRenderer culto={navCulto} esHoy={navEsHoy} currentUserId={user.id} />
                                 ) : (
                                     <div className="glass rounded-[2.5rem] p-12 text-center border-dashed border-2 border-slate-200 dark:border-slate-800">
-                                        <p className="text-slate-400 font-bold">{t('dashboard.navigator.noService' as any)}</p>
+                                        <p className="text-slate-400 font-bold">{t('dashboard.navigator.noService')}</p>
                                     </div>
                                 )}
                             </>

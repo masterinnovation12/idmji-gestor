@@ -57,7 +57,7 @@ describe('GET /api/archivos', () => {
     const { createClient } = await import('@/lib/supabase/server')
     vi.mocked(createClient).mockResolvedValueOnce({
       auth: { getUser: () => Promise.resolve({ data: { user: null }, error: null }) },
-    } as any)
+    } as never)
 
     const req = new Request('http://localhost/api/archivos?source=ensenanzas')
     const res = await GET(req)

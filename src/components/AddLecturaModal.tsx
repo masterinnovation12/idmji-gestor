@@ -133,7 +133,7 @@ export default function AddLecturaModal({
         })
       } else if (result.success) {
         toast.success(t('common.success'))
-        onSuccess?.(result.data as any)
+        onSuccess?.(result.data as Parameters<NonNullable<typeof onSuccess>>[0])
         handleClose()
       } else if (result.error) {
         toast.error(result.error)
@@ -180,7 +180,7 @@ export default function AddLecturaModal({
       if (result.success) {
         toast.success('Lectura guardada como repetida')
         setRepetitionData(null)
-        onSuccess?.(result.data as any)
+        onSuccess?.(result.data as Parameters<NonNullable<typeof onSuccess>>[0])
         handleClose()
       } else {
         toast.error(result.error ?? 'Error al confirmar')

@@ -16,7 +16,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import Link from 'next/link'
+
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion'
 import {
@@ -26,28 +26,23 @@ import {
     Music,
     Users,
     BarChart,
-    LogOut,
     Menu,
     FileText,
     FileSpreadsheet,
     UserCog,
-    ChevronRight,
-    Search,
-    Moon,
-    Sun,
     BookMarked
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
-import type { TranslationKey, Language } from '@/lib/i18n/types'
+
 import NextImage from 'next/image'
 import { LogoModal } from '@/components/LogoModal'
-import { LanguageMenu } from '@/components/language/LanguageMenu'
+
 import { NotificationPrompt } from '@/components/NotificationPrompt'
 import { isSonidoUser } from '@/lib/utils/isSonido'
-import { SidebarContent, NavItem } from '@/components/dashboard/SidebarContent'
+import { SidebarContent } from '@/components/dashboard/SidebarContent'
 
 export default function DashboardLayout({
     children,

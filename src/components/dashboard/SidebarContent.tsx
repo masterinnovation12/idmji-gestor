@@ -57,7 +57,7 @@ export function SidebarContent({
         <div className="flex flex-col h-full bg-[#063b7a] dark:bg-black/95 backdrop-blur-xl border-r border-white/10">
             {/* Logo Area */}
             <div
-                className={`py-4 flex flex-col overflow-visible ${isSidebarCollapsed ? 'items-center px-4' : 'px-8'} border-b border-border/10 gap-3`}
+                className={`py-4 flex flex-col overflow-visible ${isSidebarCollapsed ? 'items-center px-4' : (isMobile ? 'px-5' : 'px-6')} border-b border-border/10 gap-3`}
             >
                 {/* Logo Section */}
                 {!isSidebarCollapsed ? (
@@ -157,7 +157,7 @@ export function SidebarContent({
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto no-scrollbar">
+            <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto no-scrollbar">
                 {sidebarItems.map((item: NavItem, index: number) => {
                     const isActive = pathname === item.href
                     return (
@@ -170,8 +170,8 @@ export function SidebarContent({
                             <Link
                                 href={item.href}
                                 onClick={onMobileNav}
-                                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group relative ${isActive
-                                    ? 'text-black shadow-2xl shadow-black/10'
+                                className={`flex items-center gap-3 px-3 ${isMobile ? 'py-1.5' : 'py-2'} rounded-xl transition-all duration-300 group relative ${isActive
+                                    ? 'text-black shadow-lg shadow-black/10'
                                     : 'text-white/60 hover:text-white'
                                     }`}
                             >
@@ -192,7 +192,7 @@ export function SidebarContent({
                                 )}
 
                                 <item.icon
-                                    size={22}
+                                    size={isMobile ? 20 : 22}
                                     className={`${isActive ? 'text-black scale-110' : 'text-white/60 group-hover:text-white group-hover:scale-110'} relative z-10 transition-all duration-300`}
                                 />
 

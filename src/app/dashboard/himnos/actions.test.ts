@@ -199,7 +199,7 @@ describe('autoFillEnsenanzaSequence', () => {
         }
         return {}
       }),
-    } as any)
+    } as never)
 
     const result = await autoFillEnsenanzaSequence(new Date(today))
 

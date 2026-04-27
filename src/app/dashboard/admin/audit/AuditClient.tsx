@@ -127,7 +127,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
         setPage(1)
     }, [])
 
-    const getTipoLabel = (tipo: string) => t((TIPO_TO_KEY[tipo] || tipo) as TranslationKey)
+    const getTipoLabel = useCallback((tipo: string) => t((TIPO_TO_KEY[tipo] || tipo) as TranslationKey), [t])
 
     const exportToExcel = useCallback(
         async (exportAll: boolean) => {
@@ -169,13 +169,13 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                 worksheet['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 18 }, { wch: 50 }, { wch: 15 }]
                 XLSX.writeFile(workbook, `auditoria_idmji_${format(new Date(), 'yyyyMMdd')}.xlsx`)
                 toast.success(exportAll ? t('audit.exportAll') : t('audit.exportPage'))
-            } catch (err) {
+            } catch {
                 toast.error(t('audit.errorLoad'))
             } finally {
                 setIsExporting(false)
             }
         },
-        [movimientos, tipoFilter, debouncedSearch, dateFrom, dateTo, t]
+        [movimientos, tipoFilter, debouncedSearch, dateFrom, dateTo, t, getTipoLabel]
     )
 
     return (
@@ -313,11 +313,10 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                     <>
                         {/* Vista móvil: cards */}
                         <div data-testid="audit-cards" className="block md:hidden divide-y divide-border/50">
-                            {movimientos.map((m, index) => (
+                            {movimientos.map((m) => (
                                 <AuditCard
                                     key={m.id}
                                     m={m}
-                                    index={index}
                                     getTipoLabel={getTipoLabel}
                                     getTipoColor={getTipoColor}
                                     t={t}
@@ -349,7 +348,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/10">
-                                    {movimientos.map((m, index) => (
+                                    {movimientos.map((m) => (
                                         <motion.tr
                                             key={m.id}
                                             initial={{ opacity: 0 }}
@@ -459,14 +458,12 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
 
 function AuditCard({
     m,
-    index,
     getTipoLabel,
     getTipoColor,
     t,
     dateLocale
 }: {
     m: MovimientoData
-    index: number
     getTipoLabel: (t: string) => string
     getTipoColor: (t: string) => string
     t: (k: TranslationKey) => string

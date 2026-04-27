@@ -43,7 +43,6 @@ function transformMesDiaToFecha(
     const mes = mesRaw || lastMes
     if (mes) lastMes = mes
 
-    const dia = (row[diaCol] ?? '').trim()
     const dt = getDateFromRow({ ...row, [mesCol]: mes }, null, mesCol, diaCol)
     const fechaStr = dt ? `${dt.getDate()}/${dt.getMonth() + 1}/${dt.getFullYear()}` : ''
 

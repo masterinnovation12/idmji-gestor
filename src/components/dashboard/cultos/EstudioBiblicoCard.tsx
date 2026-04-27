@@ -8,17 +8,17 @@ import { AssignmentPill } from './AssignmentPill'
 import { computeCultoDetails } from '@/lib/utils/computeCultoDetails'
 import { upsertReadingPreserveOrder } from '@/lib/utils/upsert-reading'
 import Link from 'next/link'
-import { Culto } from '@/types/database'
+import { Culto, LecturaBiblica, PlanHimnoCoro } from '@/types/database'
 import AddLecturaModal from '@/components/AddLecturaModal'
 
 export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ culto: Culto; esHoy: boolean; currentUserId: string }>) {
     const { t } = useI18n()
     const { estudioBiblicoData, observacionesData, lecturaData } = computeCultoDetails(culto)
     const [addLecturaModalOpen, setAddLecturaModalOpen] = useState(false)
-    const [editingLectura, setEditingLectura] = useState<any | null>(null)
-    const [localLecturas, setLocalLecturas] = useState<any[]>((culto as any).lecturas || [])
+    const [editingLectura, setEditingLectura] = useState<LecturaBiblica | null>(null)
+    const [localLecturas, setLocalLecturas] = useState<LecturaBiblica[]>((culto as Culto & { lecturas?: LecturaBiblica[] }).lecturas || [])
     const canAddReading = !!culto.tipo_culto?.tiene_lectura_introduccion
-    const lecturasIntro = localLecturas.filter((l: any) => l.tipo_lectura === 'introduccion')
+    const lecturasIntro = localLecturas.filter((l) => l.tipo_lectura === 'introduccion')
 
     const introUserId = (culto.usuario_intro as { id?: string } | null)?.id ?? currentUserId
 
@@ -188,7 +188,7 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                                         setEditingLectura(reading)
                                         setAddLecturaModalOpen(true)
                                     }}
-                                    himnario={culto.plan_himnos_coros}
+                                    himnario={culto.plan_himnos_coros as PlanHimnoCoro[] | undefined}
                                     tipoCulto={culto.tipo_culto?.nombre}
                                     footerAction={canAddReading ? (
                                         <button
@@ -217,7 +217,7 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                                 <AssignmentPill
                                     label={t('cultos.finalizacion')}
                                     usuario={culto.usuario_finalizacion}
-                                    lectura={lecturaData?.lecturaFinal}
+                                    lectura={lecturaData?.lecturaFinal ?? undefined}
                                 />
                             )}
                         </div>
@@ -250,13 +250,13 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                 initialReading={editingLectura}
                 onSuccess={(savedReading) => {
                     if (savedReading) {
-                        setLocalLecturas((prev) => upsertReadingPreserveOrder(prev, savedReading as any))
+                        setLocalLecturas((prev) => upsertReadingPreserveOrder(prev, savedReading as LecturaBiblica))
                     }
                     setAddLecturaModalOpen(false)
                     setEditingLectura(null)
                 }}
                 onDeleteSuccess={(deletedId) => {
-                    setLocalLecturas((prev) => prev.filter((l: any) => l.id !== deletedId))
+                    setLocalLecturas((prev) => prev.filter((l) => l.id !== deletedId))
                     setAddLecturaModalOpen(false)
                     setEditingLectura(null)
                 }}

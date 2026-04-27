@@ -5,7 +5,7 @@
  */
 
 import { test, expect } from '@playwright/test'
-import { hasE2ECredentials, loginIfNeeded, getLoginError } from './auth.helper'
+import { hasE2ECredentials, loginIfNeeded } from './auth.helper'
 
 const AUDIT_URL = '/dashboard/admin/audit'
 

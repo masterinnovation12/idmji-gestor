@@ -27,11 +27,11 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
     BookOpen, AlertCircle, ChevronLeft, ChevronRight, History, Calendar,
     Search as SearchIcon, XCircle, Filter, Download, Share2, Eye,
-    Trash2, ExternalLink, BarChart3, TrendingUp, X, Calendar as CalendarIcon,
-    Clock, Grid, List, LayoutGrid, FileText, FileSpreadsheet, FileDown,
-    ChevronDown, ChevronUp, Info, CheckCircle2, Sparkles, Star
+    Trash2, BarChart3, TrendingUp, X, Calendar as CalendarIcon,
+    LayoutGrid, FileText, FileSpreadsheet, FileDown,
+    ChevronDown, CheckCircle2, Sparkles, Star
 } from 'lucide-react'
-import { format, parseISO, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -42,10 +42,10 @@ import { LecturaBiblica } from '@/types/database'
 import BackButton from '@/components/BackButton'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts'
 import * as XLSX from 'xlsx'
 import { getAllLecturas, getCultoTypes, getLectores, getLecturasStats, deleteLectura, getBibliaLibros } from './actions'
-import Link from 'next/link'
+
 
 // Extendemos el tipo para incluir los JOINS de la consulta
 interface LecturaExt extends LecturaBiblica {
@@ -88,7 +88,7 @@ interface Stats {
     repetidasCount: number
 }
 
-type ViewMode = 'list' | 'cards' | 'calendar' | 'timeline'
+
 type GroupBy = 'none' | 'month' | 'year' | 'libro' | 'lector'
 
 /**
@@ -141,7 +141,7 @@ export default function LecturasPageClient({
     const [soloRepetidas, setSoloRepetidas] = useState(searchParams.get('soloRepetidas') === 'true')
 
     // Estados de UI
-    const [viewMode, setViewMode] = useState<ViewMode>((searchParams.get('view') as ViewMode) || 'list')
+    // const [_viewMode, _setViewMode] = useState<ViewMode>((searchParams.get('view') as ViewMode) || 'list')
     const [groupBy, setGroupBy] = useState<GroupBy>((searchParams.get('groupBy') as GroupBy) || 'none')
     const [showFilters, setShowFilters] = useState(false)
     const [showStats, setShowStats] = useState(false)
@@ -208,7 +208,7 @@ export default function LecturasPageClient({
                 if (lectoresResult.data) setLectores(lectoresResult.data)
                 if (statsResult) setStats(statsResult)
                 if (librosResult.data) {
-                    setLibros(librosResult.data.map((libro: any) => ({
+                    setLibros(librosResult.data.map((libro: { nombre: string; abreviatura: string }) => ({
                         nombre: libro.nombre,
                         abreviatura: libro.abreviatura
                     })))
@@ -291,7 +291,7 @@ export default function LecturasPageClient({
         if (currentTipoLectura !== tipoLectura) setTipoLectura(currentTipoLectura)
         if (currentCapitulo !== capitulo) setCapitulo(currentCapitulo)
         if (currentSoloRepetidas !== soloRepetidas) setSoloRepetidas(currentSoloRepetidas)
-    }, [searchParamsString, searchTerm, startDate, endDate, tipoCulto, lectorId, testamento, tipoLectura, capitulo, soloRepetidas])
+    }, [searchParamsString, searchParams, searchTerm, startDate, endDate, tipoCulto, lectorId, testamento, tipoLectura, capitulo, soloRepetidas])
 
     // Actualizar URL con filtros
     const updateURL = useCallback((newParams: Record<string, string | null>) => {
@@ -406,7 +406,7 @@ export default function LecturasPageClient({
                 // Recargar estadísticas
                 loadStats()
             }
-        } catch (error) {
+        } catch {
             toast.error(t('lecturas.deleteError'))
         } finally {
             setIsLoading(false)

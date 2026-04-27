@@ -219,12 +219,12 @@ export default function BibleSelector({ onSelect, disabled, initialSelection = n
                 e.preventDefault()
                 setSelectedIndex(prev => Math.min(prev + 1, filteredLibros.length - 1))
                 // Auto-scroll
-                scrollSelectedIntoView(selectedIndex + 1)
+                scrollSelectedIntoView()
                 break
             case 'ArrowUp':
                 e.preventDefault()
                 setSelectedIndex(prev => Math.max(prev - 1, 0))
-                scrollSelectedIntoView(selectedIndex - 1)
+                scrollSelectedIntoView()
                 break
             case 'Enter':
                 e.preventDefault()
@@ -242,7 +242,7 @@ export default function BibleSelector({ onSelect, disabled, initialSelection = n
         }
     }
 
-    const scrollSelectedIntoView = (index: number) => {
+    const scrollSelectedIntoView = () => {
         // Simple heuristic: if we have a ref to the list container
         // we can scroll. For now, rely on standard behavior or add refs to items if needed.
     }

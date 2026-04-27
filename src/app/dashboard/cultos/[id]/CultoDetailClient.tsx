@@ -60,8 +60,7 @@ interface AssignmentSectionProps {
     usuarioActual: Partial<Profile> | null | undefined,
     onSelect: (id: string | null, confirmed?: boolean) => Promise<void> | void,
     disabled: boolean,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    t: (key: any) => string,
+    t: (key: TranslationKey) => string,
     cultoId: string,
     cultoDate?: string,
     assignmentType?: string,
@@ -324,22 +323,32 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
     const [temaConfirmState, setTemaConfirmState] = useState<{ tipo: 'assign' | 'modify' | 'delete'; temaKey: string | null } | null>(null)
     const [temaMounted, setTemaMounted] = useState(false)
     const temaTriggerRef = useRef<HTMLButtonElement>(null)
+
+    type CultoMetaData = {
+        observaciones?: string;
+        tema_introduccion_alabanza?: string;
+        protocolo?: { oracion_inicio: boolean; congregacion_pie: boolean };
+        protocolo_definido?: boolean;
+        inicio_anticipado?: { activo: boolean; minutos: number; observaciones?: string };
+        inicio_anticipado_definido?: boolean;
+    };
+
     const [draftAssignments, setDraftAssignments] = useState({
         introduccion: culto.id_usuario_intro ?? null,
         ensenanza: culto.id_usuario_ensenanza ?? null,
         testimonios: culto.id_usuario_testimonios ?? null,
         finalizacion: culto.id_usuario_finalizacion ?? null,
     })
-    const [draftObservaciones, setDraftObservaciones] = useState<string>((culto.meta_data as any)?.observaciones || '')
-    const [draftTema, setDraftTema] = useState<string | null>((culto.meta_data as any)?.tema_introduccion_alabanza ?? null)
+    const [draftObservaciones, setDraftObservaciones] = useState<string>((culto.meta_data as CultoMetaData)?.observaciones || '')
+    const [draftTema, setDraftTema] = useState<string | null>((culto.meta_data as CultoMetaData)?.tema_introduccion_alabanza ?? null)
     const [draftProtocolo, setDraftProtocolo] = useState<{ oracion_inicio: boolean; congregacion_pie: boolean } | null>(
-        (culto.meta_data as any)?.protocolo ?? null
+        (culto.meta_data as CultoMetaData)?.protocolo ?? null
     )
-    const [draftProtocoloDefinido, setDraftProtocoloDefinido] = useState<boolean>((culto.meta_data as any)?.protocolo_definido ?? false)
+    const [draftProtocoloDefinido, setDraftProtocoloDefinido] = useState<boolean>((culto.meta_data as CultoMetaData)?.protocolo_definido ?? false)
     const [draftInicioAnticipado, setDraftInicioAnticipado] = useState<{ activo: boolean; minutos: number; observaciones?: string } | null>(
-        (culto.meta_data as any)?.inicio_anticipado ?? null
+        (culto.meta_data as CultoMetaData)?.inicio_anticipado ?? null
     )
-    const [draftInicioAnticipadoDefinido, setDraftInicioAnticipadoDefinido] = useState<boolean>((culto.meta_data as any)?.inicio_anticipado_definido ?? false)
+    const [draftInicioAnticipadoDefinido, setDraftInicioAnticipadoDefinido] = useState<boolean>((culto.meta_data as CultoMetaData)?.inicio_anticipado_definido ?? false)
     const [draftFestivo, setDraftFestivo] = useState<boolean>(!!culto.es_laborable_festivo)
     const [draftHoraInicio, setDraftHoraInicio] = useState<string>(culto.hora_inicio)
     const [isDirty, setIsDirty] = useState(false)
@@ -356,12 +365,12 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
             testimonios: culto.id_usuario_testimonios ?? null,
             finalizacion: culto.id_usuario_finalizacion ?? null,
         },
-        observaciones: (culto.meta_data as any)?.observaciones || '',
-        tema: (culto.meta_data as any)?.tema_introduccion_alabanza ?? null,
-        protocolo: (culto.meta_data as any)?.protocolo ?? null,
-        protocoloDefinido: (culto.meta_data as any)?.protocolo_definido ?? false,
-        inicioAnticipado: (culto.meta_data as any)?.inicio_anticipado ?? null,
-        inicioAnticipadoDefinido: (culto.meta_data as any)?.inicio_anticipado_definido ?? false,
+        observaciones: (culto.meta_data as CultoMetaData)?.observaciones || '',
+        tema: (culto.meta_data as CultoMetaData)?.tema_introduccion_alabanza ?? null,
+        protocolo: (culto.meta_data as CultoMetaData)?.protocolo ?? null,
+        protocoloDefinido: (culto.meta_data as CultoMetaData)?.protocolo_definido ?? false,
+        inicioAnticipado: (culto.meta_data as CultoMetaData)?.inicio_anticipado ?? null,
+        inicioAnticipadoDefinido: (culto.meta_data as CultoMetaData)?.inicio_anticipado_definido ?? false,
         festivo: !!culto.es_laborable_festivo,
         hora: culto.hora_inicio,
     })

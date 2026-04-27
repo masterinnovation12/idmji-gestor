@@ -30,11 +30,11 @@ vi.mock('@/components/HimnoCoroSelector', () => ({
 const mockHimnos = [
   { id: 1, numero: 1, titulo: 'Himno 1', duracion_segundos: 90 },
   { id: 2, numero: 2, titulo: 'Himno 2', duracion_segundos: 120 },
-] as any[]
+] as never[]
 
 const mockCoros = [
   { id: 1, numero: 10, titulo: 'Coro A', duracion_segundos: 60 },
-] as any[]
+] as never[]
 
 const defaultProps = {
   initialHimnos: mockHimnos,

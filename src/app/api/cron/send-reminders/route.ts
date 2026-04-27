@@ -55,7 +55,7 @@ export async function GET(request: Request) {
                         .single()
 
                     const lang = profilePreferredLanguage(profile)
-                    const t = (key: any) => translations[lang][key as keyof typeof translations['es-ES']] || key
+                    const t = (key: string) => translations[lang][key as keyof typeof translations['es-ES']] || key
 
                     const roleLabel = t(role.key)
                     const cultoTypeLabel = culto.tipo_culto?.nombre || 'Culto'

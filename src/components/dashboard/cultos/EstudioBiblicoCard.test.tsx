@@ -30,7 +30,7 @@ const mockCulto = (metaData: Record<string, unknown> = {}) =>
     usuario_testimonios: null,
     lecturas: [],
     plan_himnos_coros: [],
-  }) as any
+  }) as never
 
 describe('EstudioBiblicoCard', () => {
   it('shows "Por definir" for protocol when protocoloDefinido is false', () => {

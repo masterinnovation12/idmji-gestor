@@ -27,7 +27,7 @@ const mockEvent = (fecha: string) =>
     usuario_ensenanza: null,
     usuario_testimonios: null,
     es_laborable_festivo: false,
-  }) as any
+  }) as never
 
 describe('Calendar', () => {
   beforeEach(() => {

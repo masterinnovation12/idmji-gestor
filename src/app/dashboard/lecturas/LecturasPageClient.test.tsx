@@ -53,7 +53,7 @@ const mockLectura = (id: string, libro: string) =>
     es_repetida: false,
     culto: { id: 'c1', fecha: '2026-03-17', tipo_culto: { id: 't1', nombre: 'Alabanza' } },
     lector: { id: 'l1', nombre: 'Juan', apellidos: 'García' },
-  }) as any
+  }) as never
 
 const defaultProps = {
   initialLecturas: [mockLectura('1', 'Salmos')],

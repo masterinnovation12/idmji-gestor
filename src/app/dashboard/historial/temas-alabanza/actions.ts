@@ -112,7 +112,7 @@ export async function getAllTemasAlabanza(
         return { error: error.message }
     }
 
-    const cultoIds = (rawData || []).map((c: any) => c.id).filter(Boolean)
+    const cultoIds = (rawData || []).map((c: { id?: string }) => c.id).filter(Boolean)
     const lecturasMap: Record<string, LecturaIntro> = {}
 
     if (cultoIds.length > 0) {
@@ -122,7 +122,7 @@ export async function getAllTemasAlabanza(
             .in('culto_id', cultoIds)
             .eq('tipo_lectura', 'introduccion')
 
-        lecturasData?.forEach((l: any) => {
+        lecturasData?.forEach((l: { culto_id: string; libro: string; capitulo_inicio: number; versiculo_inicio: number; capitulo_fin: number; versiculo_fin: number }) => {
             if (!lecturasMap[l.culto_id]) {
                 lecturasMap[l.culto_id] = {
                     libro: l.libro,
@@ -135,19 +135,24 @@ export async function getAllTemasAlabanza(
         })
     }
 
-    const registros = (rawData || []).map((c: any) => {
+    const registros = (rawData || []).map((c) => {
+        const tipoCultoRaw = c.tipo_culto
+        const tipo_culto = Array.isArray(tipoCultoRaw) ? tipoCultoRaw[0] : tipoCultoRaw
+        const usuarioIntroRaw = c.usuario_intro
+        const usuario_intro = Array.isArray(usuarioIntroRaw) ? usuarioIntroRaw[0] : usuarioIntroRaw
         const tema = c.meta_data?.tema_introduccion_alabanza
+        
         return {
             id: c.id,
             culto_id: c.id,
             fecha: c.fecha,
             hora_inicio: c.hora_inicio,
             tema_key: tema,
-            tipo_culto: c.tipo_culto,
-            usuario_intro: c.usuario_intro,
+            tipo_culto: tipo_culto as { id: string; nombre: string },
+            usuario_intro: usuario_intro as { id: string; nombre: string; apellidos: string } | null,
             lectura_intro: lecturasMap[c.id] ?? null
         }
-    }).filter((r: { tema_key: string }) => r.tema_key) as TemaAlabanzaRegistro[]
+    }).filter((r) => r.tema_key) as TemaAlabanzaRegistro[]
 
     const totalCount = count ?? 0
     return {
@@ -203,14 +208,19 @@ export async function getTemasAlabanzaStats(filters?: {
         }
     }
 
-    let items = (rawData || []).map((c: any) => ({
-        tema_key: c.meta_data?.tema_introduccion_alabanza,
-        id_usuario_intro: c.id_usuario_intro,
-        usuario_intro: c.usuario_intro
-    })).filter((x: { tema_key: string }) => x.tema_key)
+    let items = (rawData || []).map((c) => {
+        const usuarioIntroRaw = c.usuario_intro
+        const usuario_intro = Array.isArray(usuarioIntroRaw) ? usuarioIntroRaw[0] : usuarioIntroRaw
+        
+        return {
+            tema_key: c.meta_data?.tema_introduccion_alabanza as string | undefined,
+            id_usuario_intro: c.id_usuario_intro as string | undefined,
+            usuario_intro: usuario_intro as { id: string; nombre: string; apellidos: string } | null
+        }
+    }).filter((x) => x.tema_key)
 
     if (filters?.temaKey) {
-        items = items.filter((x: { tema_key: string }) => x.tema_key === filters.temaKey)
+        items = items.filter((x) => x.tema_key === filters.temaKey)
     }
 
     const totalUsos = items.length
@@ -218,7 +228,8 @@ export async function getTemasAlabanzaStats(filters?: {
     const temasCount = new Map<string, number>()
     const hermanosPorTemaMap = new Map<string, Map<string, { id: string; nombre: string; count: number }>>()
 
-    items.forEach((item: { tema_key: string; id_usuario_intro: string; usuario_intro: { id: string; nombre: string; apellidos: string } | null }) => {
+    items.forEach((item) => {
+        if (!item.tema_key) return;
         temasCount.set(item.tema_key, (temasCount.get(item.tema_key) || 0) + 1)
 
         if (item.id_usuario_intro) {
@@ -293,12 +304,14 @@ export async function getHermanosConTemas(): Promise<{ data: HermanosConTemas[] 
     }
 
     const seen = new Map<string, HermanosConTemas>()
-    data?.forEach((row: any) => {
-        if (row.usuario_intro && row.id_usuario_intro && !seen.has(row.id_usuario_intro)) {
+    data?.forEach((row) => {
+        const usuarioIntroRaw = row.usuario_intro
+        const usuario_intro = Array.isArray(usuarioIntroRaw) ? usuarioIntroRaw[0] : usuarioIntroRaw
+        if (usuario_intro && row.id_usuario_intro && !seen.has(row.id_usuario_intro)) {
             seen.set(row.id_usuario_intro, {
                 id: row.id_usuario_intro,
-                nombre: row.usuario_intro.nombre || '',
-                apellidos: row.usuario_intro.apellidos || ''
+                nombre: usuario_intro.nombre || '',
+                apellidos: usuario_intro.apellidos || ''
             })
         }
     })
