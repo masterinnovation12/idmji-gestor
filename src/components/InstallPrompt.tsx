@@ -72,7 +72,7 @@ export function InstallPrompt() {
     const isStandalone = useMemo(() => {
         if (typeof window === 'undefined') return false
         return window.matchMedia('(display-mode: standalone)').matches ||
-            (window.navigator as any).standalone === true
+            (window.navigator as unknown as { standalone?: boolean }).standalone === true
     }, [])
 
     // Función para verificar si debemos mostrar el prompt
@@ -146,7 +146,8 @@ export function InstallPrompt() {
             isMounted = false
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
         }
-    }, [platform, shouldShowPrompt, prompts?.activePrompt])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [platform, shouldShowPrompt])
 
     // Detectar si se instaló la app
     useEffect(() => {

@@ -37,7 +37,7 @@ const mockCultoAlabanza = (metaData: Record<string, unknown> = {}) =>
     usuario_testimonios: null,
     lecturas: [],
     plan_himnos_coros: [],
-  }) as any
+  }) as never
 
 const mockCultoEnsenanza = () =>
   ({
@@ -59,7 +59,7 @@ const mockCultoEnsenanza = () =>
     usuario_testimonios: null,
     lecturas: [],
     plan_himnos_coros: [],
-  }) as any
+  }) as never
 
 describe('StandardCultoCard', () => {
   it('shows tema when culto is Alabanza and has tema asignado', () => {

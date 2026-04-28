@@ -16,13 +16,13 @@ vi.mock('@/lib/supabase/server', () => ({
 
 function buildSupabaseMock() {
   const buildEqChain = () => {
-    const filters: Record<string, any> = {}
-    const chain: Record<string, any> = {}
-    chain.eq = vi.fn((field: string, value: any) => {
+    const filters: Record<string, unknown> = {}
+    const chain: Record<string, unknown> = {}
+    chain.eq = vi.fn((field: string, value: unknown) => {
       filters[field] = value
       return chain
     })
-    chain.neq = vi.fn((field: string, value: any) => {
+    chain.neq = vi.fn((field: string, value: unknown) => {
       filters[`neq:${field}`] = value
       return chain
     })

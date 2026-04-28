@@ -29,7 +29,7 @@ const mockLecturasData = [
     }
 ]
 
-function makeResolvableChain(resolveValue: { data: any[]; error?: any; count?: number }) {
+function makeResolvableChain(resolveValue: { data: unknown[]; error?: unknown; count?: number }) {
     const chain = {
         eq: vi.fn().mockReturnThis(),
         not: vi.fn().mockReturnThis(),
@@ -39,9 +39,9 @@ function makeResolvableChain(resolveValue: { data: any[]; error?: any; count?: n
         lte: vi.fn().mockReturnThis(),
         contains: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),
-        then: (onFulfilled: (v: any) => any) =>
+        then: (onFulfilled: (v: unknown) => unknown) =>
             Promise.resolve(resolveValue).then(onFulfilled),
-        catch: (onRejected: (e: any) => any) =>
+        catch: (onRejected: (e: unknown) => unknown) =>
             Promise.resolve(resolveValue).catch(onRejected)
     }
     return {
@@ -90,7 +90,7 @@ describe('temas-alabanza actions', () => {
                 }
                 return { select: vi.fn() }
             })
-        } as any)
+        } as never)
     })
 
     describe('getAllTemasAlabanza', () => {
@@ -128,7 +128,7 @@ describe('temas-alabanza actions', () => {
                     }
                     return { select: vi.fn() }
                 })
-            } as any)
+            } as never)
 
             const result = await getAllTemasAlabanza(1, 20)
             expect(result.data).toEqual([])
@@ -171,7 +171,7 @@ describe('temas-alabanza actions', () => {
                     }
                     return { select: vi.fn() }
                 })
-            } as any)
+            } as never)
 
             const { data } = await getHermanosConTemas()
             expect(data).toBeDefined()

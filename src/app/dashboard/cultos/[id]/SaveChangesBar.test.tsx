@@ -20,7 +20,7 @@ describe('SaveChangesBar', () => {
             pendingCount: 2,
             onSave: () => { },
             onDiscard: () => { },
-        }) as any
+        }) as ReturnType<typeof SaveChangesBar> & { props: { className: string; 'data-testid': string; children: { props: { className: string; children: unknown } } } }
         expect(element.props.className).toContain('flex justify-center')
         expect(element.props['data-testid']).toBe('save-changes-bar')
         const inner = element.props.children
@@ -38,8 +38,8 @@ describe('SaveChangesBar', () => {
             pendingCount: 1,
             onSave,
             onDiscard,
-        }) as any
-        const innerChildren = element.props.children.props.children as any[]
+        }) as ReturnType<typeof SaveChangesBar> & { props: { children: { props: { children: { props: { onClick: () => void } }[] } } } }
+        const innerChildren = element.props.children.props.children
         const discardButton = innerChildren[1]
         const saveButton = innerChildren[2]
         discardButton.props.onClick()

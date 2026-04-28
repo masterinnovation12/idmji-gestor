@@ -413,7 +413,7 @@ export default function StatsClient({
                                 <>
                                     {/* Móvil: lista compacta (evita Recharts en móvil) */}
                                     <div className="md:hidden space-y-2">
-                                        {readingStats?.topReadings?.slice(0, 5).map((r, i) => (
+                                        {readingStats?.topReadings?.slice(0, 5).map((r) => (
                                             <div key={`${r.label}-${r.count}`} className="flex items-center justify-between py-2 px-3 bg-background/50 rounded-lg">
                                                 <span className="text-sm font-medium truncate flex-1 min-w-0">{r.label}</span>
                                                 <span className="text-sm font-bold text-primary shrink-0 ml-2">{r.count} {t('admin.stats.veces')}</span>

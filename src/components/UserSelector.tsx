@@ -41,6 +41,9 @@ export default function UserSelector({
     cultoDate,
     assignmentType,
 }: UserSelectorProps) {
+    const SAFE_VIEWPORT_MARGIN = 12
+    const MIN_DROPDOWN_HEIGHT = 220
+    const MAX_DROPDOWN_HEIGHT = 450
     const { t } = useI18n()
     const [id] = useState(() => Math.random().toString(36).substring(2, 9))
     const [query, setQuery] = useState('')
@@ -49,7 +52,14 @@ export default function UserSelector({
     const [showResults, setShowResults] = useState(false)
     const [internalIsEditing, setInternalIsEditing] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
-    const [dropdownRect, setDropdownRect] = useState<{ top: number, left: number, width: number } | null>(null)
+    const dropdownRef = useRef<HTMLDivElement>(null)
+    const [dropdownRect, setDropdownRect] = useState<{
+        top?: number
+        bottom?: number
+        left: number
+        width: number
+        maxHeight: number
+    } | null>(null)
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
@@ -81,16 +91,22 @@ export default function UserSelector({
     }, [disabled])
 
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                // Si el portal está abierto, también necesitamos verificar si el clic fue dentro del portal
-                // Pero como es fixed y está en el body, es más complejo.
-                // Usamos un timeout pequeño para permitir clics en los botones de resultados
-            }
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+            if (!showResults) return
+
+            const target = event.target as Node
+            if (containerRef.current?.contains(target)) return
+            if (dropdownRef.current?.contains(target)) return
+            setShowResults(false)
         }
+
         document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [])
+        document.addEventListener('touchstart', handleClickOutside, { passive: true })
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+            document.removeEventListener('touchstart', handleClickOutside)
+        }
+    }, [showResults])
 
     useEffect(() => {
         async function search() {
@@ -115,10 +131,22 @@ export default function UserSelector({
     const updatePosition = () => {
         if (containerRef.current) {
             const rect = containerRef.current.getBoundingClientRect()
+            const viewportHeight = window.innerHeight
+            const spaceBelow = viewportHeight - rect.bottom - SAFE_VIEWPORT_MARGIN
+            const spaceAbove = rect.top - SAFE_VIEWPORT_MARGIN
+            const shouldOpenUpwards = spaceBelow < MIN_DROPDOWN_HEIGHT && spaceAbove > spaceBelow
+            const availableSpace = shouldOpenUpwards ? spaceAbove : spaceBelow
+            const maxHeight = Math.max(
+                160,
+                Math.min(MAX_DROPDOWN_HEIGHT, Math.max(availableSpace, 160))
+            )
+
             setDropdownRect({
-                top: rect.bottom,
+                top: shouldOpenUpwards ? undefined : rect.bottom + 8,
+                bottom: shouldOpenUpwards ? viewportHeight - rect.top + 8 : undefined,
                 left: rect.left,
-                width: rect.width
+                width: rect.width,
+                maxHeight,
             })
         }
     }
@@ -239,11 +267,13 @@ export default function UserSelector({
                     }}
                     placeholder={t('hermanos.searchPlaceholder')}
                     disabled={disabled}
+                    data-testid="user-selector-input"
                     className="w-full bg-muted/30 border border-border/50 rounded-2xl pl-12 pr-12 py-3.5 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all disabled:opacity-50 font-medium text-sm placeholder:text-muted-foreground/60 shadow-inner"
                 />
                 {query && (
                     <button
                         onClick={() => setQuery('')}
+                        data-testid="user-selector-clear"
                         className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-xl transition-colors text-muted-foreground hover:text-foreground"
                     >
                         <X className="w-4 h-4" />
@@ -253,20 +283,24 @@ export default function UserSelector({
 
             {/* Dropdown de Resultados con PORTAL */}
             {mounted && showResults && dropdownRect && createPortal(
-                <div key={`user-selector-portal-${id}`} className="fixed inset-0 z-9998" onClick={() => setShowResults(false)}>
+                <div key={`user-selector-portal-${id}`} className="fixed inset-0 z-9998 pointer-events-none">
                     <motion.div
                         key={`user-selector-dropdown-${id}`}
+                        ref={dropdownRef}
+                        data-testid="user-selector-dropdown"
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         style={{
                             position: 'fixed',
-                            top: dropdownRect.top + 8,
+                            top: dropdownRect.top,
+                            bottom: dropdownRect.bottom,
                             left: dropdownRect.left,
                             width: dropdownRect.width,
+                            maxHeight: dropdownRect.maxHeight,
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        className="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] border border-gray-200 dark:border-white/10 max-h-[450px] overflow-hidden flex flex-col pointer-events-auto"
+                        className="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] border border-gray-200 dark:border-white/10 flex flex-col pointer-events-auto"
                     >
                         <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between shrink-0">
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
@@ -279,7 +313,7 @@ export default function UserSelector({
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
-                        <div className="overflow-y-auto no-scrollbar p-2 flex-1">
+                        <div className="overflow-y-auto p-2 flex-1 min-h-0 overscroll-contain">
                             {sortedResults.length > 0 ? (
                                 <div className="grid grid-cols-1 gap-1">
                                     {sortedResults.map((user, idx) => {

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { computeCultoDetails } from './computeCultoDetails'
+import { Culto } from '@/types/database'
 
 const baseCultoEstudio = {
   id: 'culto-1',
@@ -7,7 +8,7 @@ const baseCultoEstudio = {
   hora_inicio: '19:00',
   tipo_culto: { nombre: 'Estudio Bíblico' },
   meta_data: {},
-} as any
+} as unknown as Culto
 
 describe('computeCultoDetails', () => {
   it('returns empty state when culto is null', () => {

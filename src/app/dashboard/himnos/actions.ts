@@ -292,7 +292,7 @@ export async function autoFillAlabanzaSequence(
 
     let totalAssigned = 0
     const pointer = await getSequencePointer('ultimo_coro_id_alabanza')
-    const allInserts: any[] = []
+    const allInserts: { culto_id: string, tipo: 'coro', coro_id: number, orden: number }[] = []
     const cultosToClear: string[] = []
 
     const ALABANZA_COROS_COUNT = 4
@@ -410,7 +410,7 @@ export async function autoFillEnsenanzaSequence(
     const hPointer = await getSequencePointer('ultimo_himno_id_ensenanza')
     const cPointer = await getSequencePointer('ultimo_coro_id_ensenanza')
     
-    const allInserts: any[] = []
+    const allInserts: { culto_id: string, tipo: 'himno' | 'coro', himno_id?: number, coro_id?: number, orden: number }[] = []
     const cultosToClear: string[] = []
 
     const ENSENANZA_HIMNOS = 3
@@ -623,7 +623,14 @@ export async function getHimnosCorosByCulto(cultoId: string): Promise<ActionResp
             coro:coros(id, numero, titulo, duracion_segundos)
         `).eq('culto_id', cultoId).order('orden', { ascending: true })
     if (error) return { error: error.message }
-    const mappedData = (data as any[])?.map(item => ({ ...item, item_id: item.tipo === 'himno' ? item.himno?.id : item.coro?.id }))
+    const mappedData = (data as unknown as Array<{
+        id: string;
+        culto_id: string;
+        tipo: 'himno' | 'coro';
+        orden: number;
+        himno?: { id: number; numero: number; titulo: string; duracion_segundos: number | null } | null;
+        coro?: { id: number; numero: number; titulo: string; duracion_segundos: number | null } | null;
+    }>)?.map(item => ({ ...item, item_id: item.tipo === 'himno' ? item.himno?.id : item.coro?.id }))
     return { data: mappedData as PlanHimnoCoro[] }
 }
 

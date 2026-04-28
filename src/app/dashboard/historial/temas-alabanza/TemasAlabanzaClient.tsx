@@ -17,7 +17,6 @@ import BackButton from '@/components/BackButton'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    getAllTemasAlabanza,
     getTemasAlabanzaStats,
     getHermanosConTemas,
     getTemasAlabanzaKeys,
@@ -130,7 +129,7 @@ export default function TemasAlabanzaClient({
         setEndDate(searchParams.get('endDate') || '')
         setTemaKey(searchParams.get('temaKey') || '')
         setHermanoId(searchParams.get('hermanoId') || '')
-    }, [searchParamsString])
+    }, [searchParamsString, searchParams])
 
     const updateURL = useCallback((newParams: Record<string, string | null>) => {
         isManualNavigation.current = true

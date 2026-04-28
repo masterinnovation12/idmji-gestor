@@ -36,8 +36,9 @@ export async function GET(request: Request) {
             alabanza: resA.data,
             ensenanza: resE.data
         })
-    } catch (error: any) {
-        console.error('Fallo crítico en cron job:', error.message)
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        console.error('Fallo crítico en cron job:', errorMessage)
+        return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
     }
 }

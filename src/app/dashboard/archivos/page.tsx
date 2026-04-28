@@ -17,7 +17,6 @@ export const dynamic = 'force-dynamic'
 
 export const revalidate = 0
 
-const SOURCES: SheetSourceId[] = ['ensenanzas', 'estudios', 'instituto', 'pastorado', 'profecia']
 
 export default async function ArchivosPage() {
   unstable_noStore()

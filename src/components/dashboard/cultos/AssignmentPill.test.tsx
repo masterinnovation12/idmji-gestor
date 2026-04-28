@@ -53,7 +53,7 @@ describe('AssignmentPill', () => {
       <AssignmentPill
         label="Intro"
         usuario={undefined}
-        himnario={himnario as any}
+        himnario={himnario as never}
         tipoCulto="Enseñanza"
       />
     )
@@ -76,7 +76,7 @@ describe('AssignmentPill', () => {
       <AssignmentPill
         label="Intro"
         usuario={undefined}
-        himnario={himnario as any}
+        himnario={himnario as never}
         tipoCulto="Alabanza"
       />
     )

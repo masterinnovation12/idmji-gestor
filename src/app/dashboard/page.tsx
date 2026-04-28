@@ -4,8 +4,7 @@ import { redirect } from 'next/navigation'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
 import { getUserAssignments } from './cultos/actions'
 import nextDynamic from 'next/dynamic'
-
-const DashboardClient = nextDynamic(() => import('./DashboardClient'), { suspense: true })
+const DashboardClient = nextDynamic(() => import('./DashboardClient'))
 
 
 // Revalidation trigger
@@ -20,12 +19,7 @@ export default async function DashboardPage() {
             redirect('/login')
         }
 
-        const today = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'Europe/Madrid',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        }).format(new Date())
+        const today = format(new Date(), 'yyyy-MM-dd')
 
         const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }) // Monday start
         const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })

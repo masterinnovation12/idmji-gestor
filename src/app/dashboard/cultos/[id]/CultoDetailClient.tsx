@@ -60,8 +60,7 @@ interface AssignmentSectionProps {
     usuarioActual: Partial<Profile> | null | undefined,
     onSelect: (id: string | null, confirmed?: boolean) => Promise<void> | void,
     disabled: boolean,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    t: (key: any) => string,
+    t: (key: TranslationKey) => string,
     cultoId: string,
     cultoDate?: string,
     assignmentType?: string,
@@ -70,7 +69,7 @@ interface AssignmentSectionProps {
     /** Solo lectura: muestra el asignado pero no permite editar (rol SONIDO) */
     readOnly?: boolean,
     readingMode?: 'commit' | 'draft',
-    onReadingDraftChange?: (lecturas: import('@/types/database').LecturaBiblica[]) => void,
+    onReadingDraftChange?: (lecturas: import('@/types/database').LecturaBiblica[], dirty?: boolean) => void,
 }
 
 function AssignmentSection({
@@ -216,7 +215,6 @@ function AssignmentSection({
                             <div className="shrink-0 relative z-110">
                                 <UserSelector
                                     selectedUserId={optimisticId}
-                                    // @ts-ignore - Modificaremos UserSelector para pasar el objeto completo
                                     onSelect={handleUserSelectorSelect}
                                     disabled={disabled || isSaving}
                                     isEditing={isEditing}
@@ -325,28 +323,38 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
     const [temaConfirmState, setTemaConfirmState] = useState<{ tipo: 'assign' | 'modify' | 'delete'; temaKey: string | null } | null>(null)
     const [temaMounted, setTemaMounted] = useState(false)
     const temaTriggerRef = useRef<HTMLButtonElement>(null)
+
+    type CultoMetaData = {
+        observaciones?: string;
+        tema_introduccion_alabanza?: string;
+        protocolo?: { oracion_inicio: boolean; congregacion_pie: boolean };
+        protocolo_definido?: boolean;
+        inicio_anticipado?: { activo: boolean; minutos: number; observaciones?: string };
+        inicio_anticipado_definido?: boolean;
+    };
+
     const [draftAssignments, setDraftAssignments] = useState({
         introduccion: culto.id_usuario_intro ?? null,
         ensenanza: culto.id_usuario_ensenanza ?? null,
         testimonios: culto.id_usuario_testimonios ?? null,
         finalizacion: culto.id_usuario_finalizacion ?? null,
     })
-    const [draftObservaciones, setDraftObservaciones] = useState<string>((culto.meta_data as any)?.observaciones || '')
-    const [draftTema, setDraftTema] = useState<string | null>((culto.meta_data as any)?.tema_introduccion_alabanza ?? null)
+    const [draftObservaciones, setDraftObservaciones] = useState<string>((culto.meta_data as CultoMetaData)?.observaciones || '')
+    const [draftTema, setDraftTema] = useState<string | null>((culto.meta_data as CultoMetaData)?.tema_introduccion_alabanza ?? null)
     const [draftProtocolo, setDraftProtocolo] = useState<{ oracion_inicio: boolean; congregacion_pie: boolean } | null>(
-        (culto.meta_data as any)?.protocolo ?? null
+        (culto.meta_data as CultoMetaData)?.protocolo ?? null
     )
-    const [draftProtocoloDefinido, setDraftProtocoloDefinido] = useState<boolean>((culto.meta_data as any)?.protocolo_definido ?? false)
+    const [draftProtocoloDefinido, setDraftProtocoloDefinido] = useState<boolean>((culto.meta_data as CultoMetaData)?.protocolo_definido ?? false)
     const [draftInicioAnticipado, setDraftInicioAnticipado] = useState<{ activo: boolean; minutos: number; observaciones?: string } | null>(
-        (culto.meta_data as any)?.inicio_anticipado ?? null
+        (culto.meta_data as CultoMetaData)?.inicio_anticipado ?? null
     )
-    const [draftInicioAnticipadoDefinido, setDraftInicioAnticipadoDefinido] = useState<boolean>((culto.meta_data as any)?.inicio_anticipado_definido ?? false)
+    const [draftInicioAnticipadoDefinido, setDraftInicioAnticipadoDefinido] = useState<boolean>((culto.meta_data as CultoMetaData)?.inicio_anticipado_definido ?? false)
     const [draftFestivo, setDraftFestivo] = useState<boolean>(!!culto.es_laborable_festivo)
     const [draftHoraInicio, setDraftHoraInicio] = useState<string>(culto.hora_inicio)
     const [isDirty, setIsDirty] = useState(false)
     const [draftLecturas, setDraftLecturas] = useState<import('@/types/database').LecturaBiblica[]>([])
     const [draftLecturasChanged, setDraftLecturasChanged] = useState(false)
-    const [draftHimnosCoros, setDraftHimnosCoros] = useState<import('@/types/database').PlanHimnoCoro[]>(culto.plan_himnos_coros || [])
+    const [draftHimnosCoros, setDraftHimnosCoros] = useState<import('@/types/database').PlanHimnoCoro[]>((culto.plan_himnos_coros as unknown as import('@/types/database').PlanHimnoCoro[]) || [])
     const [draftHimnosChanged, setDraftHimnosChanged] = useState(false)
     const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
     const [pendingNavigationHref, setPendingNavigationHref] = useState<string | null>(null)
@@ -357,12 +365,12 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
             testimonios: culto.id_usuario_testimonios ?? null,
             finalizacion: culto.id_usuario_finalizacion ?? null,
         },
-        observaciones: (culto.meta_data as any)?.observaciones || '',
-        tema: (culto.meta_data as any)?.tema_introduccion_alabanza ?? null,
-        protocolo: (culto.meta_data as any)?.protocolo ?? null,
-        protocoloDefinido: (culto.meta_data as any)?.protocolo_definido ?? false,
-        inicioAnticipado: (culto.meta_data as any)?.inicio_anticipado ?? null,
-        inicioAnticipadoDefinido: (culto.meta_data as any)?.inicio_anticipado_definido ?? false,
+        observaciones: (culto.meta_data as CultoMetaData)?.observaciones || '',
+        tema: (culto.meta_data as CultoMetaData)?.tema_introduccion_alabanza ?? null,
+        protocolo: (culto.meta_data as CultoMetaData)?.protocolo ?? null,
+        protocoloDefinido: (culto.meta_data as CultoMetaData)?.protocolo_definido ?? false,
+        inicioAnticipado: (culto.meta_data as CultoMetaData)?.inicio_anticipado ?? null,
+        inicioAnticipadoDefinido: (culto.meta_data as CultoMetaData)?.inicio_anticipado_definido ?? false,
         festivo: !!culto.es_laborable_festivo,
         hora: culto.hora_inicio,
     })
@@ -371,7 +379,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         item_id: h.item_id ?? (h.tipo === 'himno' ? h.himno?.id : h.coro?.id) ?? 0,
         orden: Number(h.orden ?? index + 1),
     }))
-    const initialPlanSignatureRef = useRef(JSON.stringify(normalizePlan(culto.plan_himnos_coros || [])))
+    const initialPlanSignatureRef = useRef(JSON.stringify(normalizePlan((culto.plan_himnos_coros as unknown as import('@/types/database').PlanHimnoCoro[]) || [])))
 
     useEffect(() => {
         setTemaMounted(true)
@@ -548,7 +556,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         setDraftLecturas([])
         setDraftLecturasChanged(false)
         setDraftHimnosChanged(false)
-        setDraftHimnosCoros(culto.plan_himnos_coros || [])
+        setDraftHimnosCoros((culto.plan_himnos_coros as unknown as import('@/types/database').PlanHimnoCoro[]) || [])
         setIsDirty(false)
         toast.success(t('culto.detail.toast.discarded' as TranslationKey))
     }

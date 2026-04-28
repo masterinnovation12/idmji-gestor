@@ -3,15 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath, unstable_noStore as noStore } from 'next/cache'
 
-/**
- * Normaliza texto removiendo acentos para búsquedas
- */
-function normalizeText(text: string): string {
-    return text
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-}
 
 /**
  * Crear o actualizar lectura bíblica
@@ -493,12 +484,14 @@ export async function getLectores() {
 
     // Obtener lectores únicos
     const lectoresMap = new Map<string, { id: string; nombre: string; apellidos: string }>()
-    data?.forEach((lectura: any) => {
-        if (lectura.lector && !lectoresMap.has(lectura.id_usuario_lector)) {
+    data?.forEach((lectura) => {
+        const lectorRaw = lectura.lector
+        const lector = Array.isArray(lectorRaw) ? lectorRaw[0] : lectorRaw
+        if (lector && !lectoresMap.has(lectura.id_usuario_lector)) {
             lectoresMap.set(lectura.id_usuario_lector, {
                 id: lectura.id_usuario_lector,
-                nombre: lectura.lector.nombre || '',
-                apellidos: lectura.lector.apellidos || ''
+                nombre: lector.nombre || '',
+                apellidos: lector.apellidos || ''
             })
         }
     })
@@ -681,7 +674,7 @@ export async function getBibliaLibros() {
 
         // Supabase tiene un límite de 1000 registros por consulta
         // Necesitamos obtener todos los registros usando paginación
-        let allData: any[] = []
+        let allData: { libro: string; orden: number; testamento: string; abreviatura: string; capitulo: number; num_versiculos: number }[] = []
         let from = 0
         const pageSize = 1000
         let hasMore = true

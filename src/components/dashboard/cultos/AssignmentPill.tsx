@@ -1,10 +1,23 @@
 import type { ReactNode } from 'react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import { Profile } from '@/types/database'
+import { Profile, LecturaBiblica, PlanHimnoCoro } from '@/types/database'
 import { Clock, BookOpen, Music, Users, BookMarked, Pencil } from 'lucide-react'
 import { UserAvatar } from './UserAvatar'
 
-export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, tipoCulto, action, footerAction, temaIntroduccionAlabanza, onEditReading }: { label: string, usuario: Partial<Profile> | null | undefined, lectura?: any, lecturas?: any[], himnario?: any[], tipoCulto?: string, action?: ReactNode, footerAction?: ReactNode, temaIntroduccionAlabanza?: string | null, onEditReading?: (reading: any) => void }) {
+interface AssignmentPillProps {
+    label: string
+    usuario: Partial<Profile> | null | undefined
+    lectura?: LecturaBiblica
+    lecturas?: LecturaBiblica[]
+    himnario?: PlanHimnoCoro[]
+    tipoCulto?: string
+    action?: ReactNode
+    footerAction?: ReactNode
+    temaIntroduccionAlabanza?: string | null
+    onEditReading?: (reading: LecturaBiblica) => void
+}
+
+export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, tipoCulto, action, footerAction, temaIntroduccionAlabanza, onEditReading }: AssignmentPillProps) {
     const { t } = useI18n()
     if (!usuario && !lectura && (!lecturas || lecturas.length === 0) && (!himnario || himnario.length === 0) && footerAction == null && !temaIntroduccionAlabanza) return null
 
@@ -169,7 +182,7 @@ export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, ti
                                     <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-black/5 dark:border-white/10 shadow-sm shrink-0">
                                         <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                                         <span className="font-mono text-[11px] font-black text-slate-600 dark:text-slate-300">
-                                            {formatDuration(details.duracion_segundos)}
+                                            {formatDuration(details.duracion_segundos ?? 0)}
                                         </span>
                                     </div>
                                 </div>

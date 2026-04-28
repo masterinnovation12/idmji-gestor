@@ -261,7 +261,8 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
             }
         }
         getUser()
-    }, [supabase.auth])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     // Cargar himnos/coros ya seleccionados si hay cultoId o de localStorage para calculadora
     useEffect(() => {
@@ -610,7 +611,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                         toast.error('error' in result && result.error ? result.error : 'Error al actualizar secuencia')
                     }
                 }
-            } catch (error) {
+            } catch {
                 toast.error('Error de conexión')
             } finally {
                 setIsUpdatingSequence(false)

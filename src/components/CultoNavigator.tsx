@@ -19,14 +19,16 @@ import { format, addDays, subDays, startOfWeek, endOfWeek, addWeeks, subWeeks, i
 import { es, ca } from 'date-fns/locale'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { getCultoByDate, getCultoIndicatorsForRange } from '@/app/dashboard/cultos/actions'
-import { Culto } from '@/types/database'
+import { Culto, LecturaBiblica } from '@/types/database'
 import { cn } from '@/lib/utils'
 
+type CultoWithLecturas = Culto & { lecturas?: LecturaBiblica[] }
+
 interface CultoNavigatorProps {
-    initialCulto: (Culto & { lecturas?: any[] }) | null
+    initialCulto: CultoWithLecturas | null
     initialDate: string // YYYY-MM-DD
     esHoy: boolean
-    children: (culto: (Culto & { lecturas?: any[] }) | null, isLoading: boolean, esHoy: boolean) => ReactNode
+    children: (culto: CultoWithLecturas | null, isLoading: boolean, esHoy: boolean) => ReactNode
 }
 
 interface CultoIndicator {
@@ -34,13 +36,13 @@ interface CultoIndicator {
     tipo_culto: { color: string } | null
 }
 
-export default function CultoNavigator({ initialCulto, initialDate, esHoy: initialEsHoy, children }: CultoNavigatorProps) {
+export default function CultoNavigator({ initialCulto, initialDate, children }: CultoNavigatorProps) {
     const { language, t } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
 
     // State
     const [selectedDate, setSelectedDate] = useState<Date>(new Date(initialDate + 'T12:00:00'))
-    const [currentCulto, setCurrentCulto] = useState<(Culto & { lecturas?: any[] }) | null>(initialCulto)
+    const [currentCulto, setCurrentCulto] = useState<CultoWithLecturas | null>(initialCulto)
     const [isLoading, setIsLoading] = useState(false)
     const [mounted, setMounted] = useState(false)
     const [indicators, setIndicators] = useState<CultoIndicator[]>([])
@@ -76,6 +78,7 @@ export default function CultoNavigator({ initialCulto, initialDate, esHoy: initi
         if (result.success && result.data) {
             setIndicators(result.data as unknown as CultoIndicator[])
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
@@ -93,7 +96,7 @@ export default function CultoNavigator({ initialCulto, initialDate, esHoy: initi
         try {
             const result = await getCultoByDate(dateStr)
             if (result.success) {
-                setCurrentCulto(result.data as any)
+                setCurrentCulto(result.data as CultoWithLecturas)
             } else {
                 setCurrentCulto(null)
             }
@@ -181,7 +184,7 @@ export default function CultoNavigator({ initialCulto, initialDate, esHoy: initi
                                 animate={{ scale: 1, opacity: 1 }}
                                 className="inline-block mt-1.5 px-3 py-0.5 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-red-500/30"
                             >
-                                {t('dashboard.navigator.today' as any)}
+                                {t('dashboard.navigator.today')}
                             </motion.div>
                         )}
                     </div>

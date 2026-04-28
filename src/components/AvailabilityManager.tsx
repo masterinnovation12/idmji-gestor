@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Calendar as CalendarIcon, Check, LayoutGrid, Info, Clock } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Calendar as CalendarIcon, Check, LayoutGrid, Info } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Card, CardContent } from '@/components/ui/Card'
 import { cn } from '@/lib/utils'

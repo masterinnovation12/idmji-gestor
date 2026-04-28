@@ -1,7 +1,7 @@
-import { Culto } from '@/types/database'
+import { Culto, LecturaBiblica } from '@/types/database'
 
 export interface CultoDetails {
-    lecturaData: { showAddButton: boolean; lecturaIntro: any; lecturaFinal: any } | null
+    lecturaData: { showAddButton: boolean; lecturaIntro: LecturaBiblica | null; lecturaFinal: LecturaBiblica | null } | null
     temaIntroduccionAlabanza: string | null
     estudioBiblicoData: {
         esEstudio: boolean
@@ -27,12 +27,12 @@ export function computeCultoDetails(culto: Culto | null): CultoDetails {
 
     const tipoCulto = culto.tipo_culto
     // Handle both 'lecturas' (direct relation) and potentially missing lectures
-    const lecturas = (culto as any).lecturas || []
+    const lecturas = ((culto as unknown) as { lecturas?: LecturaBiblica[] }).lecturas || []
 
     // 1. Lectura Data
     const debeTenerLectura = tipoCulto?.tiene_lectura_introduccion && !tipoCulto?.nombre?.toLowerCase().includes('estudio')
-    const lecturaIntro = debeTenerLectura ? lecturas.find((l: any) => l.tipo_lectura === 'introduccion') : null
-    const lecturaFinal = tipoCulto?.tiene_lectura_finalizacion ? lecturas.find((l: any) => l.tipo_lectura === 'finalizacion') : null
+    const lecturaIntro = debeTenerLectura ? lecturas.find((l) => l.tipo_lectura === 'introduccion') : null
+    const lecturaFinal = tipoCulto?.tiene_lectura_finalizacion ? lecturas.find((l) => l.tipo_lectura === 'finalizacion') : null
 
     const lecturaData = {
         showAddButton: !!debeTenerLectura && !lecturaIntro,
@@ -45,8 +45,8 @@ export function computeCultoDetails(culto: Culto | null): CultoDetails {
     const esEstudio = tipoCulto?.nombre?.toLowerCase().includes('estudio') || tipoCulto?.nombre?.toLowerCase().includes('biblico') || false
 
     if (esEstudio) {
-        const metaData = culto.meta_data as any
-        const inicioAnticipado = metaData?.inicio_anticipado
+        const metaData = culto.meta_data || {}
+        const inicioAnticipado = metaData.inicio_anticipado
         let horaReal = culto.hora_inicio?.slice(0, 5) || '19:00'
 
         if (inicioAnticipado?.activo && culto.hora_inicio) {
@@ -85,11 +85,11 @@ export function computeCultoDetails(culto: Culto | null): CultoDetails {
     }
 
     // 3. Observaciones Data
-    const observacionesData = (culto.meta_data as any)?.observaciones || ''
+    const observacionesData = ((culto.meta_data as unknown) as { observaciones?: string })?.observaciones || ''
 
     // 4. Tema introducción Alabanza (solo para cultos de Alabanza)
     const esAlabanza = tipoCulto?.nombre?.toLowerCase().includes('alabanza') ?? false
-    const temaIntroduccionAlabanza = esAlabanza ? ((culto.meta_data as any)?.tema_introduccion_alabanza ?? null) : null
+    const temaIntroduccionAlabanza = esAlabanza ? (culto.meta_data?.tema_introduccion_alabanza ?? null) : null
 
     return {
         lecturaData,

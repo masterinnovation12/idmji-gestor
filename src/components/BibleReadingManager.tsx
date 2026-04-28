@@ -355,7 +355,6 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                                 es_repetida: false,
                                 lectura_original_id: null,
                                 created_at: new Date().toISOString(),
-                                updated_at: new Date().toISOString(),
                             }
                             const updated = editingLectura
                                 ? prev.map((l) => (l.id === editingLectura.id ? lectura : l))

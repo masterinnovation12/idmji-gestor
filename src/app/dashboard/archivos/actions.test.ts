@@ -26,7 +26,7 @@ describe('getSheetData', () => {
     const { createClient } = await import('@/lib/supabase/server')
     vi.mocked(createClient).mockResolvedValueOnce({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
-    } as any)
+    } as never)
     const result = await getSheetData('ensenanzas')
     expect(result.success).toBe(false)
     expect(result.error).toBe('No autenticado')
@@ -34,7 +34,7 @@ describe('getSheetData', () => {
   })
 
   it('returns error for invalid source id', async () => {
-    const result = await getSheetData('invalid' as any)
+    const result = await getSheetData('invalid' as never)
     expect(result.success).toBe(false)
     expect(result.error).toBe('Origen de hoja no válido')
   })
