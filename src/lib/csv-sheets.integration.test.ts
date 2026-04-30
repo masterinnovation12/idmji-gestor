@@ -79,4 +79,49 @@ describe('csv-sheets integration', () => {
     expect(result[0]['MES']).toBe('Enero')
     expect(result[0]['TÍTULO']).toBe('Estudio 1')
   })
+
+  it('fetchAndParseSheetCSV: usa variante fallback de URL pub cuando la primaria falla con 500', async () => {
+    const originalFetch = globalThis.fetch
+    const calls: string[] = []
+    const csvOk = 'MES,DÍA,TÍTULO\nENERO,5,Estudio prueba\n'
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        let url = ''
+        if (typeof input === 'string') {
+          url = input
+        } else if (input instanceof URL) {
+          url = input.toString()
+        } else {
+          url = input.url
+        }
+        calls.push(url)
+        // Falla en URL base, funciona en variante single=true
+        if (url.includes('/pub?output=csv') && !url.includes('single=true')) {
+          return new Response('<html>500</html>', { status: 500, statusText: 'Internal Server Error' })
+        }
+        if (url.includes('output=csv') && url.includes('single=true')) {
+          return new Response(csvOk, {
+            status: 200,
+            statusText: 'OK',
+            headers: { 'Content-Type': 'text/csv; charset=utf-8' },
+          })
+        }
+        return new Response('<html>500</html>', { status: 500, statusText: 'Internal Server Error' })
+      })
+    )
+
+    try {
+      const { data, meta } = await fetchAndParseSheetCSV(
+        'https://docs.google.com/spreadsheets/d/e/abc123/pub?output=csv'
+      )
+      expect(meta.stale).toBe(false)
+      expect(data.length).toBe(1)
+      expect(data[0]['TÍTULO']).toBe('Estudio prueba')
+      expect(calls.some((u) => u.includes('single=true'))).toBe(true)
+    } finally {
+      vi.stubGlobal('fetch', originalFetch)
+    }
+  })
 })
