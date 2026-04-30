@@ -276,10 +276,10 @@ export default function DashboardLayout({
         <div className="min-h-screen bg-background selection:bg-primary/20 selection:text-primary overflow-x-hidden no-scrollbar">
 
             {/* Gesture Trigger Zone (Left Edge) */}
-            {/* Usamos touch-action: pan-y para bloquear el gesto nativo horizontal (back/forward) del navegador */}
+            {/* Importante: mantener esta zona MUY estrecha para no interceptar taps de UI (flechas del dashboard). */}
             {!isMobileMenuOpen && (
                 <motion.div
-                    className="fixed left-0 top-0 w-12 h-full z-130 md:hidden cursor-grab touch-pan-y"
+                    className="fixed left-0 top-0 w-3 h-full z-130 md:hidden cursor-grab touch-pan-y"
                     style={{ x: 0 }}
                     drag="x"
                     dragConstraints={{ left: 0, right: 280 }}

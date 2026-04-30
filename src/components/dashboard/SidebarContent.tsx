@@ -157,7 +157,7 @@ export function SidebarContent({
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto no-scrollbar">
+            <nav className="flex-1 py-3 px-2.5 space-y-1.5 overflow-y-auto no-scrollbar">
                 {sidebarItems.map((item: NavItem, index: number) => {
                     const isActive = pathname === item.href
                     return (
@@ -170,7 +170,7 @@ export function SidebarContent({
                             <Link
                                 href={item.href}
                                 onClick={onMobileNav}
-                                className={`flex items-center gap-3 px-3 ${isMobile ? 'py-1.5' : 'py-2'} rounded-xl transition-all duration-300 group relative ${isActive
+                                className={`flex items-center gap-3.5 px-3.5 ${isMobile ? 'min-h-12 py-2.5' : 'py-2'} rounded-2xl transition-all duration-300 group relative ${isActive
                                     ? 'text-black shadow-lg shadow-black/10'
                                     : 'text-white/60 hover:text-white'
                                     }`}
@@ -192,12 +192,12 @@ export function SidebarContent({
                                 )}
 
                                 <item.icon
-                                    size={isMobile ? 20 : 22}
+                                    size={isMobile ? 24 : 22}
                                     className={`${isActive ? 'text-black scale-110' : 'text-white/60 group-hover:text-white group-hover:scale-110'} relative z-10 transition-all duration-300`}
                                 />
 
                                 {!isSidebarCollapsed && (
-                                    <span className={`flex-1 font-black text-xs tracking-widest uppercase relative z-10 ${isActive ? 'text-black' : 'text-white/60 group-hover:text-white'} transition-colors`}>
+                                    <span className={`flex-1 font-extrabold ${isMobile ? 'text-sm tracking-wide normal-case leading-5' : 'text-xs tracking-widest uppercase'} relative z-10 ${isActive ? 'text-black' : 'text-white/70 group-hover:text-white'} transition-colors`}>
                                         {item.label}
                                     </span>
                                 )}
@@ -257,7 +257,7 @@ export function SidebarContent({
                 {/* Logout button */}
                 <motion.button
                     onClick={handleSignOut}
-                    className={`flex items-center gap-3 px-4 py-2.5 w-full rounded-xl text-red-300 hover:text-red-100 hover:bg-red-500/20 transition-all group font-bold text-sm ${isSidebarCollapsed ? 'justify-center' : ''}`}
+                    className={`flex items-center gap-3 px-4 ${isMobile ? 'min-h-12 py-2.5 rounded-2xl' : 'py-2.5 rounded-xl'} w-full text-red-300 hover:text-red-100 hover:bg-red-500/20 transition-all group font-bold text-sm ${isSidebarCollapsed ? 'justify-center' : ''}`}
                     whileHover={{ x: isSidebarCollapsed ? 0 : 5 }}
                     whileTap={{ scale: 0.98 }}
                 >
