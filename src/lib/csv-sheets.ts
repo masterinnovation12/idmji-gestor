@@ -189,6 +189,50 @@ async function fetchOnce(url: string, headers: HeadersInit): Promise<Response> {
   }
 }
 
+/**
+ * Genera variantes de URL para mejorar resiliencia con Google Sheets publicados.
+ * Caso típico: /pub?output=csv falla (500) pero /pub?output=csv&single=true sí responde.
+ */
+function buildCandidateUrls(url: string): string[] {
+  const out: string[] = [url]
+  try {
+    const u = new URL(url)
+    const isPubEndpoint = u.pathname.endsWith('/pub')
+    const output = (u.searchParams.get('output') ?? '').toLowerCase()
+
+    if (isPubEndpoint && output === 'csv') {
+      const single = u.searchParams.get('single')
+      const gid = u.searchParams.get('gid')
+
+      // Variante 1: forzar single=true
+      if (single !== 'true') {
+        const v1 = new URL(u.toString())
+        v1.searchParams.set('single', 'true')
+        out.push(v1.toString())
+      }
+
+      // Variante 2: forzar gid=0 (primera hoja) para exports inestables
+      if (!gid) {
+        const v2 = new URL(u.toString())
+        v2.searchParams.set('gid', '0')
+        out.push(v2.toString())
+      }
+
+      // Variante 3: single=true + gid=0
+      if (single !== 'true' || !gid) {
+        const v3 = new URL(u.toString())
+        v3.searchParams.set('single', 'true')
+        v3.searchParams.set('gid', '0')
+        out.push(v3.toString())
+      }
+    }
+  } catch {
+    // URL inválida: usar original
+  }
+
+  return [...new Set(out)]
+}
+
 async function fetchCSVText(url: string): Promise<string> {
   const browserLikeHeaders: HeadersInit = {
     Accept: 'text/csv, text/plain; charset=utf-8',
@@ -205,22 +249,25 @@ async function fetchCSVText(url: string): Promise<string> {
 
   let lastStatus: number | null = null
   let lastStatusText = 'Unknown'
+  const candidates = buildCandidateUrls(url)
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const headers = attempt % 2 === 1 ? browserLikeHeaders : fallbackHeaders
-    const res = await fetchOnce(url, headers)
+  for (const candidate of candidates) {
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const headers = attempt % 2 === 1 ? browserLikeHeaders : fallbackHeaders
+      const res = await fetchOnce(candidate, headers)
 
-    if (res.ok) return res.text()
+      if (res.ok) return res.text()
 
-    lastStatus = res.status
-    lastStatusText = res.statusText
+      lastStatus = res.status
+      lastStatusText = res.statusText
 
-    // Reintentar en 429 (rate limit) y 5xx (Google suele devolver 500 intermitente en export CSV)
-    const retryable = res.status === 429 || (res.status >= 500 && res.status < 600)
-    if (!retryable || attempt === MAX_RETRIES) break
+      // Reintentar en 429 (rate limit) y 5xx (Google suele devolver 500 intermitente en export CSV)
+      const retryable = res.status === 429 || (res.status >= 500 && res.status < 600)
+      if (!retryable || attempt === MAX_RETRIES) break
 
-    const backoffMs = Math.min(2500, 350 * 2 ** (attempt - 1))
-    await new Promise((resolve) => setTimeout(resolve, backoffMs))
+      const backoffMs = Math.min(2500, 350 * 2 ** (attempt - 1))
+      await new Promise((resolve) => setTimeout(resolve, backoffMs))
+    }
   }
 
   class HttpError extends Error {
@@ -243,7 +290,7 @@ async function fetchCSVText(url: string): Promise<string> {
  */
 export function parseAdaptiveCSV(csvText: string): Record<string, string>[] {
   let text = csvText
-  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1)
+  if (text.codePointAt(0) === 0xfeff) text = text.slice(1)
   const trimmed = text.trim()
   if (trimmed.startsWith('<!') || trimmed.startsWith('<html') || trimmed.startsWith('<HTML')) {
     return []
