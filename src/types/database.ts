@@ -90,6 +90,9 @@ export interface Culto {
         }
         inicio_anticipado_definido?: boolean
         tema_introduccion_alabanza?: string
+        ensenanza_modo?: 'hermano' | 'video_hna_maria_luisa'
+        ensenanza_video_titulo?: string
+        ensenanza_video_notas?: string
     }
 
     // Plan de himnos/coros (join desde plan_himnos_coros)

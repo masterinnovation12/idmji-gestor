@@ -457,6 +457,8 @@ interface CultoDraftPayload {
     inicioAnticipadoDefinido: boolean
     esLaborableFestivo: boolean
     horaInicio: string
+    ensenanzaModo?: 'hermano' | 'video_hna_maria_luisa'
+    ensenanzaVideoTitulo?: string | null
     himnosCoros?: Array<{
         tipo: 'himno' | 'coro'
         item_id: number
@@ -516,11 +518,33 @@ export async function saveCultoDraft(payload: CultoDraftPayload) {
         nextMeta.inicio_anticipado_definido = false
     }
 
+    const ensenanzaModo = payload.ensenanzaModo ?? 'hermano'
+    nextMeta.ensenanza_modo = ensenanzaModo
+    if (ensenanzaModo === 'video_hna_maria_luisa') {
+        if (payload.ensenanzaVideoTitulo) {
+            nextMeta.ensenanza_video_titulo = payload.ensenanzaVideoTitulo
+        } else {
+            delete nextMeta.ensenanza_video_titulo
+        }
+        delete nextMeta.ensenanza_video_url
+        delete nextMeta.ensenanza_video_notas
+    } else {
+        delete nextMeta.ensenanza_video_titulo
+        delete nextMeta.ensenanza_video_url
+        delete nextMeta.ensenanza_video_notas
+    }
+
+    const hasAssignment = (
+        key: 'introduccion' | 'finalizacion' | 'ensenanza' | 'testimonios'
+    ) => Object.hasOwn(payload.assignments, key)
+
     const updateData = {
-        id_usuario_intro: payload.assignments.introduccion ?? cultoActual.id_usuario_intro ?? null,
-        id_usuario_finalizacion: payload.assignments.finalizacion ?? cultoActual.id_usuario_finalizacion ?? null,
-        id_usuario_ensenanza: payload.assignments.ensenanza ?? cultoActual.id_usuario_ensenanza ?? null,
-        id_usuario_testimonios: payload.assignments.testimonios ?? cultoActual.id_usuario_testimonios ?? null,
+        id_usuario_intro: hasAssignment('introduccion') ? payload.assignments.introduccion ?? null : cultoActual.id_usuario_intro ?? null,
+        id_usuario_finalizacion: hasAssignment('finalizacion') ? payload.assignments.finalizacion ?? null : cultoActual.id_usuario_finalizacion ?? null,
+        id_usuario_ensenanza: ensenanzaModo === 'video_hna_maria_luisa'
+            ? null
+            : (hasAssignment('ensenanza') ? payload.assignments.ensenanza ?? null : cultoActual.id_usuario_ensenanza ?? null),
+        id_usuario_testimonios: hasAssignment('testimonios') ? payload.assignments.testimonios ?? null : cultoActual.id_usuario_testimonios ?? null,
         es_laborable_festivo: payload.esLaborableFestivo,
         hora_inicio: payload.horaInicio,
         meta_data: nextMeta,
