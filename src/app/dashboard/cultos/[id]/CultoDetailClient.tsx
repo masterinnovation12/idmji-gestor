@@ -20,7 +20,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
-import { Calendar, Clock, User, BookOpen, Music, BookMarked, AlertCircle, CheckCircle, Sparkles, AlertTriangle, Info, ChevronDown, Trash2 } from 'lucide-react'
+import { Calendar, Clock, User, BookOpen, Music, BookMarked, AlertCircle, CheckCircle, Sparkles, AlertTriangle, Info, ChevronDown, Trash2, PlayCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -70,6 +70,9 @@ interface AssignmentSectionProps {
     readOnly?: boolean,
     readingMode?: 'commit' | 'draft',
     onReadingDraftChange?: (lecturas: import('@/types/database').LecturaBiblica[], dirty?: boolean) => void,
+    isVideoMode?: boolean,
+    videoLabel?: string,
+    videoTitle?: string,
 }
 
 function AssignmentSection({
@@ -88,6 +91,9 @@ function AssignmentSection({
     readOnly = false,
     readingMode = 'commit',
     onReadingDraftChange,
+    isVideoMode = false,
+    videoLabel,
+    videoTitle,
 }: AssignmentSectionProps) {
     // En modo readOnly nunca se edita; si hay usuario asignado tampoco se empieza editando
     const [isEditing, setIsEditing] = useState(readOnly ? false : !selectedUserId)
@@ -211,7 +217,7 @@ function AssignmentSection({
                         )}
 
                         {/* Contenido (Selector o Tarjeta Vertical) — oculto en readOnly */}
-                        {!readOnly && (
+                        {!readOnly && !isVideoMode && (
                             <div className="shrink-0 relative z-110">
                                 <UserSelector
                                     selectedUserId={optimisticId}
@@ -226,6 +232,25 @@ function AssignmentSection({
                                     isFestivo={isFestivo}
                                 />
                             </div>
+                        )}
+
+                        {isVideoMode && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mt-2 p-4 border border-primary/20 rounded-2xl bg-primary/5 flex items-center gap-3"
+                            >
+                                <div className="w-11 h-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+                                    <PlayCircle className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/80">Enseñanza</p>
+                                    <p className="text-sm font-bold text-foreground">{videoLabel || 'Video de la Hna. María Luisa Piraquive'}</p>
+                                    {videoTitle?.trim() && (
+                                        <p className="text-xs text-muted-foreground mt-1">{videoTitle}</p>
+                                    )}
+                                </div>
+                            </motion.div>
                         )}
 
                         <AnimatePresence mode="wait">
@@ -289,7 +314,7 @@ function AssignmentSection({
                                         </motion.div>
                                     )}
                                 </motion.div>
-                            ) : (!isEditing || readOnly) && !displayUser ? (
+                            ) : (!isEditing || readOnly) && !displayUser && !isVideoMode ? (
                                 <motion.div
                                     key="unassigned"
                                     initial={{ opacity: 0 }}
@@ -327,6 +352,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
     type CultoMetaData = {
         observaciones?: string;
         tema_introduccion_alabanza?: string;
+        ensenanza_modo?: 'hermano' | 'video_hna_maria_luisa';
+        ensenanza_video_titulo?: string;
+        ensenanza_video_notas?: string;
         protocolo?: { oracion_inicio: boolean; congregacion_pie: boolean };
         protocolo_definido?: boolean;
         inicio_anticipado?: { activo: boolean; minutos: number; observaciones?: string };
@@ -351,6 +379,12 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
     const [draftInicioAnticipadoDefinido, setDraftInicioAnticipadoDefinido] = useState<boolean>((culto.meta_data as CultoMetaData)?.inicio_anticipado_definido ?? false)
     const [draftFestivo, setDraftFestivo] = useState<boolean>(!!culto.es_laborable_festivo)
     const [draftHoraInicio, setDraftHoraInicio] = useState<string>(culto.hora_inicio)
+    const [draftEnsenanzaModo, setDraftEnsenanzaModo] = useState<'hermano' | 'video_hna_maria_luisa'>(
+        ((culto.meta_data as CultoMetaData)?.ensenanza_modo ?? 'hermano')
+    )
+    const [draftEnsenanzaVideoTitulo, setDraftEnsenanzaVideoTitulo] = useState<string>(
+        ((culto.meta_data as CultoMetaData)?.ensenanza_video_titulo ?? (culto.meta_data as CultoMetaData)?.ensenanza_video_notas ?? '')
+    )
     const [isDirty, setIsDirty] = useState(false)
     const [draftLecturas, setDraftLecturas] = useState<import('@/types/database').LecturaBiblica[]>([])
     const [draftLecturasChanged, setDraftLecturasChanged] = useState(false)
@@ -373,6 +407,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         inicioAnticipadoDefinido: (culto.meta_data as CultoMetaData)?.inicio_anticipado_definido ?? false,
         festivo: !!culto.es_laborable_festivo,
         hora: culto.hora_inicio,
+        ensenanzaModo: (culto.meta_data as CultoMetaData)?.ensenanza_modo ?? 'hermano' as 'hermano' | 'video_hna_maria_luisa',
+        ensenanzaVideoTitulo: (culto.meta_data as CultoMetaData)?.ensenanza_video_titulo ?? (culto.meta_data as CultoMetaData)?.ensenanza_video_notas ?? '',
     })
     const normalizePlan = (items: import('@/types/database').PlanHimnoCoro[] = []) => items.map((h, index) => ({
         tipo: h.tipo,
@@ -489,6 +525,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 inicioAnticipadoDefinido: draftInicioAnticipadoDefinido,
                 esLaborableFestivo: draftFestivo,
                 horaInicio: draftHoraInicio,
+                ensenanzaModo: draftEnsenanzaModo,
+                ensenanzaVideoTitulo: draftEnsenanzaModo === 'video_hna_maria_luisa' ? draftEnsenanzaVideoTitulo : null,
                 himnosCoros: draftHimnosChanged
                     ? draftHimnosCoros.map((item, index) => ({
                         tipo: item.tipo,
@@ -524,6 +562,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 inicioAnticipadoDefinido: draftInicioAnticipadoDefinido,
                 festivo: draftFestivo,
                 hora: draftHoraInicio,
+                ensenanzaModo: draftEnsenanzaModo,
+                ensenanzaVideoTitulo: draftEnsenanzaVideoTitulo,
             }
             initialPlanSignatureRef.current = JSON.stringify(normalizePlan(draftHimnosCoros))
             setIsDirty(false)
@@ -553,6 +593,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         setDraftInicioAnticipadoDefinido(initial.inicioAnticipadoDefinido)
         setDraftFestivo(initial.festivo)
         setDraftHoraInicio(initial.hora)
+        setDraftEnsenanzaModo(initial.ensenanzaModo)
+        setDraftEnsenanzaVideoTitulo(initial.ensenanzaVideoTitulo)
         setDraftLecturas([])
         setDraftLecturasChanged(false)
         setDraftHimnosChanged(false)
@@ -571,6 +613,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         draftInicioAnticipadoDefinido !== initialRef.current.inicioAnticipadoDefinido,
         draftFestivo !== initialRef.current.festivo,
         draftHoraInicio !== initialRef.current.hora,
+        draftEnsenanzaModo !== initialRef.current.ensenanzaModo,
+        draftEnsenanzaVideoTitulo !== initialRef.current.ensenanzaVideoTitulo,
         draftLecturasChanged,
         draftHimnosChanged,
     ].filter(Boolean).length
@@ -896,6 +940,66 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
+                </motion.div>
+            )}
+
+            {config.tiene_ensenanza && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full"
+                >
+                    <div className="glass rounded-3xl md:rounded-4xl p-3 sm:p-4 md:p-6 border border-white/20 shadow-xl">
+                        <div className="flex flex-col gap-3">
+                            <p className="text-[10px] uppercase tracking-widest font-black text-muted-foreground">
+                                Modalidad de enseñanza
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    disabled={readOnlyAssignments}
+                                    onClick={() => {
+                                        setDraftEnsenanzaModo('hermano')
+                                        setIsDirty(true)
+                                    }}
+                                    className={`px-4 py-3 rounded-2xl border text-sm font-black transition-colors ${draftEnsenanzaModo === 'hermano'
+                                        ? 'bg-primary/15 text-primary border-primary/40'
+                                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}
+                                >
+                                    Hermano
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={readOnlyAssignments}
+                                    onClick={() => {
+                                        setDraftEnsenanzaModo('video_hna_maria_luisa')
+                                        setDraftAssignments((prev) => ({ ...prev, ensenanza: null }))
+                                        setIsDirty(true)
+                                    }}
+                                    className={`px-4 py-3 rounded-2xl border text-sm font-black transition-colors ${draftEnsenanzaModo === 'video_hna_maria_luisa'
+                                        ? 'bg-primary/15 text-primary border-primary/40'
+                                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}
+                                >
+                                    Video Hna. Maria Luisa
+                                </button>
+                            </div>
+                            {draftEnsenanzaModo === 'video_hna_maria_luisa' && (
+                                <div className="grid grid-cols-1 gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Titulo del video (opcional)"
+                                        value={draftEnsenanzaVideoTitulo}
+                                        readOnly={readOnlyAssignments}
+                                        onChange={(e) => {
+                                            setDraftEnsenanzaVideoTitulo(e.target.value)
+                                            setIsDirty(true)
+                                        }}
+                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </motion.div>
             )}
 
@@ -1271,8 +1375,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                             <AssignmentSection
                                 label={t('culto.ensenanza')}
                                 icon={<BookOpen className="w-5 h-5" />}
-                                selectedUserId={draftAssignments.ensenanza}
-                                usuarioActual={culto.usuario_ensenanza}
+                                selectedUserId={draftEnsenanzaModo === 'video_hna_maria_luisa' ? null : draftAssignments.ensenanza}
+                                usuarioActual={draftEnsenanzaModo === 'video_hna_maria_luisa' ? null : culto.usuario_ensenanza}
                                 onSelect={(id, confirmed) => handleAssignment('ensenanza', id, confirmed)}
                                 disabled={isUpdating}
                                 t={t}
@@ -1282,6 +1386,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 isFestivo={culto.es_laborable_festivo}
                                 onVerInstrucciones={() => setInstruccionesModalRol('ensenanza')}
                                 readOnly={readOnlyAssignments}
+                                isVideoMode={draftEnsenanzaModo === 'video_hna_maria_luisa'}
+                                videoLabel="Video de la Hna. María Luisa Piraquive"
+                                videoTitle={draftEnsenanzaVideoTitulo}
                             />
                         </div>
                     )}

@@ -49,6 +49,8 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
 
     const cultoTypeId = culto.tipo_culto?.id ?? culto.tipo_culto_id
     const cultoNombre = culto.tipo_culto?.nombre ?? ''
+    const ensenanzaModo = ((culto.meta_data as { ensenanza_modo?: 'hermano' | 'video_hna_maria_luisa' } | undefined)?.ensenanza_modo ?? 'hermano')
+    const ensenanzaEsVideo = ensenanzaModo === 'video_hna_maria_luisa'
 
     const getTranslatedCultoName = (name: string | undefined) => {
         if (!name) return ''
@@ -175,7 +177,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                 {culto.tipo_culto?.tiene_ensenanza && (
                                     <AssignmentPill
                                         label={t('cultos.ensenanza')}
-                                        usuario={culto.usuario_ensenanza}
+                                        usuario={ensenanzaEsVideo ? { nombre: 'Video Hna. María Luisa', apellidos: 'Piraquive' } : culto.usuario_ensenanza}
                                         action={cultoTypeId ? <InstrIconBtn rol="ensenanza" onOpen={openModal} /> : undefined}
                                     />
                                 )}

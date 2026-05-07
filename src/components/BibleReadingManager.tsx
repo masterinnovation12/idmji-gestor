@@ -16,7 +16,7 @@
 
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { BookOpen, AlertCircle, Plus, Edit2, Trash2, Loader2, CheckCircle2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -133,13 +133,14 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
     const [activeTipo, setActiveTipo] = useState<'introduccion' | 'finalizacion' | null>(null)
     const [editingLectura, setEditingLectura] = useState<LecturaBiblica | null>(null)
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+    const onDraftChangeRef = useRef(onDraftChange)
+
+    useEffect(() => {
+        onDraftChangeRef.current = onDraftChange
+    }, [onDraftChange])
 
     // Cargar lecturas actuales
     const loadLecturas = useCallback(async () => {
-        if (mode === 'draft') {
-            setIsLoading(false)
-            return
-        }
         setIsLoading(true)
         try {
             const { data, error } = await getLecturasByCulto(cultoId)
@@ -149,6 +150,9 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
             } else if (data) {
                 console.log('Lecturas cargadas:', data)
                 setLecturas(data)
+                if (mode === 'draft') {
+                    onDraftChangeRef.current?.(data, false)
+                }
             }
         } catch (error) {
             console.error('Error fatal cargando lecturas:', error)
@@ -169,11 +173,9 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
 
     const handleDelete = async (id: string) => {
         if (mode === 'draft') {
-            setLecturas(prev => {
-                const updated = prev.filter(l => l.id !== id)
-                onDraftChange?.(updated, true)
-                return updated
-            })
+            const updated = lecturas.filter((l) => l.id !== id)
+            setLecturas(updated)
+            onDraftChangeRef.current?.(updated, true)
             setDeleteConfirmId(null)
             toast.success('Lectura eliminada del borrador')
             return
@@ -213,7 +215,24 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                         <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Cargando lecturas...</p>
                     </div>
                 ) : lecturas.length > 0 ? (
-                    <div className="grid gap-4 grid-cols-1">
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between px-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                Lecturas registradas
+                            </p>
+                            {config.tiene_lectura_introduccion && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setEditingLectura(null); setActiveTipo('introduccion'); setIsModalOpen(true); }}
+                                    className="h-8 w-8 rounded-full border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center justify-center"
+                                    aria-label="Añadir lectura"
+                                    title="Añadir lectura"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                        <div className="grid gap-4 grid-cols-1">
                         <AnimatePresence mode="popLayout">
                             {lecturas.map((lectura, idx) => (
                                 <ReadingItem
@@ -228,6 +247,7 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                                 />
                             ))}
                         </AnimatePresence>
+                    </div>
                     </div>
                 ) : (
                     <motion.button
@@ -251,40 +271,6 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                         <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" strokeWidth={2.5} />
                         <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">
                             {t('dashboard.addReadingButton')}
-                        </span>
-                    </motion.button>
-                )}
-            </div>
-
-            {/* Botones compactos para añadir nuevas lecturas por tipo (sin límite) */}
-            <div className="flex flex-wrap gap-3 md:gap-4 pt-4 border-t border-border/50 shrink-0">
-                {config.tiene_lectura_introduccion && (
-                    <motion.button
-                        key="btn-add-intro"
-                        type="button"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => { setEditingLectura(null); setActiveTipo('introduccion'); setIsModalOpen(true); }}
-                        className="flex-1 min-w-0 py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
-                    >
-                        <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" strokeWidth={2.5} />
-                        <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap">
-                            {t('dashboard.addReadingButton')}
-                        </span>
-                    </motion.button>
-                )}
-                {config.tiene_lectura_finalizacion && (
-                    <motion.button
-                        key="btn-add-final"
-                        type="button"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => { setEditingLectura(null); setActiveTipo('finalizacion'); setIsModalOpen(true); }}
-                        className="flex-1 min-w-0 py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
-                    >
-                        <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" strokeWidth={2.5} />
-                        <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap">
-                            {t('dashboard.addReadingFinalButton')}
                         </span>
                     </motion.button>
                 )}
@@ -336,32 +322,30 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                     cultoId={cultoId}
                     userId={userId}
                     tipo={activeTipo}
-                    onSuccess={loadLecturas}
+                    onSuccess={mode === 'commit' ? loadLecturas : undefined}
                     isEdit={!!editingLectura}
                     lecturaId={editingLectura?.id}
                     mode={mode}
                     onDraftSave={(payload) => {
-                        setLecturas((prev) => {
-                            const lectura: LecturaBiblica = {
-                                id: editingLectura?.id || `draft-${payload.tipo}-${Date.now()}`,
-                                culto_id: cultoId,
-                                tipo_lectura: payload.tipo,
-                                libro: payload.libro,
-                                capitulo_inicio: payload.capituloInicio,
-                                versiculo_inicio: payload.versiculoInicio,
-                                capitulo_fin: payload.capituloFin,
-                                versiculo_fin: payload.versiculoFin,
-                                id_usuario_lector: userId,
-                                es_repetida: false,
-                                lectura_original_id: null,
-                                created_at: new Date().toISOString(),
-                            }
-                            const updated = editingLectura
-                                ? prev.map((l) => (l.id === editingLectura.id ? lectura : l))
-                                : [...prev, lectura]
-                            onDraftChange?.(updated, true)
-                            return updated
-                        })
+                        const lectura: LecturaBiblica = {
+                            id: editingLectura?.id || `draft-${payload.tipo}-${Date.now()}`,
+                            culto_id: cultoId,
+                            tipo_lectura: payload.tipo,
+                            libro: payload.libro,
+                            capitulo_inicio: payload.capituloInicio,
+                            versiculo_inicio: payload.versiculoInicio,
+                            capitulo_fin: payload.capituloFin,
+                            versiculo_fin: payload.versiculoFin,
+                            id_usuario_lector: userId,
+                            es_repetida: false,
+                            lectura_original_id: null,
+                            created_at: new Date().toISOString(),
+                        }
+                        const updated = editingLectura
+                            ? lecturas.map((l) => (l.id === editingLectura.id ? lectura : l))
+                            : [...lecturas, lectura]
+                        setLecturas(updated)
+                        onDraftChangeRef.current?.(updated, true)
                     }}
                 />
             )}
