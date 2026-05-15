@@ -203,28 +203,27 @@ function formatShareDateTime(date: Date): string {
 }
 
 /**
- * Texto formateado para compartir por Web Share API.
- * Mismo patrón que Historial → Lecturas → Compartir (abre WhatsApp, Calendario, etc.)
+ * Texto limpio para compartir por Web Share API.
+ * Va directo a la app de Calendario del móvil, por eso NO incluye el URL
+ * de Google Calendar (sería ruido en la descripción del evento).
  */
 export function buildCalendarShareText(events: CalendarExportEvent[], header: string): string {
-  let text = `📅 ${header}\n`
+  const lines: string[] = []
+
   if (events.length > 1) {
-    text += `(${events.length} asignaciones)\n`
+    lines.push(`📅 ${header} (${events.length} asignaciones)`)
+    lines.push('')
   }
-  text += '-------------------\n'
 
   for (const e of events) {
-    text += `\n• ${e.title}`
-    text += `\n  🕐 ${formatShareDateTime(e.start)} – ${formatShareDateTime(e.end)}`
-    text += `\n  📍 ${e.location}`
-    if (e.url) text += `\n  🔗 ${e.url}`
+    lines.push(`📅 ${e.title}`)
+    lines.push(`🕐 ${formatShareDateTime(e.start)} – ${formatShareDateTime(e.end)}`)
+    lines.push(`📍 ${e.location}`)
+    if (e.url) lines.push(`🔗 ${e.url}`)
+    if (events.length > 1) lines.push('')
   }
 
-  if (events.length === 1) {
-    text += `\n\n🔗 Añadir en Google Calendar:\n${buildGoogleCalendarUrl(events[0])}`
-  }
-
-  return text.trim()
+  return lines.join('\n').trim()
 }
 
 /** Móvil / PWA: compartir directo al menú nativo (sin sheet intermedio). */
