@@ -195,22 +195,134 @@ export function downloadIcsFile(icsContent: string, filename: string): void {
   URL.revokeObjectURL(url)
 }
 
-export function canShareIcsFiles(): boolean {
-  if (typeof navigator === 'undefined' || !navigator.share || !navigator.canShare) return false
-  try {
-    const probe = new File([''], 'probe.ics', { type: 'text/calendar' })
-    return navigator.canShare({ files: [probe] })
-  } catch {
-    return false
-  }
+export type CalendarShareResult = 'shared' | 'cancelled' | 'unavailable'
+
+const ICS_MIME_TYPES = ['text/calendar;charset=utf-8', 'text/calendar', 'application/ics'] as const
+
+function formatShareDateTime(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-/** Abre el share sheet nativo del móvil con un .ics (Apple Calendar, Gmail, etc.). */
+/**
+ * Texto para Web Share (mismo patrón que Historial → Lecturas → Compartir).
+ * Abre el menú nativo del SO con WhatsApp, Calendar, Gmail, etc.
+ */
+export function buildCalendarShareText(events: CalendarExportEvent[], header: string): string {
+  let text = `📅 ${header}\n`
+  if (events.length > 1) {
+    text += `(${events.length} asignaciones)\n`
+  }
+  text += '-------------------\n'
+
+  for (const e of events) {
+    text += `\n• ${e.title}`
+    text += `\n  🕐 ${formatShareDateTime(e.start)} – ${formatShareDateTime(e.end)}`
+    text += `\n  📍 ${e.location}`
+    if (e.url) text += `\n  🔗 ${e.url}`
+  }
+
+  if (events.length === 1) {
+    text += `\n\n🔗 Añadir en Google Calendar:\n${buildGoogleCalendarUrl(events[0])}`
+  }
+
+  return text.trim()
+}
+
+function isShareAbort(err: unknown): boolean {
+  return err instanceof Error && err.name === 'AbortError'
+}
+
+/** Móvil / PWA: compartir directo al menú nativo (sin sheet intermedio). */
+export function shouldUseNativeCalendarShare(): boolean {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') return false
+  if (!navigator.share) return false
+  const coarse = window.matchMedia('(pointer: coarse)').matches
+  const narrow = window.matchMedia('(max-width: 768px)').matches
+  const standalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches
+  return coarse || narrow || standalone
+}
+
+async function tryShareIcsFile(icsContent: string, filename: string): Promise<CalendarShareResult | null> {
+  if (!navigator.share) return null
+
+  for (const mime of ICS_MIME_TYPES) {
+    try {
+      const file = new File([icsContent], filename, { type: mime, lastModified: Date.now() })
+      const payload: ShareData = { files: [file] }
+      if (navigator.canShare && !navigator.canShare(payload)) continue
+      // Android: no mezclar title + files (falla con DOMException)
+      await navigator.share(payload)
+      return 'shared'
+    } catch (err) {
+      if (isShareAbort(err)) return 'cancelled'
+    }
+  }
+  return null
+}
+
+async function tryShareTextLikeLecturas(shareTitle: string, shareText: string): Promise<CalendarShareResult | null> {
+  if (!navigator.share) return null
+
+  const withTitle: ShareData = { title: shareTitle, text: shareText }
+  const textOnly: ShareData = { text: shareText }
+
+  for (const payload of [withTitle, textOnly]) {
+    try {
+      if (navigator.canShare && !navigator.canShare(payload)) continue
+      await navigator.share(payload)
+      return 'shared'
+    } catch (err) {
+      if (isShareAbort(err)) return 'cancelled'
+    }
+  }
+
+  try {
+    await navigator.share(withTitle)
+    return 'shared'
+  } catch (err) {
+    if (isShareAbort(err)) return 'cancelled'
+  }
+
+  return null
+}
+
+/**
+ * Abre el share sheet nativo (como Compartir en Lecturas).
+ * 1) Archivo .ics (apps de calendario)
+ * 2) Texto formateado (menú nativo completo en Android)
+ */
+export async function shareCalendarToDevice(params: {
+  icsContent: string
+  filename: string
+  shareTitle: string
+  shareText: string
+}): Promise<CalendarShareResult> {
+  const fromFile = await tryShareIcsFile(params.icsContent, params.filename)
+  if (fromFile) return fromFile
+
+  const fromText = await tryShareTextLikeLecturas(params.shareTitle, params.shareText)
+  if (fromText) return fromText
+
+  return 'unavailable'
+}
+
+/** @deprecated Usar shareCalendarToDevice */
+export function canShareIcsFiles(): boolean {
+  return typeof navigator !== 'undefined' && !!navigator.share
+}
+
+/** @deprecated Usar shareCalendarToDevice */
 export async function shareIcsViaNativeSheet(icsContent: string, filename: string, title: string): Promise<boolean> {
-  if (!canShareIcsFiles()) return false
-  const file = new File([icsContent], filename, { type: 'text/calendar' })
-  await navigator.share({ title, files: [file] })
-  return true
+  const result = await shareCalendarToDevice({
+    icsContent,
+    filename,
+    shareTitle: title,
+    shareText: title,
+  })
+  return result === 'shared'
 }
 
 export function openExternalUrl(url: string): void {

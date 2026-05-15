@@ -1,9 +1,8 @@
 'use client'
 
 /**
- * AddToCalendarSheet
- * Diseño premium: bottom-sheet en móvil, modal glass en desktop.
- * Dark mode nativo. Share API nativa para PWA (iOS/Android).
+ * AddToCalendarSheet — escritorio: Google, Apple (.ics), Outlook, descarga.
+ * En móvil/PWA el panel usa share nativo directo (sin este sheet).
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -13,10 +12,8 @@ import {
   CalendarPlus,
   Download,
   ExternalLink,
-  Share2,
   X,
   Loader2,
-  Smartphone,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -27,8 +24,6 @@ import {
   downloadIcsFile,
   generateIcsCalendar,
   openExternalUrl,
-  shareIcsViaNativeSheet,
-  canShareIcsFiles,
 } from '@/lib/utils/calendarExport'
 import { cn } from '@/lib/utils'
 
@@ -41,7 +36,7 @@ export type AddToCalendarSheetProps = Readonly<{
   sheetSubtitle?: string
 }>
 
-type CalendarActionId = 'google' | 'apple' | 'outlook' | 'share' | 'download'
+type CalendarActionId = 'google' | 'apple' | 'outlook' | 'download'
 
 /** Icono SVG de Google Calendar */
 function GoogleIcon({ className }: { className?: string }) {
@@ -82,14 +77,7 @@ const ACTION_META: Record<CalendarActionId, {
   bgLight: string
   bgDark: string
   iconColor: string
-  recommended?: boolean
 }> = {
-  share: {
-    bgLight: 'bg-violet-50',
-    bgDark: 'dark:bg-violet-950/60',
-    iconColor: 'text-violet-600 dark:text-violet-400',
-    recommended: true,
-  },
   google: {
     bgLight: 'bg-blue-50',
     bgDark: 'dark:bg-blue-950/60',
@@ -135,7 +123,6 @@ export function AddToCalendarSheet({
 
   const icsContent = useMemo(() => generateIcsCalendar(events), [events])
   const singleEvent = events.length === 1 ? events[0] : null
-  const nativeShareAvailable = canShareIcsFiles()
 
   const title = sheetTitle ?? t('dashboard.calendarExport.title')
   const subtitle =
@@ -178,18 +165,6 @@ export function AddToCalendarSheet({
           close()
           break
         }
-        case 'share': {
-          const shared = await shareIcsViaNativeSheet(icsContent, icsFilename, title)
-          if (shared) {
-            toast.success(t('dashboard.calendarExport.shared'))
-            close()
-          } else {
-            downloadIcsFile(icsContent, icsFilename)
-            toast.info(t('dashboard.calendarExport.shareFallback'))
-            close()
-          }
-          break
-        }
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -211,13 +186,6 @@ export function AddToCalendarSheet({
   }
 
   const actions: ActionDef[] = [
-    {
-      id: 'share',
-      label: t('dashboard.calendarExport.shareNative'),
-      hint: t('dashboard.calendarExport.shareNativeHint'),
-      icon: <Smartphone className="w-5 h-5" />,
-      show: nativeShareAvailable,
-    },
     {
       id: 'google',
       label: t('dashboard.calendarExport.google'),
@@ -244,7 +212,7 @@ export function AddToCalendarSheet({
       label: t('dashboard.calendarExport.downloadIcs'),
       hint: t('dashboard.calendarExport.downloadIcsHint'),
       icon: <Download className="w-5 h-5" />,
-      show: !nativeShareAvailable,
+      show: true,
     },
   ]
 
@@ -347,7 +315,6 @@ export function AddToCalendarSheet({
                 {visibleActions.map((action) => {
                   const meta = ACTION_META[action.id]
                   const isBusy = busy === action.id
-                  const isRecommended = meta.recommended && nativeShareAvailable
                   return (
                     <button
                       key={action.id}
@@ -361,12 +328,6 @@ export function AddToCalendarSheet({
                         /* Fondo normal */
                         'bg-slate-50/80 hover:bg-slate-100/90',
                         'dark:bg-slate-800/50 dark:hover:bg-slate-700/60',
-                        /* Destacado si es recomendado */
-                        isRecommended && [
-                          'bg-violet-50/90 hover:bg-violet-100/90',
-                          'dark:bg-violet-950/40 dark:hover:bg-violet-900/50',
-                          'ring-1 ring-violet-200 dark:ring-violet-800/60',
-                        ],
                         /* Active press */
                         'active:scale-[0.98]',
                       )}
@@ -392,11 +353,6 @@ export function AddToCalendarSheet({
                           <p className="font-semibold text-sm text-foreground leading-tight">
                             {action.label}
                           </p>
-                          {isRecommended && (
-                            <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/60 dark:text-violet-300">
-                              {t('dashboard.calendarExport.recommended')}
-                            </span>
-                          )}
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-1">
                           {action.hint}

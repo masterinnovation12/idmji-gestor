@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { Calendar, CalendarPlus, UserIcon, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Calendar, CalendarPlus, UserIcon, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react'
 import { format, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import Link from 'next/link'
@@ -14,7 +14,13 @@ import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
 import { AddToCalendarSheet } from '@/components/dashboard/AddToCalendarSheet'
 import type { RolInstruccionCulto } from '@/types/database'
 import type { CalendarExportEvent } from '@/lib/utils/calendarExport'
-import { buildEventsFromAssignments } from '@/lib/utils/calendarExport'
+import {
+    buildEventsFromAssignments,
+    buildCalendarShareText,
+    generateIcsCalendar,
+    shareCalendarToDevice,
+    shouldUseNativeCalendarShare,
+} from '@/lib/utils/calendarExport'
 
 interface MyAssignmentsPanelProps {
     user: Profile & { id: string }
@@ -36,6 +42,7 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
     const [isLoadingAssignments, setIsLoadingAssignments] = useState(false)
     const [instruccionesModal, setInstruccionesModal] = useState<{ cultoTypeId: string; cultoTypeNombre: string; rol: RolInstruccionCulto } | null>(null)
     const [calendarSheet, setCalendarSheet] = useState<CalendarSheetState | null>(null)
+    const [calendarSharing, setCalendarSharing] = useState(false)
 
     const roleLabels = useMemo(
         () => ({
@@ -72,12 +79,39 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
     )
 
     const openCalendarForCultos = useCallback(
-        (cultos: Culto[], icsFilename: string, sheetSubtitle?: string) => {
+        async (cultos: Culto[], icsFilename: string, sheetSubtitle?: string) => {
             const events = buildEventsForCultos(cultos)
             if (events.length === 0) {
                 toast.error(t('dashboard.calendarExport.error'))
                 return
             }
+
+            const header =
+                sheetSubtitle ??
+                (events.length === 1
+                    ? events[0].title
+                    : t('dashboard.calendarExport.subtitleMultiple').replace('{count}', String(events.length)))
+
+            if (shouldUseNativeCalendarShare()) {
+                setCalendarSharing(true)
+                try {
+                    const result = await shareCalendarToDevice({
+                        icsContent: generateIcsCalendar(events),
+                        filename: icsFilename,
+                        shareTitle: t('dashboard.calendarExport.title'),
+                        shareText: buildCalendarShareText(events, header),
+                    })
+                    if (result === 'shared') {
+                        toast.success(t('dashboard.calendarExport.shared'))
+                    } else if (result === 'unavailable') {
+                        toast.error(t('dashboard.calendarExport.error'))
+                    }
+                } finally {
+                    setCalendarSharing(false)
+                }
+                return
+            }
+
             setCalendarSheet({ events, icsFilename, sheetSubtitle })
         },
         [buildEventsForCultos, t],
@@ -149,10 +183,15 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                     {assignments.length > 0 && !isLoadingAssignments && (
                         <button
                             type="button"
-                            onClick={openCalendarForWeek}
-                            className="mb-4 w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20 transition-colors touch-manipulation"
+                            onClick={() => void openCalendarForWeek()}
+                            disabled={calendarSharing}
+                            className="mb-4 w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20 transition-colors touch-manipulation disabled:opacity-60"
                         >
-                            <CalendarPlus className="w-4 h-4 shrink-0" />
+                            {calendarSharing ? (
+                                <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+                            ) : (
+                                <CalendarPlus className="w-4 h-4 shrink-0" />
+                            )}
                             {t('dashboard.addWeekToCalendar')}
                         </button>
                     )}
@@ -208,10 +247,15 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                                             )}
                                             <button
                                                 type="button"
-                                                onClick={() => openCalendarForOne(asg)}
-                                                className="min-h-[44px] py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-primary text-left px-3 touch-manipulation rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+                                                onClick={() => void openCalendarForOne(asg)}
+                                                disabled={calendarSharing}
+                                                className="min-h-[44px] py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-primary text-left px-3 touch-manipulation rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5 disabled:opacity-60"
                                             >
-                                                <CalendarPlus className="w-3.5 h-3.5 shrink-0" />
+                                                {calendarSharing ? (
+                                                    <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" />
+                                                ) : (
+                                                    <CalendarPlus className="w-3.5 h-3.5 shrink-0" />
+                                                )}
                                                 {t('dashboard.addToCalendar')}
                                             </button>
                                         </div>
