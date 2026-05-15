@@ -20,12 +20,7 @@ vi.mock('@/lib/i18n/I18nProvider', () => ({
         'dashboard.calendarExport.outlookHint': 'Abre Outlook',
         'dashboard.calendarExport.downloadIcs': 'Descargar .ics',
         'dashboard.calendarExport.downloadIcsHint': 'Compatible',
-        'dashboard.calendarExport.shareNative': 'Compartir (móvil)',
-        'dashboard.calendarExport.shareNativeHint': 'Menú del sistema',
-        'dashboard.calendarExport.recommended': 'Recomendado',
         'dashboard.calendarExport.downloaded': 'Descargado',
-        'dashboard.calendarExport.shared': 'Compartido',
-        'dashboard.calendarExport.shareFallback': 'Descargado como alternativa',
         'dashboard.calendarExport.error': 'Error al añadir',
         'common.close': 'Cerrar',
       }
@@ -53,8 +48,6 @@ vi.mock('@/lib/utils/calendarExport', async (importOriginal) => {
     ...actual,
     openExternalUrl: (...args: unknown[]) => openExternalUrl(...args),
     downloadIcsFile: (...args: unknown[]) => downloadIcsFile(...args),
-    canShareIcsFiles: () => false,
-    shareIcsViaNativeSheet: vi.fn().mockResolvedValue(false),
   }
 })
 
@@ -86,8 +79,7 @@ describe('AddToCalendarSheet', () => {
     expect(screen.getByText('Google Calendar')).toBeInTheDocument()
     expect(screen.getByText('Apple Calendar')).toBeInTheDocument()
     expect(screen.getByText('Outlook')).toBeInTheDocument()
-    // No debe mostrarse "Compartir (móvil)" porque canShareIcsFiles() = false
-    expect(screen.queryByText('Compartir (móvil)')).not.toBeInTheDocument()
+    expect(screen.getByText('Descargar .ics')).toBeInTheDocument()
   })
 
   it('muestra subtítulo personalizado', () => {

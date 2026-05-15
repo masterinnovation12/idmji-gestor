@@ -1,8 +1,8 @@
 /**
  * @vitest-environment happy-dom
  */
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MyAssignmentsPanel } from './MyAssignmentsPanel'
 import type { Culto } from '@/types/database'
 
@@ -25,6 +25,20 @@ vi.mock('@/lib/i18n/I18nProvider', () => ({
     language: 'es-ES',
   }),
 }))
+
+const { shareCalendarToDevice, shouldUseNativeCalendarShare } = vi.hoisted(() => ({
+  shareCalendarToDevice: vi.fn().mockResolvedValue('shared'),
+  shouldUseNativeCalendarShare: vi.fn().mockReturnValue(false),
+}))
+
+vi.mock('@/lib/utils/calendarExport', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/utils/calendarExport')>()
+  return {
+    ...actual,
+    shareCalendarToDevice,
+    shouldUseNativeCalendarShare,
+  }
+})
 
 const mockCulto: Culto = {
   id: 'culto-1',
@@ -57,6 +71,12 @@ const mockUser = {
 }
 
 describe('MyAssignmentsPanel', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    shouldUseNativeCalendarShare.mockReturnValue(false)
+    shareCalendarToDevice.mockResolvedValue('shared')
+  })
+
   it('muestra botón de añadir semana y por asignación', () => {
     render(<MyAssignmentsPanel user={mockUser} initialAssignments={[mockCulto]} />)
     expect(screen.getByText('dashboard.addWeekToCalendar')).toBeInTheDocument()
@@ -73,5 +93,15 @@ describe('MyAssignmentsPanel', () => {
     render(<MyAssignmentsPanel user={mockUser} initialAssignments={[mockCulto]} />)
     fireEvent.click(screen.getByText('dashboard.addWeekToCalendar'))
     expect(screen.getByTestId('calendar-sheet')).toBeInTheDocument()
+  })
+
+  it('usa share nativo en móvil sin abrir el sheet', async () => {
+    shouldUseNativeCalendarShare.mockReturnValue(true)
+    render(<MyAssignmentsPanel user={mockUser} initialAssignments={[mockCulto]} />)
+    fireEvent.click(screen.getByText('dashboard.addToCalendar'))
+    await waitFor(() => {
+      expect(shareCalendarToDevice).toHaveBeenCalled()
+    })
+    expect(screen.queryByTestId('calendar-sheet')).not.toBeInTheDocument()
   })
 })

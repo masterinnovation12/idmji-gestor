@@ -13,6 +13,9 @@ import {
   foldIcsLine,
   collectUserAssignmentRoles,
   buildEventsFromAssignments,
+  buildCalendarShareText,
+  shouldUseNativeCalendarShare,
+  shareCalendarToDevice,
   formatIcsLocalDateTime,
   CALENDAR_TIMEZONE,
   DEFAULT_CULTO_DURATION_MIN,
@@ -209,6 +212,131 @@ describe('calendarExport', () => {
       const url = buildOutlookWebUrl(event)
       expect(url).toContain('outlook.live.com')
       expect(url).toContain('subject=')
+    })
+  })
+
+  describe('buildCalendarShareText', () => {
+    it('incluye título, fechas y enlace de Google para un evento', () => {
+      const event = buildCalendarEventFromAssignment({
+        culto: baseCulto,
+        cultoDisplayName: 'Alabanza',
+        roles: ['Introducción'],
+        appOrigin: 'https://app.example.com',
+      })
+      const text = buildCalendarShareText([event], 'Mi asignación')
+      expect(text).toContain('Mi asignación')
+      expect(text).toContain('Alabanza')
+      expect(text).toContain('calendar.google.com')
+    })
+
+    it('indica cantidad cuando hay varios eventos', () => {
+      const e1 = buildCalendarEventFromAssignment({
+        culto: baseCulto,
+        cultoDisplayName: 'Alabanza',
+        roles: ['Introducción'],
+      })
+      const e2 = buildCalendarEventFromAssignment({
+        culto: { ...baseCulto, id: 'culto-2' },
+        cultoDisplayName: 'Estudio',
+        roles: ['Enseñanza'],
+      })
+      const text = buildCalendarShareText([e1, e2], 'Semana')
+      expect(text).toContain('(2 asignaciones)')
+    })
+  })
+
+  describe('shouldUseNativeCalendarShare', () => {
+    it('devuelve true en viewport estrecho con share API', () => {
+      vi.stubGlobal('navigator', { share: vi.fn() })
+      vi.stubGlobal('matchMedia', vi.fn((query: string) => ({
+        matches: query.includes('max-width'),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })))
+      expect(shouldUseNativeCalendarShare()).toBe(true)
+    })
+
+    it('devuelve false sin navigator.share', () => {
+      vi.stubGlobal('navigator', {})
+      expect(shouldUseNativeCalendarShare()).toBe(false)
+    })
+  })
+
+  describe('shareCalendarToDevice', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('comparte archivo .ics solo con files (sin title)', async () => {
+      const share = vi.fn().mockResolvedValue(undefined)
+      const canShare = vi.fn().mockReturnValue(true)
+      vi.stubGlobal('navigator', { share, canShare })
+
+      const event = buildCalendarEventFromAssignment({
+        culto: baseCulto,
+        cultoDisplayName: 'Alabanza',
+        roles: ['Introducción'],
+      })
+      const ics = generateIcsCalendar([event])
+
+      const result = await shareCalendarToDevice({
+        icsContent: ics,
+        filename: 'test.ics',
+        shareTitle: 'Título',
+        shareText: 'Texto',
+      })
+
+      expect(result).toBe('shared')
+      expect(share).toHaveBeenCalledWith({ files: [expect.any(File)] })
+      const payload = share.mock.calls[0][0] as ShareData
+      expect(payload.title).toBeUndefined()
+    })
+
+    it('hace fallback a texto si el archivo falla', async () => {
+      const share = vi.fn().mockImplementation(async (data: ShareData) => {
+        if (data.files) throw new Error('files not supported')
+        return undefined
+      })
+      const canShare = vi.fn(() => true)
+      vi.stubGlobal('navigator', { share, canShare })
+
+      const event = buildCalendarEventFromAssignment({
+        culto: baseCulto,
+        cultoDisplayName: 'Alabanza',
+        roles: ['Introducción'],
+      })
+
+      const result = await shareCalendarToDevice({
+        icsContent: generateIcsCalendar([event]),
+        filename: 'test.ics',
+        shareTitle: 'Título',
+        shareText: 'Texto largo',
+      })
+
+      expect(result).toBe('shared')
+      expect(share).toHaveBeenCalledWith(expect.objectContaining({ files: [expect.any(File)] }))
+      expect(share).toHaveBeenCalledWith(expect.objectContaining({ text: 'Texto largo' }))
+    })
+
+    it('devuelve cancelled si el usuario cancela', async () => {
+      const abort = new DOMException('cancelled', 'AbortError')
+      const share = vi.fn().mockRejectedValue(abort)
+      vi.stubGlobal('navigator', { share, canShare: () => true })
+
+      const event = buildCalendarEventFromAssignment({
+        culto: baseCulto,
+        cultoDisplayName: 'Alabanza',
+        roles: ['Introducción'],
+      })
+
+      const result = await shareCalendarToDevice({
+        icsContent: generateIcsCalendar([event]),
+        filename: 'test.ics',
+        shareTitle: 'T',
+        shareText: 'X',
+      })
+
+      expect(result).toBe('cancelled')
     })
   })
 })
