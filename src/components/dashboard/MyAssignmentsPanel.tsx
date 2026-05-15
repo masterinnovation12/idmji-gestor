@@ -17,8 +17,7 @@ import type { CalendarExportEvent } from '@/lib/utils/calendarExport'
 import {
     buildEventsFromAssignments,
     buildCalendarShareText,
-    generateIcsCalendar,
-    shareCalendarToDevice,
+    shareCalendarText,
     shouldUseNativeCalendarShare,
 } from '@/lib/utils/calendarExport'
 
@@ -93,19 +92,27 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                     : t('dashboard.calendarExport.subtitleMultiple').replace('{count}', String(events.length)))
 
             if (shouldUseNativeCalendarShare()) {
+                const shareTitle = t('dashboard.calendarExport.title')
+                const shareText = buildCalendarShareText(events, header)
                 setCalendarSharing(true)
                 try {
-                    const result = await shareCalendarToDevice({
-                        icsContent: generateIcsCalendar(events),
-                        filename: icsFilename,
-                        shareTitle: t('dashboard.calendarExport.title'),
-                        shareText: buildCalendarShareText(events, header),
-                    })
+                    // shareCalendarText tiene navigator.share() como su primer
+                    // await — preserva el gesto de usuario en iOS Safari.
+                    // No hay ningún await previo en esta cadena desde el click.
+                    const result = await shareCalendarText({ shareTitle, shareText })
                     if (result === 'shared') {
                         toast.success(t('dashboard.calendarExport.shared'))
                     } else if (result === 'unavailable') {
-                        toast.error(t('dashboard.calendarExport.error'))
+                        // Fallback 1: portapapeles (patrón Lecturas)
+                        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+                            await navigator.clipboard.writeText(shareText)
+                            toast.info(t('dashboard.calendarExport.clipboardCopied'))
+                        } else {
+                            // Fallback 2: sheet de escritorio
+                            setCalendarSheet({ events, icsFilename, sheetSubtitle })
+                        }
                     }
+                    // 'cancelled': usuario cerró el menú nativo → sin toast
                 } finally {
                     setCalendarSharing(false)
                 }

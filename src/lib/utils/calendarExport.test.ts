@@ -15,7 +15,7 @@ import {
   buildEventsFromAssignments,
   buildCalendarShareText,
   shouldUseNativeCalendarShare,
-  shareCalendarToDevice,
+  shareCalendarText,
   formatIcsLocalDateTime,
   CALENDAR_TIMEZONE,
   DEFAULT_CULTO_DURATION_MIN,
@@ -262,81 +262,59 @@ describe('calendarExport', () => {
     })
   })
 
-  describe('shareCalendarToDevice', () => {
+  describe('shareCalendarText', () => {
     afterEach(() => {
       vi.unstubAllGlobals()
     })
 
-    it('comparte archivo .ics solo con files (sin title)', async () => {
+    it('comparte texto con title+text (patrón Lecturas)', async () => {
       const share = vi.fn().mockResolvedValue(undefined)
       const canShare = vi.fn().mockReturnValue(true)
       vi.stubGlobal('navigator', { share, canShare })
 
-      const event = buildCalendarEventFromAssignment({
-        culto: baseCulto,
-        cultoDisplayName: 'Alabanza',
-        roles: ['Introducción'],
-      })
-      const ics = generateIcsCalendar([event])
-
-      const result = await shareCalendarToDevice({
-        icsContent: ics,
-        filename: 'test.ics',
-        shareTitle: 'Título',
-        shareText: 'Texto',
+      const result = await shareCalendarText({
+        shareTitle: 'Mi asignación',
+        shareText: 'Texto del evento',
       })
 
       expect(result).toBe('shared')
-      expect(share).toHaveBeenCalledWith({ files: [expect.any(File)] })
-      const payload = share.mock.calls[0][0] as ShareData
-      expect(payload.title).toBeUndefined()
+      expect(share).toHaveBeenCalledWith({
+        title: 'Mi asignación',
+        text: 'Texto del evento',
+      })
     })
 
-    it('hace fallback a texto si el archivo falla', async () => {
-      const share = vi.fn().mockImplementation(async (data: ShareData) => {
-        if (data.files) throw new Error('files not supported')
-        return undefined
-      })
-      const canShare = vi.fn(() => true)
+    it('devuelve unavailable si navigator.share no existe', async () => {
+      vi.stubGlobal('navigator', {})
+      const result = await shareCalendarText({ shareTitle: 'T', shareText: 'X' })
+      expect(result).toBe('unavailable')
+    })
+
+    it('devuelve unavailable si canShare devuelve false', async () => {
+      const share = vi.fn()
+      const canShare = vi.fn().mockReturnValue(false)
       vi.stubGlobal('navigator', { share, canShare })
 
-      const event = buildCalendarEventFromAssignment({
-        culto: baseCulto,
-        cultoDisplayName: 'Alabanza',
-        roles: ['Introducción'],
-      })
-
-      const result = await shareCalendarToDevice({
-        icsContent: generateIcsCalendar([event]),
-        filename: 'test.ics',
-        shareTitle: 'Título',
-        shareText: 'Texto largo',
-      })
-
-      expect(result).toBe('shared')
-      expect(share).toHaveBeenCalledWith(expect.objectContaining({ files: [expect.any(File)] }))
-      expect(share).toHaveBeenCalledWith(expect.objectContaining({ text: 'Texto largo' }))
+      const result = await shareCalendarText({ shareTitle: 'T', shareText: 'X' })
+      expect(result).toBe('unavailable')
+      expect(share).not.toHaveBeenCalled()
     })
 
     it('devuelve cancelled si el usuario cancela', async () => {
-      const abort = new DOMException('cancelled', 'AbortError')
+      const abort = new DOMException('user cancelled', 'AbortError')
       const share = vi.fn().mockRejectedValue(abort)
       vi.stubGlobal('navigator', { share, canShare: () => true })
 
-      const event = buildCalendarEventFromAssignment({
-        culto: baseCulto,
-        cultoDisplayName: 'Alabanza',
-        roles: ['Introducción'],
-      })
-
-      const result = await shareCalendarToDevice({
-        icsContent: generateIcsCalendar([event]),
-        filename: 'test.ics',
-        shareTitle: 'T',
-        shareText: 'X',
-      })
-
+      const result = await shareCalendarText({ shareTitle: 'T', shareText: 'X' })
       expect(result).toBe('cancelled')
+    })
+
+    it('devuelve unavailable si share falla con error inesperado', async () => {
+      const share = vi.fn().mockRejectedValue(new Error('NotAllowedError'))
+      vi.stubGlobal('navigator', { share, canShare: () => true })
+
+      const result = await shareCalendarText({ shareTitle: 'T', shareText: 'X' })
+      expect(result).toBe('unavailable')
     })
   })
 })

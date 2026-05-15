@@ -26,8 +26,8 @@ vi.mock('@/lib/i18n/I18nProvider', () => ({
   }),
 }))
 
-const { shareCalendarToDevice, shouldUseNativeCalendarShare } = vi.hoisted(() => ({
-  shareCalendarToDevice: vi.fn().mockResolvedValue('shared'),
+const { shareCalendarText, shouldUseNativeCalendarShare } = vi.hoisted(() => ({
+  shareCalendarText: vi.fn().mockResolvedValue('shared'),
   shouldUseNativeCalendarShare: vi.fn().mockReturnValue(false),
 }))
 
@@ -35,7 +35,7 @@ vi.mock('@/lib/utils/calendarExport', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/utils/calendarExport')>()
   return {
     ...actual,
-    shareCalendarToDevice,
+    shareCalendarText,
     shouldUseNativeCalendarShare,
   }
 })
@@ -74,7 +74,7 @@ describe('MyAssignmentsPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     shouldUseNativeCalendarShare.mockReturnValue(false)
-    shareCalendarToDevice.mockResolvedValue('shared')
+    shareCalendarText.mockResolvedValue('shared')
   })
 
   it('muestra botón de añadir semana y por asignación', () => {
@@ -100,8 +100,23 @@ describe('MyAssignmentsPanel', () => {
     render(<MyAssignmentsPanel user={mockUser} initialAssignments={[mockCulto]} />)
     fireEvent.click(screen.getByText('dashboard.addToCalendar'))
     await waitFor(() => {
-      expect(shareCalendarToDevice).toHaveBeenCalled()
+      expect(shareCalendarText).toHaveBeenCalledWith(
+        expect.objectContaining({ shareTitle: expect.any(String), shareText: expect.any(String) }),
+      )
     })
     expect(screen.queryByTestId('calendar-sheet')).not.toBeInTheDocument()
+  })
+
+  it('copia al portapapeles cuando share devuelve unavailable', async () => {
+    shouldUseNativeCalendarShare.mockReturnValue(true)
+    shareCalendarText.mockResolvedValue('unavailable')
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+
+    render(<MyAssignmentsPanel user={mockUser} initialAssignments={[mockCulto]} />)
+    fireEvent.click(screen.getByText('dashboard.addToCalendar'))
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(expect.stringContaining('📅'))
+    })
   })
 })

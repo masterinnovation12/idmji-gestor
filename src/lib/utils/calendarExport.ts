@@ -197,16 +197,14 @@ export function downloadIcsFile(icsContent: string, filename: string): void {
 
 export type CalendarShareResult = 'shared' | 'cancelled' | 'unavailable'
 
-const ICS_MIME_TYPES = ['text/calendar;charset=utf-8', 'text/calendar', 'application/ics'] as const
-
 function formatShareDateTime(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 /**
- * Texto para Web Share (mismo patrón que Historial → Lecturas → Compartir).
- * Abre el menú nativo del SO con WhatsApp, Calendar, Gmail, etc.
+ * Texto formateado para compartir por Web Share API.
+ * Mismo patrón que Historial → Lecturas → Compartir (abre WhatsApp, Calendario, etc.)
  */
 export function buildCalendarShareText(events: CalendarExportEvent[], header: string): string {
   let text = `📅 ${header}\n`
@@ -229,10 +227,6 @@ export function buildCalendarShareText(events: CalendarExportEvent[], header: st
   return text.trim()
 }
 
-function isShareAbort(err: unknown): boolean {
-  return err instanceof Error && err.name === 'AbortError'
-}
-
 /** Móvil / PWA: compartir directo al menú nativo (sin sheet intermedio). */
 export function shouldUseNativeCalendarShare(): boolean {
   if (typeof navigator === 'undefined' || typeof window === 'undefined') return false
@@ -245,84 +239,46 @@ export function shouldUseNativeCalendarShare(): boolean {
   return coarse || narrow || standalone
 }
 
-async function tryShareIcsFile(icsContent: string, filename: string): Promise<CalendarShareResult | null> {
-  if (!navigator.share) return null
-
-  for (const mime of ICS_MIME_TYPES) {
-    try {
-      const file = new File([icsContent], filename, { type: mime, lastModified: Date.now() })
-      const payload: ShareData = { files: [file] }
-      if (navigator.canShare && !navigator.canShare(payload)) continue
-      // Android: no mezclar title + files (falla con DOMException)
-      await navigator.share(payload)
-      return 'shared'
-    } catch (err) {
-      if (isShareAbort(err)) return 'cancelled'
-    }
-  }
-  return null
-}
-
-async function tryShareTextLikeLecturas(shareTitle: string, shareText: string): Promise<CalendarShareResult | null> {
-  if (!navigator.share) return null
-
-  const withTitle: ShareData = { title: shareTitle, text: shareText }
-  const textOnly: ShareData = { text: shareText }
-
-  for (const payload of [withTitle, textOnly]) {
-    try {
-      if (navigator.canShare && !navigator.canShare(payload)) continue
-      await navigator.share(payload)
-      return 'shared'
-    } catch (err) {
-      if (isShareAbort(err)) return 'cancelled'
-    }
-  }
+/**
+ * Comparte texto al menú nativo del SO (igual que Lecturas → Compartir).
+ *
+ * CRÍTICO — iOS Safari: navigator.share() debe ser el PRIMER await en toda
+ * la cadena async desde el click handler. Cualquier await previo
+ * (incluyendo funciones async que resuelven síncronamente) crea una
+ * suspensión de microtask que expira el token de activación de usuario.
+ *
+ * Por eso: NO se intenta compartir archivos .ics antes de esto.
+ * El llamador debe invocar esta función SIN awaits previos en su cadena.
+ */
+export async function shareCalendarText(params: {
+  shareTitle: string
+  shareText: string
+}): Promise<CalendarShareResult> {
+  if (typeof navigator === 'undefined' || !navigator.share) return 'unavailable'
+  if (navigator.canShare && !navigator.canShare({ text: params.shareText })) return 'unavailable'
 
   try {
-    await navigator.share(withTitle)
+    // navigator.share() es el PRIMER await de esta función — preserva
+    // el gesto de usuario en iOS Safari (idéntico al patrón de Lecturas)
+    await navigator.share({
+      title: params.shareTitle,
+      text: params.shareText,
+    })
     return 'shared'
   } catch (err) {
-    if (isShareAbort(err)) return 'cancelled'
+    if (err instanceof Error && err.name === 'AbortError') return 'cancelled'
+    return 'unavailable'
   }
-
-  return null
 }
 
-/**
- * Abre el share sheet nativo (como Compartir en Lecturas).
- * 1) Archivo .ics (apps de calendario)
- * 2) Texto formateado (menú nativo completo en Android)
- */
+/** @deprecated — conservado para AddToCalendarSheet (escritorio). */
 export async function shareCalendarToDevice(params: {
   icsContent: string
   filename: string
   shareTitle: string
   shareText: string
 }): Promise<CalendarShareResult> {
-  const fromFile = await tryShareIcsFile(params.icsContent, params.filename)
-  if (fromFile) return fromFile
-
-  const fromText = await tryShareTextLikeLecturas(params.shareTitle, params.shareText)
-  if (fromText) return fromText
-
-  return 'unavailable'
-}
-
-/** @deprecated Usar shareCalendarToDevice */
-export function canShareIcsFiles(): boolean {
-  return typeof navigator !== 'undefined' && !!navigator.share
-}
-
-/** @deprecated Usar shareCalendarToDevice */
-export async function shareIcsViaNativeSheet(icsContent: string, filename: string, title: string): Promise<boolean> {
-  const result = await shareCalendarToDevice({
-    icsContent,
-    filename,
-    shareTitle: title,
-    shareText: title,
-  })
-  return result === 'shared'
+  return shareCalendarText({ shareTitle: params.shareTitle, shareText: params.shareText })
 }
 
 export function openExternalUrl(url: string): void {
