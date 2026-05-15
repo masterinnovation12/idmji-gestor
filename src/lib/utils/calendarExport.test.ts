@@ -216,7 +216,7 @@ describe('calendarExport', () => {
   })
 
   describe('buildCalendarShareText', () => {
-    it('incluye título, fechas y enlace de Google para un evento', () => {
+    it('incluye título, fechas y ubicación (sin URL de Google Calendar)', () => {
       const event = buildCalendarEventFromAssignment({
         culto: baseCulto,
         cultoDisplayName: 'Alabanza',
@@ -224,12 +224,13 @@ describe('calendarExport', () => {
         appOrigin: 'https://app.example.com',
       })
       const text = buildCalendarShareText([event], 'Mi asignación')
-      expect(text).toContain('Mi asignación')
       expect(text).toContain('Alabanza')
-      expect(text).toContain('calendar.google.com')
+      expect(text).toContain('IDMJI')
+      // No debe incluir el URL de Google Calendar (ruido en la descripción del evento)
+      expect(text).not.toContain('calendar.google.com')
     })
 
-    it('indica cantidad cuando hay varios eventos', () => {
+    it('indica cantidad cuando hay varios eventos e incluye el header', () => {
       const e1 = buildCalendarEventFromAssignment({
         culto: baseCulto,
         cultoDisplayName: 'Alabanza',
@@ -241,7 +242,19 @@ describe('calendarExport', () => {
         roles: ['Enseñanza'],
       })
       const text = buildCalendarShareText([e1, e2], 'Semana')
+      expect(text).toContain('Semana')
       expect(text).toContain('(2 asignaciones)')
+    })
+
+    it('para un único evento no muestra el header del panel', () => {
+      const event = buildCalendarEventFromAssignment({
+        culto: baseCulto,
+        cultoDisplayName: 'Alabanza',
+        roles: ['Final'],
+      })
+      const text = buildCalendarShareText([event], 'Alabanza — Final')
+      // Comienza directamente con el evento, sin guiones ni header redundante
+      expect(text).toMatch(/^📅/)
     })
   })
 
