@@ -50,12 +50,14 @@ import { getAllLecturas, getCultoTypes, getLectores, getLecturasStats, deleteLec
 // Extendemos el tipo para incluir los JOINS de la consulta
 interface LecturaExt extends LecturaBiblica {
     culto: {
-        id: string
+        id?: string
         fecha: string
         tipo_culto: {
             id: string
             nombre: string
         }
+        usuario_intro?: { id: string; nombre: string; apellidos: string } | null
+        usuario_finalizacion?: { id: string; nombre: string; apellidos: string } | null
     }
     lector: {
         id: string

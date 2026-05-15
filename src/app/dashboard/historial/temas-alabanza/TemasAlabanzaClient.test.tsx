@@ -38,7 +38,8 @@ const mockRegistroConLectura = {
     hora_inicio: '19:00',
     tema_key: 'alabanza.tema.serReverentes',
     tipo_culto: { id: '1', nombre: 'Alabanza' },
-    usuario_intro: { id: 'u1', nombre: 'Jeffrey', apellidos: 'Bolaños' },
+    /** Hermano de introducción en púlpito (historial); quien guarde en la app puede ser otro (p. ej. admin). */
+    usuario_intro: { id: 'u1', nombre: 'Andres', apellidos: 'Zapata' },
     lectura_intro: {
         libro: 'Salmos',
         capitulo_inicio: 100,
@@ -72,7 +73,8 @@ describe('TemasAlabanzaClient', () => {
 
         expect(screen.getAllByText('alabanza.tema.serReverentes').length).toBeGreaterThan(0)
         expect(screen.getAllByText('Salmos 100:1-5').length).toBeGreaterThan(0)
-        expect(screen.getAllByText('Jeffrey Bolaños').length).toBeGreaterThan(0)
+        // Columna hermano/intro: quien hizo la introducción en culto (no quien pulsó guardar en la app).
+        expect(screen.getAllByText('Andres Zapata').length).toBeGreaterThan(0)
     })
 
     it('muestra noLectura cuando no hay lectura de introducción', () => {

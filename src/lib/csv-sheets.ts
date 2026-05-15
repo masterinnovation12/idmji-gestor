@@ -16,7 +16,8 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
-const FETCH_TIMEOUT_MS = 20_000
+/** Hojas grandes recién editadas tardan más en generar el CSV; 20s fallaba a veces con “timeout” efectivo. */
+const FETCH_TIMEOUT_MS = 35_000
 /** Google a veces responde 500/429 al export CSV desde IPs de datacenter; varios reintentos con backoff ayudan. */
 const MAX_RETRIES = 5
 
@@ -233,6 +234,12 @@ function buildCandidateUrls(url: string): string[] {
   return [...new Set(out)]
 }
 
+/** Google/CDN a veces devuelve 500 en la URL “caliente” tras publicar cambios; un parámetro único evita caché de borde. */
+function withCacheBust(u: string): string {
+  const sep = u.includes('?') ? '&' : '?'
+  return `${u}${sep}idmji_export_ts=${Date.now()}`
+}
+
 async function fetchCSVText(url: string): Promise<string> {
   const browserLikeHeaders: HeadersInit = {
     Accept: 'text/csv, text/plain; charset=utf-8',
@@ -267,6 +274,17 @@ async function fetchCSVText(url: string): Promise<string> {
 
       const backoffMs = Math.min(2500, 350 * 2 ** (attempt - 1))
       await new Promise((resolve) => setTimeout(resolve, backoffMs))
+    }
+
+    // Tras agregar filas/columnas en Sheets, el export pub a vecle solo falla en la URL cacheada; bust + backoff breve.
+    for (let bust = 1; bust <= 2; bust++) {
+      const busted = withCacheBust(candidate)
+      const headers = bust % 2 === 1 ? browserLikeHeaders : fallbackHeaders
+      const res = await fetchOnce(busted, headers)
+      if (res.ok) return res.text()
+      lastStatus = res.status
+      lastStatusText = res.statusText
+      await new Promise((resolve) => setTimeout(resolve, 500 * bust))
     }
   }
 
@@ -380,4 +398,60 @@ export async function fetchAndParseSheetCSV(url: string): Promise<SheetFetchResu
     }
     throw err
   }
+}
+
+/**
+ * Elimina la caché en memoria y en disco para una URL concreta.
+ * Útil antes de un "force-refresh" para que no caiga en datos viejos si Google tarda.
+ */
+export async function invalidateCsvCache(url: string): Promise<void> {
+  getMemoryCsvCache().delete(url)
+  try {
+    await fs.unlink(cacheFilePathForUrl(url))
+  } catch {
+    // No hay archivo: ignorar
+  }
+}
+
+/**
+ * Variante "fuerza": invalida caché local y reintenta más agresivamente contra Google.
+ * Si Google sigue fallando después de todos los intentos, lanza el error (NO sirve caché antigua).
+ * Así el caller sabe con certeza que los datos siguen sin actualizarse.
+ */
+export async function fetchAndParseSheetCSVForce(url: string): Promise<SheetFetchResult> {
+  await invalidateCsvCache(url)
+  // Intentamos varias variantes incluyendo cache-bust extra
+  const candidates = buildCandidateUrls(url)
+  const browserLikeHeaders: HeadersInit = {
+    Accept: 'text/csv, text/plain; charset=utf-8',
+    'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+    Referer: 'https://docs.google.com/',
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  }
+
+  let lastStatus: number | null = null
+  for (const candidate of candidates) {
+    // Hasta FORCE_EXTRA_RETRIES intentos por candidato, siempre con cache-bust
+    const FORCE_RETRIES = 4
+    for (let attempt = 1; attempt <= FORCE_RETRIES; attempt++) {
+      const busted = withCacheBust(candidate)
+      const res = await fetchOnce(busted, browserLikeHeaders)
+      if (res.ok) {
+        const text = await res.text()
+        await persistCsvCache(url, text)
+        return { data: parseAdaptiveCSV(text), meta: { stale: false } }
+      }
+      lastStatus = res.status
+      const retryable = res.status === 429 || (res.status >= 500 && res.status < 600)
+      if (!retryable || attempt === FORCE_RETRIES) break
+      await new Promise((resolve) => setTimeout(resolve, Math.min(3000, 500 * attempt)))
+    }
+  }
+
+  class HttpError extends Error {
+    status: number | null
+    constructor(message: string, status: number | null) { super(message); this.status = status }
+  }
+  throw new HttpError(`Force-refresh: Google sigue respondiendo HTTP ${lastStatus ?? 500}`, lastStatus)
 }

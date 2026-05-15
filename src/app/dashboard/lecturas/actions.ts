@@ -1,7 +1,39 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { resolveHistorialLectorDisplay } from '@/lib/utils/lecturasHistorialLector'
+import { resolveLecturaLectorFromCulto } from '@/lib/utils/resolveLecturaLectorFromCulto'
 import { revalidatePath, unstable_noStore as noStore } from 'next/cache'
+
+async function fetchCultoLectorAssignments(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    cultoId: string
+): Promise<{ idUsuarioIntro: string | null; idUsuarioFinalizacion: string | null } | null> {
+    const { data } = await supabase
+        .from('cultos')
+        .select('id_usuario_intro, id_usuario_finalizacion')
+        .eq('id', cultoId)
+        .maybeSingle()
+    if (!data) return null
+    return {
+        idUsuarioIntro: data.id_usuario_intro,
+        idUsuarioFinalizacion: data.id_usuario_finalizacion,
+    }
+}
+
+function resolveLectorForSave(
+    culto: { idUsuarioIntro: string | null; idUsuarioFinalizacion: string | null } | null,
+    tipoLectura: 'introduccion' | 'finalizacion',
+    userId: string
+): string {
+    if (!culto) return userId
+    return resolveLecturaLectorFromCulto({
+        tipoLectura,
+        idUsuarioIntro: culto.idUsuarioIntro,
+        idUsuarioFinalizacion: culto.idUsuarioFinalizacion,
+        fallbackUserId: userId,
+    })
+}
 
 
 /**
@@ -55,6 +87,9 @@ export async function saveLectura(
         }
     }
 
+    const cultoRow = await fetchCultoLectorAssignments(supabase, cultoId)
+    const idLector = resolveLectorForSave(cultoRow, tipoLectura, userId)
+
     const lecturaData = {
         culto_id: cultoId,
         tipo_lectura: tipoLectura,
@@ -63,7 +98,7 @@ export async function saveLectura(
         versiculo_inicio: versiculoInicio,
         capitulo_fin: capituloFin || capituloInicio,
         versiculo_fin: versiculoFin || versiculoInicio,
-        id_usuario_lector: userId,
+        id_usuario_lector: idLector,
         es_repetida: false,
         lectura_original_id: null,
     }
@@ -112,6 +147,9 @@ export async function confirmRepeatedLectura(
 ) {
     const supabase = await createClient()
 
+    const cultoRow = await fetchCultoLectorAssignments(supabase, cultoId)
+    const idLector = resolveLectorForSave(cultoRow, tipoLectura, userId)
+
     const lecturaData = {
         culto_id: cultoId,
         tipo_lectura: tipoLectura,
@@ -120,7 +158,7 @@ export async function confirmRepeatedLectura(
         versiculo_inicio: versiculoInicio,
         capitulo_fin: capituloFin || capituloInicio,
         versiculo_fin: versiculoFin || versiculoInicio,
-        id_usuario_lector: userId,
+        id_usuario_lector: idLector,
         es_repetida: true,
         lectura_original_id: lecturaOriginalId,
     }
@@ -268,7 +306,12 @@ export async function getAllLecturas(
         .from('lecturas_biblicas')
         .select(`
       *,
-      culto:cultos!inner(fecha, tipo_culto:culto_types(nombre, id)),
+      culto:cultos!inner(
+        fecha,
+        tipo_culto:culto_types(nombre, id),
+        usuario_intro:profiles!id_usuario_intro(id, nombre, apellidos),
+        usuario_finalizacion:profiles!id_usuario_finalizacion(id, nombre, apellidos)
+      ),
       lector:profiles!id_usuario_lector(id, nombre, apellidos)
     `, { count: 'exact' })
         .order('created_at', { ascending: false })
@@ -443,8 +486,16 @@ export async function getAllLecturas(
         return { error: error.message }
     }
 
+    const mappedData =
+        (data ?? []).map((row) => ({
+            ...row,
+            lector: resolveHistorialLectorDisplay(
+                row as Parameters<typeof resolveHistorialLectorDisplay>[0]
+            ),
+        })) ?? []
+
     return {
-        data,
+        data: mappedData,
         count: count || 0,
         totalPages: count ? Math.ceil(count / limit) : 0
     }

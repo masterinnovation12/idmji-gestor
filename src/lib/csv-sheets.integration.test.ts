@@ -80,7 +80,9 @@ describe('csv-sheets integration', () => {
     expect(result[0]['TÍTULO']).toBe('Estudio 1')
   })
 
-  it('fetchAndParseSheetCSV: usa variante fallback de URL pub cuando la primaria falla con 500', async () => {
+  it(
+    'fetchAndParseSheetCSV: usa variante fallback de URL pub cuando la primaria falla con 500',
+    async () => {
     const originalFetch = globalThis.fetch
     const calls: string[] = []
     const csvOk = 'MES,DÍA,TÍTULO\nENERO,5,Estudio prueba\n'
@@ -123,5 +125,7 @@ describe('csv-sheets integration', () => {
     } finally {
       vi.stubGlobal('fetch', originalFetch)
     }
-  })
+  },
+  20_000
+  )
 })
