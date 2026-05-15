@@ -14,7 +14,7 @@ const mockCultosData = [
         hora_inicio: '19:00',
         meta_data: { tema_introduccion_alabanza: 'alabanza.tema.serReverentes' },
         tipo_culto: { id: '1', nombre: 'Alabanza' },
-        usuario_intro: { id: 'u1', nombre: 'Jeffrey', apellidos: 'Bolaños' }
+        usuario_intro: { id: 'u-andres', nombre: 'Andres', apellidos: 'Zapata' }
     }
 ]
 
@@ -100,7 +100,7 @@ describe('temas-alabanza actions', () => {
             expect(result).not.toHaveProperty('error')
             expect(result.data).toHaveLength(1)
             expect(result.data![0].tema_key).toBe('alabanza.tema.serReverentes')
-            expect(result.data![0].usuario_intro?.nombre).toBe('Jeffrey')
+            expect(result.data![0].usuario_intro?.nombre).toBe('Andres')
             expect(result.totalPages).toBe(1)
         })
 
@@ -163,7 +163,7 @@ describe('temas-alabanza actions', () => {
                     }
                     if (table === 'cultos') {
                         const c = makeResolvableChain({
-                            data: [{ id_usuario_intro: 'u1', usuario_intro: { id: 'u1', nombre: 'Jeffrey', apellidos: 'Bolaños' } }],
+                            data: [{ id_usuario_intro: 'u-andres', usuario_intro: { id: 'u-andres', nombre: 'Andres', apellidos: 'Zapata' } }],
                             error: null
                         })
                         c.not = vi.fn().mockReturnValue(c)

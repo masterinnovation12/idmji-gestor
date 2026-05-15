@@ -11,11 +11,12 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
-  Loader2, AlertCircle, RefreshCw,
+  Loader2, AlertCircle, RefreshCw, Zap,
   BookOpen, BookText, GraduationCap, UsersRound, HandHeart,
-  Search, Filter, X,
+  Search, Filter, X, CheckCircle2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import type { SheetSourceId, SheetFetchMeta } from '@/lib/csv-sheets'
 import type { ArchivosResult } from './actions'
@@ -61,6 +62,12 @@ type ArchivosClientProps = {
   initialErrors?: Partial<Record<SheetSourceId, string>>
 }
 
+function ForcingLabel({ forceLoading, forceAttempt }: Readonly<{ forceLoading: boolean; forceAttempt: number }>) {
+  if (!forceLoading) return <>actualizando…</>
+  if (forceAttempt > 1) return <>{`Forzando… (${forceAttempt})`}</>
+  return <>Forzando…</>
+}
+
 export default function ArchivosClient({ initialData = {}, initialMeta, initialErrors }: ArchivosClientProps) {
   const { t, language } = useI18n()
 
@@ -89,6 +96,8 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
     const m = initialMeta?.ensenanzas
     return m?.stale ? { stale: true, cachedAt: m.cachedAt, lastErrorCode: m.lastErrorCode } : null
   })
+  const [forceLoading, setForceLoading] = useState(false)
+  const [forceAttempt, setForceAttempt] = useState(0)
 
   const activeTabConfig = TABS.find((t) => t.id === activeTab)!
 
@@ -122,6 +131,48 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
       setData(null)
     }
   }, [t])
+
+  /* ── Force-refresh: limpia caché local y reintenta agresivamente contra Google ── */
+  const forceRefresh = useCallback(async (sourceId: SheetSourceId) => {
+    if (forceLoading) return
+    setForceLoading(true)
+    setForceAttempt(1)
+
+    // Animamos el contador de intentos mientras el servidor trabaja
+    const ticker = setInterval(() => {
+      setForceAttempt((n) => Math.min(n + 1, 12))
+    }, 2800)
+
+    try {
+      const res = await fetch(
+        `/api/archivos?source=${encodeURIComponent(sourceId)}&force=true`,
+        { credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } }
+      )
+      const result: ArchivosResult & { forceError?: boolean } = await res.json()
+      if (result.success && result.data) {
+        setData(result.data)
+        setStaleInfo(null)
+        setError(null)
+        toast.success('¡Datos actualizados desde Google Sheets!', {
+          description: `${result.data.length} registros cargados.`,
+        })
+      } else {
+        const code = result.lastErrorCode
+        toast.error('Google Sheets sigue sin responder', {
+          description: code
+            ? `HTTP ${code}. La hoja puede estar procesando los últimos cambios; espera un par de minutos e inténtalo de nuevo.`
+            : 'Inténtalo de nuevo en unos minutos.',
+          duration: 8000,
+        })
+      }
+    } catch {
+      toast.error('No se pudo conectar con el servidor. Comprueba tu conexión.')
+    } finally {
+      clearInterval(ticker)
+      setForceLoading(false)
+      setForceAttempt(0)
+    }
+  }, [forceLoading])
 
   /* ── Tab change: prefer SSR data, fallback to fetch ── */
   useEffect(() => {
@@ -254,11 +305,46 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t('archivos.title')}</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {staleInfo?.stale ? t('archivos.syncStaleHint' as Parameters<typeof t>[0]) : t('archivos.syncSubtitle' as Parameters<typeof t>[0])}
-              {refreshing && <span className="ml-2 inline-flex items-center gap-1 text-primary"><RefreshCw className="w-3 h-3 animate-spin" />actualizando…</span>}
+              {staleInfo?.stale
+                ? t('archivos.syncStaleHint' as Parameters<typeof t>[0])
+                : t('archivos.syncSubtitle' as Parameters<typeof t>[0])}
+              {(refreshing || forceLoading) && (
+                <span className="ml-2 inline-flex items-center gap-1 text-primary">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  <ForcingLabel forceLoading={forceLoading} forceAttempt={forceAttempt} />
+                </span>
+              )}
             </p>
           </div>
         </div>
+        {/* Botón fuerza siempre visible cuando hay datos stale */}
+        {staleInfo?.stale && (
+          <button
+            onClick={() => forceRefresh(activeTab)}
+            disabled={forceLoading || refreshing}
+            title="Limpia la caché local y descarga los datos más recientes desde Google"
+            className={`
+              hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+              transition-all touch-manipulation shadow-sm
+              ${forceLoading
+                ? 'bg-primary/10 text-primary border border-primary/30 cursor-wait'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90 border border-transparent'}
+              disabled:opacity-60
+            `}
+          >
+            {forceLoading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" />Intentando… {forceAttempt > 1 ? `(${forceAttempt})` : ''}</>
+            ) : (
+              <><Zap className="w-4 h-4" />Obtener datos nuevos</>
+            )}
+          </button>
+        )}
+        {!staleInfo?.stale && data && data.length > 0 && (
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+            <CheckCircle2 className="w-4 h-4" />
+            Datos en vivo
+          </span>
+        )}
       </div>
 
       {/* Stale banner */}
@@ -285,14 +371,35 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
                 )}
               </p>
             </div>
-            <button
-              onClick={() => { setRefreshing(true); fetchTab(activeTab) }}
-              disabled={refreshing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-xs font-bold transition-all disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              Sincronizar ahora
-            </button>
+            {/* Botones: reintento normal + fuerza */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => { setRefreshing(true); fetchTab(activeTab) }}
+                disabled={refreshing || forceLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-xs font-bold transition-all disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing && !forceLoading ? 'animate-spin' : ''}`} />
+                Sincronizar
+              </button>
+              <button
+                onClick={() => forceRefresh(activeTab)}
+                disabled={forceLoading || refreshing}
+                title="Borra la caché local y reintenta contra Google directamente"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600/25 hover:bg-amber-600/40 border border-amber-600/40 text-xs font-bold transition-all disabled:opacity-60"
+              >
+                {forceLoading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Intentando… {forceAttempt > 1 ? `(${forceAttempt})` : ''}</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3.5 h-3.5" />
+                    Forzar actualización
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

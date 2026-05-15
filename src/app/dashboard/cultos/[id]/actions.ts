@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { resolveLecturaLectorFromCulto } from '@/lib/utils/resolveLecturaLectorFromCulto'
 import { revalidatePath } from 'next/cache'
 import { sendNotificationToUser } from '@/app/actions/notifications'
 import { formatHoraNotificacion } from '@/lib/format-hora-notificacion'
@@ -601,7 +602,12 @@ export async function saveCultoDraft(payload: CultoDraftPayload) {
                 versiculo_inicio: l.versiculo_inicio,
                 capitulo_fin: l.capitulo_fin,
                 versiculo_fin: l.versiculo_fin,
-                id_usuario_lector: l.id_usuario_lector,
+                id_usuario_lector: resolveLecturaLectorFromCulto({
+                    tipoLectura: l.tipo_lectura,
+                    idUsuarioIntro: updateData.id_usuario_intro,
+                    idUsuarioFinalizacion: updateData.id_usuario_finalizacion,
+                    fallbackUserId: l.id_usuario_lector,
+                }),
                 es_repetida: l.es_repetida ?? false,
                 lectura_original_id: l.lectura_original_id ?? null,
             }))

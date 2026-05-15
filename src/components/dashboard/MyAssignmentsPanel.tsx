@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Calendar, UserIcon, ChevronRight, ChevronLeft } from 'lucide-react'
+import { useState, useCallback, useMemo } from 'react'
+import { Calendar, CalendarPlus, UserIcon, ChevronRight, ChevronLeft } from 'lucide-react'
 import { format, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import Link from 'next/link'
@@ -11,11 +11,20 @@ import { Culto, Profile } from '@/types/database'
 import { getUserAssignments } from '@/app/dashboard/cultos/actions'
 import { toast } from 'sonner'
 import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
+import { AddToCalendarSheet } from '@/components/dashboard/AddToCalendarSheet'
 import type { RolInstruccionCulto } from '@/types/database'
+import type { CalendarExportEvent } from '@/lib/utils/calendarExport'
+import { buildEventsFromAssignments } from '@/lib/utils/calendarExport'
 
 interface MyAssignmentsPanelProps {
     user: Profile & { id: string }
     initialAssignments: Culto[]
+}
+
+type CalendarSheetState = {
+    events: CalendarExportEvent[]
+    icsFilename: string
+    sheetSubtitle?: string
 }
 
 export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPanelProps) {
@@ -26,8 +35,19 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
     const [currentWeekDate, setCurrentWeekDate] = useState(new Date())
     const [isLoadingAssignments, setIsLoadingAssignments] = useState(false)
     const [instruccionesModal, setInstruccionesModal] = useState<{ cultoTypeId: string; cultoTypeNombre: string; rol: RolInstruccionCulto } | null>(null)
+    const [calendarSheet, setCalendarSheet] = useState<CalendarSheetState | null>(null)
 
-    const getTranslatedCultoName = (name: string | undefined) => {
+    const roleLabels = useMemo(
+        () => ({
+            intro: t('cultos.role.intro'),
+            teaching: t('cultos.role.teaching'),
+            final: t('cultos.role.final'),
+            testimonies: t('cultos.role.testimonies'),
+        }),
+        [t],
+    )
+
+    const getTranslatedCultoName = useCallback((name: string | undefined) => {
         if (!name) return ''
         const lower = name.toLowerCase()
         if (lower.includes('estudio')) return t('culto.estudio')
@@ -35,7 +55,51 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
         if (lower.includes('enseñanza') || lower.includes('ensenanza')) return t('culto.ensenanza')
         if (lower.includes('testimonios')) return t('culto.testimonios')
         return name
-    }
+    }, [t])
+
+    const appOrigin = typeof window !== 'undefined' ? window.location.origin : undefined
+
+    const buildEventsForCultos = useCallback(
+        (cultos: Culto[]) =>
+            buildEventsFromAssignments({
+                assignments: cultos,
+                userId: user.id,
+                roleLabels,
+                getCultoDisplayName: getTranslatedCultoName,
+                appOrigin,
+            }),
+        [user.id, roleLabels, getTranslatedCultoName, appOrigin],
+    )
+
+    const openCalendarForCultos = useCallback(
+        (cultos: Culto[], icsFilename: string, sheetSubtitle?: string) => {
+            const events = buildEventsForCultos(cultos)
+            if (events.length === 0) {
+                toast.error(t('dashboard.calendarExport.error'))
+                return
+            }
+            setCalendarSheet({ events, icsFilename, sheetSubtitle })
+        },
+        [buildEventsForCultos, t],
+    )
+
+    const openCalendarForOne = useCallback(
+        (culto: Culto) => {
+            const name = getTranslatedCultoName(culto.tipo_culto?.nombre)
+            const dateSlug = culto.fecha.replace(/-/g, '')
+            openCalendarForCultos([culto], `idmji-${dateSlug}-${culto.id.slice(0, 8)}.ics`, name)
+        },
+        [getTranslatedCultoName, openCalendarForCultos],
+    )
+
+    const openCalendarForWeek = useCallback(() => {
+        const weekSlug = format(startOfWeek(currentWeekDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+        openCalendarForCultos(
+            assignments,
+            `idmji-asignaciones-${weekSlug}.ics`,
+            t('dashboard.calendarExport.subtitleMultiple').replace('{count}', String(assignments.length)),
+        )
+    }, [assignments, currentWeekDate, openCalendarForCultos, t])
 
     const changeWeek = async (direction: 'prev' | 'next') => {
         setIsLoadingAssignments(true)
@@ -72,15 +136,26 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col">
                     {/* Week Navigation */}
-                    <div className="flex items-center justify-between mb-6 bg-slate-100 dark:bg-slate-800 rounded-full p-1">
-                        <button onClick={() => changeWeek('prev')} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-all shadow-sm">
+                    <div className="flex items-center justify-between mb-3 bg-slate-100 dark:bg-slate-800 rounded-full p-1">
+                        <button type="button" onClick={() => changeWeek('prev')} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-all shadow-sm touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label={t('calendar.prev')}>
                             <ChevronLeft className="w-4 h-4" />
                         </button>
-                        <span className="text-xs font-bold uppercase tracking-wider">{weekLabel}</span>
-                        <button onClick={() => changeWeek('next')} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-all shadow-sm">
+                        <span className="text-xs font-bold uppercase tracking-wider px-1 text-center">{weekLabel}</span>
+                        <button type="button" onClick={() => changeWeek('next')} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-all shadow-sm touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label={t('calendar.nextBtn')}>
                             <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
+
+                    {assignments.length > 0 && !isLoadingAssignments && (
+                        <button
+                            type="button"
+                            onClick={openCalendarForWeek}
+                            className="mb-4 w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20 transition-colors touch-manipulation"
+                        >
+                            <CalendarPlus className="w-4 h-4 shrink-0" />
+                            {t('dashboard.addWeekToCalendar')}
+                        </button>
+                    )}
 
                     {/* Assignments List */}
                     <div className="flex-1 space-y-3 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
@@ -105,7 +180,7 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                                                         <span className="text-xs font-bold text-slate-400 uppercase">{format(new Date(asg.fecha), 'EEE d', { locale })}</span>
                                                         <span className="font-black text-slate-800 dark:text-slate-100">{getTranslatedCultoName(asg.tipo_culto?.nombre)}</span>
                                                     </div>
-                                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: asg.tipo_culto?.color }} />
+                                                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: asg.tipo_culto?.color }} />
                                                 </div>
                                                 <div className="flex flex-wrap gap-1">
                                                     {roles.map(r => (
@@ -121,15 +196,25 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                                                 )}
                                             </div>
                                         </Link>
-                                        {firstRol && asg.tipo_culto_id && (
+                                        <div className="flex flex-wrap gap-1 px-1">
+                                            {firstRol && asg.tipo_culto_id && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setInstruccionesModal({ cultoTypeId: asg.tipo_culto_id, cultoTypeNombre: asg.tipo_culto?.nombre ?? '', rol: firstRol })}
+                                                    className="min-h-[44px] py-2.5 text-[10px] font-bold uppercase tracking-wider text-primary hover:underline text-left px-3 touch-manipulation rounded-lg hover:bg-primary/5 active:bg-primary/10 transition-colors"
+                                                >
+                                                    {t('culto.instrucciones.ver')}
+                                                </button>
+                                            )}
                                             <button
                                                 type="button"
-                                                onClick={() => setInstruccionesModal({ cultoTypeId: asg.tipo_culto_id, cultoTypeNombre: asg.tipo_culto?.nombre ?? '', rol: firstRol })}
-                                                className="min-h-[44px] py-2.5 text-[10px] font-bold uppercase tracking-wider text-primary hover:underline text-left px-4 touch-manipulation rounded-lg hover:bg-primary/5 active:bg-primary/10 transition-colors"
+                                                onClick={() => openCalendarForOne(asg)}
+                                                className="min-h-[44px] py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-primary text-left px-3 touch-manipulation rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5"
                                             >
-                                                {t('culto.instrucciones.ver')}
+                                                <CalendarPlus className="w-3.5 h-3.5 shrink-0" />
+                                                {t('dashboard.addToCalendar')}
                                             </button>
-                                        )}
+                                        </div>
                                     </div>
                                 )
                             })
@@ -150,6 +235,16 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                     cultoTypeId={instruccionesModal.cultoTypeId}
                     cultoTypeNombre={instruccionesModal.cultoTypeNombre}
                     rol={instruccionesModal.rol}
+                />
+            )}
+
+            {calendarSheet && (
+                <AddToCalendarSheet
+                    open
+                    onOpenChange={(open) => { if (!open) setCalendarSheet(null) }}
+                    events={calendarSheet.events}
+                    icsFilename={calendarSheet.icsFilename}
+                    sheetSubtitle={calendarSheet.sheetSubtitle}
                 />
             )}
         </>

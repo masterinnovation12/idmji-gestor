@@ -3,9 +3,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
 import { getUserAssignments } from './cultos/actions'
-import nextDynamic from 'next/dynamic'
-const DashboardClient = nextDynamic(() => import('./DashboardClient'))
-
+import DashboardClient from './DashboardClient'
 
 // Revalidation trigger
 export const dynamic = 'force-dynamic'
