@@ -308,6 +308,7 @@ export async function getAllLecturas(
       *,
       culto:cultos!inner(
         fecha,
+        hora_inicio,
         tipo_culto:culto_types(nombre, id),
         usuario_intro:profiles!id_usuario_intro(id, nombre, apellidos),
         usuario_finalizacion:profiles!id_usuario_finalizacion(id, nombre, apellidos)

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
+import { formatTemaAlabanzaLabel } from '@/lib/constants/temasAlabanza'
 import { Profile, LecturaBiblica, PlanHimnoCoro } from '@/types/database'
 import { Clock, BookOpen, Music, Users, BookMarked, Pencil } from 'lucide-react'
 import { UserAvatar } from './UserAvatar'
@@ -81,7 +82,7 @@ export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, ti
                 <div className="flex items-center justify-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-blue-50/80 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/40 w-full min-w-0">
                     <BookMarked className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 shrink-0" />
                     <p className="text-sm sm:text-base font-black text-blue-700 dark:text-blue-300 leading-tight text-center line-clamp-2">
-                        {t(temaIntroduccionAlabanza as import('@/lib/i18n/types').TranslationKey)}
+                        {formatTemaAlabanzaLabel(temaIntroduccionAlabanza, t)}
                     </p>
                 </div>
             )}

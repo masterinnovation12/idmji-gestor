@@ -6,8 +6,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import TemasAlabanzaClient from './TemasAlabanzaClient'
 
+import { translations } from '@/lib/i18n/translations'
+import type { TranslationKey } from '@/lib/i18n/types'
+
+const tEs = (k: string) => translations['es-ES'][k as TranslationKey] ?? k
+
 vi.mock('@/lib/i18n/I18nProvider', () => ({
-    useI18n: () => ({ t: (k: string) => k, language: 'es-ES' }),
+    useI18n: () => ({ t: tEs, language: 'es-ES' }),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -71,7 +76,7 @@ describe('TemasAlabanzaClient', () => {
     it('renderiza tabla con datos y columna Lectura', () => {
         render(<TemasAlabanzaClient {...defaultProps} />)
 
-        expect(screen.getAllByText('alabanza.tema.serReverentes').length).toBeGreaterThan(0)
+        expect(screen.getAllByText('6. Ser reverentes').length).toBeGreaterThan(0)
         expect(screen.getAllByText('Salmos 100:1-5').length).toBeGreaterThan(0)
         // Columna hermano/intro: quien hizo la introducción en culto (no quien pulsó guardar en la app).
         expect(screen.getAllByText('Andres Zapata').length).toBeGreaterThan(0)
@@ -80,13 +85,13 @@ describe('TemasAlabanzaClient', () => {
     it('muestra noLectura cuando no hay lectura de introducción', () => {
         render(<TemasAlabanzaClient {...defaultProps} initialData={[mockRegistroSinLectura]} />)
 
-        expect(screen.getByText('temasAlabanza.noLectura')).toBeInTheDocument()
+        expect(screen.getByText(translations['es-ES']['temasAlabanza.noLectura'])).toBeInTheDocument()
     })
 
     it('abre modal al hacer click en la fila', () => {
         render(<TemasAlabanzaClient {...defaultProps} />)
 
-        const rows = screen.getAllByText('alabanza.tema.serReverentes')
+        const rows = screen.getAllByText('6. Ser reverentes')
         const row = rows[0].closest('tr')
         expect(row).toBeInTheDocument()
         fireEvent.click(row!)
@@ -105,7 +110,7 @@ describe('TemasAlabanzaClient', () => {
     it('modal puede cerrarse con botón Cerrar', () => {
         render(<TemasAlabanzaClient {...defaultProps} />)
 
-        const rows = screen.getAllByText('alabanza.tema.serReverentes')
+        const rows = screen.getAllByText('6. Ser reverentes')
         fireEvent.click(rows[0].closest('tr')!)
 
         const closeBtn = document.querySelector('[aria-label="Cerrar"]')

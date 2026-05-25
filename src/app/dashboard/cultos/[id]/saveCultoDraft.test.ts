@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const revalidatePathMock = vi.fn()
 let lastLecturasInsert: Record<string, unknown>[] | null = null
+let lastCultoUpdate: Record<string, unknown> | null = null
 
 /** Copia devuelta por `cultos.select...single` (mutable por test) */
 const cultoSelectData = {
@@ -30,8 +31,11 @@ vi.mock('@/lib/supabase/server', () => ({
                 })),
               }),
             }),
-            update: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ error: null }),
+            update: vi.fn((payload: Record<string, unknown>) => {
+              lastCultoUpdate = payload
+              return {
+                eq: vi.fn().mockResolvedValue({ error: null }),
+              }
             }),
           }
         }
@@ -69,6 +73,7 @@ describe('saveCultoDraft — lecturas e id_usuario_lector', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     lastLecturasInsert = null
+    lastCultoUpdate = null
     cultoSelectData.id_usuario_intro = 'andres-intro-uuid'
     cultoSelectData.id_usuario_finalizacion = null
   })
@@ -135,5 +140,37 @@ describe('saveCultoDraft — lecturas e id_usuario_lector', () => {
       ],
     })
     expect(lastLecturasInsert![0].id_usuario_lector).toBe('final-b')
+  })
+
+  it('con configuración activada persiste protocolo e inicio_anticipado como definidos', async () => {
+    const { saveCultoDraft } = await import('./actions')
+    const result = await saveCultoDraft({
+      ...basePayload,
+      protocoloDefinido: true,
+      protocolo: { oracion_inicio: false, congregacion_pie: true },
+      inicioAnticipadoDefinido: true,
+      inicioAnticipado: { activo: false, minutos: 5 },
+    })
+    expect(result).toEqual({ success: true })
+    const meta = lastCultoUpdate?.meta_data as Record<string, unknown>
+    expect(meta.protocolo_definido).toBe(true)
+    expect(meta.inicio_anticipado_definido).toBe(true)
+    expect(meta.protocolo).toEqual({ oracion_inicio: false, congregacion_pie: true })
+    expect(meta.inicio_anticipado).toEqual(
+      expect.objectContaining({ activo: false, minutos: 5 })
+    )
+  })
+
+  it('persiste oración no y congregación sentada para el dashboard', async () => {
+    const { saveCultoDraft } = await import('./actions')
+    await saveCultoDraft({
+      ...basePayload,
+      protocoloDefinido: true,
+      protocolo: { oracion_inicio: false, congregacion_pie: false },
+      inicioAnticipadoDefinido: true,
+      inicioAnticipado: { activo: false, minutos: 5 },
+    })
+    const meta = lastCultoUpdate?.meta_data as Record<string, unknown>
+    expect(meta.protocolo).toEqual({ oracion_inicio: false, congregacion_pie: false })
   })
 })

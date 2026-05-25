@@ -503,18 +503,22 @@ export async function saveCultoDraft(payload: CultoDraftPayload) {
         delete nextMeta.tema_introduccion_alabanza
     }
 
-    if (payload.protocoloDefinido && payload.protocolo) {
-        nextMeta.protocolo = payload.protocolo
+    // Configuración unificada (protocolo + inicio): un solo switch padre marca ambos flags
+    if (payload.protocoloDefinido) {
+        nextMeta.protocolo = payload.protocolo ?? {
+            oracion_inicio: false,
+            congregacion_pie: false,
+        }
         nextMeta.protocolo_definido = true
+        nextMeta.inicio_anticipado = payload.inicioAnticipado ?? {
+            activo: false,
+            minutos: 5,
+            observaciones: '',
+        }
+        nextMeta.inicio_anticipado_definido = true
     } else {
         delete nextMeta.protocolo
         nextMeta.protocolo_definido = false
-    }
-
-    if (payload.inicioAnticipadoDefinido && payload.inicioAnticipado) {
-        nextMeta.inicio_anticipado = payload.inicioAnticipado
-        nextMeta.inicio_anticipado_definido = true
-    } else {
         delete nextMeta.inicio_anticipado
         nextMeta.inicio_anticipado_definido = false
     }

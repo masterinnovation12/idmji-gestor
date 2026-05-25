@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/Card'
-import { Clock, Plus, Info, Music } from 'lucide-react'
+import { Clock, Plus, Music } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { AssignmentPill } from './AssignmentPill'
 import { computeCultoDetails } from '@/lib/utils/computeCultoDetails'
@@ -12,35 +12,12 @@ import { Culto, LecturaBiblica, PlanHimnoCoro } from '@/types/database'
 import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
 import AddLecturaModal from '@/components/AddLecturaModal'
 import type { RolInstruccionCulto } from '@/types/database'
-
-type InstrModal = { open: boolean; rol: RolInstruccionCulto } | null
-
-interface InstrIconBtnProps {
-    readonly rol: RolInstruccionCulto
-    readonly onOpen: (rol: RolInstruccionCulto) => void
-}
-
-/** Icono "i" de instrucciones dentro de la tarjeta: visible, accesible y responsive (zona táctil ≥36px). */
-function InstrIconBtn({ rol, onOpen }: InstrIconBtnProps) {
-    return (
-        <button
-            type="button"
-            onClick={() => onOpen(rol)}
-            aria-label="Ver instrucciones"
-            className="flex items-center justify-center w-9 h-9 min-w-9 min-h-9 rounded-full
-                bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400
-                hover:bg-blue-200 dark:hover:bg-blue-800/50 border border-blue-200 dark:border-blue-700/50
-                active:scale-95 transition-all shadow-sm touch-manipulation"
-        >
-            <Info className="w-4 h-4 shrink-0" strokeWidth={2.5} />
-        </button>
-    )
-}
+import { CultoInstruccionesIconBtn, type InstrModalState } from './CultoInstruccionesIconBtn'
 
 export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ culto: Culto; esHoy: boolean; currentUserId: string }>) {
     const { t } = useI18n()
     const { observacionesData, lecturaData, temaIntroduccionAlabanza } = computeCultoDetails(culto)
-    const [instrModal, setInstrModal] = useState<InstrModal>(null)
+    const [instrModal, setInstrModal] = useState<InstrModalState>(null)
     const [addLecturaModalOpen, setAddLecturaModalOpen] = useState(false)
     const [editingLectura, setEditingLectura] = useState<LecturaBiblica | null>(null)
     const [localLecturas, setLocalLecturas] = useState<LecturaBiblica[]>(((culto as unknown) as { lecturas?: LecturaBiblica[] }).lecturas || [])
@@ -141,7 +118,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                         himnario={culto.plan_himnos_coros as PlanHimnoCoro[] | undefined}
                                         tipoCulto={cultoNombre}
                                         temaIntroduccionAlabanza={cultoNombre.toLowerCase().includes('alabanza') ? temaIntroduccionAlabanza : undefined}
-                        action={cultoTypeId ? <InstrIconBtn rol="introduccion" onOpen={openModal} /> : undefined}
+                        action={cultoTypeId ? <CultoInstruccionesIconBtn rol="introduccion" onOpen={openModal} /> : undefined}
                         footerAction={(canAddReading || showAddHimnos) ? (
                             <div className="flex flex-col gap-2 w-full">
                                 {canAddReading && (
@@ -178,14 +155,14 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                     <AssignmentPill
                                         label={t('cultos.ensenanza')}
                                         usuario={ensenanzaEsVideo ? { nombre: 'Video Hna. María Luisa', apellidos: 'Piraquive' } : culto.usuario_ensenanza}
-                                        action={cultoTypeId ? <InstrIconBtn rol="ensenanza" onOpen={openModal} /> : undefined}
+                                        action={cultoTypeId ? <CultoInstruccionesIconBtn rol="ensenanza" onOpen={openModal} /> : undefined}
                                     />
                                 )}
                                 {culto.tipo_culto?.tiene_testimonios && (
                                     <AssignmentPill
                                         label={t('cultos.testimonios')}
                                         usuario={culto.usuario_testimonios}
-                                        action={cultoTypeId ? <InstrIconBtn rol="testimonios" onOpen={openModal} /> : undefined}
+                                        action={cultoTypeId ? <CultoInstruccionesIconBtn rol="testimonios" onOpen={openModal} /> : undefined}
                                     />
                                 )}
                                 {culto.tipo_culto?.tiene_lectura_finalizacion && (
@@ -193,7 +170,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                         label={t('cultos.finalizacion')}
                                         usuario={culto.usuario_finalizacion}
                                         lectura={lecturaData?.lecturaFinal ?? undefined}
-                                        action={cultoTypeId ? <InstrIconBtn rol="finalizacion" onOpen={openModal} /> : undefined}
+                                        action={cultoTypeId ? <CultoInstruccionesIconBtn rol="finalizacion" onOpen={openModal} /> : undefined}
                                     />
                                 )}
                             </div>

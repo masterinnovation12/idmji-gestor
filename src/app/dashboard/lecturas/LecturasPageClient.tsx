@@ -52,6 +52,7 @@ interface LecturaExt extends LecturaBiblica {
     culto: {
         id?: string
         fecha: string
+        hora_inicio?: string
         tipo_culto: {
             id: string
             nombre: string
@@ -1398,12 +1399,12 @@ export default function LecturasPageClient({
                                                                 <span className="flex items-center gap-1">
                                                                     <Calendar className="w-3 h-3" />
                                                                     <span suppressHydrationWarning className="hidden sm:inline">
-                                                                        {format(parseISO(lectura.culto.fecha), 'PP', { locale })}
+                                                                        {format(parseISO(lectura.culto.fecha), 'PP', { locale })} {lectura.culto.hora_inicio && `(${lectura.culto.hora_inicio.slice(0, 5)})`}
                                                                     </span>
                                                                     <span suppressHydrationWarning className="sm:hidden flex items-center gap-1">
                                                                         <span className="font-semibold text-foreground">{lectura.culto.tipo_culto.nombre}</span>
                                                                         <span className="opacity-50">•</span>
-                                                                        <span>{format(parseISO(lectura.culto.fecha), 'dd/MM/yyyy', { locale })}</span>
+                                                                        <span>{format(parseISO(lectura.culto.fecha), 'dd/MM/yyyy', { locale })} {lectura.culto.hora_inicio && `(${lectura.culto.hora_inicio.slice(0, 5)})`}</span>
                                                                     </span>
                                                                 </span>
                                                                 <span className="opacity-30 hidden sm:inline">•</span>
@@ -1550,7 +1551,7 @@ export default function LecturasPageClient({
                                     {t('lecturas.detailsFecha')}
                                 </label>
                                 <p suppressHydrationWarning className="text-sm sm:text-base font-medium">
-                                    {format(parseISO(selectedLectura.culto.fecha), 'PP', { locale })}
+                                    {format(parseISO(selectedLectura.culto.fecha), 'PP', { locale })} {selectedLectura.culto.hora_inicio && `(${selectedLectura.culto.hora_inicio.slice(0, 5)})`}
                                 </p>
                             </div>
                             <div className="space-y-1">

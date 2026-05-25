@@ -34,7 +34,7 @@ import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LIMITES } from '@/lib/constants'
-import { TEMAS_ALABANZA_KEYS } from '@/lib/constants/temasAlabanza'
+import { TEMAS_ALABANZA_KEYS, formatTemaAlabanzaLabel } from '@/lib/constants/temasAlabanza'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/Dialog'
 import { Culto, Profile } from '@/types/database'
 import NextImage from 'next/image'
@@ -42,6 +42,7 @@ import { computeTemaDropdownStyle, shouldCloseTemaDropdown } from './temaDropdow
 import type { TranslationKey } from '@/lib/i18n/types'
 import SaveChangesBar from './SaveChangesBar'
 import { reconcileOptimisticUser, resolveDisplayUser } from './assignmentDisplayUser'
+import { BinarySegmentedControl } from '@/components/ui/BinarySegmentedControl'
 
 interface CultoDetailClientProps {
     culto: Culto
@@ -372,11 +373,13 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
     const [draftProtocolo, setDraftProtocolo] = useState<{ oracion_inicio: boolean; congregacion_pie: boolean } | null>(
         (culto.meta_data as CultoMetaData)?.protocolo ?? null
     )
-    const [draftProtocoloDefinido, setDraftProtocoloDefinido] = useState<boolean>((culto.meta_data as CultoMetaData)?.protocolo_definido ?? false)
+    const cultoMeta = culto.meta_data as CultoMetaData
     const [draftInicioAnticipado, setDraftInicioAnticipado] = useState<{ activo: boolean; minutos: number; observaciones?: string } | null>(
-        (culto.meta_data as CultoMetaData)?.inicio_anticipado ?? null
+        cultoMeta?.inicio_anticipado ?? null
     )
-    const [draftInicioAnticipadoDefinido, setDraftInicioAnticipadoDefinido] = useState<boolean>((culto.meta_data as CultoMetaData)?.inicio_anticipado_definido ?? false)
+    const [draftConfiguracionDefinida, setDraftConfiguracionDefinida] = useState<boolean>(
+        !!(cultoMeta?.protocolo_definido || cultoMeta?.inicio_anticipado_definido)
+    )
     const [draftFestivo, setDraftFestivo] = useState<boolean>(!!culto.es_laborable_festivo)
     const [draftHoraInicio, setDraftHoraInicio] = useState<string>(culto.hora_inicio)
     const [draftEnsenanzaModo, setDraftEnsenanzaModo] = useState<'hermano' | 'video_hna_maria_luisa'>(
@@ -402,9 +405,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         observaciones: (culto.meta_data as CultoMetaData)?.observaciones || '',
         tema: (culto.meta_data as CultoMetaData)?.tema_introduccion_alabanza ?? null,
         protocolo: (culto.meta_data as CultoMetaData)?.protocolo ?? null,
-        protocoloDefinido: (culto.meta_data as CultoMetaData)?.protocolo_definido ?? false,
-        inicioAnticipado: (culto.meta_data as CultoMetaData)?.inicio_anticipado ?? null,
-        inicioAnticipadoDefinido: (culto.meta_data as CultoMetaData)?.inicio_anticipado_definido ?? false,
+        configuracionDefinida: !!(cultoMeta?.protocolo_definido || cultoMeta?.inicio_anticipado_definido),
+        inicioAnticipado: cultoMeta?.inicio_anticipado ?? null,
         festivo: !!culto.es_laborable_festivo,
         hora: culto.hora_inicio,
         ensenanzaModo: (culto.meta_data as CultoMetaData)?.ensenanza_modo ?? 'hermano' as 'hermano' | 'video_hna_maria_luisa',
@@ -520,9 +522,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 observaciones: draftObservaciones,
                 temaIntroduccionAlabanza: draftTema,
                 protocolo: draftProtocolo,
-                protocoloDefinido: draftProtocoloDefinido,
+                protocoloDefinido: draftConfiguracionDefinida,
                 inicioAnticipado: draftInicioAnticipado,
-                inicioAnticipadoDefinido: draftInicioAnticipadoDefinido,
+                inicioAnticipadoDefinido: draftConfiguracionDefinida,
                 esLaborableFestivo: draftFestivo,
                 horaInicio: draftHoraInicio,
                 ensenanzaModo: draftEnsenanzaModo,
@@ -557,9 +559,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 observaciones: draftObservaciones,
                 tema: draftTema,
                 protocolo: draftProtocolo,
-                protocoloDefinido: draftProtocoloDefinido,
+                configuracionDefinida: draftConfiguracionDefinida,
                 inicioAnticipado: draftInicioAnticipado,
-                inicioAnticipadoDefinido: draftInicioAnticipadoDefinido,
                 festivo: draftFestivo,
                 hora: draftHoraInicio,
                 ensenanzaModo: draftEnsenanzaModo,
@@ -588,9 +589,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         setDraftObservaciones(initial.observaciones)
         setDraftTema(initial.tema)
         setDraftProtocolo(initial.protocolo)
-        setDraftProtocoloDefinido(initial.protocoloDefinido)
+        setDraftConfiguracionDefinida(initial.configuracionDefinida)
         setDraftInicioAnticipado(initial.inicioAnticipado)
-        setDraftInicioAnticipadoDefinido(initial.inicioAnticipadoDefinido)
         setDraftFestivo(initial.festivo)
         setDraftHoraInicio(initial.hora)
         setDraftEnsenanzaModo(initial.ensenanzaModo)
@@ -608,9 +608,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         draftObservaciones !== initialRef.current.observaciones,
         draftTema !== initialRef.current.tema,
         JSON.stringify(draftProtocolo) !== JSON.stringify(initialRef.current.protocolo),
-        draftProtocoloDefinido !== initialRef.current.protocoloDefinido,
+        draftConfiguracionDefinida !== initialRef.current.configuracionDefinida,
         JSON.stringify(draftInicioAnticipado) !== JSON.stringify(initialRef.current.inicioAnticipado),
-        draftInicioAnticipadoDefinido !== initialRef.current.inicioAnticipadoDefinido,
         draftFestivo !== initialRef.current.festivo,
         draftHoraInicio !== initialRef.current.hora,
         draftEnsenanzaModo !== initialRef.current.ensenanzaModo,
@@ -823,7 +822,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 >
                                     <span className="text-sm font-bold truncate">
                                         {draftTema
-                                            ? t(draftTema as TranslationKey)
+                                            ? formatTemaAlabanzaLabel(draftTema, t)
                                             : t('alabanza.tema.sinAsignar')}
                                     </span>
                                     <ChevronDown className={`w-5 h-5 shrink-0 transition-transform ${temaDropdownOpen ? 'rotate-180' : ''}`} />
@@ -867,7 +866,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                                 }`}
                                                         >
                                                             {isSelected && <CheckCircle className="w-4 h-4 shrink-0 text-blue-500" />}
-                                                            <span className="line-clamp-2">{t(key)}</span>
+                                                            <span className="line-clamp-2">{formatTemaAlabanzaLabel(key, t)}</span>
                                                         </button>
                                                     )
                                                 })}
@@ -908,8 +907,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     {temaConfirmState?.tipo === 'modify' && t('alabanza.tema.confirmModify')}
                                 </DialogTitle>
                                 <DialogDescription className="text-slate-600 dark:text-slate-400">
-                                    {temaConfirmState?.tipo === 'assign' && temaConfirmState?.temaKey && t(temaConfirmState.temaKey as TranslationKey)}
-                                    {temaConfirmState?.tipo === 'modify' && temaConfirmState?.temaKey && t(temaConfirmState.temaKey as TranslationKey)}
+                                    {temaConfirmState?.tipo === 'assign' && temaConfirmState?.temaKey && formatTemaAlabanzaLabel(temaConfirmState.temaKey, t)}
+                                    {temaConfirmState?.tipo === 'modify' && temaConfirmState?.temaKey && formatTemaAlabanzaLabel(temaConfirmState.temaKey, t)}
                                 </DialogDescription>
                             </DialogHeader>
                             <DialogFooter className="gap-2 sm:gap-0">
@@ -1003,7 +1002,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 </motion.div>
             )}
 
-            {/* Protocol Configuration (Solo Estudio Bíblico, oculto para SONIDO) */}
+            {/* Configuración del culto: protocolo + inicio anticipado (Estudio Bíblico) */}
             {!readOnlyAssignments && (tipoCulto.toLowerCase().includes('estudio') || tipoCulto.toLowerCase().includes('biblico')) && (
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -1012,7 +1011,6 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 >
                     <div className="glass rounded-3xl md:rounded-4xl p-3 sm:p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
                         <div className="flex flex-col gap-3 sm:gap-6 relative z-10">
-                            {/* Header + Toggle maestro (como Inicio anticipado) */}
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                 <div className="flex items-center gap-3 sm:gap-4">
                                     <div className="p-2.5 sm:p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shrink-0">
@@ -1020,10 +1018,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     </div>
                                     <div className="min-w-0">
                                         <h3 className="text-base sm:text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
-                                            {t('culto.protocol.title')}
+                                            {t('culto.config.title' as TranslationKey)}
                                         </h3>
                                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                                            {t('culto.protocol.desc')}
+                                            {t('culto.config.desc' as TranslationKey)}
                                         </p>
                                         <p className="text-[10px] text-muted-foreground/80 mt-1.5 sm:mt-2 opacity-90">
                                             {t('culto.protocol.helpDashboard')}
@@ -1031,207 +1029,150 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     </div>
                                 </div>
 
-                                {/* Toggle maestro: Activado = interactuar con oración/congregación; Desactivado = Por definir */}
                                 <button
                                     type="button"
                                     onClick={async () => {
-                                        const definido = draftProtocoloDefinido === true
-                                        if (definido) {
+                                        if (draftConfiguracionDefinida) {
                                             setDraftProtocolo(null)
-                                            setDraftProtocoloDefinido(false)
+                                            setDraftInicioAnticipado(null)
+                                            setDraftConfiguracionDefinida(false)
                                             toast.success(t('culto.detail.toast.protocolUndefined' as TranslationKey))
                                         } else {
                                             setDraftProtocolo({
-                                                oracion_inicio: true,
-                                                congregacion_pie: false
+                                                oracion_inicio: draftProtocolo?.oracion_inicio ?? false,
+                                                congregacion_pie: draftProtocolo?.congregacion_pie ?? false,
                                             })
-                                            setDraftProtocoloDefinido(true)
+                                            setDraftInicioAnticipado({
+                                                activo: draftInicioAnticipado?.activo ?? false,
+                                                minutos: draftInicioAnticipado?.minutos ?? 5,
+                                                observaciones: draftInicioAnticipado?.observaciones,
+                                            })
+                                            setDraftConfiguracionDefinida(true)
                                             toast.success(t('culto.detail.toast.protocolActivated' as TranslationKey))
                                         }
                                         setIsDirty(true)
                                     }}
-                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] sm:min-h-0 rounded-2xl border-2 transition-all cursor-pointer touch-manipulation shrink-0 w-full sm:w-auto sm:min-w-[180px] ${draftProtocoloDefinido === true
+                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] sm:min-h-0 rounded-2xl border-2 transition-all cursor-pointer touch-manipulation shrink-0 w-full sm:w-auto sm:min-w-[180px] ${draftConfiguracionDefinida
                                         ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-700 dark:text-indigo-300'
                                         : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
                                         }`}
                                 >
                                     <span className="text-xs sm:text-sm font-black uppercase tracking-tight">
-                                        {draftProtocoloDefinido === true
+                                        {draftConfiguracionDefinida
                                             ? t('culto.protocol.activated')
                                             : t('culto.protocol.deactivated')}
                                     </span>
-                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${draftProtocoloDefinido === true
+                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${draftConfiguracionDefinida
                                         ? 'bg-indigo-500 border-indigo-600'
                                         : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
                                         }`}>
-                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${draftProtocoloDefinido === true ? 'translate-x-5 sm:translate-x-5' : 'translate-x-0'}`} />
+                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${draftConfiguracionDefinida ? 'translate-x-5 sm:translate-x-5' : 'translate-x-0'}`} />
                                     </div>
                                 </button>
                             </div>
 
-                            {/* Oración y Congregación: solo visibles e interactivos cuando protocolo está Activado */}
-                            {draftProtocoloDefinido === true && (
+                            {draftConfiguracionDefinida && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
                                     className="space-y-3 sm:space-y-4"
                                 >
-                                    <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
-                                        {/* Switch Oración */}
-                                        {(() => {
-                                            const oracionActual = draftProtocolo?.oracion_inicio ?? true
-                                            const congregacionActual = draftProtocolo?.congregacion_pie ?? false
-                                            const oracionActivo = oracionActual
-                                            return (
-                                                <button
-                                                    type="button"
-                                                    onClick={async () => {
-                                                        setDraftProtocolo({
-                                                            oracion_inicio: !oracionActual,
-                                                            congregacion_pie: congregacionActual
-                                                        })
-                                                        setIsDirty(true)
-                                                        toast.success(
-                                                            !oracionActual
-                                                                ? t('culto.detail.toast.prayerOn' as TranslationKey)
-                                                                : t('culto.detail.toast.prayerOff' as TranslationKey)
-                                                        )
-                                                    }}
-                                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] rounded-2xl border-2 transition-all flex-1 min-w-0 cursor-pointer touch-manipulation ${oracionActivo
-                                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                                                        : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
-                                                        }`}
-                                                >
-                                                    <div className="flex flex-col items-start min-w-0">
-                                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-70 leading-none mb-0.5">{t('culto.protocol.prayer')}</span>
-                                                        <span className={`text-xs font-black uppercase tracking-tight truncate ${oracionActivo ? '' : 'text-slate-400 dark:text-slate-500'}`}>
-                                                            {oracionActual ? t('culto.protocol.yesPray') : t('culto.protocol.noPray')}
-                                                        </span>
-                                                    </div>
-                                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${oracionActivo
-                                                        ? 'bg-emerald-500 border-emerald-600'
-                                                        : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
-                                                        }`}>
-                                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${oracionActivo ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                    </div>
-                                                </button>
-                                            )
-                                        })()}
-
-                                        {/* Switch Congregación */}
-                                        {(() => {
-                                            const oracionActual = draftProtocolo?.oracion_inicio ?? true
-                                            const congregacionActual = draftProtocolo?.congregacion_pie ?? false
-                                            const congregacionActivo = congregacionActual
-                                            return (
-                                                <button
-                                                    type="button"
-                                                    onClick={async () => {
-                                                        setDraftProtocolo({
-                                                            oracion_inicio: oracionActual,
-                                                            congregacion_pie: !congregacionActual
-                                                        })
-                                                        setIsDirty(true)
-                                                        toast.success(
-                                                            !congregacionActual
-                                                                ? t('culto.detail.toast.congregationStanding' as TranslationKey)
-                                                                : t('culto.detail.toast.congregationSeated' as TranslationKey)
-                                                        )
-                                                    }}
-                                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] rounded-2xl border-2 transition-all flex-1 min-w-0 cursor-pointer touch-manipulation ${congregacionActivo
-                                                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300'
-                                                        : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
-                                                        }`}
-                                                >
-                                                    <div className="flex flex-col items-start min-w-0">
-                                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-70 leading-none mb-0.5">{t('culto.protocol.congregation')}</span>
-                                                        <span className={`text-xs font-black uppercase tracking-tight truncate ${congregacionActivo ? '' : 'text-slate-400 dark:text-slate-500'}`}>
-                                                            {congregacionActual ? t('culto.protocol.standing') : t('culto.protocol.seated')}
-                                                        </span>
-                                                    </div>
-                                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${congregacionActivo
-                                                        ? 'bg-blue-500 border-blue-600'
-                                                        : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
-                                                        }`}>
-                                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${congregacionActivo ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                    </div>
-                                                </button>
-                                            )
-                                        })()}
+                                    <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4 w-full max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-none 2xl:grid-cols-2 2xl:gap-x-8">
+                                        <BinarySegmentedControl
+                                            className="2xl:max-w-[220px]"
+                                            label={t('culto.protocol.prayer')}
+                                            value={draftProtocolo?.oracion_inicio ?? false}
+                                            options={[
+                                                { value: true, label: t('culto.protocol.yesPray') },
+                                                { value: false, label: t('culto.protocol.noPray') },
+                                            ]}
+                                            onChange={(oracion_inicio) => {
+                                                setDraftProtocolo({
+                                                    oracion_inicio,
+                                                    congregacion_pie: draftProtocolo?.congregacion_pie ?? false,
+                                                })
+                                                setIsDirty(true)
+                                                toast.success(
+                                                    oracion_inicio
+                                                        ? (t('culto.detail.toast.prayerOn' as TranslationKey))
+                                                        : (t('culto.detail.toast.prayerOff' as TranslationKey))
+                                                )
+                                            }}
+                                        />
+                                        <BinarySegmentedControl
+                                            className="2xl:max-w-[240px]"
+                                            label={t('culto.protocol.congregation')}
+                                            value={draftProtocolo?.congregacion_pie ?? false}
+                                            options={[
+                                                { value: true, label: t('culto.protocol.standing') },
+                                                { value: false, label: t('culto.protocol.seated') },
+                                            ]}
+                                            onChange={(congregacion_pie) => {
+                                                setDraftProtocolo({
+                                                    oracion_inicio: draftProtocolo?.oracion_inicio ?? false,
+                                                    congregacion_pie,
+                                                })
+                                                setIsDirty(true)
+                                                toast.success(
+                                                    congregacion_pie
+                                                        ? (t('culto.detail.toast.congregationStanding' as TranslationKey))
+                                                        : (t('culto.detail.toast.congregationSeated' as TranslationKey))
+                                                )
+                                            }}
+                                        />
                                     </div>
-                                </motion.div>
-                            )}
-                        </div>
-                    </div>
-                </motion.div>
-            )}
 
-            {/* Inicio Anticipado (Solo Estudio Bíblico, oculto para SONIDO) */}
-            {!readOnlyAssignments && (tipoCulto.toLowerCase().includes('estudio') || tipoCulto.toLowerCase().includes('biblico')) && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="w-full"
-                >
-                    <div className="glass rounded-4xl p-4 sm:p-5 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
-                        <div className="flex flex-col gap-4 sm:gap-6 relative z-10">
-                            {/* Header */}
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                <div className="flex items-center gap-3 sm:gap-4">
-                                    <div className="p-2.5 sm:p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20 shrink-0">
-                                        <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <h3 className="text-base sm:text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
-                                            {t('culto.detail.inicioAnticipado.title' as TranslationKey)}
-                                        </h3>
-                                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                                            {t('culto.detail.inicioAnticipado.subtitle' as TranslationKey)}
-                                        </p>
-                                        <p className="text-[10px] text-muted-foreground/80 mt-1.5 sm:mt-2 opacity-90">
-                                            {t('culto.protocol.helpDashboard')}
-                                        </p>
-                                    </div>
-                                </div>
+                                    {/* Inicio anticipado (hijo) */}
+                                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 space-y-3 sm:space-y-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 shrink-0">
+                                                    <Clock className="w-4 h-4 text-amber-500" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                                        {t('culto.detail.inicioAnticipado.title' as TranslationKey)}
+                                                    </p>
+                                                    <p className="text-[10px] text-muted-foreground/80">
+                                                        {t('culto.detail.inicioAnticipado.subtitle' as TranslationKey)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    const current = draftInicioAnticipado?.activo ?? false
+                                                    setDraftInicioAnticipado({
+                                                        activo: !current,
+                                                        minutos: draftInicioAnticipado?.minutos ?? 5,
+                                                        observaciones: draftInicioAnticipado?.observaciones,
+                                                    })
+                                                    setIsDirty(true)
+                                                    toast.success(
+                                                        !current
+                                                            ? t('culto.detail.toast.inicioAnticipadoOn' as TranslationKey)
+                                                            : t('culto.detail.toast.inicioAnticipadoOff' as TranslationKey)
+                                                    )
+                                                }}
+                                                className={`flex items-center justify-between gap-3 px-4 py-3 min-h-[44px] rounded-2xl border-2 transition-all cursor-pointer touch-manipulation w-full sm:w-auto sm:min-w-[180px] ${(draftInicioAnticipado?.activo ?? false)
+                                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300'
+                                                    : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
+                                                    }`}
+                                            >
+                                                <span className="text-xs font-black uppercase tracking-tight">
+                                                    {(draftInicioAnticipado?.activo ?? false)
+                                                        ? t('culto.detail.inicioAnticipado.activado' as TranslationKey)
+                                                        : t('culto.detail.inicioAnticipado.desactivado' as TranslationKey)}
+                                                </span>
+                                                <div className={`w-11 h-6 rounded-full p-0.5 border shrink-0 ${(draftInicioAnticipado?.activo ?? false)
+                                                    ? 'bg-amber-500 border-amber-600'
+                                                    : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
+                                                    }`}>
+                                                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${(draftInicioAnticipado?.activo ?? false) ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                </div>
+                                            </button>
+                                        </div>
 
-                                {/* Toggle Switch */}
-                                <button
-                                    type="button"
-                                    onClick={async () => {
-                                        const current = draftInicioAnticipado?.activo ?? false
-                                        setDraftInicioAnticipadoDefinido(true)
-                                        setDraftInicioAnticipado({
-                                            activo: !current,
-                                            minutos: draftInicioAnticipado?.minutos ?? 5,
-                                            observaciones: draftInicioAnticipado?.observaciones
-                                        })
-                                        setIsDirty(true)
-                                        toast.success(
-                                            !current
-                                                ? t('culto.detail.toast.inicioAnticipadoOn' as TranslationKey)
-                                                : t('culto.detail.toast.inicioAnticipadoOff' as TranslationKey)
-                                        )
-                                    }}
-                                    className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] sm:min-h-0 rounded-2xl border-2 transition-all cursor-pointer touch-manipulation shrink-0 w-full sm:w-auto sm:min-w-[180px] ${(draftInicioAnticipado?.activo ?? false)
-                                        ? 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300'
-                                        : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
-                                        }`}
-                                >
-                                    <span className="text-xs sm:text-sm font-black uppercase tracking-tight">
-                                        {(draftInicioAnticipado?.activo ?? false)
-                                            ? t('culto.detail.inicioAnticipado.activado' as TranslationKey)
-                                            : t('culto.detail.inicioAnticipado.desactivado' as TranslationKey)}
-                                    </span>
-                                    <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${(draftInicioAnticipado?.activo ?? false)
-                                        ? 'bg-amber-500 border-amber-600'
-                                        : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
-                                        }`}>
-                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${(draftInicioAnticipado?.activo ?? false) ? 'translate-x-5' : 'translate-x-0'}`} />
-                                    </div>
-                                </button>
-                            </div>
-
-                            {/* Content - Only shown when active */}
                             {(draftInicioAnticipado?.activo ?? false) && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
@@ -1333,6 +1274,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                 </p>
                                             </div>
                                         </div>
+                                    </div>
+                                </motion.div>
+                            )}
                                     </div>
                                 </motion.div>
                             )}

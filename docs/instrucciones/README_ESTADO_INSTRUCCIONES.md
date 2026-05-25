@@ -8,8 +8,9 @@ Resumen de lo implementado y lo pendiente para cada tipo de culto y rol.
 
 | Tipo           | Rol            | Estado | Contenido / Migración |
 |----------------|----------------|--------|------------------------|
-| **Alabanza**   | Introducción   | ✅ Hecho | `alabanza-introduccion.md` → `20260311100000_seed_instruccion_alabanza_introduccion.sql` |
-| **Alabanza**   | Finalización   | ⏳ Pendiente | Falta doc + migración |
+| **Alabanza**   | Temas alabanza | ✅ Hecho | Contenido de los 6 temas; `20260525150000_instrucciones_temas_alabanza.sql` (`rol = temas_alabanza`) |
+| **Alabanza**   | Introducción   | ⏳ Próximamente | Placeholder en BD (`publicado = false`); doc pendiente |
+| **Alabanza**   | Finalización   | ⏳ Próximamente | Placeholder en BD (`publicado = false`); doc pendiente |
 | **Estudio Bíblico** | Introducción   | ⏳ Pendiente | Falta doc + migración |
 | **Estudio Bíblico** | Finalización   | ⏳ Pendiente | Falta doc + migración |
 | **Enseñanza**  | Introducción   | ⏳ Pendiente | Falta doc + migración |
@@ -23,7 +24,8 @@ Resumen de lo implementado y lo pendiente para cada tipo de culto y rol.
 1. **Tabla** `instrucciones_culto`: creada en `supabase/migrations/20260311000000_create_instrucciones_culto.sql` (culto_type_id, rol, titulo_es/ca, contenido_es/ca).
 2. **Backend**: `getInstruccionCulto(cultoTypeId, rol, language)` en `src/app/dashboard/instrucciones/actions.ts` — lee por tipo de culto y rol.
 3. **Modal**: `InstruccionesCultoModal` en detalle de culto y en Dashboard (Mis asignaciones); botón «Ver instrucciones» por cada rol (Intro, Enseñanza, Testimonios, Finalización) según el tipo de culto.
-4. **Primera instrucción oficial**: **Alabanza – Introducción**. Contenido en `docs/instrucciones/alabanza-introduccion.md`; migración que inserta/actualiza en BD: `20260311100000_seed_instruccion_alabanza_introduccion.sql`. Documentación: `docs/IMPLEMENTACION_INSTRUCCION_ALABANZA_INTRO.md`.
+4. **Temas de alabanza (6 temas)**: **Alabanza – Temas alabanza**. Texto en BD bajo `rol = temas_alabanza`; migración de separación: `20260525150000_instrucciones_temas_alabanza.sql`. Doc: `docs/instrucciones/alabanza-temas.md`.
+5. **Seed histórico**: `20260311100000_seed_instruccion_alabanza_introduccion.sql` (cargó el texto en `introduccion`; la migración 20260525150000 lo mueve a `temas_alabanza`).
 
 IDs de tipo de culto (según el plan): **4** = Estudio Bíblico, **5** = Alabanza, **6** = Enseñanza (resolver por nombre en migraciones si puede variar).
 
@@ -43,7 +45,8 @@ No hace falta cambiar código de la app: el modal y la action ya sirven cualquie
 
 En `docs/instrucciones/` hay (o se pueden añadir) plantillas para rellenar:
 
-- `alabanza-introduccion.md` ✅ (ya rellenado y migrado)
+- `alabanza-temas.md` ✅ (contenido en BD como `temas_alabanza`)
+- `alabanza-introduccion.md` (referencia histórica; rol intro pendiente de redactar)
 - `alabanza-finalizacion.md` (pendiente)
 - `estudio-biblico-introduccion.md` (pendiente)
 - `estudio-biblico-finalizacion.md` (pendiente)

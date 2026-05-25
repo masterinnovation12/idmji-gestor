@@ -5,8 +5,13 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { StandardCultoCard } from './StandardCultoCard'
 
+import { translations } from '@/lib/i18n/translations'
+import type { TranslationKey } from '@/lib/i18n/types'
+
+const tEs = (k: string) => translations['es-ES'][k as TranslationKey] ?? k
+
 vi.mock('@/lib/i18n/I18nProvider', () => ({
-  useI18n: () => ({ t: (k: string) => k }),
+  useI18n: () => ({ t: tEs }),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -70,7 +75,7 @@ describe('StandardCultoCard', () => {
         currentUserId="user-1"
       />
     )
-    expect(screen.getByText('alabanza.tema.prepararnos')).toBeInTheDocument()
+    expect(screen.getByText('1. Prepararnos para la alabanza y congregarnos')).toBeInTheDocument()
   })
 
   it('does not show tema when culto is Enseñanza even with meta_data tema', () => {
@@ -81,7 +86,7 @@ describe('StandardCultoCard', () => {
         currentUserId="user-1"
       />
     )
-    expect(screen.queryByText('alabanza.tema.prepararnos')).not.toBeInTheDocument()
+    expect(screen.queryByText(/1\. Prepararnos/)).not.toBeInTheDocument()
   })
 
   it('muestra observaciones vacías en chip compacto', () => {
@@ -93,7 +98,7 @@ describe('StandardCultoCard', () => {
       />
     )
 
-    const noObsChip = screen.getByText('dashboard.noObservaciones')
+    const noObsChip = screen.getByText(translations['es-ES']['dashboard.noObservaciones'])
     expect(noObsChip).toBeInTheDocument()
     expect(noObsChip.className).toContain('italic')
   })

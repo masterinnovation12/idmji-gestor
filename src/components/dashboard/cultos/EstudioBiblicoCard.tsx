@@ -9,11 +9,15 @@ import { computeCultoDetails } from '@/lib/utils/computeCultoDetails'
 import { upsertReadingPreserveOrder } from '@/lib/utils/upsert-reading'
 import Link from 'next/link'
 import { Culto, LecturaBiblica, PlanHimnoCoro } from '@/types/database'
+import type { RolInstruccionCulto } from '@/types/database'
 import AddLecturaModal from '@/components/AddLecturaModal'
+import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
+import { CultoInstruccionesIconBtn, type InstrModalState } from './CultoInstruccionesIconBtn'
 
 export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ culto: Culto; esHoy: boolean; currentUserId: string }>) {
     const { t } = useI18n()
     const { estudioBiblicoData, observacionesData, lecturaData } = computeCultoDetails(culto)
+    const [instrModal, setInstrModal] = useState<InstrModalState>(null)
     const [addLecturaModalOpen, setAddLecturaModalOpen] = useState(false)
     const [editingLectura, setEditingLectura] = useState<LecturaBiblica | null>(null)
     const [localLecturas, setLocalLecturas] = useState<LecturaBiblica[]>((culto as Culto & { lecturas?: LecturaBiblica[] }).lecturas || [])
@@ -21,6 +25,11 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
     const lecturasIntro = localLecturas.filter((l) => l.tipo_lectura === 'introduccion')
 
     const introUserId = (culto.usuario_intro as { id?: string } | null)?.id ?? currentUserId
+    const cultoTypeId = culto.tipo_culto?.id ?? culto.tipo_culto_id
+    const cultoNombre = culto.tipo_culto?.nombre ?? ''
+
+    const openModal = (rol: RolInstruccionCulto) => setInstrModal({ open: true, rol })
+    const closeModal = () => setInstrModal(null)
 
     const getTranslatedCultoName = (name: string | undefined) => {
         if (!name) return ''
@@ -33,14 +42,13 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
     }
 
     return (
+        <>
         <div className="relative group">
             <div className="absolute inset-0 bg-blue-600/20 blur-2xl rounded-[2.5rem] transform group-hover:scale-105 transition-transform duration-500 -z-10" />
             <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl">
-                {/* Banner Superior */}
                 <div className="h-2 w-full" style={{ backgroundColor: culto.tipo_culto?.color || '#3b82f6' }} />
 
                 <CardContent className="p-4 sm:p-5 md:p-8">
-                    {/* Header compacto */}
                     <div className="mb-4 md:mb-6">
                         <div className="flex items-center justify-between gap-3 mb-2">
                             <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.18em] shadow-lg ${esHoy ? 'bg-red-500 text-white shadow-red-500/30' : 'bg-blue-600 text-white shadow-blue-500/30'}`}>
@@ -55,52 +63,43 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                             {getTranslatedCultoName(culto.tipo_culto?.nombre)}
                         </h2>
 
-                        {/* Hora / Inicio anticipado - con estado Por definir */}
                         <div className="flex items-center gap-3 text-slate-500 font-bold mb-2">
                             <Clock className="w-5 h-5 text-blue-500 shrink-0" />
-                            {!estudioBiblicoData?.inicioAnticipadoDefinido ? (
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                                    <span className="text-base text-slate-400 dark:text-slate-500 italic">
-                                        {t('dashboard.inicioToDefine')}
-                                    </span>
-                                    <Link
-                                        href={`/dashboard/cultos/${culto.id}`}
-                                        className="inline-flex items-center gap-1.5 min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold text-primary hover:bg-primary/10 border border-primary/20 transition-colors touch-manipulation"
-                                    >
-                                        <span>{t('dashboard.defineInDetail')}</span>
-                                        <ArrowRight className="w-4 h-4" />
-                                    </Link>
-                                </div>
-                            ) : estudioBiblicoData?.inicioAnticipado ? (
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-lg line-through opacity-50">{(culto.hora_inicio || '').slice(0, 5)}</span>
-                                    <span className="text-lg font-black text-amber-600 dark:text-amber-400">
-                                        {estudioBiblicoData.inicioAnticipado.horaReal}
-                                    </span>
-                                    <span className="px-2.5 py-1 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-xl text-[10px] font-black uppercase">
-                                        {estudioBiblicoData.inicioAnticipado.minutos} {t('dashboard.minBefore')}
-                                    </span>
-                                </div>
+                            {estudioBiblicoData?.configuracionDefinida ? (
+                                estudioBiblicoData.inicioAnticipado ? (
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-lg line-through opacity-50">{(culto.hora_inicio || '').slice(0, 5)}</span>
+                                        <span className="text-lg font-black text-amber-600 dark:text-amber-400">
+                                            {estudioBiblicoData.inicioAnticipado.horaReal}
+                                        </span>
+                                        <span className="px-2.5 py-1 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-xl text-[10px] font-black uppercase">
+                                            {estudioBiblicoData.inicioAnticipado.minutos} {t('dashboard.minBefore')}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <span className="text-lg">{(culto.hora_inicio || '').slice(0, 5)}</span>
+                                )
                             ) : (
-                                <span className="text-lg">{(culto.hora_inicio || '').slice(0, 5)}</span>
+                                <span className="text-lg text-slate-400 dark:text-slate-500 italic">
+                                    {(culto.hora_inicio || '').slice(0, 5)}
+                                </span>
                             )}
                         </div>
                     </div>
 
-                    {/* Protocolo (oración + congregación) - Premium cards con estado Por definir */}
                     {estudioBiblicoData?.esEstudio && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
-                            {!estudioBiblicoData.protocoloDefinido ? (
+                            {!estudioBiblicoData.configuracionDefinida ? (
                                 <Link
                                     href={`/dashboard/cultos/${culto.id}`}
-                                    className="flex items-center gap-4 p-4 sm:p-5 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 hover:border-primary/30 hover:bg-primary/5 transition-all min-h-[72px] touch-manipulation"
+                                    className="sm:col-span-2 flex items-center gap-4 p-4 sm:p-5 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 hover:border-primary/30 hover:bg-primary/5 transition-all min-h-[72px] touch-manipulation"
                                 >
                                     <div className="p-2.5 rounded-xl bg-slate-200/50 dark:bg-slate-700/50">
                                         <HelpCircle className="w-5 h-5 text-slate-400 dark:text-slate-500" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">
-                                            {t('dashboard.protocolToDefine')}
+                                            {t('dashboard.configToDefine')}
                                         </p>
                                         <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
                                             {t('dashboard.toDefine')}
@@ -147,7 +146,6 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                         </div>
                     )}
 
-                    {/* Observaciones */}
                     {(() => {
                         const obsContent = observacionesData?.trim()
                         const hasObs = !!obsContent && obsContent.length > 0
@@ -176,7 +174,6 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                         )
                     })()}
 
-                    {/* Distribución de Responsables */}
                     <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-6 md:mb-8 items-start">
                         {culto.tipo_culto?.tiene_lectura_introduccion && (
                             <div className="w-full md:w-1/2 lg:w-[58%] shrink-0">
@@ -190,6 +187,7 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                                     }}
                                     himnario={culto.plan_himnos_coros as PlanHimnoCoro[] | undefined}
                                     tipoCulto={culto.tipo_culto?.nombre}
+                                    action={cultoTypeId ? <CultoInstruccionesIconBtn rol="introduccion" onOpen={openModal} /> : undefined}
                                     footerAction={canAddReading ? (
                                         <button
                                             type="button"
@@ -218,12 +216,12 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                                     label={t('cultos.finalizacion')}
                                     usuario={culto.usuario_finalizacion}
                                     lectura={lecturaData?.lecturaFinal ?? undefined}
+                                    action={cultoTypeId ? <CultoInstruccionesIconBtn rol="finalizacion" onOpen={openModal} /> : undefined}
                                 />
                             )}
                         </div>
                     </div>
 
-                    {/* Botón de Acción: siempre Ver detalles */}
                     <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
                         <button
                             aria-label={t('dashboard.viewFullDetails')}
@@ -262,5 +260,16 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                 }}
             />
         </div>
+
+            {instrModal && (
+                <InstruccionesCultoModal
+                    isOpen={instrModal.open}
+                    onClose={closeModal}
+                    cultoTypeId={cultoTypeId ?? ''}
+                    cultoTypeNombre={getTranslatedCultoName(cultoNombre)}
+                    rol={instrModal.rol}
+                />
+            )}
+        </>
     )
 }

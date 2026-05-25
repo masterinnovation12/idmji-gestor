@@ -39,9 +39,17 @@ export async function generateCultosForMonth(date: Date) {
         return { success: false, error: 'Ya existen cultos generados para este mes.' }
     }
 
-    // 2. Obtener configuraciones base
+    // 2. Obtener configuraciones base agrupadas por día de la semana
     const { data: schedules } = await supabase.from('culto_schedules').select('*')
-    const scheduleMap = new Map(schedules?.map(s => [s.day_of_week, s]))
+    const schedulesByDay = new Map<number, any[]>()
+    
+    if (schedules) {
+        for (const s of schedules) {
+            const daySchedules = schedulesByDay.get(s.day_of_week) || []
+            daySchedules.push(s)
+            schedulesByDay.set(s.day_of_week, daySchedules)
+        }
+    }
 
     // 3. Obtener festivos del mes para aplicar regla de horario (1h antes)
     const { data: festivos } = await supabase
@@ -58,9 +66,9 @@ export async function generateCultosForMonth(date: Date) {
     for (const day of days) {
         const dayOfWeek = getDay(day) // 0=Dom, 1=Lun...
         const fechaStr = format(day, 'yyyy-MM-dd')
-        const schedule = scheduleMap.get(dayOfWeek)
+        const daySchedules = schedulesByDay.get(dayOfWeek) || []
 
-        if (schedule) {
+        for (const schedule of daySchedules) {
             let horaInicio = schedule.default_time.slice(0, 5) // HH:mm
             let esLaborableFestivo = false
 
@@ -230,8 +238,50 @@ export async function getCultosForRange(startDate: string, endDate: string) {
 /**
  * Obtiene el culto completo de una fecha específica con todas sus relaciones.
  * Usado por CultoNavigator para navegación dinámica.
+ * Permite filtrar por una hora de inicio específica.
  */
-export async function getCultoByDate(fecha: string) {
+export async function getCultoByDate(fecha: string, horaInicio?: string) {
+    const supabase = await createClient()
+
+    try {
+        let query = supabase
+            .from('cultos')
+            .select(`
+                *,
+                lecturas:lecturas_biblicas(*),
+                plan_himnos_coros(
+                    *,
+                    himno:himnos(numero, titulo, duracion_segundos),
+                    coro:coros(numero, titulo, duracion_segundos)
+                ),
+                tipo_culto:culto_types(nombre, color, tiene_ensenanza, tiene_testimonios, tiene_lectura_introduccion, tiene_lectura_finalizacion, tiene_himnos_y_coros),
+                usuario_intro:profiles!id_usuario_intro(nombre, apellidos, avatar_url),
+                usuario_finalizacion:profiles!id_usuario_finalizacion(nombre, apellidos, avatar_url),
+                usuario_ensenanza:profiles!id_usuario_ensenanza(nombre, apellidos, avatar_url),
+                usuario_testimonios:profiles!id_usuario_testimonios(nombre, apellidos, avatar_url)
+            `)
+            .eq('fecha', fecha)
+            .order('hora_inicio', { ascending: true })
+
+        if (horaInicio) {
+            query = query.eq('hora_inicio', horaInicio)
+        }
+
+        const { data, error } = await query.limit(1).maybeSingle()
+
+        if (error) throw error
+
+        return { success: true, data }
+    } catch (error) {
+        console.error('Error fetching culto by date:', error)
+        return { success: false, error: 'Error al cargar el culto' }
+    }
+}
+
+/**
+ * Obtiene todos los cultos de una fecha específica con todas sus relaciones.
+ */
+export async function getCultosByDate(fecha: string) {
     const supabase = await createClient()
 
     try {
@@ -253,15 +303,13 @@ export async function getCultoByDate(fecha: string) {
             `)
             .eq('fecha', fecha)
             .order('hora_inicio', { ascending: true })
-            .limit(1)
-            .maybeSingle()
 
         if (error) throw error
 
         return { success: true, data }
     } catch (error) {
-        console.error('Error fetching culto by date:', error)
-        return { success: false, error: 'Error al cargar el culto' }
+        console.error('Error fetching cultos by date:', error)
+        return { success: false, error: 'Error al cargar los cultos' }
     }
 }
 

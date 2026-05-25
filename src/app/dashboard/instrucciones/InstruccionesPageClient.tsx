@@ -5,11 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Music, BookOpen, GraduationCap,
   ChevronDown, BookMarked,
-  Mic2, ArrowRightCircle, CheckCircle2, Clock
+  Mic2, ArrowRightCircle, CheckCircle2, Clock, Sparkles
 } from 'lucide-react'
 import type { CultoInstrucciones, RolInfo } from './actions'
 import type { RolInstruccionCulto } from '@/types/database'
 import { useI18n } from '@/lib/i18n/I18nProvider'
+import { sortInstruccionRoles } from '@/lib/instrucciones/sortInstruccionRoles'
 
 /* ─── Config visual por tipo de culto ───────────────────────── */
 const CULTO_STYLES: Record<string, {
@@ -62,10 +63,11 @@ function getCultoStyle(nombre: string) {
 
 /* ─── Config visual por rol ─────────────────────────────────── */
 const ROL_META: Record<RolInstruccionCulto, { labelKey: string; icon: React.ElementType; color: string }> = {
-  introduccion: { labelKey: 'cultos.intro',       icon: ArrowRightCircle, color: 'text-sky-500' },
-  finalizacion: { labelKey: 'cultos.finalizacion', icon: CheckCircle2,     color: 'text-emerald-500' },
-  ensenanza:    { labelKey: 'cultos.ensenanza',    icon: BookMarked,       color: 'text-violet-500' },
-  testimonios:  { labelKey: 'cultos.testimonios',  icon: Mic2,             color: 'text-amber-500' },
+  temas_alabanza: { labelKey: 'instrucciones.rol.temasAlabanza', icon: Sparkles, color: 'text-amber-500' },
+  introduccion: { labelKey: 'cultos.intro', icon: ArrowRightCircle, color: 'text-sky-500' },
+  finalizacion: { labelKey: 'cultos.finalizacion', icon: CheckCircle2, color: 'text-emerald-500' },
+  ensenanza: { labelKey: 'cultos.ensenanza', icon: BookMarked, color: 'text-violet-500' },
+  testimonios: { labelKey: 'cultos.testimonios', icon: Mic2, color: 'text-amber-500' },
 }
 
 /* ─── Util: renderizar contenido como secciones ─────────────── */
@@ -231,6 +233,10 @@ export default function InstruccionesPageClient({ cultos }: Props) {
   const { t } = useI18n()
   const [activeTab, setActiveTab] = useState<number>(cultos[0]?.cultoTypeId ?? 0)
   const activeCulto = cultos.find((c) => c.cultoTypeId === activeTab) ?? cultos[0]
+  const activeRoles = useMemo(
+    () => (activeCulto ? sortInstruccionRoles(activeCulto.nombre, activeCulto.roles) : []),
+    [activeCulto]
+  )
 
   if (!cultos.length) {
     return (
@@ -321,7 +327,7 @@ export default function InstruccionesPageClient({ cultos }: Props) {
         {activeCulto && (() => {
           const style = getCultoStyle(activeCulto.nombre)
           const { icon: Icon } = style
-          const publishedCount = activeCulto.roles.filter((r) => r.publicado).length
+          const publishedCount = activeRoles.filter((r) => r.publicado).length
           return (
             <motion.div
               key={activeTab}
@@ -343,13 +349,13 @@ export default function InstruccionesPageClient({ cultos }: Props) {
                   <div>
                     <h2 className="text-lg sm:text-xl font-black tracking-tight">{activeCulto.nombre}</h2>
                     <p className="text-white/70 text-sm mt-0.5">
-                      {publishedCount} {t('instrucciones.of')} {activeCulto.roles.length} {t('instrucciones.rolesReady')}
+                      {publishedCount} {t('instrucciones.of')} {activeRoles.length} {t('instrucciones.rolesReady')}
                     </p>
                   </div>
                 </div>
 
                 <div className="relative flex flex-wrap gap-2 mt-4">
-                  {activeCulto.roles.map((r) => {
+                  {activeRoles.map((r) => {
                     const meta = ROL_META[r.rol]
                     const { icon: RolIcon } = meta
                     return (
@@ -365,13 +371,12 @@ export default function InstruccionesPageClient({ cultos }: Props) {
 
               {/* Cards de instrucciones */}
               <div className="space-y-3">
-                {activeCulto.roles.map((rolInfo, idx) =>
+                {activeRoles.map((rolInfo) =>
                   rolInfo.publicado ? (
                     <InstruccionCard
                       key={rolInfo.rol}
                       rolInfo={rolInfo}
                       style={style}
-                      defaultOpen={idx === 0}
                     />
                   ) : (
                     <ComingSoonCard
