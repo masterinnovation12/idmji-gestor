@@ -5,8 +5,13 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { AssignmentPill } from './AssignmentPill'
 
+import { translations } from '@/lib/i18n/translations'
+import type { TranslationKey } from '@/lib/i18n/types'
+
+const tEs = (k: string) => translations['es-ES'][k as TranslationKey] ?? k
+
 vi.mock('@/lib/i18n/I18nProvider', () => ({
-  useI18n: () => ({ t: (k: string) => k }),
+  useI18n: () => ({ t: tEs }),
 }))
 
 describe('AssignmentPill', () => {
@@ -18,7 +23,20 @@ describe('AssignmentPill', () => {
         temaIntroduccionAlabanza="alabanza.tema.prepararnos"
       />
     )
-    expect(screen.getByText('alabanza.tema.prepararnos')).toBeInTheDocument()
+    expect(
+      screen.getByText('1. Prepararnos para la alabanza y congregarnos')
+    ).toBeInTheDocument()
+  })
+
+  it('muestra tema 6 solo con título numerado (Ser reverentes)', () => {
+    render(
+      <AssignmentPill
+        label="Intro"
+        usuario={{ nombre: 'Ana', apellidos: 'López' }}
+        temaIntroduccionAlabanza="alabanza.tema.serReverentes"
+      />
+    )
+    expect(screen.getByText('6. Ser reverentes')).toBeInTheDocument()
   })
 
   it('does not render tema block when temaIntroduccionAlabanza is null', () => {

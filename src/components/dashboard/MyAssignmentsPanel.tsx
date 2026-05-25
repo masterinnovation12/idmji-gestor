@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
 import { AddToCalendarSheet } from '@/components/dashboard/AddToCalendarSheet'
 import type { RolInstruccionCulto } from '@/types/database'
+import { formatTemaAlabanzaLabel } from '@/lib/constants/temasAlabanza'
 import type { CalendarExportEvent } from '@/lib/utils/calendarExport'
 import {
     buildEventsFromAssignments,
@@ -223,7 +224,7 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                                             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-800 group">
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div className="flex flex-col">
-                                                        <span className="text-xs font-bold text-slate-400 uppercase">{format(new Date(asg.fecha), 'EEE d', { locale })}</span>
+                                                        <span className="text-xs font-bold text-slate-400 uppercase">{format(new Date(asg.fecha), 'EEE d', { locale })} {asg.hora_inicio && ` - ${asg.hora_inicio.slice(0, 5)}`}</span>
                                                         <span className="font-black text-slate-800 dark:text-slate-100">{getTranslatedCultoName(asg.tipo_culto?.nombre)}</span>
                                                     </div>
                                                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: asg.tipo_culto?.color }} />
@@ -237,7 +238,10 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                                                 </div>
                                                 {asg.id_usuario_intro === user.id && asg.tipo_culto?.nombre?.toLowerCase().includes('alabanza') && (asg.meta_data as { tema_introduccion_alabanza?: string })?.tema_introduccion_alabanza && (
                                                     <p className="mt-2 text-[10px] font-bold text-blue-600 dark:text-blue-400 leading-tight line-clamp-2">
-                                                        {t((asg.meta_data as { tema_introduccion_alabanza: string }).tema_introduccion_alabanza as import('@/lib/i18n/types').TranslationKey)}
+                                                        {formatTemaAlabanzaLabel(
+                                                            (asg.meta_data as { tema_introduccion_alabanza: string }).tema_introduccion_alabanza,
+                                                            t
+                                                        )}
                                                     </p>
                                                 )}
                                             </div>

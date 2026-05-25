@@ -76,7 +76,10 @@ export const translations = {
         'dashboard.toDefine': 'Por definir',
         'dashboard.defineInDetail': 'Definir en detalle del culto',
         'dashboard.protocolToDefine': 'Protocolo por definir',
+        'dashboard.configToDefine': 'Configuración del culto por definir',
         'dashboard.inicioToDefine': 'Inicio por definir',
+        'culto.config.title': 'Configuración del culto',
+        'culto.config.desc': 'Oración, congregación e inicio del estudio',
         'dashboard.observaciones': 'Observaciones',
         'dashboard.noObservaciones': 'Sin observaciones',
         'dashboard.addReading': 'Añadir Lectura de la Palabra',
@@ -214,6 +217,7 @@ export const translations = {
 
         // Página Instrucciones
         'instrucciones.subtitle': 'Guía de roles para cada tipo de culto',
+        'instrucciones.rol.temasAlabanza': 'Temas alabanza',
         'instrucciones.comingSoon': 'Próximamente',
         'instrucciones.empty': 'No hay instrucciones disponibles.',
         'instrucciones.of': 'de',
@@ -505,7 +509,7 @@ export const translations = {
         'nav.historial': 'Historial',
         'nav.lecturas': 'Lecturas',
         'nav.temasAlabanza': 'Temas Alabanza',
-        'nav.himnario': 'HIMNARIO',
+        'nav.himnario': 'Himnario',
         'nav.hermanos': 'Directorio Hermanos',
         'nav.archivos': 'Archivos',
         'nav.instrucciones': 'Instrucciones',
@@ -516,8 +520,8 @@ export const translations = {
         'nav.logout': 'Cerrar Sesión',
 
         // Himnario Page
-        'himnario.title': 'HIMNARIO',
-        'himnario.desc': 'HIMNARIO',
+        'himnario.title': 'Himnario',
+        'himnario.desc': 'Catálogo de himnos y coros',
         'himnario.searchPlaceholder': 'Buscar por número o título...',
         'himnario.tabsHimnos': 'Himnos',
         'himnario.tabsCoros': 'Coros',
@@ -773,6 +777,9 @@ export const translations = {
         'dashboard.toDefine': 'Per definir',
         'dashboard.defineInDetail': 'Definir al detall del culte',
         'dashboard.protocolToDefine': 'Protocol per definir',
+        'dashboard.configToDefine': 'Configuració del culte per definir',
+        'culto.config.title': 'Configuració del culte',
+        'culto.config.desc': 'Oració, congregació i inici de l\'estudi',
         'dashboard.inicioToDefine': 'Inici per definir',
         'dashboard.observaciones': 'Observacions',
         'dashboard.noObservaciones': 'Sense observacions',
@@ -911,6 +918,7 @@ export const translations = {
 
         // Pàgina Instruccions
         'instrucciones.subtitle': 'Guia de rols per a cada tipus de culte',
+        'instrucciones.rol.temasAlabanza': 'Temes alabança',
         'instrucciones.comingSoon': 'Properament',
         'instrucciones.empty': 'No hi ha instruccions disponibles.',
         'instrucciones.of': 'de',
@@ -1202,7 +1210,7 @@ export const translations = {
         'nav.historial': 'Historial',
         'nav.lecturas': 'Lectures',
         'nav.temasAlabanza': 'Temes Alabança',
-        'nav.himnario': 'HIMNARI',
+        'nav.himnario': 'Himnari',
         'nav.hermanos': 'Directori Germans',
         'nav.archivos': 'Arxius',
         'nav.instrucciones': 'Instruccions',
@@ -1213,8 +1221,8 @@ export const translations = {
         'nav.logout': 'Tancar Sessió',
 
         // Himnario Page
-        'himnario.title': 'HIMNARI',
-        'himnario.desc': 'HIMNARIO',
+        'himnario.title': 'Himnari',
+        'himnario.desc': 'Catàleg d\'himnes i coros',
         'himnario.searchPlaceholder': 'Cercar per número o títol...',
         'himnario.tabsHimnos': 'Himnes',
         'himnario.tabsCoros': 'Coros',

@@ -31,7 +31,7 @@ export default async function DashboardPage() {
             // Get user profile
             supabase.from('profiles').select('*').eq('id', user.id).single(),
 
-            // Get today's culto
+            // Get today's cultos
             supabase.from('cultos').select(`
                 *,
                 lecturas:lecturas_biblicas(*),
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
                 usuario_finalizacion:profiles!id_usuario_finalizacion(nombre, apellidos, avatar_url),
                 usuario_ensenanza:profiles!id_usuario_ensenanza(nombre, apellidos, avatar_url),
                 usuario_testimonios:profiles!id_usuario_testimonios(nombre, apellidos, avatar_url)
-            `).eq('fecha', today).order('hora_inicio', { ascending: true }).limit(1),
+            `).eq('fecha', today).order('hora_inicio', { ascending: true }),
 
             // Get user assignments for current week
             getUserAssignments(user.id, format(weekStart, 'yyyy-MM-dd'), format(weekEnd, 'yyyy-MM-dd')),
@@ -53,10 +53,33 @@ export default async function DashboardPage() {
         ])
 
         const profile = profileRes.data
-        const cultosData = cultosDataRes.data
+        const cultosData = cultosDataRes.data || []
         const initialAssignments = initialAssignmentsRes.data
-        let cultoMostrado = cultosData && cultosData.length > 0 ? cultosData[0] : null
+        let cultoMostrado = null
         let esCultoHoy = true
+
+        if (cultosData.length > 0) {
+            if (cultosData.length === 1) {
+                cultoMostrado = cultosData[0]
+            } else {
+                const currentHour = new Date().getHours()
+                if (currentHour < 10) {
+                    // Antes de las 10:00 -> Mostramos el de las 10h
+                    cultoMostrado = cultosData.find(c => c.hora_inicio.startsWith('10')) || cultosData[0]
+                } else if (currentHour >= 10 && currentHour < 17) {
+                    // Entre las 10:00 y las 17:00 -> Si el de las 10h ya se completó (realizado), mostramos el de las 17h
+                    const c10 = cultosData.find(c => c.hora_inicio.startsWith('10'))
+                    if (c10?.estado === 'realizado') {
+                        cultoMostrado = cultosData.find(c => c.hora_inicio.startsWith('17')) || c10
+                    } else {
+                        cultoMostrado = c10 || cultosData[0]
+                    }
+                } else {
+                    // Después de las 17:00 -> Mostramos el de las 17h
+                    cultoMostrado = cultosData.find(c => c.hora_inicio.startsWith('17')) || cultosData[1]
+                }
+            }
+        }
 
         // Si no hay culto hoy, buscar el PRÓXIMO disponible
         if (!cultoMostrado) {
@@ -73,6 +96,7 @@ export default async function DashboardPage() {
                 `)
                 .gt('fecha', today)
                 .order('fecha', { ascending: true })
+                .order('hora_inicio', { ascending: true })
                 .limit(1)
 
             if (nextCultos && nextCultos.length > 0) {

@@ -7,9 +7,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import HimnarioClient from './HimnarioClient'
+import { translations } from '@/lib/i18n/translations'
+import type { TranslationKey } from '@/lib/i18n/types'
+
+const tEs = (k: string) => translations['es-ES'][k as TranslationKey] ?? k
 
 vi.mock('@/lib/i18n/I18nProvider', () => ({
-  useI18n: () => ({ t: (k: string) => k, language: 'es-ES' }),
+  useI18n: () => ({ t: tEs, language: 'es-ES' }),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -41,6 +45,15 @@ const defaultProps = {
   initialCoros: mockCoros,
   counts: { himnos: 2, coros: 1 },
 }
+
+describe('HimnarioClient - encabezado', () => {
+  it('muestra título y descripción Himnario en sentence case', () => {
+    render(<HimnarioClient {...defaultProps} />)
+    expect(screen.getByText('Himnario')).toBeInTheDocument()
+    expect(screen.getByText('Catálogo de himnos y coros')).toBeInTheDocument()
+    expect(screen.queryByText('HIMNARIO')).not.toBeInTheDocument()
+  })
+})
 
 describe('HimnarioClient - Modal Calculadora', () => {
   beforeEach(() => {

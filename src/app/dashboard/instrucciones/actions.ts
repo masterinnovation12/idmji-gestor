@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { sortInstruccionRoles } from '@/lib/instrucciones/sortInstruccionRoles'
 import type { InstruccionCultoParaUI, RolInstruccionCulto } from '@/types/database'
 
 /* ── Tipos para la página de instrucciones ─────────────────────────── */
@@ -62,7 +63,12 @@ export async function getAllInstrucciones(
       })
     }
 
-    return { success: true, data: Array.from(map.values()) }
+    const cultosOrdenados = Array.from(map.values()).map((culto) => ({
+      ...culto,
+      roles: sortInstruccionRoles(culto.nombre, culto.roles),
+    }))
+
+    return { success: true, data: cultosOrdenados }
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : 'Error desconocido' }
   }

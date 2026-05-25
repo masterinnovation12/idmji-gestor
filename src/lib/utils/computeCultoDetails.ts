@@ -5,6 +5,8 @@ export interface CultoDetails {
     temaIntroduccionAlabanza: string | null
     estudioBiblicoData: {
         esEstudio: boolean
+        /** Protocolo + inicio confirmados (switch padre en detalle del culto) */
+        configuracionDefinida: boolean
         protocoloDefinido: boolean
         oracionInicio: boolean
         congregacionPie: boolean
@@ -69,12 +71,15 @@ export function computeCultoDetails(culto: Culto | null): CultoDetails {
             }
         }
 
+        const protocoloDefinido = metaData?.protocolo_definido === true
+        const inicioExplicito = metaData?.inicio_anticipado_definido === true
         estudioBiblicoData = {
             esEstudio: true,
-            protocoloDefinido: metaData?.protocolo_definido === true,
+            configuracionDefinida: protocoloDefinido,
+            protocoloDefinido,
             oracionInicio: metaData?.protocolo?.oracion_inicio ?? true,
             congregacionPie: metaData?.protocolo?.congregacion_pie ?? false,
-            inicioAnticipadoDefinido: metaData?.inicio_anticipado_definido === true,
+            inicioAnticipadoDefinido: inicioExplicito || protocoloDefinido,
             inicioAnticipado: inicioAnticipado?.activo ? {
                 activo: true,
                 minutos: inicioAnticipado.minutos || 5,

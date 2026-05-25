@@ -47,10 +47,11 @@ describe('computeCultoDetails', () => {
     expect(result.estudioBiblicoData).toBeNull()
   })
 
-  it('Estudio Bíblico without protocolo_definido nor inicio_anticipado_definido: both false', () => {
+  it('Estudio Bíblico without protocolo_definido: configuracionDefinida false', () => {
     const culto = { ...baseCultoEstudio, meta_data: {} }
     const result = computeCultoDetails(culto)
     expect(result.estudioBiblicoData).not.toBeNull()
+    expect(result.estudioBiblicoData?.configuracionDefinida).toBe(false)
     expect(result.estudioBiblicoData?.protocoloDefinido).toBe(false)
     expect(result.estudioBiblicoData?.inicioAnticipadoDefinido).toBe(false)
     expect(result.estudioBiblicoData?.oracionInicio).toBe(true)
@@ -67,7 +68,9 @@ describe('computeCultoDetails', () => {
       },
     }
     const result = computeCultoDetails(culto)
+    expect(result.estudioBiblicoData?.configuracionDefinida).toBe(true)
     expect(result.estudioBiblicoData?.protocoloDefinido).toBe(true)
+    expect(result.estudioBiblicoData?.inicioAnticipadoDefinido).toBe(true)
     expect(result.estudioBiblicoData?.oracionInicio).toBe(false)
     expect(result.estudioBiblicoData?.congregacionPie).toBe(true)
   })

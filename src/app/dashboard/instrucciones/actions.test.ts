@@ -78,6 +78,42 @@ describe('getInstruccionCulto', () => {
     expect(mockMaybeSingle).not.toHaveBeenCalled()
   })
 
+  it('devuelve contenido vacío si publicado es false aunque haya texto en BD', async () => {
+    mockMaybeSingle.mockResolvedValue({
+      data: {
+        titulo_es: 'Intro',
+        titulo_ca: 'Intro',
+        contenido_es: 'No debe mostrarse',
+        contenido_ca: 'No',
+        publicado: false,
+      },
+      error: null,
+    })
+
+    const result = await getInstruccionCulto(5, 'introduccion', 'es-ES')
+
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({ titulo: 'Intro', contenido: '' })
+  })
+
+  it('lee temas_alabanza cuando está publicado', async () => {
+    mockMaybeSingle.mockResolvedValue({
+      data: {
+        titulo_es: 'Temas alabanza',
+        titulo_ca: 'Temes',
+        contenido_es: 'Los 6 temas',
+        contenido_ca: 'Els 6 temes',
+        publicado: true,
+      },
+      error: null,
+    })
+
+    const result = await getInstruccionCulto(5, 'temas_alabanza', 'es-ES')
+
+    expect(result.success).toBe(true)
+    expect(result.data?.contenido).toBe('Los 6 temas')
+  })
+
   it('acepta culto_type_id como string numérico', async () => {
     mockMaybeSingle.mockResolvedValue({
       data: { titulo_es: 'T', titulo_ca: 'T', contenido_es: 'C', contenido_ca: 'C' },

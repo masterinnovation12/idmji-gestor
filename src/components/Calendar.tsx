@@ -104,12 +104,12 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
 
     const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
 
-    // Deduplicar eventos por fecha para asegurar que solo haya uno por día
-    const eventsMap = new Map()
+    // Agrupar eventos por fecha para el renderizado del calendario
+    const eventsMap = new Map<string, CalendarEvent[]>()
     events.forEach(e => {
-        if (!eventsMap.has(e.fecha)) {
-            eventsMap.set(e.fecha, e)
-        }
+        const list = eventsMap.get(e.fecha) || []
+        list.push(e)
+        eventsMap.set(e.fecha, list)
     })
 
     const handlePrev = () => {
@@ -246,10 +246,10 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
 
                     {daysToRender.map((day, idx) => {
                         const dateStr = format(day, 'yyyy-MM-dd')
-                        const event = eventsMap.get(dateStr)
+                        const dayEvents = eventsMap.get(dateStr) || []
+                        const hasEvents = dayEvents.length > 0
                         const isToday = isSameDay(day, new Date())
                         const isCurrentMonth = isSameMonth(day, currentDate)
-                        const status = event ? getCultoStatus(event) : null
                         const isBefore2026 = day < new Date(2026, 0, 1)
 
                         // Hide days from other months in Month View OR ANY day before 2026
@@ -261,13 +261,6 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                 />
                             )
                         }
-
-                        // Sync Logic: Use explicit configuration from Culto Type
-                        const config = event?.tipo_culto || {}
-                        const showIntro = config.tiene_lectura_introduccion !== false // Default to true if undefined
-                        const showEnsenanza = !!config.tiene_ensenanza
-                        const showTestimonios = !!config.tiene_testimonios
-                        const showFinal = config.tiene_lectura_finalizacion !== false // Default to true if undefined
 
                         return (
                             <motion.div
@@ -294,109 +287,102 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                             </span>
                                         )}
                                     </div>
-                                    {event && (
-                                        <div
-                                            className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.1)] border-2 border-white dark:border-slate-800 shrink-0"
-                                            style={{ backgroundColor: event.tipo_culto?.color || '#888' }}
-                                        />
+                                    {hasEvents && (
+                                        <div className="flex gap-1.5">
+                                            {dayEvents.map(event => (
+                                                <div
+                                                    key={event.id}
+                                                    className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.1)] border-2 border-white dark:border-slate-800 shrink-0"
+                                                    style={{ backgroundColor: event.tipo_culto?.color || '#888' }}
+                                                />
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
 
-                                {event ? (
-                                    <Link href={`/dashboard/cultos/${event.id}`} className="flex-1">
-                                        <div className={`
-                                            w-full h-full p-3 md:p-4 rounded-3xl md:rounded-4xl transition-all cursor-pointer border shadow-md flex flex-col justify-between text-center overflow-hidden
-                                            ${status === 'complete'
-                                                ? (isDark ? 'bg-emerald-900/30 border-emerald-500/40 hover:bg-emerald-900/40' : 'bg-emerald-100 border-emerald-300 hover:bg-emerald-200 shadow-lg shadow-emerald-200/20')
-                                                : event.es_laborable_festivo
-                                                    ? (isDark ? 'bg-amber-900/30 border-amber-500/40 hover:bg-amber-900/40' : 'bg-amber-100 border-amber-300 hover:bg-amber-200 shadow-lg shadow-amber-200/20')
-                                                    : (isDark ? 'bg-slate-800/40 border-white/5 hover:bg-slate-800/60' : 'bg-white border-gray-100 hover:bg-gray-50')
-                                            }
-                                            ${view === 'day' ? 'max-w-2xl mx-auto' : ''}
-                                        `}>
-                                            {/* Cabecera: Nombre del Culto */}
-                                            <div className="w-full">
-                                                <p className={`text-[9px] md:text-[11px] font-black uppercase tracking-tight leading-tight mb-2 ${status === 'complete' ? 'text-emerald-900 dark:text-emerald-100' :
-                                                    event.es_laborable_festivo ? 'text-amber-900 dark:text-amber-100' : ''
-                                                    }`}>
-                                                    {event.tipo_culto?.nombre}
-                                                </p>
+                                {hasEvents ? (
+                                    <div className="flex-1 flex flex-col gap-2 overflow-y-auto no-scrollbar">
+                                        {dayEvents.map(event => {
+                                            const status = getCultoStatus(event)
+                                            const config = event.tipo_culto || {}
+                                            const showIntro = config.tiene_lectura_introduccion !== false
+                                            const showEnsenanza = !!config.tiene_ensenanza
+                                            const showTestimonios = !!config.tiene_testimonios
+                                            const showFinal = config.tiene_lectura_finalizacion !== false
 
-                                                <div className={`
-                                                    mx-auto text-[7px] md:text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full inline-flex items-center gap-1 shadow-xs border
-                                                    ${status === 'complete'
-                                                        ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
-                                                        : 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30'}
-                                                `}>
-                                                    {status === 'complete' ? <CheckCircle size={8} className="md:w-[10px] md:h-[10px]" /> : <Clock size={8} className="md:w-[10px] md:h-[10px]" />}
-                                                    <span>{status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}</span>
-                                                </div>
-                                            </div>
+                                            return (
+                                                <Link href={`/dashboard/cultos/${event.id}`} key={event.id} className="block shrink-0">
+                                                    <div className={`
+                                                        w-full p-2.5 md:p-3 rounded-2xl md:rounded-3xl transition-all cursor-pointer border shadow-md flex flex-col justify-between text-center overflow-hidden
+                                                        ${status === 'complete'
+                                                            ? (isDark ? 'bg-emerald-900/30 border-emerald-500/40 hover:bg-emerald-900/40' : 'bg-emerald-100 border-emerald-300 hover:bg-emerald-200 shadow-lg shadow-emerald-200/20')
+                                                            : event.es_laborable_festivo
+                                                                ? (isDark ? 'bg-amber-900/30 border-amber-500/40 hover:bg-amber-900/40' : 'bg-amber-100 border-amber-300 hover:bg-amber-200 shadow-lg shadow-amber-200/20')
+                                                                : (isDark ? 'bg-slate-800/40 border-white/5 hover:bg-slate-800/60' : 'bg-white border-gray-100 hover:bg-gray-50')
+                                                        }
+                                                    `}>
+                                                        {/* Cabecera: Nombre del Culto */}
+                                                        <div className="w-full text-center">
+                                                            <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-tight leading-tight mb-1 ${status === 'complete' ? 'text-emerald-900 dark:text-emerald-100' :
+                                                                event.es_laborable_festivo ? 'text-amber-900 dark:text-amber-100' : ''
+                                                                }`}>
+                                                                {event.tipo_culto?.nombre} {dayEvents.length > 1 && `(${event.hora_inicio.slice(0, 5) === '10:00' ? '10h' : '17h'})`}
+                                                            </p>
 
-                                            {/* Sección de Asignaciones */}
-                                            {view !== 'day' && (
-                                                (showIntro && event.usuario_intro) ||
-                                                (showEnsenanza && event.usuario_ensenanza) ||
-                                                (showTestimonios && event.usuario_testimonios) ||
-                                                (showFinal && event.usuario_finalizacion)
-                                            ) && (
-                                                    <div className="w-full space-y-1 mt-2 pt-2 border-t border-black/5 dark:border-white/5">
-                                                        <div className="space-y-0.5">
-                                                            {showIntro && event.usuario_intro && (
-                                                                <div className="text-[10px] font-bold px-1 leading-snug text-left">
-                                                                    <span className="text-muted-foreground/70">I:</span> <span className="wrap-break-word">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
+                                                            <div className={`
+                                                                mx-auto text-[7px] md:text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full inline-flex items-center gap-1 shadow-xs border
+                                                                ${status === 'complete'
+                                                                    ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
+                                                                    : 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30'}
+                                                            `}>
+                                                                {status === 'complete' ? <CheckCircle size={8} /> : <Clock size={8} />}
+                                                                <span>{status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Sección de Asignaciones */}
+                                                        {view !== 'day' && (
+                                                            (showIntro && event.usuario_intro) ||
+                                                            (showEnsenanza && event.usuario_ensenanza) ||
+                                                            (showTestimonios && event.usuario_testimonios) ||
+                                                            (showFinal && event.usuario_finalizacion)
+                                                        ) && (
+                                                            <div className="w-full space-y-0.5 mt-1.5 pt-1.5 border-t border-black/5 dark:border-white/5">
+                                                                <div className="space-y-0.5">
+                                                                    {showIntro && event.usuario_intro && (
+                                                                        <div className="text-[9px] font-bold px-1 leading-snug text-left truncate">
+                                                                            <span className="text-muted-foreground/70">I:</span> <span className="wrap-break-word">{event.usuario_intro.nombre}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {showEnsenanza && event.usuario_ensenanza && (
+                                                                        <div className="text-[9px] font-bold px-1 leading-snug text-left truncate">
+                                                                            <span className="text-muted-foreground/70">E:</span> <span className="wrap-break-word">{event.usuario_ensenanza.nombre}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {showTestimonios && event.usuario_testimonios && (
+                                                                        <div className="text-[9px] font-bold px-1 leading-snug text-left truncate">
+                                                                            <span className="text-muted-foreground/70">T:</span> <span className="wrap-break-word">{event.usuario_testimonios.nombre}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {showFinal && event.usuario_finalizacion && (
+                                                                        <div className="text-[9px] font-bold px-1 leading-snug text-left truncate">
+                                                                            <span className="text-muted-foreground/70">F:</span> <span className="wrap-break-word">{event.usuario_finalizacion.nombre}</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
-                                                            )}
-                                                            {showEnsenanza && event.usuario_ensenanza && (
-                                                                <div className="text-[10px] font-bold px-1 leading-snug text-left">
-                                                                    <span className="text-muted-foreground/70">E:</span> <span className="wrap-break-word">{event.usuario_ensenanza.nombre} {event.usuario_ensenanza.apellidos}</span>
-                                                                </div>
-                                                            )}
-                                                            {showTestimonios && event.usuario_testimonios && (
-                                                                <div className="text-[10px] font-bold px-1 leading-snug text-left">
-                                                                    <span className="text-muted-foreground/70">T:</span> <span className="wrap-break-word">{event.usuario_testimonios.nombre} {event.usuario_testimonios.apellidos}</span>
-                                                                </div>
-                                                            )}
-                                                            {showFinal && event.usuario_finalizacion && (
-                                                                <div className="text-[10px] font-bold px-1 leading-snug text-left">
-                                                                    <span className="text-muted-foreground/70">F:</span> <span className="wrap-break-word">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
-                                                                </div>
-                                                            )}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Pie: Hora */}
+                                                        <div className="w-full mt-1.5 pt-1 flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-bold text-muted-foreground border-t border-black/5 dark:border-white/5">
+                                                            <Clock size={8} />
+                                                            {event.hora_inicio.slice(0, 5)}
                                                         </div>
                                                     </div>
-                                                )}
-
-                                            {/* Pie: Hora y Festivo */}
-                                            <div className="w-full space-y-2 mt-auto pt-2 border-t border-black/5 dark:border-white/5">
-                                                <div className={`flex items-center justify-center gap-1.5 text-[9px] md:text-[10px] font-bold ${status === 'complete' ? 'text-emerald-900/80 dark:text-emerald-200/80' :
-                                                    event.es_laborable_festivo ? 'text-amber-900/80 dark:text-amber-200/80' :
-                                                        'text-muted-foreground'
-                                                    }`}>
-                                                    <Clock size={10} className="md:w-[12px] md:h-[12px] opacity-60" />
-                                                    {event.hora_inicio.slice(0, 5)}
-                                                </div>
-                                                {event.es_laborable_festivo && (
-                                                    <div className="mx-auto flex items-center justify-center gap-1 text-amber-800 dark:text-amber-200 text-[8px] md:text-[9px] font-black uppercase tracking-widest bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-600/20">
-                                                        <AlertCircle size={10} />
-                                                        <span>{t('calendar.festivoLabel')}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {view === 'day' && (
-                                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50 shrink-0">
-                                                    <div className="space-y-1">
-                                                        <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest">{t('calendar.responsible')}</p>
-                                                        <p className="text-xs font-bold truncate">{t('calendar.unassigned')}</p>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest">{t('calendar.reading')}</p>
-                                                        <p className="text-xs font-bold truncate">{t('calendar.pendingStatus')}</p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </Link>
+                                                </Link>
+                                            )
+                                        })}
+                                    </div>
                                 ) : view === 'day' ? (
                                     <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
                                         <CalendarIcon className="w-16 h-16 mb-4" />
@@ -419,7 +405,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                         exit={{ opacity: 0, x: -20 }}
                         className="space-y-4"
                     >
-                        {Array.from(eventsMap.values())
+                        {events
                             .filter(e => {
                                 const eventDate = new Date(e.fecha)
                                 const isBefore2026 = eventDate < new Date(2026, 0, 1)
@@ -430,7 +416,11 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                 if (view === 'day') return isSameDay(eventDate, currentDate)
                                 return true
                             })
-                            .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
+                            .sort((a, b) => {
+                                const dateA = new Date(`${a.fecha}T${a.hora_inicio || '00:00:00'}`)
+                                const dateB = new Date(`${b.fecha}T${b.hora_inicio || '00:00:00'}`)
+                                return dateA.getTime() - dateB.getTime()
+                            })
                             .map((event, idx) => {
                                 const status = getCultoStatus(event)
                                 const isToday = isSameDay(new Date(event.fecha), new Date())
@@ -487,7 +477,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                     <h3 className={`font-black text-sm uppercase tracking-tight leading-tight wrap-break-word flex-1 ${status === 'complete' ? 'text-emerald-900 dark:text-emerald-50' :
                                                         event.es_laborable_festivo ? 'text-amber-900 dark:text-amber-50' : ''
                                                         }`}>
-                                                        {event.tipo_culto?.nombre}
+                                                        {event.tipo_culto?.nombre} {event.hora_inicio && `(${event.hora_inicio.slice(0, 5) === '10:00' ? '10h' : '17h'})`}
                                                     </h3>
                                                     <div
                                                         className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
@@ -553,7 +543,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                 )
                             })}
 
-                        {Array.from(eventsMap.values()).filter(e => {
+                        {events.filter(e => {
                             const eventDate = new Date(e.fecha)
                             if (view === 'month') return isSameMonth(eventDate, currentDate)
                             if (view === 'week') return isSameWeek(eventDate, currentDate, { weekStartsOn: 1 })

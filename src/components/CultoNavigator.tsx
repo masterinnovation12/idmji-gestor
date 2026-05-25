@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { format, addDays, subDays, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, eachDayOfInterval, isWithinInterval } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import { getCultoByDate, getCultoIndicatorsForRange } from '@/app/dashboard/cultos/actions'
+import { getCultosByDate, getCultoIndicatorsForRange } from '@/app/dashboard/cultos/actions'
 import { Culto, LecturaBiblica } from '@/types/database'
 import { cn } from '@/lib/utils'
 
@@ -43,6 +43,7 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
     // State
     const [selectedDate, setSelectedDate] = useState<Date>(new Date(initialDate + 'T12:00:00'))
     const [currentCulto, setCurrentCulto] = useState<CultoWithLecturas | null>(initialCulto)
+    const [dayCultos, setDayCultos] = useState<CultoWithLecturas[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [mounted, setMounted] = useState(false)
     const [indicators, setIndicators] = useState<CultoIndicator[]>([])
@@ -85,28 +86,60 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
         fetchIndicators()
     }, [fetchIndicators])
 
-    // Fetch culto when date changes
+    // Fetch cultos when date changes
     const fetchCulto = useCallback(async (date: Date) => {
         const dateStr = format(date, 'yyyy-MM-dd')
 
-        // Skip if it's the initial date (already have the data)
-        if (dateStr === initialDate && currentCulto === initialCulto) return
-
         setIsLoading(true)
         try {
-            const result = await getCultoByDate(dateStr)
-            if (result.success) {
-                setCurrentCulto(result.data as CultoWithLecturas)
+            const result = await getCultosByDate(dateStr)
+            if (result.success && result.data) {
+                const list = result.data as CultoWithLecturas[]
+                setDayCultos(list)
+                
+                if (list.length > 0) {
+                    // Seleccionar por defecto el de la mañana o tarde en base a la hora
+                    let defaultCulto = list[0]
+                    if (isSameDay(date, new Date()) && list.length > 1) {
+                        const currentHour = new Date().getHours()
+                        if (currentHour < 10) {
+                            defaultCulto = list.find(c => c.hora_inicio.startsWith('10')) || list[0]
+                        } else if (currentHour >= 10 && currentHour < 17) {
+                            const c10 = list.find(c => c.hora_inicio.startsWith('10'))
+                            if (c10?.estado === 'realizado') {
+                                defaultCulto = list.find(c => c.hora_inicio.startsWith('17')) || c10
+                            } else {
+                                defaultCulto = c10 || list[0]
+                            }
+                        } else {
+                            defaultCulto = list.find(c => c.hora_inicio.startsWith('17')) || list[1]
+                        }
+                    } else if (list.length > 1) {
+                        // Para días futuros/pasados, por defecto el de las 10h
+                        defaultCulto = list.find(c => c.hora_inicio.startsWith('10')) || list[0]
+                    }
+                    setCurrentCulto(defaultCulto)
+                } else {
+                    setCurrentCulto(null)
+                }
             } else {
+                setDayCultos([])
                 setCurrentCulto(null)
             }
         } catch (error) {
-            console.error('Error fetching culto:', error)
+            console.error('Error fetching cultos for date:', error)
+            setDayCultos([])
             setCurrentCulto(null)
         } finally {
             setIsLoading(false)
         }
-    }, [initialDate, initialCulto, currentCulto])
+    }, [])
+
+    // Carga inicial de cultos del día en base a selectedDate
+    useEffect(() => {
+        fetchCulto(selectedDate)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedDate])
 
     // Navigate functions
     const goToPrev = () => {
@@ -114,7 +147,6 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
         setDirection('left')
         const newDate = subDays(selectedDate, 1)
         setSelectedDate(newDate)
-        fetchCulto(newDate)
     }
 
     const goToNext = () => {
@@ -122,14 +154,12 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
         setDirection('right')
         const newDate = addDays(selectedDate, 1)
         setSelectedDate(newDate)
-        fetchCulto(newDate)
     }
 
     const goToDay = (date: Date) => {
         if (!isWithinInterval(date, { start: minDate, end: maxDate })) return
         setDirection(date > selectedDate ? 'right' : 'left')
         setSelectedDate(date)
-        fetchCulto(date)
     }
 
     // Get indicator for a specific date
@@ -204,6 +234,32 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                         <ChevronRight className="w-5 h-5" />
                     </motion.button>
                 </div>
+
+                {/* Selector de Horario si hay múltiples cultos en el mismo día */}
+                {dayCultos.length > 1 && (
+                    <div className="flex justify-center gap-2 p-1.5 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                        {dayCultos.map((culto) => {
+                            const isSelected = currentCulto?.id === culto.id
+                            const horaLabel = culto.hora_inicio.slice(0, 5) === '10:00' 
+                                ? 'Enseñanza (10:00)' 
+                                : 'Enseñanza (17:00)'
+                            return (
+                                <button
+                                    key={culto.id}
+                                    onClick={() => setCurrentCulto(culto)}
+                                    className={cn(
+                                        "flex-1 px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
+                                        isSelected
+                                            ? "bg-blue-600 text-white shadow-xl"
+                                            : "text-gray-600 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700"
+                                    )}
+                                >
+                                    {horaLabel}
+                                </button>
+                            )
+                        })}
+                    </div>
+                )}
 
                 {/* Mini Week Calendar - Hidden on very small screens */}
                 <div className="hidden xs:grid grid-cols-7 gap-1 sm:gap-2 px-1">
