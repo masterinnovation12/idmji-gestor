@@ -1,9 +1,16 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import {
+    type CapituloHistorialHit,
+    formatPasajeLectura,
+    lecturaIncluyeCapitulo,
+} from '@/lib/lecturas/capituloHistorial'
 import { resolveHistorialLectorDisplay } from '@/lib/utils/lecturasHistorialLector'
 import { resolveLecturaLectorFromCulto } from '@/lib/utils/resolveLecturaLectorFromCulto'
 import { revalidatePath, unstable_noStore as noStore } from 'next/cache'
+
+export type { CapituloHistorialHit }
 
 async function fetchCultoLectorAssignments(
     supabase: Awaited<ReturnType<typeof createClient>>,
@@ -211,6 +218,124 @@ export async function deleteLectura(id: string, cultoId?: string) {
     return { success: true }
 }
 
+type RawCapituloHistorialRow = {
+    id: string
+    culto_id: string
+    tipo_lectura: 'introduccion' | 'finalizacion'
+    libro: string
+    capitulo_inicio: number
+    capitulo_fin: number
+    versiculo_inicio: number
+    versiculo_fin: number
+    created_at: string
+    cultos: {
+        fecha: string
+        hora_inicio: string | null
+        tipo_culto: { nombre: string } | { nombre: string }[] | null
+    } | {
+        fecha: string
+        hora_inicio: string | null
+        tipo_culto: { nombre: string } | { nombre: string }[] | null
+    }[]
+    lector: { nombre: string; apellidos: string } | { nombre: string; apellidos: string }[] | null
+}
+
+function mapRowToCapituloHit(row: RawCapituloHistorialRow): CapituloHistorialHit {
+    const culto = Array.isArray(row.cultos) ? row.cultos[0] : row.cultos
+    const tipoCulto = culto?.tipo_culto
+    const cultoNombre = Array.isArray(tipoCulto) ? tipoCulto[0]?.nombre : tipoCulto?.nombre
+    const lector = Array.isArray(row.lector) ? row.lector[0] : row.lector
+    const lectorNombre = lector
+        ? `${lector.nombre ?? ''} ${lector.apellidos ?? ''}`.trim()
+        : ''
+
+    return {
+        id: row.id,
+        cultoId: row.culto_id,
+        tipoLectura: row.tipo_lectura,
+        fecha: culto?.fecha ?? '',
+        horaInicio: culto?.hora_inicio ?? null,
+        cultoNombre: cultoNombre ?? '',
+        lectorNombre,
+        pasaje: formatPasajeLectura(row),
+    }
+}
+
+/**
+ * Comprueba si un libro+capítulo ya aparece en el historial (cualquier rango de versículos).
+ * Incluye lecturas del culto actual; el enlace a historial puede excluirlo.
+ */
+export async function checkCapituloEnHistorial(
+    libro: string,
+    capitulo: number,
+    options?: { cultoId?: string; lecturaId?: string }
+) {
+    noStore()
+    if (!libro.trim() || !Number.isFinite(capitulo) || capitulo < 1) {
+        return { found: false as const, totalCount: 0, previousCount: 0 }
+    }
+
+    const supabase = await createClient()
+    let query = supabase
+        .from('lecturas_biblicas')
+        .select(`
+            id,
+            culto_id,
+            tipo_lectura,
+            libro,
+            capitulo_inicio,
+            capitulo_fin,
+            versiculo_inicio,
+            versiculo_fin,
+            created_at,
+            cultos!inner(fecha, hora_inicio, tipo_culto:culto_types(nombre)),
+            lector:profiles!id_usuario_lector(nombre, apellidos)
+        `)
+        .eq('libro', libro)
+        .lte('capitulo_inicio', capitulo)
+        .gte('capitulo_fin', capitulo)
+
+    if (options?.lecturaId) {
+        query = query.neq('id', options.lecturaId)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false })
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    const rows = (data ?? []) as RawCapituloHistorialRow[]
+    const matching = rows.filter((row) =>
+        lecturaIncluyeCapitulo(capitulo, row.capitulo_inicio, row.capitulo_fin)
+    )
+
+    if (matching.length === 0) {
+        return { found: false as const, totalCount: 0, previousCount: 0 }
+    }
+
+    const sorted = [...matching].sort((a, b) => {
+        const cultoA = Array.isArray(a.cultos) ? a.cultos[0] : a.cultos
+        const cultoB = Array.isArray(b.cultos) ? b.cultos[0] : b.cultos
+        const dateA = cultoA?.fecha ?? ''
+        const dateB = cultoB?.fecha ?? ''
+        if (dateA !== dateB) return dateB.localeCompare(dateA)
+        return b.created_at.localeCompare(a.created_at)
+    })
+
+    const hits = sorted.map(mapRowToCapituloHit)
+    const previousCount = options?.cultoId
+        ? hits.filter((h) => h.cultoId !== options.cultoId).length
+        : hits.length
+
+    return {
+        found: true as const,
+        mostRecent: hits[0],
+        totalCount: hits.length,
+        previousCount,
+    }
+}
+
 /**
  * Obtener lecturas de un culto
  */
@@ -267,6 +392,7 @@ export async function getAllLecturas(
         lectorId?: string
         testamento?: 'AT' | 'NT'
         capitulo?: number
+        excludeCultoId?: string
     }
 ) {
     const supabase = await createClient()
@@ -337,9 +463,15 @@ export async function getAllLecturas(
         query = query.eq('es_repetida', true)
     }
 
-    // Filtro por capítulo
+    // Filtro por capítulo (pasajes que incluyen ese capítulo)
     if (filters?.capitulo) {
-        query = query.eq('capitulo_inicio', filters.capitulo)
+        query = query
+            .lte('capitulo_inicio', filters.capitulo)
+            .gte('capitulo_fin', filters.capitulo)
+    }
+
+    if (filters?.excludeCultoId) {
+        query = query.neq('culto_id', filters.excludeCultoId)
     }
 
     // Búsqueda avanzada: libro, lector, o capítulo
