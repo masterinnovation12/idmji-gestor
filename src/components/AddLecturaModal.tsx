@@ -236,6 +236,8 @@ export default function AddLecturaModal({
           <BibleSelector
             onSelect={handleSelectCita}
             disabled={isActionLoading}
+            cultoId={cultoId}
+            lecturaId={lecturaId}
             initialSelection={initialReading
               ? {
                 libro: initialReading.libro,

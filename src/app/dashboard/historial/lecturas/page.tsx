@@ -23,6 +23,7 @@ export default async function HistorialLecturasPage({ searchParams }: Props) {
     const testamento = typeof params['testamento'] === 'string' ? (params['testamento'] as 'AT' | 'NT' | undefined) : undefined
     const tipoLectura = typeof params['tipoLectura'] === 'string' ? params['tipoLectura'] : undefined
     const capitulo = typeof params['capitulo'] === 'string' ? parseInt(params['capitulo']) : undefined
+    const excludeCultoId = typeof params['excludeCulto'] === 'string' ? params['excludeCulto'] : undefined
 
     const { data: lecturas, totalPages } = await getAllLecturas(page, 20, {
         soloRepetidas,
@@ -33,7 +34,8 @@ export default async function HistorialLecturasPage({ searchParams }: Props) {
         lectorId,
         testamento,
         tipoLectura,
-        capitulo
+        capitulo,
+        excludeCultoId,
     })
 
     return (

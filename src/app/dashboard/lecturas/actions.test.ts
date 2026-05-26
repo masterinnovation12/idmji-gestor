@@ -159,3 +159,81 @@ describe('lecturas actions revalidate dashboard', () => {
     )
   })
 })
+
+describe('checkCapituloEnHistorial', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('devuelve found false si no hay coincidencias', async () => {
+    createClientMock.mockResolvedValue({
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn().mockReturnThis(),
+          lte: vi.fn().mockReturnThis(),
+          gte: vi.fn().mockReturnThis(),
+          neq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        })),
+      })),
+    })
+
+    const { checkCapituloEnHistorial } = await import('./actions')
+    const result = await checkCapituloEnHistorial('Juan', 99)
+    expect(result).toEqual({ found: false, totalCount: 0, previousCount: 0 })
+  })
+
+  it('devuelve la lectura más reciente y cuenta previas excluyendo culto actual', async () => {
+    const rows = [
+      {
+        id: 'r-old',
+        culto_id: 'culto-old',
+        tipo_lectura: 'introduccion',
+        libro: 'Juan',
+        capitulo_inicio: 3,
+        capitulo_fin: 3,
+        versiculo_inicio: 1,
+        versiculo_fin: 5,
+        created_at: '2025-01-01T00:00:00Z',
+        cultos: { fecha: '2025-01-10', hora_inicio: '10:00', tipo_culto: { nombre: 'Alabanza' } },
+        lector: { nombre: 'Pedro', apellidos: 'López' },
+      },
+      {
+        id: 'r-current',
+        culto_id: 'culto-actual',
+        tipo_lectura: 'introduccion',
+        libro: 'Juan',
+        capitulo_inicio: 3,
+        capitulo_fin: 3,
+        versiculo_inicio: 16,
+        versiculo_fin: 16,
+        created_at: '2025-02-01T00:00:00Z',
+        cultos: { fecha: '2025-02-15', hora_inicio: null, tipo_culto: { nombre: 'Estudio' } },
+        lector: { nombre: 'Ana', apellidos: 'García' },
+      },
+    ]
+
+    createClientMock.mockResolvedValue({
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn().mockReturnThis(),
+          lte: vi.fn().mockReturnThis(),
+          gte: vi.fn().mockReturnThis(),
+          neq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ data: rows, error: null }),
+        })),
+      })),
+    })
+
+    const { checkCapituloEnHistorial } = await import('./actions')
+    const result = await checkCapituloEnHistorial('Juan', 3, { cultoId: 'culto-actual' })
+
+    expect(result.found).toBe(true)
+    if (result.found) {
+      expect(result.mostRecent?.cultoId).toBe('culto-actual')
+      expect(result.totalCount).toBe(2)
+      expect(result.previousCount).toBe(1)
+      expect(result.mostRecent?.pasaje).toContain('Juan 3')
+    }
+  })
+})

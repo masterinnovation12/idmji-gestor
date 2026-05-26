@@ -375,6 +375,16 @@ export const translations = {
         'lecturas.groupByLibro': 'Libro',
         'lecturas.groupByLector': 'Lector',
         'lecturas.groupByNone': 'Sin agrupar',
+        'lecturas.chapterHistoryTitle': 'Capítulo ya leído',
+        'lecturas.chapterHistoryMessage': 'Este capítulo ({libro} {capitulo}) ya se registró el {fecha} por {lector} en el culto {culto} ({rol}).',
+        'lecturas.chapterHistoryQuestion': '¿Desea continuar y elegir los versículos?',
+        'lecturas.chapterHistoryContinue': 'Sí, continuar',
+        'lecturas.chapterHistoryCancel': 'No',
+        'lecturas.chapterHistoryViewDetail': 'Ver detalle en historial',
+        'lecturas.chapterHistoryMoreTimes': 'y {count} vez más en el historial',
+        'lecturas.chapterHistoryMoreTimesPlural': 'y {count} veces más en el historial',
+        'lecturas.chapterHistoryChecking': 'Consultando historial…',
+        'lecturas.chapterHistoryVersesBlocked': 'Confirme si desea continuar para indicar los versículos.',
 
         // Temas Alabanza (Historial)
         'temasAlabanza.title': 'Temas Alabanza',
@@ -1076,6 +1086,16 @@ export const translations = {
         'lecturas.groupByLibro': 'Llibre',
         'lecturas.groupByLector': 'Lector',
         'lecturas.groupByNone': 'Sense agrupar',
+        'lecturas.chapterHistoryTitle': 'Capítol ja llegit',
+        'lecturas.chapterHistoryMessage': 'Aquest capítol ({libro} {capitulo}) ja es va registrar el {fecha} per {lector} al culte {culto} ({rol}).',
+        'lecturas.chapterHistoryQuestion': 'Voleu continuar i triar els versicles?',
+        'lecturas.chapterHistoryContinue': 'Sí, continuar',
+        'lecturas.chapterHistoryCancel': 'No',
+        'lecturas.chapterHistoryViewDetail': 'Veure detall a l\'historial',
+        'lecturas.chapterHistoryMoreTimes': 'i {count} vegada més a l\'historial',
+        'lecturas.chapterHistoryMoreTimesPlural': 'i {count} vegades més a l\'historial',
+        'lecturas.chapterHistoryChecking': 'Consultant historial…',
+        'lecturas.chapterHistoryVersesBlocked': 'Confirmeu si voleu continuar per indicar els versicles.',
 
         // Temas Alabanza (Historial)
         'temasAlabanza.title': 'Temes Alabança',

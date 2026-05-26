@@ -1,9 +1,14 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
-import { Search, BookOpen, AlertCircle, ArrowLeft, Check } from 'lucide-react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { Search, BookOpen, AlertCircle, ArrowLeft, Check, History, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getBibliaLibros } from '@/app/dashboard/lecturas/actions'
+import { format, parseISO } from 'date-fns'
+import { es, ca } from 'date-fns/locale'
+import Link from 'next/link'
+import { getBibliaLibros, checkCapituloEnHistorial, type CapituloHistorialHit } from '@/app/dashboard/lecturas/actions'
+import { useI18n } from '@/lib/i18n/I18nProvider'
+import { buildHistorialCapituloUrl } from '@/lib/lecturas/capituloHistorial'
 import { cn } from '@/lib/utils'
 
 interface Chapter {
@@ -19,9 +24,13 @@ interface BibleBook {
     capitulos: Chapter[]
 }
 
+type ChapterGate = 'idle' | 'checking' | 'blocked' | 'allowed'
+
 interface BibleSelectorProps {
     onSelect: (libro: string, capInicio: number, versInicio: number, capFin?: number, versFin?: number) => void
     disabled?: boolean
+    cultoId?: string
+    lecturaId?: string
     initialSelection?: {
         libro: string
         capituloInicio: number
@@ -31,7 +40,22 @@ interface BibleSelectorProps {
     } | null
 }
 
-export default function BibleSelector({ onSelect, disabled, initialSelection = null }: BibleSelectorProps) {
+function interpolate(template: string, vars: Record<string, string | number>): string {
+    return Object.entries(vars).reduce(
+        (acc, [key, value]) => acc.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value)),
+        template
+    )
+}
+
+export default function BibleSelector({
+    onSelect,
+    disabled,
+    cultoId,
+    lecturaId,
+    initialSelection = null,
+}: BibleSelectorProps) {
+    const { t, language } = useI18n()
+    const locale = language === 'ca-ES' ? ca : es
     const [libros, setLibros] = useState<BibleBook[]>([])
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedLibroObj, setSelectedLibroObj] = useState<BibleBook | null>(null)
@@ -47,7 +71,13 @@ export default function BibleSelector({ onSelect, disabled, initialSelection = n
     // Positioning
     // Refs
     const inputRef = useRef<HTMLInputElement>(null)
+    const capituloInputRef = useRef<HTMLInputElement>(null)
     const dropdownRef = useRef<HTMLDivElement>(null)
+
+    const [chapterGate, setChapterGate] = useState<ChapterGate>('idle')
+    const [chapterHistoryHit, setChapterHistoryHit] = useState<CapituloHistorialHit | null>(null)
+    const [chapterHistoryExtraCount, setChapterHistoryExtraCount] = useState(0)
+    const [chapterHistoryPreviousCount, setChapterHistoryPreviousCount] = useState(0)
 
     // Validation logic derived from state
     const validationError = useMemo(() => {
@@ -247,6 +277,15 @@ export default function BibleSelector({ onSelect, disabled, initialSelection = n
         // we can scroll. For now, rely on standard behavior or add refs to items if needed.
     }
 
+    const resetChapterHistory = useCallback(() => {
+        setChapterGate('idle')
+        setChapterHistoryHit(null)
+        setChapterHistoryExtraCount(0)
+        setChapterHistoryPreviousCount(0)
+    }, [])
+
+    const versesAllowed = chapterGate === 'allowed' && capituloInicio !== ''
+
     const handleSelectLibro = (libro: BibleBook) => {
         setSelectedLibroObj(libro)
         setSearchQuery(libro.nombre)
@@ -254,7 +293,81 @@ export default function BibleSelector({ onSelect, disabled, initialSelection = n
         setVersiculoInicio('')
         setVersiculoFin('')
         setSubmitError(null)
+        resetChapterHistory()
         setIsOpen(false)
+    }
+
+    const formatHistorialFecha = (fecha: string) => {
+        try {
+            return format(parseISO(fecha), 'PPP', { locale })
+        } catch {
+            return fecha
+        }
+    }
+
+    const rolLabel = (tipo: 'introduccion' | 'finalizacion') =>
+        tipo === 'introduccion' ? t('cultos.intro') : t('cultos.finalizacion')
+
+    const runChapterHistoryCheck = async (cap: number) => {
+        if (!selectedLibroObj || cap < 1) {
+            resetChapterHistory()
+            return
+        }
+        const maxCaps = selectedLibroObj.capitulos.length
+        if (cap > maxCaps) {
+            resetChapterHistory()
+            return
+        }
+
+        setChapterGate('checking')
+        setVersiculoInicio('')
+        setVersiculoFin('')
+
+        try {
+            const result = await checkCapituloEnHistorial(selectedLibroObj.nombre, cap, {
+                cultoId,
+                lecturaId,
+            })
+
+            if ('error' in result && result.error) {
+                resetChapterHistory()
+                return
+            }
+
+            if (result.found && result.mostRecent) {
+                setChapterHistoryHit(result.mostRecent)
+                setChapterHistoryExtraCount(Math.max(0, result.totalCount - 1))
+                setChapterHistoryPreviousCount(result.previousCount)
+                setChapterGate('blocked')
+            } else {
+                setChapterHistoryHit(null)
+                setChapterHistoryExtraCount(0)
+                setChapterHistoryPreviousCount(0)
+                setChapterGate('allowed')
+            }
+        } catch {
+            resetChapterHistory()
+        }
+    }
+
+    const handleCapituloBlur = () => {
+        if (capituloInicio === '' || !selectedLibroObj) {
+            resetChapterHistory()
+            return
+        }
+        void runChapterHistoryCheck(Number(capituloInicio))
+    }
+
+    const handleConfirmChapterContinue = () => {
+        setChapterGate('allowed')
+    }
+
+    const handleRejectChapterContinue = () => {
+        setCapituloInicio('')
+        setVersiculoInicio('')
+        setVersiculoFin('')
+        resetChapterHistory()
+        capituloInputRef.current?.focus()
     }
 
     const getMaxChapters = () => selectedLibroObj ? selectedLibroObj.capitulos.length : 0
@@ -267,6 +380,11 @@ export default function BibleSelector({ onSelect, disabled, initialSelection = n
     const handleSubmit = () => {
         if (!selectedLibroObj || !capituloInicio || !versiculoInicio) {
             setSubmitError("Por favor, selecciona un libro, capítulo y versículo.")
+            return
+        }
+
+        if (chapterGate === 'blocked' || chapterGate === 'checking') {
+            setSubmitError(t('lecturas.chapterHistoryVersesBlocked'))
             return
         }
 
@@ -467,6 +585,7 @@ export default function BibleSelector({ onSelect, disabled, initialSelection = n
                             )}
                         </div>
                         <input
+                            ref={capituloInputRef}
                             type="number"
                             inputMode="numeric"
                             step={1}
@@ -476,13 +595,104 @@ export default function BibleSelector({ onSelect, disabled, initialSelection = n
                             onChange={(e) => {
                                 setCapituloInicio(e.target.value === '' ? '' : Number(e.target.value))
                                 setSubmitError(null)
+                                setVersiculoInicio('')
+                                setVersiculoFin('')
+                                resetChapterHistory()
                             }}
+                            onBlur={handleCapituloBlur}
                             placeholder="Ej: 1"
-                            disabled={disabled || !selectedLibroObj}
+                            disabled={disabled || !selectedLibroObj || chapterGate === 'checking'}
                             className={`w-full h-14 bg-muted/30 border rounded-2xl px-5 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${error && (error.includes('capítulos') || (capituloInicio !== '' && Number(capituloInicio) > getMaxChapters())) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
                                 }`}
                         />
                     </div>
+
+                    <AnimatePresence>
+                        {chapterGate === 'checking' && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="col-span-full flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                            >
+                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                {t('lecturas.chapterHistoryChecking')}
+                            </motion.div>
+                        )}
+                        {chapterGate === 'blocked' && chapterHistoryHit && selectedLibroObj && capituloInicio !== '' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 6 }}
+                                className="col-span-full p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 space-y-4"
+                                role="alert"
+                            >
+                                <div className="flex gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                                        <History className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+                                    </div>
+                                    <div className="min-w-0 space-y-2">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-800 dark:text-amber-300">
+                                            {t('lecturas.chapterHistoryTitle')}
+                                        </p>
+                                        <p className="text-sm font-medium text-amber-950 dark:text-amber-100 leading-snug">
+                                            {interpolate(t('lecturas.chapterHistoryMessage'), {
+                                                libro: selectedLibroObj.nombre,
+                                                capitulo: capituloInicio,
+                                                fecha: formatHistorialFecha(chapterHistoryHit.fecha),
+                                                lector: chapterHistoryHit.lectorNombre || '—',
+                                                culto: chapterHistoryHit.cultoNombre || '—',
+                                                rol: rolLabel(chapterHistoryHit.tipoLectura),
+                                            })}
+                                        </p>
+                                        <p className="text-xs text-amber-800/80 dark:text-amber-200/80">
+                                            {chapterHistoryHit.pasaje}
+                                        </p>
+                                        {chapterHistoryExtraCount > 0 && (
+                                            <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                                                {chapterHistoryExtraCount === 1
+                                                    ? interpolate(t('lecturas.chapterHistoryMoreTimes'), { count: chapterHistoryExtraCount })
+                                                    : interpolate(t('lecturas.chapterHistoryMoreTimesPlural'), { count: chapterHistoryExtraCount })}
+                                            </p>
+                                        )}
+                                        <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
+                                            {t('lecturas.chapterHistoryQuestion')}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleConfirmChapterContinue}
+                                        className="flex-1 h-11 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-[10px] uppercase tracking-widest transition-colors"
+                                    >
+                                        {t('lecturas.chapterHistoryContinue')}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleRejectChapterContinue}
+                                        className="flex-1 h-11 rounded-xl border border-amber-600/40 bg-white/80 dark:bg-slate-900/80 text-amber-900 dark:text-amber-100 font-black text-[10px] uppercase tracking-widest hover:bg-amber-500/10 transition-colors"
+                                    >
+                                        {t('lecturas.chapterHistoryCancel')}
+                                    </button>
+                                </div>
+                                {(chapterHistoryPreviousCount > 0 || !cultoId) && (
+                                    <Link
+                                        href={buildHistorialCapituloUrl(
+                                            selectedLibroObj.nombre,
+                                            Number(capituloInicio),
+                                            cultoId
+                                        )}
+                                        className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+                                    >
+                                        <History className="w-3.5 h-3.5" />
+                                        {t('lecturas.chapterHistoryViewDetail')}
+                                    </Link>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     <div className="space-y-2">
                         <div className="flex justify-between items-end ml-1">
                             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Versículos (Rango)</label>
@@ -505,7 +715,7 @@ export default function BibleSelector({ onSelect, disabled, initialSelection = n
                                         setSubmitError(null)
                                     }}
                                     placeholder="Inicio"
-                                    disabled={disabled || !selectedLibroObj || capituloInicio === ''}
+                                    disabled={disabled || !selectedLibroObj || !versesAllowed}
                                     className={`w-full h-14 bg-muted/30 border rounded-2xl pl-8 pr-2 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${error && (error.includes('versículos') && versiculoInicio !== '' && Number(versiculoInicio) > getMaxVerses(Number(capituloInicio))) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
                                         }`}
                                 />
@@ -525,7 +735,7 @@ export default function BibleSelector({ onSelect, disabled, initialSelection = n
                                         setSubmitError(null)
                                     }}
                                     placeholder="Fin"
-                                    disabled={disabled || !selectedLibroObj || capituloInicio === ''}
+                                    disabled={disabled || !selectedLibroObj || !versesAllowed}
                                     className={`w-full h-14 bg-muted/30 border rounded-2xl pl-10 pr-2 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${error && (error.includes('versículos') && versiculoFin !== '' && Number(versiculoFin) > getMaxVerses(Number(capituloInicio))) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
                                         }`}
                                 />
@@ -570,7 +780,7 @@ export default function BibleSelector({ onSelect, disabled, initialSelection = n
             {/* Submit */}
             <button
                 onClick={handleSubmit}
-                disabled={disabled || !selectedLibroObj || capituloInicio === '' || versiculoInicio === '' || !!error}
+                disabled={disabled || !selectedLibroObj || capituloInicio === '' || versiculoInicio === '' || !!error || chapterGate === 'blocked' || chapterGate === 'checking'}
                 className="w-full h-16 bg-black dark:bg-white text-white dark:text-black rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-20 disabled:cursor-not-allowed shadow-2xl flex items-center justify-center gap-3 mt-4"
             >
                 <BookOpen className="w-5 h-5" />
