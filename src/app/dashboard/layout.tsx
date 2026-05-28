@@ -30,7 +30,8 @@ import {
     FileText,
     FileSpreadsheet,
     UserCog,
-    BookMarked
+    BookMarked,
+    Gift
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -171,6 +172,7 @@ export default function DashboardLayout({
     const sidebarItems = useMemo(() => [
         { icon: LayoutDashboard, label: t('nav.dashboard'), href: '/dashboard' },
         { icon: Calendar, label: t('nav.cultos'), href: '/dashboard/cultos' },
+        { icon: Gift, label: t('nav.ofrenda'), href: '/dashboard/ofrenda' },
         { icon: BookOpen, label: t('nav.historial'), href: '/dashboard/historial/lecturas' },
         { icon: Music, label: t('nav.himnario'), href: '/dashboard/himnario' },
         { icon: Users, label: t('nav.hermanos'), href: '/dashboard/hermanos' },
