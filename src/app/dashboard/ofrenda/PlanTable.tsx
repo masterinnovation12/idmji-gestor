@@ -23,7 +23,7 @@ import {
 } from './secuenciaPropagation'
 import { MobileWeekPager } from './MobileWeekPager'
 import { DesktopWeekNavigator } from './DesktopWeekNavigator'
-import { useOfrendaMobileOrTablet } from './OfrendaLiquidShell'
+import { useOfrendaClientMounted, useOfrendaMobileOrTablet } from './ofrendaViewport'
 import {
     PLAN_ROLE_COL_STYLE,
     PLAN_SERVICE_COL_STYLE,
@@ -180,7 +180,9 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
     const { t, language } = useI18n()
     const dateLocale = getDateFnsLocale(language)
     const roleRows = useRoleRows()
-    const isCompact = useOfrendaMobileOrTablet()
+    const mounted = useOfrendaClientMounted()
+    const isCompactMq = useOfrendaMobileOrTablet()
+    const isCompact = mounted && isCompactMq
     const [currentPage, setCurrentPage] = useState(0)
     const [canScrollRight, setCanScrollRight] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -267,6 +269,19 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
             window.removeEventListener('resize', onResize)
         }
     }, [isCompact, servicios.length, updateScrollHint, weeksCount])
+
+    if (!mounted) {
+        return (
+            <div className="space-y-4" data-testid="ofrenda-plan-hydrate-placeholder" aria-hidden>
+                <div className="flex flex-wrap gap-3 justify-center">
+                    <div className="h-4 w-20 rounded bg-muted/50 animate-pulse" />
+                    <div className="h-4 w-24 rounded bg-muted/50 animate-pulse" />
+                    <div className="h-4 w-24 rounded bg-muted/50 animate-pulse" />
+                </div>
+                <div className="h-[min(420px,55vh)] rounded-2xl bg-muted/30 animate-pulse border border-border/40" />
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-4">

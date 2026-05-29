@@ -188,7 +188,7 @@ function OfrendaPageClientInner({
                     {activeTab === 'plan' && (
                         <motion.div
                             key="plan"
-                            initial={{ opacity: 0, y: 8 }}
+                            initial={false}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.18 }}
@@ -304,7 +304,7 @@ function OfrendaPageClientInner({
                     {activeTab === 'personas' && (
                         <motion.div
                             key="personas"
-                            initial={{ opacity: 0, y: 8 }}
+                            initial={false}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.18 }}
@@ -322,7 +322,7 @@ function OfrendaPageClientInner({
                         <motion.div
                             key="exportar"
                             className="relative z-10 bg-background"
-                            initial={{ opacity: 0, y: 8 }}
+                            initial={false}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.18 }}

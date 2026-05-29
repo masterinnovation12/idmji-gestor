@@ -68,3 +68,20 @@ function getMqServerSnapshot() {
 export function useOfrendaMobileOrTablet() {
     return useSyncExternalStore(subscribeMq, getMqSnapshot, getMqServerSnapshot)
 }
+
+function subscribeMounted() {
+    return () => {}
+}
+
+/** false en SSR y en el primer paint del cliente → evita mismatch móvil/escritorio. */
+function getMountedSnapshot() {
+    return true
+}
+
+function getMountedServerSnapshot() {
+    return false
+}
+
+export function useOfrendaClientMounted() {
+    return useSyncExternalStore(subscribeMounted, getMountedSnapshot, getMountedServerSnapshot)
+}
