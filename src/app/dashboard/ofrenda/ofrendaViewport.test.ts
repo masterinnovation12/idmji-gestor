@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import {
     useOfrendaMobileOrTablet,
+    useOfrendaClientMounted,
     OFRENDA_MOBILE_TABLET_MQ,
     resetOfrendaMqCacheForTests,
 } from './ofrendaViewport'
@@ -85,5 +86,11 @@ describe('useOfrendaMobileOrTablet', () => {
             await Promise.resolve()
         })
         expect(result.current).toBe(true)
+    })
+
+    it('useOfrendaClientMounted es true tras hidratar (entorno cliente / tests)', () => {
+        const { result, unmount } = renderHook(() => useOfrendaClientMounted())
+        expect(result.current).toBe(true)
+        unmount()
     })
 })

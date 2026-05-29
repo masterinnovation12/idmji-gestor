@@ -89,8 +89,9 @@ vi.mock('./ofrendaFeedback', () => ({
 }))
 
 const mobileMock = vi.fn(() => true)
-vi.mock('./OfrendaLiquidShell', () => ({
+vi.mock('./ofrendaViewport', () => ({
     useOfrendaMobileOrTablet: () => mobileMock(),
+    useOfrendaClientMounted: () => true,
 }))
 
 describe('PlanTable — layout móvil vs desktop', () => {
