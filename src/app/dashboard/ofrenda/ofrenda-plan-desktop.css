@@ -1,0 +1,52 @@
+/* Labor Ofrenda — tabla plan desktop fullscreen (≥1024px) */
+
+.ofrenda-plan-desktop-shell {
+    border: 1px solid rgba(184, 150, 74, 0.28);
+    background: linear-gradient(165deg, #ffffff 0%, #f8f6f1 48%, #f1f5f9 100%);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 12px 48px -16px rgba(31, 46, 133, 0.14);
+}
+
+.dark .ofrenda-plan-desktop-shell {
+    background: linear-gradient(165deg, hsl(var(--background)) 0%, hsl(var(--muted) / 0.35) 100%);
+    border-color: rgba(184, 150, 74, 0.2);
+}
+
+/* Sin scroll-snap ni scroll-padding: el JS fija scrollLeft exacto (evita solape con Rol). */
+.ofrenda-plan-desktop-scroll {
+    scroll-behavior: auto;
+}
+
+.ofrenda-plan-sticky-role {
+    position: sticky;
+    left: 0;
+    z-index: 40;
+    background-color: hsl(var(--muted));
+    background-clip: padding-box;
+    border-right: 1px solid rgba(184, 150, 74, 0.22);
+    box-shadow: 6px 0 16px -6px rgba(31, 46, 133, 0.12);
+    isolation: isolate;
+}
+
+.dark .ofrenda-plan-sticky-role {
+    box-shadow: 6px 0 16px -6px rgba(0, 0, 0, 0.45);
+}
+
+.ofrenda-plan-sticky-role--body {
+    background-color: hsl(var(--background));
+}
+
+.ofrenda-plan-desktop-scroll::-webkit-scrollbar {
+    height: 10px;
+}
+
+.ofrenda-plan-desktop-scroll::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(31, 46, 133, 0.22);
+}
+
+.ofrenda-plan-desktop-scroll::-webkit-scrollbar-track {
+    background: rgba(31, 46, 133, 0.06);
+    border-radius: 999px;
+}

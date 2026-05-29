@@ -1,14 +1,21 @@
 'use client'
 
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Download, Image as ImageIcon, FileText, Gift,
     AlertCircle, Share2, CheckCircle2, Loader2,
-    ChevronDown, Info, X, AlertTriangle
+    ChevronDown, Info, X
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { format } from 'date-fns'
+import { useI18n } from '@/lib/i18n/I18nProvider'
+import { useOfrendaToast } from './ofrendaFeedback'
 import { ExportLayout } from './ExportLayout'
+import { ExportPreviewViewer } from './ExportPreviewViewer'
+import { captureExportLayoutToPng, EXPORT_LAYOUT_WIDTH } from './exportCapture'
+import { IDMJI_BRAND, SERVICE_EXPORT_COLORS, EXPORT_CELL } from './exportBrand'
+import { getDateFnsLocale, getExportLabels, getMonthLabel, interpolate } from './ofrendaLocale'
 import type { PlanCompleto, OfrMiembro, OfrServicio } from './actions'
 
 // ─── Tipos y constantes ────────────────────────────────────────────────────────
@@ -24,44 +31,9 @@ interface ExportPanelProps {
 type ExportStep = 'idle' | 'rendering' | 'encoding' | 'downloading' | 'done'
 type ExportType = 'png' | 'pdf' | 'share' | null
 
-const MESES_ES = [
-    '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
-
-const STEP_LABELS: Record<ExportStep, string> = {
-    idle:        '',
-    rendering:   'Preparando datos vectoriales…',
-    encoding:    'Compilando PDF de alta calidad…',
-    downloading: 'Iniciando descarga…',
-    done:        '¡Listo!',
-}
-
-// ─── Toasts premium con descripción e icono ──────────────────────────────────
-
-function toastOk(title: string, description?: string) {
-    toast.success(title, {
-        description,
-        duration: 4000,
-        icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
-    })
-}
-
-function toastWarn(title: string, description?: string) {
-    toast.warning(title, {
-        description,
-        duration: 4500,
-        icon: <AlertTriangle className="w-4 h-4 text-amber-500" />,
-    })
-}
-
-function toastErr(title: string, description?: string) {
-    toast.error(title, {
-        description,
-        duration: 5000,
-        icon: <X className="w-4 h-4 text-red-500" />,
-    })
-}
+function subscribeMount() { return () => {} }
+function getMountSnapshot() { return true }
+function getServerMountSnapshot() { return false }
 
 // Helper para convertir hex a RGB para jsPDF
 function hexToRgb(hex: string) {
@@ -77,10 +49,27 @@ function hexToRgb(hex: string) {
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<ExportPanelProps>) {
+    const { t, language } = useI18n()
+    const feedback = useOfrendaToast()
+    const labels = getExportLabels(language)
+    const mesSlug = getMonthLabel(language, mes).toLowerCase().replace(/\s+/g, '-')
+    const fileBase = `labor-ofrenda-${mesSlug}-${anio}`
+    const dateLocale = getDateFnsLocale(language)
+    const stepLabels: Record<ExportStep, string> = {
+        idle: '',
+        rendering: t('ofrenda.export.step.rendering'),
+        encoding: t('ofrenda.export.step.encoding'),
+        downloading: t('ofrenda.export.step.downloading'),
+        done: t('ofrenda.export.step.done'),
+    }
+
+    const isClient = useSyncExternalStore(subscribeMount, getMountSnapshot, getServerMountSnapshot)
     const layoutRef   = useRef<HTMLDivElement>(null)
     const [exportType, setExportType]   = useState<ExportType>(null)
     const [step,       setStep]         = useState<ExportStep>('idle')
     const [previewOpen, setPreviewOpen] = useState(false)
+    const [previewUrl, setPreviewUrl]   = useState<string | null>(null)
+    const [previewLoading, setPreviewLoading] = useState(false)
     const [canShare, setCanShare]       = useState(false)
 
     // Detectar Web Share API con soporte de archivos
@@ -89,6 +78,30 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             setCanShare(true)
         }
     }, [])
+
+    // Vista previa WYSIWYG: misma captura que el PNG exportado
+    useEffect(() => {
+        if (!previewOpen || !plan) {
+            setPreviewUrl(null)
+            return
+        }
+        let cancelled = false
+        setPreviewLoading(true)
+        setPreviewUrl(null)
+        ;(async () => {
+            await new Promise(r => setTimeout(r, 120))
+            if (!layoutRef.current || cancelled) return
+            try {
+                const dataUrl = await captureExportLayoutToPng(layoutRef.current, { pixelRatio: 1.5 })
+                if (!cancelled) setPreviewUrl(dataUrl)
+            } catch (e) {
+                console.error('Preview capture error:', e)
+            } finally {
+                if (!cancelled) setPreviewLoading(false)
+            }
+        })()
+        return () => { cancelled = true }
+    }, [previewOpen, plan, mes, anio, language])
 
     // ── Helper: capturar el layout oculto como PNG data URL ──────────────────
     const captureLayoutPNG = useCallback(async (): Promise<string | null> => {
@@ -99,14 +112,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
         await new Promise(r => setTimeout(r, 120))
 
         setStep('encoding')
-        const { toPng } = await import('html-to-image')
-        const dataUrl = await toPng(layoutRef.current, {
-            cacheBust: true,
-            pixelRatio: 2.5,       // Alta resolución nítida para móviles
-            backgroundColor: '#ffffff',
-            skipFonts: false,
-        })
-        return dataUrl
+        return captureExportLayoutToPng(layoutRef.current, { pixelRatio: 2.5 })
     }, [])
 
     // ── Exportar PNG (descarga directa) ──────────────────────────────────────
@@ -119,27 +125,21 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
 
             setStep('downloading')
             const link = document.createElement('a')
-            link.download = `labor-ofrenda-${MESES_ES[mes].toLowerCase()}-${anio}.png`
+            link.download = `${fileBase}.png`
             link.href = dataUrl
             document.body.appendChild(link)
             link.click()
             link.remove()
 
             setStep('done')
-            toastOk(
-                'Imagen PNG descargada',
-                'Perfecta para enviar por grupos de WhatsApp o Telegram.'
-            )
+            feedback.quickSuccess(t('ofrenda.toast.pngOk'), t('ofrenda.toast.pngOkDesc'))
             setTimeout(() => { setStep('idle'); setExportType(null) }, 1500)
         } catch (e) {
             console.error('Export PNG error:', e)
-            toastErr(
-                'Error al generar la imagen',
-                'Hubo un problema procesando la vista. Inténtalo de nuevo.'
-            )
+            feedback.planError(t('ofrenda.toast.exportError'), t('ofrenda.toast.exportErrorDesc'))
             setStep('idle'); setExportType(null)
         }
-    }, [plan, mes, anio, captureLayoutPNG])
+    }, [plan, fileBase, captureLayoutPNG, t, feedback])
 
     // ── Exportar PDF VECTORIAL (jsPDF Puro — Nítido, < 100KB, sin popups) ───
     const handleExportPDF = useCallback(async () => {
@@ -180,38 +180,50 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 console.error('Error loading logo in PDF generator:', e)
             }
 
-            // 1. Encabezados generales
+            // 1. Encabezado institucional (idmji.org: navy + dorado)
+            const goldRgb = hexToRgb(IDMJI_BRAND.gold)
+            const navyRgb = hexToRgb(IDMJI_BRAND.navy)
+            doc.setFillColor(goldRgb.r, goldRgb.g, goldRgb.b)
+            doc.rect(0, 0, pageW, 2.2, 'F')
+            doc.setFillColor(navyRgb.r, navyRgb.g, navyRgb.b)
+            doc.rect(0, 2.2, pageW, 36, 'F')
+
             if (base64Logo) {
-                doc.addImage(base64Logo, 'JPEG', marginX, 13, 21, 21)
+                doc.setFillColor(255, 255, 255)
+                doc.roundedRect(marginX, 9, 23, 23, 2, 2, 'F')
+                doc.addImage(base64Logo, 'JPEG', marginX + 1, 10, 21, 21)
             }
 
             doc.setFont('helvetica', 'bold')
-            doc.setFontSize(8.5)
-            doc.setTextColor(107, 114, 128) // #6b7280
-            doc.text('IGLESIA DE DIOS MINISTERIAL DE JESUCRISTO INTERNACIONAL', pageW / 2, 17, { align: 'center' })
+            doc.setFontSize(8)
+            doc.setTextColor(goldRgb.r, goldRgb.g, goldRgb.b)
+            doc.text(labels.churchName.toUpperCase(), pageW / 2, 14, { align: 'center' })
 
             doc.setFont('helvetica', 'bold')
-            doc.setFontSize(22)
-            doc.setTextColor(17, 24, 39) // #111827
-            doc.text(`Labor Ofrenda — ${MESES_ES[mes]} ${anio}`, pageW / 2, 27, { align: 'center' })
+            doc.setFontSize(21)
+            doc.setTextColor(255, 255, 255)
+            doc.text(`${labels.titleDoc} — ${tituloMes}`, pageW / 2, 24, { align: 'center' })
 
-            // Leyenda de colores centrada
-            doc.setFont('helvetica', 'bold')
-            doc.setFontSize(7.5)
-            doc.setTextColor(107, 114, 128)
+            doc.setFont('helvetica', 'normal')
+            doc.setFontSize(7)
+            doc.setTextColor(220, 225, 235)
+            doc.text(labels.officialSite, pageW - marginX, 12, { align: 'right' })
 
             const legendItems = [
-                { color: '#064e3b', label: 'Jueves' },
-                { color: '#1e3a5f', label: 'Dom. Mañana' },
-                { color: '#3b0764', label: 'Dom. Tarde' },
+                { color: SERVICE_EXPORT_COLORS.jueves.headerBg, label: labels.legendJueves },
+                { color: SERVICE_EXPORT_COLORS.domingo.headerBg, label: labels.legendDomManana },
+                { color: SERVICE_EXPORT_COLORS.domingo_tarde.headerBg, label: labels.legendDomTarde },
             ]
 
             let legendX = (pageW / 2) - 48
-            const legendY = 35
+            const legendY = 33
+            doc.setFont('helvetica', 'bold')
+            doc.setFontSize(7)
             for (const item of legendItems) {
                 const rgb = hexToRgb(item.color)
                 doc.setFillColor(rgb.r, rgb.g, rgb.b)
-                doc.rect(legendX, legendY - 2.2, 2.5, 2.5, 'F') // cuadrado relleno
+                doc.rect(legendX, legendY - 2.2, 2.5, 2.5, 'F')
+                doc.setTextColor(230, 235, 245)
                 doc.text(item.label, legendX + 4, legendY, { align: 'left' })
                 legendX += 30
             }
@@ -225,7 +237,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             const colW = remainingW / numCols
 
             // Coordenadas Y
-            const startY = 43
+            const startY = 44
             const headerH = 16
             const seqH = 9
             const rowH = 10.5
@@ -234,9 +246,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
 
             const getFechaLabel = (fecha: string): string => {
                 const d = new Date(fecha + 'T00:00:00')
-                const dNum = String(d.getDate()).padStart(2, '0')
-                const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-                return `${dNum}-${meses[d.getMonth()]}`
+                return format(d, 'dd-MMM', { locale: dateLocale })
             }
 
             const fitLines = (text: string, maxWidth: number, maxLines = 2): string[] => {
@@ -272,8 +282,9 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 doc.rect(x, y, w, h, 'S')
 
                 if (drawThickLeftBorder) {
-                    doc.setLineWidth(0.4)
-                    doc.setDrawColor(107, 114, 128) // #6b7280
+                    // Separador sutil navy (igual que ExportLayout)
+                    doc.setLineWidth(0.5)
+                    doc.setDrawColor(31, 46, 133, 0.22)
                     doc.line(x, y, x, y + h)
                 }
 
@@ -316,11 +327,12 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 h: number,
                 drawThickLeftBorder = false
             ) => {
+                const svc = SERVICE_EXPORT_COLORS[srv.dia_tipo]
                 const colors = {
-                    jueves:        { bg: '#064e3b', badgeBg: null, badgeTxt: null },
-                    domingo:       { bg: '#1e3a5f', badgeBg: '#dbeafe', badgeTxt: 'Mañana' },
-                    domingo_tarde: { bg: '#3b0764', badgeBg: '#ede9fe', badgeTxt: 'Tarde' },
-                }[srv.dia_tipo]
+                    bg: svc.headerBg,
+                    badgeBg: svc.badgeBg,
+                    badgeTxt: srv.dia_tipo === 'domingo' ? labels.manana : srv.dia_tipo === 'domingo_tarde' ? labels.tarde : null,
+                }
 
                 doc.setFillColor(hexToRgb(colors.bg).r, hexToRgb(colors.bg).g, hexToRgb(colors.bg).b)
                 doc.rect(x, y, w, h, 'F')
@@ -330,14 +342,15 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 doc.rect(x, y, w, h, 'S')
 
                 if (drawThickLeftBorder) {
-                    doc.setLineWidth(0.4)
-                    doc.setDrawColor(107, 114, 128)
+                    // Separador sutil navy (igual que ExportLayout)
+                    doc.setLineWidth(0.5)
+                    doc.setDrawColor(31, 46, 133, 0.22)
                     doc.line(x, y, x, y + h)
                 }
 
                 // Textos
                 doc.setTextColor(255, 255, 255)
-                const dayLabel = srv.dia_tipo === 'jueves' ? 'Jueves' : 'Domingo'
+                const dayLabel = srv.dia_tipo === 'jueves' ? labels.jueves : labels.domingo
 
                 if (srv.dia_tipo === 'jueves') {
                     doc.setFont('helvetica', 'normal')
@@ -366,7 +379,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                         const badgeY = y + 8.5
                         doc.rect(badgeX, badgeY, badgeW, badgeH, 'F')
 
-                        const txtRGB = hexToRgb(srv.dia_tipo === 'domingo' ? '#1e40af' : '#5b21b6')
+                        const txtRGB = hexToRgb(svc.seqText)
                         doc.setTextColor(txtRGB.r, txtRGB.g, txtRGB.b)
                         doc.setFont('helvetica', 'bold')
                         doc.setFontSize(6)
@@ -376,7 +389,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             }
 
             // Fila 1: Header
-            drawCell('Rol / Fecha', marginX, startY, firstColW, headerH, '#1f2937', '#ffffff', 'bold', 9, 'left')
+            drawCell(labels.rolFecha, marginX, startY, firstColW, headerH, IDMJI_BRAND.tableMeta, '#ffffff', 'bold', 9, 'left')
             servicios.forEach((srv, idx) => {
                 const isWeekStart = idx % 3 === 0 && idx > 0
                 drawHeaderCell(srv, marginX + firstColW + idx * colW, startY, colW, headerH, isWeekStart)
@@ -384,22 +397,19 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
 
             // Fila 2: Secuencias de sacos
             let nextY = startY + headerH
-            drawCell('Secuencia (sacos)', marginX, nextY, firstColW, seqH, '#f9fafb', '#374151', 'bold', 8.5, 'left')
+            drawCell(labels.secuencia, marginX, nextY, firstColW, seqH, IDMJI_BRAND.goldPale, IDMJI_BRAND.navy, 'bold', 8.5, 'left')
             servicios.forEach((srv, idx) => {
                 const isWeekStart = idx % 3 === 0 && idx > 0
-                const colors = {
-                    jueves:        { bg: '#ecfdf5', txt: '#065f46' },
-                    domingo:       { bg: '#eff6ff', txt: '#1e40af' },
-                    domingo_tarde: { bg: '#f5f3ff', txt: '#5b21b6' },
-                }[srv.dia_tipo]
-                drawCell(srv.secuencia_texto, marginX + firstColW + idx * colW, nextY, colW, seqH, colors.bg, colors.txt, 'bold', 9.5, 'center', isWeekStart)
+                const svc = SERVICE_EXPORT_COLORS[srv.dia_tipo]
+                drawCell(srv.secuencia_texto, marginX + firstColW + idx * colW, nextY, colW, seqH, svc.seqBg, svc.seqText, 'bold', 9.5, 'center', isWeekStart)
             })
 
             // Filas de Grupo 1 (Roles)
+            const g1 = SERVICE_EXPORT_COLORS.jueves
             const ROLES_G1 = [
-                { key: 'realiza',    label: 'Realiza labor',          bgEven: '#f0fdf4', bgOdd: '#dcfce7', labelTxt: '#065f46' },
-                { key: 'apoyo',      label: 'Apoyo',                  bgEven: '#f0fdf4', bgOdd: '#dcfce7', labelTxt: '#065f46' },
-                { key: 'vigilancia', label: 'Vigilancia Orientación', bgEven: '#f0fdf4', bgOdd: '#dcfce7', labelTxt: '#065f46' },
+                { key: 'realiza' as const,    label: labels.realiza,    bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText },
+                { key: 'apoyo' as const,      label: labels.apoyo,      bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText },
+                { key: 'vigilancia' as const, label: labels.vigilancia, bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText },
             ]
 
             nextY += seqH
@@ -412,20 +422,21 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                     const isWeekStart = idx % 3 === 0 && idx > 0
                     const asig = asignaciones.find(a => a.servicio_id === srv.id && a.rol === rol.key)
                     const nombre = asig?.miembro?.nombre ?? '—'
-                    const cellBg = rIdx % 2 === 0 ? '#f9fafb' : '#f3f4f6'
-                    drawCell(nombre, marginX + firstColW + idx * colW, rowY, colW, rowH, cellBg, '#111827', 'bold', 7.2, 'center', isWeekStart)
+                    const cellBg = rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd
+                    drawCell(nombre, marginX + firstColW + idx * colW, rowY, colW, rowH, cellBg, IDMJI_BRAND.text, 'bold', 7.2, 'center', isWeekStart)
                 })
             })
 
             // Fila Divisor
             nextY += ROLES_G1.length * rowH
-            drawCell('', marginX, nextY, printableW, dividerH, '#374151', '#374151')
+            drawCell('', marginX, nextY, printableW, dividerH, EXPORT_CELL.divider, EXPORT_CELL.divider)
 
             // Filas de Grupo 2 (Colaboradores)
+            const g2 = SERVICE_EXPORT_COLORS.domingo
             const ROLES_G2 = [
-                { key: 'colaborador_1', label: 'Colaboradores', bgEven: '#eff6ff', bgOdd: '#dbeafe', labelTxt: '#1e40af' },
-                { key: 'colaborador_2', label: 'Colaboradores', bgEven: '#eff6ff', bgOdd: '#dbeafe', labelTxt: '#1e40af' },
-                { key: 'colaborador_3', label: 'Colaboradores', bgEven: '#eff6ff', bgOdd: '#dbeafe', labelTxt: '#1e40af' },
+                { key: 'colaborador_1' as const, label: labels.colaborador1, bgEven: g2.labelBgEven, bgOdd: g2.labelBgOdd, labelTxt: g2.labelText },
+                { key: 'colaborador_2' as const, label: labels.colaborador2, bgEven: g2.labelBgEven, bgOdd: g2.labelBgOdd, labelTxt: g2.labelText },
+                { key: 'colaborador_3' as const, label: labels.colaborador3, bgEven: g2.labelBgEven, bgOdd: g2.labelBgOdd, labelTxt: g2.labelText },
             ]
 
             nextY += dividerH
@@ -438,50 +449,55 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                     const isWeekStart = idx % 3 === 0 && idx > 0
                     const asig = asignaciones.find(a => a.servicio_id === srv.id && a.rol === rol.key)
                     const nombre = asig?.miembro?.nombre ?? '—'
-                    const cellBg = rIdx % 2 === 0 ? '#f9fafb' : '#f3f4f6'
-                    drawCell(nombre, marginX + firstColW + idx * colW, rowY, colW, rowH, cellBg, '#111827', 'bold', 7.2, 'center', isWeekStart)
+                    const cellBg = rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd
+                    drawCell(nombre, marginX + firstColW + idx * colW, rowY, colW, rowH, cellBg, IDMJI_BRAND.text, 'bold', 7.2, 'center', isWeekStart)
                 })
             })
 
             // Fila de Semana ISO
             nextY += ROLES_G2.length * rowH
-            drawCell('Semana ISO', marginX, nextY, firstColW, footerH, '#1f2937', '#9ca3af', 'bold', 7.5, 'left')
+            drawCell(labels.semanaIso, marginX, nextY, firstColW, footerH, IDMJI_BRAND.tableMeta, '#b8c0cc', 'bold', 7.5, 'left')
             servicios.forEach((srv, idx) => {
                 const isWeekStart = idx % 3 === 0 && idx > 0
-                drawCell(`S${srv.semana_iso}`, marginX + firstColW + idx * colW, nextY, colW, footerH, '#1f2937', '#d1d5db', 'bold', 8, 'center', isWeekStart)
+                drawCell(`S${srv.semana_iso}`, marginX + firstColW + idx * colW, nextY, colW, footerH, IDMJI_BRAND.navyDark, '#e2e8f0', 'bold', 8, 'center', isWeekStart)
             })
 
             // 3. Pie de página de metadatos
             const footerY = nextY + footerH + 10
+            const goldLine = hexToRgb(IDMJI_BRAND.gold)
+            doc.setDrawColor(goldLine.r, goldLine.g, goldLine.b)
+            doc.setLineWidth(0.35)
+            doc.line(marginX, footerY - 5, pageW - marginX, footerY - 5)
+
             doc.setFont('helvetica', 'normal')
             doc.setFontSize(7.5)
-            doc.setTextColor(156, 163, 175) // #9ca3af
-            const creationDate = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
-            doc.text(`Generado por IDMJI Gestor de Púlpito · ${creationDate}`, marginX, footerY, { align: 'left' })
+            doc.setTextColor(122, 122, 122)
+            const localeTag = language === 'ca-ES' ? 'ca-ES' : 'es-ES'
+            const creationDate = new Date().toLocaleDateString(localeTag, { day: '2-digit', month: 'long', year: 'numeric' })
+            doc.setFont('helvetica', 'bold')
+            doc.setTextColor(goldLine.r, goldLine.g, goldLine.b)
+            doc.text(`${labels.officialSite} · `, marginX, footerY, { align: 'left' })
+            const siteW = doc.getTextWidth(`${labels.officialSite} · `)
+            doc.setFont('helvetica', 'normal')
+            doc.setTextColor(122, 122, 122)
+            doc.text(`${labels.footer} · ${creationDate}`, marginX + siteW, footerY, { align: 'left' })
 
             const { sacos_jueves: sJ, sacos_domingo: sD, sacos_domingo_tarde: sDT } = plan.plan
             const sSemana = (sJ ?? 4) + (sD ?? 8) + (sDT ?? 4)
-            doc.text(`${sSemana} sacos/semana (J:${sJ ?? 4} · DM:${sD ?? 8} · DT:${sDT ?? 4}) · Ciclo 20 sacos`, pageW - marginX, footerY, { align: 'right' })
+            doc.text(labels.sacosMeta(sSemana, sJ ?? 4, sD ?? 8, sDT ?? 4), pageW - marginX, footerY, { align: 'right' })
 
-            // Guardar archivo PDF directamente
             setStep('downloading')
-            doc.save(`labor-ofrenda-${MESES_ES[mes].toLowerCase()}-${anio}.pdf`)
+            doc.save(`${fileBase}.pdf`)
 
             setStep('done')
-            toastOk(
-                'Documento PDF descargado',
-                'PDF vectorial ultra-ligero (< 30 KB), nítido en cualquier resolución.'
-            )
+            feedback.quickSuccess(t('ofrenda.toast.pdfOk'), t('ofrenda.toast.pdfOkDesc'))
             setTimeout(() => { setStep('idle'); setExportType(null) }, 1500)
         } catch (e) {
             console.error('Export Vector PDF error:', e)
-            toastErr(
-                'Error al generar el PDF',
-                'Inténtalo nuevamente. Si el error persiste, usa la descarga PNG.'
-            )
+            feedback.planError(t('ofrenda.toast.exportError'), t('ofrenda.toast.exportErrorDesc'))
             setStep('idle'); setExportType(null)
         }
-    }, [plan, mes, anio])
+    }, [plan, tituloMes, fileBase, labels, dateLocale, language, t, feedback])
 
     // ── Compartir vía Web Share API (nativo móvil → WhatsApp, etc.) ──────────
     const handleShare = useCallback(async () => {
@@ -497,33 +513,34 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             const blob = await res.blob()
             const file = new File(
                 [blob],
-                `labor-ofrenda-${MESES_ES[mes].toLowerCase()}-${anio}.png`,
+                `${fileBase}.png`,
                 { type: 'image/png' }
             )
 
             if (!navigator.canShare({ files: [file] })) {
-                toastWarn('Formato no soportado', 'Tu dispositivo no soporta compartir imágenes desde el navegador.')
+                feedback.quickWarning(t('ofrenda.export.shareWarn'), t('ofrenda.export.shareWarnDesc'))
                 setStep('idle'); setExportType(null)
                 return
             }
 
+            const shareLine = interpolate(t('ofrenda.export.shareText'), { month: tituloMes, year: String(anio) })
             await navigator.share({
-                title:  `Labor Ofrenda — ${tituloMes} ${anio}`,
-                text:   `📋 Labor Ofrenda — ${tituloMes} ${anio}\nIglesia de Dios Ministerial de Jesucristo Internacional`,
-                files:  [file],
+                title: shareLine,
+                text: `📋 ${shareLine}\n${labels.churchName}`,
+                files: [file],
             })
 
             setStep('done')
-            toastOk('¡Compartido correctamente!', 'La imagen ha sido enviada.')
+            feedback.quickSuccess(t('ofrenda.toast.shareOk'), t('ofrenda.toast.shareOkDesc'))
             setTimeout(() => { setStep('idle'); setExportType(null) }, 1500)
         } catch (e: unknown) {
             if (e instanceof Error && e.name !== 'AbortError') {
                 console.error('Share error:', e)
-                toastErr('No se pudo compartir', 'Inténtalo de nuevo.')
+                feedback.planError(t('ofrenda.toast.shareError'), t('ofrenda.toast.exportErrorDesc'))
             }
             setStep('idle'); setExportType(null)
         }
-    }, [plan, canShare, mes, anio, tituloMes, captureLayoutPNG])
+    }, [plan, canShare, fileBase, tituloMes, anio, labels, captureLayoutPNG, t, feedback])
 
     // ── Estado vacío ──────────────────────────────────────────────────────────
     if (!plan) {
@@ -533,9 +550,9 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                     <AlertCircle className="w-12 h-12 text-muted-foreground" />
                 </div>
                 <div>
-                    <h3 className="text-lg font-bold mb-1">Sin plan generado</h3>
+                    <h3 className="text-lg font-bold mb-1">{t('ofrenda.export.empty.title')}</h3>
                     <p className="text-sm text-muted-foreground max-w-xs">
-                        Genera el plan mensual en la pestaña «Plan Mensual» antes de exportar.
+                        {t('ofrenda.export.empty.desc')}
                     </p>
                 </div>
             </div>
@@ -545,12 +562,12 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
     const isExporting = exportType !== null && step !== 'done'
 
     return (
-        <div className="space-y-5">
+        <div className="relative z-10 space-y-5 bg-background">
             {/* ── Banner informativo ───────────────────────────────────── */}
             <div className="flex gap-3 p-3.5 bg-emerald-500/8 border border-emerald-500/20 rounded-2xl">
                 <Gift className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
                 <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium leading-relaxed">
-                    La imagen PNG se genera a <span className="font-bold">2.5x de resolución</span> para verse nítida en pantallas móviles. El PDF es un documento <span className="font-bold">vectorial nativo (menos de 30 KB)</span> con definición perfecta.
+                    {t('ofrenda.export.banner')}
                 </p>
             </div>
 
@@ -559,45 +576,52 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 {/* PNG */}
                 <ExportOptionRow
                     icon={<ImageIcon className="w-4.5 h-4.5 text-blue-500" />}
-                    badge="WhatsApp"
+                    badge={t('ofrenda.export.badge.whatsapp')}
                     badgeColor="blue"
-                    title="Descargar Imagen PNG"
-                    description="Imagen nítida perfecta para compartir directamente por grupos de WhatsApp o Telegram."
-                    actionLabel="Descargar PNG"
+                    title={t('ofrenda.export.png.title')}
+                    description={t('ofrenda.export.png.desc')}
+                    actionLabel={t('ofrenda.export.png.btn')}
                     isActive={exportType === 'png'}
                     isDisabled={isExporting && exportType !== 'png'}
                     step={exportType === 'png' ? step : 'idle'}
+                    stepLabels={stepLabels}
+                    processingLabel={t('ofrenda.export.processing')}
+                    doneLabel={t('ofrenda.export.doneBtn')}
                     onAction={handleExportPNG}
                     color="blue"
                 />
 
-                {/* PDF */}
                 <ExportOptionRow
                     icon={<FileText className="w-4.5 h-4.5 text-red-500" />}
-                    badge="Vectorial"
+                    badge={t('ofrenda.export.badge.vector')}
                     badgeColor="red"
-                    title="Descargar Documento PDF"
-                    description="PDF vectorial súper liviano de calidad óptima para impresión en hojas A4 horizontales."
-                    actionLabel="Descargar PDF"
+                    title={t('ofrenda.export.pdf.title')}
+                    description={t('ofrenda.export.pdf.desc')}
+                    actionLabel={t('ofrenda.export.pdf.btn')}
                     isActive={exportType === 'pdf'}
                     isDisabled={isExporting && exportType !== 'pdf'}
                     step={exportType === 'pdf' ? step : 'idle'}
+                    stepLabels={stepLabels}
+                    processingLabel={t('ofrenda.export.processing')}
+                    doneLabel={t('ofrenda.export.doneBtn')}
                     onAction={handleExportPDF}
                     color="red"
                 />
 
-                {/* Compartir */}
                 {canShare && (
                     <ExportOptionRow
                         icon={<Share2 className="w-4.5 h-4.5 text-emerald-500" />}
-                        badge="Móvil"
+                        badge={t('ofrenda.export.badge.mobile')}
                         badgeColor="green"
-                        title="Compartir directamente"
-                        description="Abre el menú nativo de tu dispositivo para enviarlo directamente sin descargar."
-                        actionLabel="Compartir ahora"
+                        title={t('ofrenda.export.share.title')}
+                        description={t('ofrenda.export.share.desc')}
+                        actionLabel={t('ofrenda.export.share.btn')}
                         isActive={exportType === 'share'}
                         isDisabled={isExporting && exportType !== 'share'}
                         step={exportType === 'share' ? step : 'idle'}
+                        stepLabels={stepLabels}
+                        processingLabel={t('ofrenda.export.processing')}
+                        doneLabel={t('ofrenda.export.doneBtn')}
                         onAction={handleShare}
                         color="green"
                     />
@@ -613,7 +637,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 >
                     <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                         <Info className="w-3.5 h-3.5" />
-                        Vista previa del documento completo
+                        {t('ofrenda.export.preview')}
                     </div>
                     <motion.div
                         animate={{ rotate: previewOpen ? 180 : 0 }}
@@ -632,40 +656,26 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                             transition={{ duration: 0.22 }}
                             className="overflow-hidden"
                         >
-                            <div className="overflow-x-auto bg-muted/20 p-3">
-                                <div
-                                    className="relative"
-                                    style={{ width: '100%', paddingBottom: '35%', minHeight: 180 }}
-                                >
-                                    <div
-                                        style={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            width: 1600,
-                                            transformOrigin: 'top left',
-                                            transform: 'scale(var(--preview-scale, 0.28))',
-                                        }}
-                                        ref={el => {
-                                            if (el) {
-                                                const parent = el.parentElement?.parentElement
-                                                if (parent) {
-                                                    const scale = (parent.clientWidth - 24) / 1600
-                                                    el.style.setProperty('--preview-scale', String(scale))
-                                                }
-                                            }
-                                        }}
-                                    >
-                                        <ExportLayout
-                                            plan={plan}
-                                            miembros={miembros}
-                                            anio={anio}
-                                            mes={mes}
-                                        />
+                            <div className="p-3 bg-muted/20 space-y-2">
+                                {previewLoading && (
+                                    <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        {t('ofrenda.export.previewLoading')}
                                     </div>
-                                </div>
-                                <p className="text-center text-[10px] text-muted-foreground mt-2 font-medium">
-                                    Vista previa escalada — la exportación real tiene resolución completa
+                                )}
+                                {!previewLoading && previewUrl && (
+                                    <ExportPreviewViewer
+                                        imageUrl={previewUrl}
+                                        alt={t('ofrenda.export.preview')}
+                                    />
+                                )}
+                                {!previewLoading && !previewUrl && (
+                                    <p className="text-center py-8 text-sm text-muted-foreground">
+                                        {t('ofrenda.toast.exportError')}
+                                    </p>
+                                )}
+                                <p className="text-center text-[10px] text-muted-foreground font-medium px-1">
+                                    {t('ofrenda.export.previewNote')}
                                 </p>
                             </div>
                         </motion.div>
@@ -673,26 +683,34 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 </AnimatePresence>
             </div>
 
-            {/* ── Layout oculto para captura PNG ───────────────────────── */}
-            <div
-                aria-hidden="true"
-                style={{
-                    position: 'fixed',
-                    top: -99999,
-                    left: -99999,
-                    zIndex: -1,
-                    pointerEvents: 'none',
-                    width: 1600,
-                }}
-            >
-                <ExportLayout
-                    ref={layoutRef}
-                    plan={plan}
-                    miembros={miembros}
-                    anio={anio}
-                    mes={mes}
-                />
-            </div>
+            {/* Layout en portal (body) para captura PNG completa en móvil */}
+            {isClient && plan && createPortal(
+                <div
+                    id="ofrenda-export-capture-root"
+                    aria-hidden="true"
+                    data-export-capture="true"
+                    style={{
+                        position: 'fixed',
+                        left: '-10000px',
+                        top: 0,
+                        width: EXPORT_LAYOUT_WIDTH,
+                        minWidth: EXPORT_LAYOUT_WIDTH,
+                        maxWidth: 'none',
+                        pointerEvents: 'none',
+                        overflow: 'hidden',
+                    }}
+                >
+                    <ExportLayout
+                        ref={layoutRef}
+                        plan={plan}
+                        miembros={miembros}
+                        mesTitulo={getMonthLabel(language, mes)}
+                        anio={anio}
+                        labels={labels}
+                    />
+                </div>,
+                document.body
+            )}
         </div>
     )
 }
@@ -705,7 +723,7 @@ const CARD_COLORS: Record<CardColor, {
     bg: string; border: string; badgeBg: string; badgeText: string; btnBg: string; progressBg: string
 }> = {
     blue: {
-        bg:         'bg-blue-500/3 hover:bg-blue-500/5',
+        bg:         'bg-card hover:bg-muted/50',
         border:     'border-blue-500/15',
         badgeBg:    'bg-blue-500/10 dark:bg-blue-500/20',
         badgeText:  'text-blue-700 dark:text-blue-300',
@@ -713,7 +731,7 @@ const CARD_COLORS: Record<CardColor, {
         progressBg: 'bg-blue-500',
     },
     red: {
-        bg:         'bg-red-500/3 hover:bg-red-500/5',
+        bg:         'bg-card hover:bg-muted/50',
         border:     'border-red-500/15',
         badgeBg:    'bg-red-500/10 dark:bg-red-500/20',
         badgeText:  'text-red-700 dark:text-red-300',
@@ -721,7 +739,7 @@ const CARD_COLORS: Record<CardColor, {
         progressBg: 'bg-red-500',
     },
     green: {
-        bg:         'bg-emerald-500/3 hover:bg-emerald-500/5',
+        bg:         'bg-card hover:bg-muted/50',
         border:     'border-emerald-500/15',
         badgeBg:    'bg-emerald-500/10 dark:bg-emerald-500/20',
         badgeText:  'text-emerald-700 dark:text-emerald-300',
@@ -754,6 +772,9 @@ function ExportOptionRow({
     isActive,
     isDisabled,
     step,
+    stepLabels,
+    processingLabel,
+    doneLabel,
     onAction,
     color,
 }: Readonly<{
@@ -766,6 +787,9 @@ function ExportOptionRow({
     isActive: boolean
     isDisabled: boolean
     step: ExportStep
+    stepLabels: Record<ExportStep, string>
+    processingLabel: string
+    doneLabel: string
     onAction: () => void
     color: CardColor
 }>) {
@@ -808,7 +832,7 @@ function ExportOptionRow({
                                     />
                                 </div>
                                 <p className="text-[9px] text-muted-foreground font-medium">
-                                    {STEP_LABELS[step]}
+                                    {stepLabels[step]}
                                 </p>
                             </motion.div>
                         )}
@@ -833,7 +857,7 @@ function ExportOptionRow({
                                 className="flex items-center gap-1.5"
                             >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                ¡Hecho!
+                                {doneLabel}
                             </motion.span>
                         )}
                         {isLoading && !isDone && (
@@ -844,7 +868,7 @@ function ExportOptionRow({
                                 className="flex items-center gap-1.5"
                             >
                                 <Loader2 className="w-3 h-3 animate-spin" />
-                                Procesando
+                                {processingLabel}
                             </motion.span>
                         )}
                         {!isDone && !isLoading && (
@@ -855,7 +879,7 @@ function ExportOptionRow({
                                 className="flex items-center gap-1.5"
                             >
                                 <Download className="w-3.5 h-3.5" />
-                                {actionLabel.split(' ')[0]}
+                                {actionLabel}
                             </motion.span>
                         )}
                     </AnimatePresence>

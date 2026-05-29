@@ -2,59 +2,22 @@
 
 import { forwardRef } from 'react'
 import type { PlanCompleto, OfrMiembro, OfrServicio } from './actions'
+import type { OfrendaExportLabels } from './ofrendaLocale'
+import { IDMJI_BRAND, SERVICE_EXPORT_COLORS, EXPORT_CELL } from './exportBrand'
 
-const MESES_ES = [
-    '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
-
-const ROLES_G1 = [
-    { key: 'realiza',    label: 'Realiza labor'           },
-    { key: 'apoyo',      label: 'Apoyo'                   },
-    { key: 'vigilancia', label: 'Vigilancia Orientación'  },
-] as const
-
-const ROLES_G2 = [
-    { key: 'colaborador_1', label: 'Colaborador' },
-    { key: 'colaborador_2', label: 'Colaborador' },
-    { key: 'colaborador_3', label: 'Colaborador' },
-] as const
-
-// ─── Colores por tipo de servicio (estilo inline para export) ────────────────
-
-const COL_EXPORT = {
-    jueves: {
-        headerBg: '#064e3b',
-        seqBg:    '#ecfdf5',
-        seqText:  '#065f46',
-        badgeTxt: null as string | null,
-        badgeBg:  null as string | null,
-    },
-    domingo: {
-        headerBg: '#1e3a5f',
-        seqBg:    '#eff6ff',
-        seqText:  '#1e40af',
-        badgeTxt: 'Mañana',
-        badgeBg:  '#dbeafe',
-    },
-    domingo_tarde: {
-        headerBg: '#3b0764',
-        seqBg:    '#f5f3ff',
-        seqText:  '#5b21b6',
-        badgeTxt: 'Tarde',
-        badgeBg:  '#ede9fe',
-    },
-} as const
+const ROLES_G1_KEYS = ['realiza', 'apoyo', 'vigilancia'] as const
+const ROLES_G2_KEYS = ['colaborador_1', 'colaborador_2', 'colaborador_3'] as const
 
 interface ExportLayoutProps {
     plan: PlanCompleto
     miembros: OfrMiembro[]
+    mesTitulo: string
     anio: number
-    mes: number
+    labels: OfrendaExportLabels
 }
 
-function getDayShort(tipo: OfrServicio['dia_tipo']): string {
-    return tipo === 'jueves' ? 'Jueves' : 'Domingo'
+function getDayShort(tipo: OfrServicio['dia_tipo'], labels: OfrendaExportLabels): string {
+    return tipo === 'jueves' ? labels.jueves : labels.domingo
 }
 
 function getFechaLabel(fecha: string): string {
@@ -77,262 +40,416 @@ function getMiembroNombre(
 }
 
 /**
- * Layout de exportación — diseño premium con 3 columnas de servicio por semana.
- * Se renderiza fuera de pantalla y se captura con html-to-image.
- * Width fija de 1600px para calidad suficiente en WhatsApp.
+ * Layout de exportación — branding idmji.org (navy + dorado).
+ * Diseño minimalista: bordes de celda casi invisibles, separadores de semana
+ * con acento navy sutil (no dorado), dorado solo en franja superior y pie.
+ * Capturado con html-to-image (skipFonts:true evita error CORS de Google Fonts).
  */
 export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
-    function ExportLayout({ plan, miembros, anio, mes }, ref) {
+    function ExportLayout({ plan, miembros, mesTitulo, anio, labels }, ref) {
         const { servicios, asignaciones } = plan
-        const mesTitulo = MESES_ES[mes]
+        const roleLabels = {
+            realiza: labels.realiza,
+            apoyo: labels.apoyo,
+            vigilancia: labels.vigilancia,
+        }
 
-        // Sacos totales por semana para el pie
         const { sacos_jueves: sJ, sacos_domingo: sD, sacos_domingo_tarde: sDT } = plan.plan
         const sacosPorSemana = (sJ ?? 4) + (sD ?? 8) + (sDT ?? 4)
+        const layoutWidth = Math.max(1600, 145 + servicios.length * 100)
+
+        const creationDate = new Date().toLocaleDateString('es-ES', {
+            day: '2-digit', month: 'long', year: 'numeric',
+        })
+
+        const weekLeftBorder = (idx: number): React.CSSProperties =>
+            idx % 3 === 0 && idx > 0
+                ? { borderLeft: `2px solid ${EXPORT_CELL.weekBorder}` }
+                : {}
 
         return (
             <div
                 ref={ref}
                 style={{
-                    width: 1600,
-                    backgroundColor: '#ffffff',
-                    fontFamily: 'Arial, Helvetica, sans-serif',
-                    padding: '32px 36px 28px',
+                    width: layoutWidth,
+                    minWidth: layoutWidth,
+                    backgroundColor: IDMJI_BRAND.pageBg,
+                    fontFamily: IDMJI_BRAND.fontFamily,
+                    padding: '28px 32px 32px',
                     boxSizing: 'border-box',
-                    color: '#111827',
+                    color: IDMJI_BRAND.text,
                 }}
             >
-                {/* ── Header ──────────────────────────────────────────── */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-                    {/* Logo */}
-                    <div style={{ width: 80, height: 80, position: 'relative', flexShrink: 0 }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                            src="/logo.jpg"
-                            alt="IDMJI Logo"
-                            style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 8 }}
-                        />
+                <div
+                    style={{
+                        backgroundColor: IDMJI_BRAND.surface,
+                        borderRadius: 14,
+                        overflow: 'hidden',
+                        boxShadow: '0 8px 32px rgba(31,46,133,0.10), 0 2px 8px rgba(0,0,0,0.05)',
+                        border: `1px solid ${IDMJI_BRAND.borderLight}`,
+                    }}
+                >
+                    {/* Franja dorada — única aparición del dorado en la tabla */}
+                    <div style={{ height: 5, background: IDMJI_BRAND.goldGradient }} />
+
+                    {/* Cabecera navy */}
+                    <div
+                        style={{
+                            background: IDMJI_BRAND.headerGradient,
+                            padding: '22px 28px 20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 24,
+                        }}
+                    >
+                        <div
+                            style={{
+                                width: 88,
+                                height: 88,
+                                flexShrink: 0,
+                                borderRadius: 12,
+                                padding: 4,
+                                background: IDMJI_BRAND.goldGradient,
+                                boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                            }}
+                        >
+                            <div
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    borderRadius: 8,
+                                    backgroundColor: '#fff',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    overflow: 'hidden',
+                                }}
+                            >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src="/logo.jpg"
+                                    alt="IDMJI"
+                                    style={{ width: 76, height: 76, objectFit: 'contain' }}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                                style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    letterSpacing: '0.14em',
+                                    textTransform: 'uppercase',
+                                    color: IDMJI_BRAND.goldLight,
+                                    marginBottom: 6,
+                                }}
+                            >
+                                {labels.churchName}
+                            </div>
+                            <div
+                                style={{
+                                    fontSize: 28,
+                                    fontWeight: 800,
+                                    letterSpacing: '-0.02em',
+                                    color: IDMJI_BRAND.textOnNavy,
+                                    lineHeight: 1.15,
+                                }}
+                            >
+                                {labels.titleDoc}
+                                <span style={{ fontWeight: 600, opacity: 0.85 }}>
+                                    {' — '}{mesTitulo} {anio}
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, marginTop: 12 }}>
+                                {[
+                                    { color: SERVICE_EXPORT_COLORS.jueves.headerBg,       label: labels.legendJueves },
+                                    { color: SERVICE_EXPORT_COLORS.domingo.headerBg,       label: labels.legendDomManana },
+                                    { color: SERVICE_EXPORT_COLORS.domingo_tarde.headerBg, label: labels.legendDomTarde },
+                                ].map(({ color, label }) => (
+                                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <div
+                                            style={{
+                                                width: 11,
+                                                height: 11,
+                                                borderRadius: 3,
+                                                backgroundColor: color,
+                                                border: '1px solid rgba(255,255,255,0.3)',
+                                            }}
+                                        />
+                                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
+                                            {label}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div
+                            style={{
+                                textAlign: 'right',
+                                flexShrink: 0,
+                                color: 'rgba(255,255,255,0.65)',
+                                fontSize: 9,
+                                fontWeight: 600,
+                                letterSpacing: '0.06em',
+                                lineHeight: 1.6,
+                            }}
+                        >
+                            <div style={{ color: IDMJI_BRAND.goldLight }}>{labels.officialSite}</div>
+                            <div>CGMJCI · IDMJI</div>
+                        </div>
                     </div>
 
-                    {/* Título central */}
-                    <div style={{ textAlign: 'center', flex: 1, padding: '0 20px' }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', letterSpacing: '0.05em', marginBottom: 4 }}>
-                            IGLESIA DE DIOS MINISTERIAL DE JESUCRISTO INTERNACIONAL
-                        </div>
-                        <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.02em', color: '#111827' }}>
-                            Labor Ofrenda — {mesTitulo} {anio}
-                        </div>
-                        {/* Leyenda de colores */}
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 8 }}>
-                            {[
-                                { color: '#064e3b', label: 'Jueves' },
-                                { color: '#1e3a5f', label: 'Dom. Mañana' },
-                                { color: '#3b0764', label: 'Dom. Tarde' },
-                            ].map(({ color, label }) => (
-                                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                    <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: color }} />
-                                    <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>{label}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Espacio derecho */}
-                    <div style={{ width: 80 }} />
-                </div>
-
-                {/* ── Tabla ────────────────────────────────────────────── */}
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                    <thead>
-                        {/* Fila 1: Día y fecha */}
-                        <tr>
-                            <th style={{ ...thBase, width: 145, backgroundColor: '#1f2937', color: '#fff', textAlign: 'left', padding: '8px 12px' }}>
-                                Rol / Fecha
-                            </th>
-                            {servicios.map((srv, idx) => {
-                                const col = COL_EXPORT[srv.dia_tipo]
-                                const isWeekStart = idx % 3 === 0 && idx > 0
-                                return (
+                    {/* ── Tabla ── */}
+                    <div style={{ padding: '0 0 0 0' }}>
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                fontSize: 11,
+                            }}
+                        >
+                            <thead>
+                                {/* Fila de encabezados de servicio */}
+                                <tr>
                                     <th
-                                        key={srv.id}
                                         style={{
                                             ...thBase,
-                                            backgroundColor: col.headerBg,
+                                            width: 145,
+                                            backgroundColor: IDMJI_BRAND.tableMeta,
                                             color: '#fff',
-                                            padding: '6px 6px',
-                                            textAlign: 'center',
-                                            borderLeft: isWeekStart ? '2px solid #6b7280' : undefined,
-                                        }}
-                                    >
-                                        <div style={{ fontWeight: 900, fontSize: 10 }}>
-                                            {getDayShort(srv.dia_tipo)}
-                                        </div>
-                                        <div style={{ fontWeight: 700, fontSize: 11 }}>
-                                            {getFechaLabel(srv.fecha)}
-                                        </div>
-                                        {col.badgeTxt && (
-                                            <div style={{
-                                                fontSize: 9,
-                                                fontWeight: 700,
-                                                backgroundColor: col.badgeBg ?? '#e5e7eb',
-                                                color: col.seqText,
-                                                borderRadius: 10,
-                                                padding: '1px 6px',
-                                                marginTop: 2,
-                                                display: 'inline-block',
-                                            }}>
-                                                {col.badgeTxt}
-                                            </div>
-                                        )}
-                                    </th>
-                                )
-                            })}
-                        </tr>
-
-                        {/* Fila 2: Secuencia de sacos */}
-                        <tr>
-                            <td style={{ ...tdBase, backgroundColor: '#f9fafb', fontWeight: 800, fontSize: 10, padding: '5px 12px', color: '#374151' }}>
-                                Secuencia (sacos)
-                            </td>
-                            {servicios.map((srv, idx) => {
-                                const col = COL_EXPORT[srv.dia_tipo]
-                                const isWeekStart = idx % 3 === 0 && idx > 0
-                                return (
-                                    <td
-                                        key={srv.id}
-                                        style={{
-                                            ...tdBase,
-                                            backgroundColor: col.seqBg,
-                                            textAlign: 'center',
-                                            fontWeight: 900,
-                                            fontFamily: 'monospace',
-                                            fontSize: 12,
-                                            color: col.seqText,
-                                            padding: '5px 4px',
-                                            borderLeft: isWeekStart ? '2px solid #6b7280' : undefined,
-                                        }}
-                                    >
-                                        {srv.secuencia_texto}
-                                    </td>
-                                )
-                            })}
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {/* Grupo 1: Roles */}
-                        {ROLES_G1.map(({ key, label }, rIdx) => (
-                            <tr key={key}>
-                                <td style={{
-                                    ...tdBase,
-                                    backgroundColor: rIdx % 2 === 0 ? '#f0fdf4' : '#dcfce7',
-                                    fontWeight: 700,
-                                    color: '#065f46',
-                                    padding: '7px 12px',
-                                    fontSize: 10,
-                                }}>
-                                    {label}
-                                </td>
-                                {servicios.map((srv, idx) => {
-                                    const isWeekStart = idx % 3 === 0 && idx > 0
-                                    return (
-                                        <td
-                                            key={srv.id}
-                                            style={{
-                                                ...tdBase,
-                                                backgroundColor: rIdx % 2 === 0 ? '#f9fafb' : '#f3f4f6',
-                                                textAlign: 'center',
-                                                padding: '7px 4px',
-                                                fontSize: 11,
-                                                fontWeight: 600,
-                                                borderLeft: isWeekStart ? '2px solid #6b7280' : undefined,
-                                            }}
-                                        >
-                                            {getMiembroNombre(miembros, asignaciones, srv.id, key)}
-                                        </td>
-                                    )
-                                })}
-                            </tr>
-                        ))}
-
-                        {/* Separador grupos */}
-                        <tr>
-                            <td colSpan={servicios.length + 1} style={{ height: 3, backgroundColor: '#374151' }} />
-                        </tr>
-
-                        {/* Grupo 2: Colaboradores */}
-                        {ROLES_G2.map(({ key }, rIdx) => (
-                            <tr key={key}>
-                                <td style={{
-                                    ...tdBase,
-                                    backgroundColor: rIdx % 2 === 0 ? '#eff6ff' : '#dbeafe',
-                                    fontWeight: 700,
-                                    color: '#1e40af',
-                                    padding: '7px 12px',
-                                    fontSize: 10,
-                                }}>
-                                    Colaboradores
-                                </td>
-                                {servicios.map((srv, idx) => {
-                                    const isWeekStart = idx % 3 === 0 && idx > 0
-                                    return (
-                                        <td
-                                            key={srv.id}
-                                            style={{
-                                                ...tdBase,
-                                                backgroundColor: rIdx % 2 === 0 ? '#f9fafb' : '#f3f4f6',
-                                                textAlign: 'center',
-                                                padding: '7px 4px',
-                                                fontSize: 11,
-                                                fontWeight: 600,
-                                                borderLeft: isWeekStart ? '2px solid #6b7280' : undefined,
-                                            }}
-                                        >
-                                            {getMiembroNombre(miembros, asignaciones, srv.id, key)}
-                                        </td>
-                                    )
-                                })}
-                            </tr>
-                        ))}
-                    </tbody>
-
-                    {/* Pie: Semana ISO */}
-                    <tfoot>
-                        <tr>
-                            <td style={{ ...tdBase, backgroundColor: '#1f2937', color: '#9ca3af', fontWeight: 700, fontSize: 9, padding: '5px 12px' }}>
-                                Semana ISO
-                            </td>
-                            {servicios.map((srv, idx) => {
-                                const isWeekStart = idx % 3 === 0 && idx > 0
-                                return (
-                                    <td
-                                        key={srv.id}
-                                        style={{
-                                            ...tdBase,
-                                            backgroundColor: '#1f2937',
-                                            color: '#d1d5db',
-                                            textAlign: 'center',
-                                            fontWeight: 700,
+                                            textAlign: 'left',
+                                            padding: '9px 14px',
+                                            fontWeight: 800,
                                             fontSize: 10,
-                                            padding: '5px 4px',
-                                            borderLeft: isWeekStart ? '2px solid #6b7280' : undefined,
                                         }}
                                     >
-                                        S{srv.semana_iso}
-                                    </td>
-                                )
-                            })}
-                        </tr>
-                    </tfoot>
-                </table>
+                                        {labels.rolFecha}
+                                    </th>
+                                    {servicios.map((srv, idx) => {
+                                        const col = SERVICE_EXPORT_COLORS[srv.dia_tipo]
+                                        return (
+                                            <th
+                                                key={srv.id}
+                                                style={{
+                                                    ...thBase,
+                                                    backgroundColor: col.headerBg,
+                                                    color: '#fff',
+                                                    padding: '7px 6px',
+                                                    textAlign: 'center',
+                                                    ...weekLeftBorder(idx),
+                                                }}
+                                            >
+                                                <div style={{ fontWeight: 800, fontSize: 10 }}>
+                                                    {getDayShort(srv.dia_tipo, labels)}
+                                                </div>
+                                                <div style={{ fontWeight: 700, fontSize: 11 }}>
+                                                    {getFechaLabel(srv.fecha)}
+                                                </div>
+                                                {col.badgeBg && (
+                                                    <div
+                                                        style={{
+                                                            fontSize: 9,
+                                                            fontWeight: 700,
+                                                            backgroundColor: col.badgeBg,
+                                                            color: col.seqText,
+                                                            borderRadius: 10,
+                                                            padding: '2px 7px',
+                                                            marginTop: 3,
+                                                            display: 'inline-block',
+                                                        }}
+                                                    >
+                                                        {srv.dia_tipo === 'domingo' ? labels.manana : labels.tarde}
+                                                    </div>
+                                                )}
+                                            </th>
+                                        )
+                                    })}
+                                </tr>
 
-                {/* ── Footer ───────────────────────────────────────────── */}
-                <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: 9, color: '#9ca3af', letterSpacing: '0.03em' }}>
-                        Generado por IDMJI Gestor de Púlpito · {new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                {/* Fila de secuencias */}
+                                <tr>
+                                    <td
+                                        style={{
+                                            ...tdBase,
+                                            backgroundColor: IDMJI_BRAND.goldPale,
+                                            fontWeight: 800,
+                                            fontSize: 10,
+                                            padding: '6px 14px',
+                                            color: IDMJI_BRAND.navy,
+                                        }}
+                                    >
+                                        {labels.secuencia}
+                                    </td>
+                                    {servicios.map((srv, idx) => {
+                                        const col = SERVICE_EXPORT_COLORS[srv.dia_tipo]
+                                        return (
+                                            <td
+                                                key={srv.id}
+                                                style={{
+                                                    ...tdBase,
+                                                    backgroundColor: col.seqBg,
+                                                    textAlign: 'center',
+                                                    fontWeight: 800,
+                                                    fontFamily: 'ui-monospace, "Courier New", monospace',
+                                                    fontSize: 12,
+                                                    color: col.seqText,
+                                                    padding: '6px 4px',
+                                                    ...weekLeftBorder(idx),
+                                                }}
+                                            >
+                                                {srv.secuencia_texto}
+                                            </td>
+                                        )
+                                    })}
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {/* Grupo 1: Roles operativos */}
+                                {ROLES_G1_KEYS.map((key, rIdx) => {
+                                    const sCol = SERVICE_EXPORT_COLORS.jueves
+                                    return (
+                                        <tr key={key}>
+                                            <td
+                                                style={{
+                                                    ...tdBase,
+                                                    backgroundColor: rIdx % 2 === 0 ? sCol.labelBgEven : sCol.labelBgOdd,
+                                                    fontWeight: 700,
+                                                    color: sCol.labelText,
+                                                    padding: '8px 14px',
+                                                    fontSize: 10,
+                                                }}
+                                            >
+                                                {roleLabels[key]}
+                                            </td>
+                                            {servicios.map((srv, idx) => (
+                                                <td
+                                                    key={srv.id}
+                                                    style={{
+                                                        ...tdBase,
+                                                        backgroundColor: rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd,
+                                                        textAlign: 'center',
+                                                        padding: '8px 4px',
+                                                        fontSize: 11,
+                                                        fontWeight: 600,
+                                                        color: IDMJI_BRAND.text,
+                                                        ...weekLeftBorder(idx),
+                                                    }}
+                                                >
+                                                    {getMiembroNombre(miembros, asignaciones, srv.id, key)}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    )
+                                })}
+
+                                {/* Separador entre grupos */}
+                                <tr>
+                                    <td
+                                        colSpan={servicios.length + 1}
+                                        style={{ height: 3, backgroundColor: EXPORT_CELL.divider, padding: 0 }}
+                                    />
+                                </tr>
+
+                                {/* Grupo 2: Colaboradores */}
+                                {ROLES_G2_KEYS.map((key, rIdx) => {
+                                    const colLabel = [labels.colaborador1, labels.colaborador2, labels.colaborador3][rIdx]
+                                    const sCol = SERVICE_EXPORT_COLORS.domingo
+                                    return (
+                                        <tr key={key}>
+                                            <td
+                                                style={{
+                                                    ...tdBase,
+                                                    backgroundColor: rIdx % 2 === 0 ? sCol.labelBgEven : sCol.labelBgOdd,
+                                                    fontWeight: 700,
+                                                    color: sCol.labelText,
+                                                    padding: '8px 14px',
+                                                    fontSize: 10,
+                                                }}
+                                            >
+                                                {colLabel}
+                                            </td>
+                                            {servicios.map((srv, idx) => (
+                                                <td
+                                                    key={srv.id}
+                                                    style={{
+                                                        ...tdBase,
+                                                        backgroundColor: rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd,
+                                                        textAlign: 'center',
+                                                        padding: '8px 4px',
+                                                        fontSize: 11,
+                                                        fontWeight: 600,
+                                                        color: IDMJI_BRAND.text,
+                                                        ...weekLeftBorder(idx),
+                                                    }}
+                                                >
+                                                    {getMiembroNombre(miembros, asignaciones, srv.id, key)}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+
+                            <tfoot>
+                                <tr>
+                                    <td
+                                        style={{
+                                            ...tdBase,
+                                            backgroundColor: IDMJI_BRAND.tableMeta,
+                                            color: '#b8c0cc',
+                                            fontWeight: 700,
+                                            fontSize: 9,
+                                            padding: '6px 14px',
+                                        }}
+                                    >
+                                        {labels.semanaIso}
+                                    </td>
+                                    {servicios.map((srv, idx) => (
+                                        <td
+                                            key={srv.id}
+                                            style={{
+                                                ...tdBase,
+                                                backgroundColor: IDMJI_BRAND.navyDark,
+                                                color: '#e2e8f0',
+                                                textAlign: 'center',
+                                                fontWeight: 700,
+                                                fontSize: 10,
+                                                padding: '6px 4px',
+                                                ...weekLeftBorder(idx),
+                                            }}
+                                        >
+                                            S{srv.semana_iso}
+                                        </td>
+                                    ))}
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
-                    <div style={{ fontSize: 9, color: '#9ca3af' }}>
-                        {sacosPorSemana} sacos/semana (J:{sJ ?? 4} · DM:{sD ?? 8} · DT:{sDT ?? 4}) · Ciclo 20 sacos
+
+                    {/* Pie */}
+                    <div
+                        style={{
+                            borderTop: `2px solid ${IDMJI_BRAND.goldPale}`,
+                            backgroundColor: '#f7f8fa',
+                            padding: '11px 24px 13px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: 16,
+                        }}
+                    >
+                        <div style={{ fontSize: 9, color: IDMJI_BRAND.textMuted, fontWeight: 600 }}>
+                            <span style={{ color: IDMJI_BRAND.gold, fontWeight: 700 }}>
+                                {labels.officialSite}
+                            </span>
+                            {' · '}{labels.footer}{' · '}{creationDate}
+                        </div>
+                        <div style={{ fontSize: 9, color: IDMJI_BRAND.textSecondary, fontWeight: 600, textAlign: 'right' }}>
+                            {labels.sacosMeta(sacosPorSemana, sJ ?? 4, sD ?? 8, sDT ?? 4)}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -340,13 +457,11 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
     }
 )
 
-// ─── Estilos base (inline para exportación) ────────────────────────────────────
-
 const thBase: React.CSSProperties = {
-    border: '1px solid #d1d5db',
+    border: `1px solid ${EXPORT_CELL.cellBorder}`,
     fontSize: 11,
 }
 
 const tdBase: React.CSSProperties = {
-    border: '1px solid #e5e7eb',
+    border: `1px solid ${EXPORT_CELL.cellBorder}`,
 }

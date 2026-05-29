@@ -1,14 +1,47 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { Check, ChevronLeft, ChevronRight, RotateCcw, CheckCircle2, X, AlertTriangle } from 'lucide-react'
-import { toast } from 'sonner'
+import type { Locale } from 'date-fns'
+import { Check, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
+import { useOfrendaToast } from './ofrendaFeedback'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 import { updateAsignacion, updateSecuenciaServicio } from './actions'
 import type { PlanCompleto, OfrMiembro, OfrServicio, OfrAsignacion } from './actions'
+import { getDateFnsLocale, interpolate } from './ofrendaLocale'
+import { PersonaPicker } from './PersonaPicker'
+import { SecuenciaEditor } from './SecuenciaEditor'
+import {
+    formatSecuenciaRange,
+    getMaxSacosForDiaTipo,
+    getSecuenciaMaximo,
+    validateSecuenciaSacos,
+} from './secuenciaSacosLimits'
+import {
+    countFollowingServicios,
+    type SecuenciaApplyScope,
+} from './secuenciaPropagation'
+import { MobileWeekPager } from './MobileWeekPager'
+import { DesktopWeekNavigator } from './DesktopWeekNavigator'
+import { useOfrendaMobileOrTablet } from './OfrendaLiquidShell'
+import {
+    PLAN_ROLE_COL_STYLE,
+    PLAN_SERVICE_COL_STYLE,
+    planTableMinWidthPx,
+    PLAN_SERVICE_COL_WIDTH_PX,
+} from './planTableLayout'
+import {
+    scrollLeftForWeekIndex,
+    weekIndexFromScrollLeft,
+} from './planTableScroll'
+import './ofrenda-plan-desktop.css'
+
+const STICKY_ROLE_HEADER_CLASS =
+    'ofrenda-plan-sticky-role px-3 py-3 text-left text-sm font-black text-[#1f2e85] dark:text-[#e8d9a8] border-b border-border/50 whitespace-nowrap'
+const STICKY_ROLE_CELL_CLASS =
+    'ofrenda-plan-sticky-role ofrenda-plan-sticky-role--body px-3 py-2.5 text-sm font-semibold border-b border-border/50 whitespace-nowrap'
+
+const COL_WIDTH_PX = PLAN_SERVICE_COL_WIDTH_PX
 
 // ─── Esquema de colores por tipo de día ────────────────────────────────────────
 
@@ -72,19 +105,8 @@ function getRowBg(tipo: DiaTipoLocal, even: boolean): string {
 
 // ─── Tipos de rol y labels ─────────────────────────────────────────────────────
 
-const ROLES_G1 = [
-    { key: 'realiza',    label: 'Realiza labor'    },
-    { key: 'apoyo',      label: 'Apoyo'            },
-    { key: 'vigilancia', label: 'Vig. Orientación' },
-] as const
-
-const ROLES_G2 = [
-    { key: 'colaborador_1', label: 'Colaborador 1' },
-    { key: 'colaborador_2', label: 'Colaborador 2' },
-    { key: 'colaborador_3', label: 'Colaborador 3' },
-] as const
-
-const ALL_ROLES = [...ROLES_G1, ...ROLES_G2]
+const ROLES_G1_KEYS = ['realiza', 'apoyo', 'vigilancia'] as const
+const ROLES_G2_KEYS = ['colaborador_1', 'colaborador_2', 'colaborador_3'] as const
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -108,121 +130,251 @@ function getAsig(
 
 // ─── Helper: label del día ─────────────────────────────────────────────────────
 
+function formatWeekRangeLabel(week: OfrServicio[], dateLocale: Locale): string {
+    if (week.length === 0) return ''
+    const first = new Date(`${week[0].fecha}T00:00:00`)
+    const last = new Date(`${week[week.length - 1].fecha}T00:00:00`)
+    if (week.length === 1) return format(first, 'd MMM', { locale: dateLocale })
+    const sameMonth = first.getMonth() === last.getMonth()
+    if (sameMonth) {
+        return `${format(first, 'd', { locale: dateLocale })} – ${format(last, 'd MMM', { locale: dateLocale })}`
+    }
+    return `${format(first, 'd MMM', { locale: dateLocale })} – ${format(last, 'd MMM', { locale: dateLocale })}`
+}
+
 function formatFecha(
     fecha: string,
-    diaTipo: 'jueves' | 'domingo' | 'domingo_tarde'
+    diaTipo: 'jueves' | 'domingo' | 'domingo_tarde',
+    t: (key: import('@/lib/i18n/types').TranslationKey) => string,
+    dateLocale: ReturnType<typeof getDateFnsLocale>
 ): { dia: string; numero: string; mes: string } {
     const d = new Date(fecha + 'T00:00:00')
-    const diaNombre = diaTipo === 'jueves' ? 'Jue' : 'Dom'
+    const diaNombre = diaTipo === 'jueves' ? t('ofrenda.days.jueShort') : t('ofrenda.days.domShort')
     return {
         dia: diaNombre,
-        numero: format(d, 'd', { locale: es }),
-        mes: format(d, 'MMM', { locale: es }),
+        numero: format(d, 'd', { locale: dateLocale }),
+        mes: format(d, 'MMM', { locale: dateLocale }),
     }
+}
+
+function useRoleRows() {
+    const { t } = useI18n()
+    return useMemo(() => ({
+        g1: [
+            { key: 'realiza' as const, label: t('ofrenda.roles.realiza') },
+            { key: 'apoyo' as const, label: t('ofrenda.roles.apoyo') },
+            { key: 'vigilancia' as const, label: t('ofrenda.roles.vigilancia') },
+        ],
+        g2: [
+            { key: 'colaborador_1' as const, label: `${t('ofrenda.roles.colaborador')} 1` },
+            { key: 'colaborador_2' as const, label: `${t('ofrenda.roles.colaborador')} 2` },
+            { key: 'colaborador_3' as const, label: `${t('ofrenda.roles.colaborador')} 3` },
+        ],
+    }), [t])
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Readonly<PlanTableProps>) {
     const { servicios, asignaciones } = plan
+    const { t, language } = useI18n()
+    const dateLocale = getDateFnsLocale(language)
+    const roleRows = useRoleRows()
+    const isCompact = useOfrendaMobileOrTablet()
     const [currentPage, setCurrentPage] = useState(0)
+    const [canScrollRight, setCanScrollRight] = useState(false)
+    const scrollRef = useRef<HTMLDivElement>(null)
 
-    // Agrupar servicios en semanas (grupos de 3: Jue + DomM + DomT)
-    const weeks: OfrServicio[][] = []
-    for (let i = 0; i < servicios.length; i += 3) {
-        weeks.push(servicios.slice(i, i + 3))
-    }
+    const tableMinWidth = planTableMinWidthPx(servicios.length)
+
+    const weeks = useMemo(() => {
+        const chunks: OfrServicio[][] = []
+        for (let i = 0; i < servicios.length; i += 3) {
+            chunks.push(servicios.slice(i, i + 3))
+        }
+        return chunks
+    }, [servicios])
     const weeksCount = weeks.length
     const visibleWeek = weeks[currentPage] ?? []
 
+    const weekLabel = interpolate(t('ofrenda.week.of'), {
+        current: currentPage + 1,
+        total: weeksCount,
+    })
+
+    const weekRangeLabels = useMemo(
+        () => weeks.map((w) => formatWeekRangeLabel(w, dateLocale)),
+        [weeks, dateLocale],
+    )
+    const weekRangeLabel = weekRangeLabels[currentPage] ?? null
+
+    useEffect(() => {
+        setCurrentPage(0)
+    }, [plan.plan.id, servicios.length])
+
+    /** Evita scroll residual que solapa la 1ª columna de servicio sobre «Rol / Fecha». */
+    useEffect(() => {
+        if (isCompact) return
+        const el = scrollRef.current
+        if (!el) return
+
+        if (el.scrollLeft !== 0) {
+            el.scrollLeft = 0
+        }
+        const canScroll = el.scrollWidth - el.clientWidth > 8
+        setCanScrollRight((prev) => (prev === canScroll ? prev : canScroll))
+    }, [isCompact, plan.plan.id, servicios.length])
+
+    const scrollToWeek = useCallback((weekIndex: number) => {
+        const el = scrollRef.current
+        if (!el) return
+        const targetLeft = scrollLeftForWeekIndex(weekIndex)
+        const maxLeft = Math.max(0, el.scrollWidth - el.clientWidth)
+        el.scrollTo({ left: Math.min(targetLeft, maxLeft), behavior: 'auto' })
+        setCurrentPage(weekIndex)
+    }, [])
+
+    const updateScrollHint = useCallback(() => {
+        const el = scrollRef.current
+        if (!el) return
+        const canScroll = el.scrollWidth - el.scrollLeft - el.clientWidth > 8
+        setCanScrollRight((prev) => (prev === canScroll ? prev : canScroll))
+    }, [])
+
+    useEffect(() => {
+        if (isCompact) return
+
+        updateScrollHint()
+        const el = scrollRef.current
+        if (!el) return
+
+        const onScroll = () => {
+            const canScroll = el.scrollWidth - el.scrollLeft - el.clientWidth > 8
+            setCanScrollRight((prev) => (prev === canScroll ? prev : canScroll))
+            if (weeksCount <= 1) return
+            const clamped = Math.min(
+                weeksCount - 1,
+                Math.max(0, weekIndexFromScrollLeft(el.scrollLeft)),
+            )
+            setCurrentPage((prev) => (prev === clamped ? prev : clamped))
+        }
+
+        el.addEventListener('scroll', onScroll, { passive: true })
+        const onResize = () => updateScrollHint()
+        window.addEventListener('resize', onResize)
+        return () => {
+            el.removeEventListener('scroll', onScroll)
+            window.removeEventListener('resize', onResize)
+        }
+    }, [isCompact, servicios.length, updateScrollHint, weeksCount])
+
     return (
         <div className="space-y-4">
-            {/* ── Navegación mobile por semana ─────────────────────────── */}
-            <div className="flex items-center justify-between lg:hidden">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Semana {currentPage + 1} de {weeksCount}
+            {/* Leyenda de colores */}
+            <div className="flex flex-wrap gap-3 justify-center text-xs font-semibold">
+                <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-emerald-800" />
+                    {t('ofrenda.legend.jueves')}
                 </span>
-                <div className="flex gap-1">
-                    <button
-                        onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
-                        disabled={currentPage === 0}
-                        className="p-2 rounded-xl hover:bg-muted disabled:opacity-30 touch-manipulation"
-                        aria-label="Semana anterior"
-                    >
-                        <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => setCurrentPage(p => Math.min(weeksCount - 1, p + 1))}
-                        disabled={currentPage >= weeksCount - 1}
-                        className="p-2 rounded-xl hover:bg-muted disabled:opacity-30 touch-manipulation"
-                        aria-label="Semana siguiente"
-                    >
-                        <ChevronRight className="w-4 h-4" />
-                    </button>
-                </div>
+                <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-blue-900" />
+                    {t('ofrenda.legend.domManana')}
+                </span>
+                <span className="flex items-center gap-1.5 text-violet-700 dark:text-violet-300">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-violet-950" />
+                    {t('ofrenda.legend.domTarde')}
+                </span>
             </div>
 
-            {/* ── Vista MOBILE: 3 tarjetas apiladas por semana ────────── */}
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={currentPage}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.2 }}
-                    className="lg:hidden space-y-3"
+            {isCompact ? (
+                <MobileWeekPager
+                    weeksCount={weeksCount}
+                    currentPage={currentPage}
+                    onPageChange={setCurrentPage}
+                    weekLabel={weekLabel}
+                    weekRangeLabel={weekRangeLabel}
                 >
-                    {visibleWeek.map(srv => (
+                    {visibleWeek.map((srv) => (
                         <ServicioCard
                             key={`${srv.id}-${srv.dia_tipo}`}
                             servicio={srv}
+                            planServicios={servicios}
+                            sacosConfig={plan.plan}
                             asignaciones={asignaciones}
                             miembros={miembros}
                             canEdit={canEdit}
                             onAsignacionChange={onAsignacionChange}
                         />
                     ))}
-                </motion.div>
-            </AnimatePresence>
-
-            {/* ── Indicador de páginas mobile ────────────────────────── */}
-            <div className="flex justify-center gap-1.5 lg:hidden">
-                {Array.from({ length: weeksCount }, (_, i) => i).map((i) => (
-                    <button
-                        key={`semana-${i + 1}`}
-                        onClick={() => setCurrentPage(i)}
-                        className={`h-2 rounded-full transition-all touch-manipulation ${
-                            i === currentPage ? 'bg-emerald-500 w-5' : 'bg-border w-2'
-                        }`}
-                        aria-label={`Ir a semana ${i + 1}`}
+                </MobileWeekPager>
+            ) : (
+            <div
+                className="ofrenda-plan-desktop-shell relative rounded-2xl overflow-hidden"
+                data-testid="ofrenda-plan-desktop"
+            >
+                <DesktopWeekNavigator
+                    weeksCount={weeksCount}
+                    currentWeekIndex={currentPage}
+                    onWeekSelect={scrollToWeek}
+                    weekRangeLabels={weekRangeLabels}
+                />
+                {canScrollRight && (
+                    <div
+                        className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 z-20 bg-linear-to-l from-background to-transparent"
+                        aria-hidden
                     />
-                ))}
-            </div>
-
-            {/* ── Vista DESKTOP: tabla plana con separadores de semana ── */}
-            <div className="hidden lg:block overflow-x-auto rounded-2xl border border-border/50">
-                <table className="text-sm border-collapse" style={{ minWidth: '100%' }}>
+                )}
+                <p className="text-xs text-muted-foreground px-4 py-2.5 border-b border-[rgba(184,150,74,0.15)] bg-[#1f2e85]/[0.04] font-medium tracking-wide">
+                    {t('ofrenda.scrollHint')}
+                </p>
+                <div
+                    ref={scrollRef}
+                    className="ofrenda-plan-desktop-scroll overflow-x-auto scroll-smooth overscroll-x-contain"
+                    style={{ WebkitOverflowScrolling: 'touch' }}
+                    data-testid="ofrenda-plan-desktop-scroll"
+                >
+                <table
+                    data-testid="ofrenda-plan-desktop-table"
+                    className="text-sm border-separate border-spacing-0"
+                    style={{
+                        tableLayout: 'fixed',
+                        minWidth: tableMinWidth,
+                        width: tableMinWidth,
+                    }}
+                >
+                    <colgroup>
+                        <col style={{ width: PLAN_ROLE_COL_STYLE.width }} />
+                        {servicios.map((srv) => (
+                            <col key={`col-${srv.id}`} style={{ width: PLAN_SERVICE_COL_STYLE.width }} />
+                        ))}
+                    </colgroup>
                     <thead>
                         {/* Fila 1: Encabezado de fechas */}
                         <tr>
-                            <th className="px-3 py-2.5 text-left text-xs font-black text-muted-foreground bg-muted/40 border-b border-border/50 w-36 sticky left-0 z-10 whitespace-nowrap">
-                                Rol / Fecha
+                            <th
+                                className={STICKY_ROLE_HEADER_CLASS}
+                                style={PLAN_ROLE_COL_STYLE}
+                                data-testid="ofrenda-plan-sticky-role-header"
+                            >
+                                {t('ofrenda.table.rolFecha')}
                             </th>
                             {servicios.map((srv, idx) => {
-                                const { dia, numero, mes: mesLabel } = formatFecha(srv.fecha, srv.dia_tipo)
+                                const { dia, numero, mes: mesLabel } = formatFecha(srv.fecha, srv.dia_tipo, t, dateLocale)
                                 const col = TIPO_COLORS[srv.dia_tipo]
-                                const isWeekStart = idx % 3 === 0 && idx > 0
+                                const isWeekStart = idx % 3 === 0
                                 return (
                                     <th
                                         key={`${srv.id}-hdr`}
-                                        className={`px-2 py-2 text-center border-b border-border/50 ${isWeekStart ? 'border-l-2 border-l-border' : ''} ${getThBg(srv.dia_tipo)}`}
+                                        className={`px-2 py-2 text-center border-b border-border/50 align-middle ${isWeekStart && idx > 0 ? 'border-l-2 border-l-[rgba(184,150,74,0.35)]' : ''} ${getThBg(srv.dia_tipo)}`}
+                                        style={PLAN_SERVICE_COL_STYLE}
+                                        data-week-col={isWeekStart ? Math.floor(idx / 3) : undefined}
                                     >
                                         <div className={`text-[11px] font-black whitespace-nowrap ${col.label}`}>
                                             {dia} {numero}-{mesLabel}
                                         </div>
                                         {srv.dia_tipo !== 'jueves' && (
-                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${col.badge}`}>
-                                                {srv.dia_tipo === 'domingo' ? 'Mañana' : 'Tarde'}
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${col.badge}`}>
+                                                {srv.dia_tipo === 'domingo' ? t('ofrenda.days.manana') : t('ofrenda.days.tarde')}
                                             </span>
                                         )}
                                     </th>
@@ -231,8 +383,12 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                         </tr>
                         {/* Fila 2: Sacos */}
                         <tr>
-                            <td className="px-3 py-1.5 text-left text-[11px] font-black text-muted-foreground bg-muted/30 border-b border-border/50 sticky left-0 z-10">
-                                Sacos
+                            <td
+                                className={`${STICKY_ROLE_HEADER_CLASS} py-2`}
+                                style={PLAN_ROLE_COL_STYLE}
+                                data-testid="ofrenda-plan-sticky-role-sacos"
+                            >
+                                {t('ofrenda.table.sacos')}
                             </td>
                             {servicios.map((srv, idx) => {
                                 const col = TIPO_COLORS[srv.dia_tipo]
@@ -240,10 +396,13 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                                 return (
                                     <td
                                         key={`${srv.id}-seq`}
-                                        className={`px-1 py-1.5 text-center border-b border-border/50 ${isWeekStart ? 'border-l-2 border-l-border' : ''} ${getSeqBg(srv.dia_tipo)}`}
+                                        className={`px-1 py-1.5 text-center border-b border-border/50 align-middle ${isWeekStart ? 'border-l-2 border-l-border' : ''} ${getSeqBg(srv.dia_tipo)}`}
+                                        style={PLAN_SERVICE_COL_STYLE}
                                     >
                                         <SecuenciaCell
                                             servicio={srv}
+                                            planServicios={servicios}
+                                            sacosConfig={plan.plan}
                                             canEdit={canEdit}
                                             onAsignacionChange={onAsignacionChange}
                                             labelColor={col.label}
@@ -256,21 +415,32 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
 
                     <tbody>
                         {/* Grupo 1: Roles */}
-                        {ROLES_G1.map(({ key, label }, ri) => {
+                        {roleRows.g1.map(({ key, label }, ri) => {
                             const g1m = miembros.filter(m => m.grupo === 1 && m.activo)
                             return (
                                 <tr key={`g1-${key}`} className={ri % 2 === 0 ? 'bg-emerald-500/2' : ''}>
-                                    <td className="px-3 py-2 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 border-b border-border/50 bg-emerald-500/3 sticky left-0 z-10 whitespace-nowrap">
+                                    <td
+                                        className={`${STICKY_ROLE_CELL_CLASS} text-emerald-700 dark:text-emerald-300`}
+                                        style={PLAN_ROLE_COL_STYLE}
+                                        data-testid="ofrenda-plan-sticky-role"
+                                    >
                                         {label}
                                     </td>
                                     {servicios.map((srv, idx) => {
                                         const asig = getAsig(asignaciones, srv.id, key)
                                         const isWeekStart = idx % 3 === 0 && idx > 0
                                         return (
-                                            <td key={`${srv.id}-${key}`} className={`px-1 py-1.5 text-center border-b border-border/50 ${isWeekStart ? 'border-l-2 border-l-border' : ''}`}>
+                                            <td
+                                                key={`${srv.id}-${key}`}
+                                                className={`px-1 py-1.5 text-center border-b border-border/50 align-middle ${isWeekStart ? 'border-l-2 border-l-border' : ''}`}
+                                                style={PLAN_SERVICE_COL_STYLE}
+                                            >
                                                 <AsignacionCell
                                                     servicio={srv}
                                                     rol={key}
+                                                    rolLabel={label}
+                                                    turnoLabel={srv.dia_tipo === 'domingo' ? t('ofrenda.days.manana') : srv.dia_tipo === 'domingo_tarde' ? t('ofrenda.days.tarde') : null}
+                                                    headerColorClass={TIPO_COLORS[srv.dia_tipo].label}
                                                     miembroId={asig?.miembro_id ?? null}
                                                     isOverride={asig?.es_override ?? false}
                                                     miembros={g1m}
@@ -290,21 +460,32 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                         </tr>
 
                         {/* Grupo 2: Colaboradores */}
-                        {ROLES_G2.map(({ key, label }, ri) => {
+                        {roleRows.g2.map(({ key, label }, ri) => {
                             const g2m = miembros.filter(m => m.grupo === 2 && m.activo)
                             return (
                                 <tr key={`g2-${key}`} className={ri % 2 === 0 ? 'bg-blue-500/2' : ''}>
-                                    <td className="px-3 py-2 text-[11px] font-semibold text-blue-700 dark:text-blue-300 border-b border-border/50 bg-blue-500/3 sticky left-0 z-10 whitespace-nowrap">
+                                    <td
+                                        className={`${STICKY_ROLE_CELL_CLASS} text-blue-700 dark:text-blue-300`}
+                                        style={PLAN_ROLE_COL_STYLE}
+                                        data-testid="ofrenda-plan-sticky-role"
+                                    >
                                         {label}
                                     </td>
                                     {servicios.map((srv, idx) => {
                                         const asig = getAsig(asignaciones, srv.id, key)
                                         const isWeekStart = idx % 3 === 0 && idx > 0
                                         return (
-                                            <td key={`${srv.id}-${key}`} className={`px-1 py-1.5 text-center border-b border-border/50 ${isWeekStart ? 'border-l-2 border-l-border' : ''}`}>
+                                            <td
+                                                key={`${srv.id}-${key}`}
+                                                className={`px-1 py-1.5 text-center border-b border-border/50 align-middle ${isWeekStart ? 'border-l-2 border-l-border' : ''}`}
+                                                style={PLAN_SERVICE_COL_STYLE}
+                                            >
                                                 <AsignacionCell
                                                     servicio={srv}
                                                     rol={key}
+                                                    rolLabel={label}
+                                                    turnoLabel={srv.dia_tipo === 'domingo' ? t('ofrenda.days.manana') : srv.dia_tipo === 'domingo_tarde' ? t('ofrenda.days.tarde') : null}
+                                                    headerColorClass={TIPO_COLORS[srv.dia_tipo].label}
                                                     miembroId={asig?.miembro_id ?? null}
                                                     isOverride={asig?.es_override ?? false}
                                                     miembros={g2m}
@@ -319,7 +500,9 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                         })}
                     </tbody>
                 </table>
+                </div>
             </div>
+            )}
         </div>
     )
 }
@@ -328,25 +511,32 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
 
 function ServicioCard({
     servicio,
+    planServicios,
+    sacosConfig,
     asignaciones,
     miembros,
     canEdit,
     onAsignacionChange,
 }: Readonly<{
     servicio: OfrServicio
+    planServicios: OfrServicio[]
+    sacosConfig: PlanCompleto['plan']
     asignaciones: OfrAsignacion[]
     miembros: OfrMiembro[]
     canEdit: boolean
     onAsignacionChange: () => void
 }>) {
-    const { dia, numero, mes } = formatFecha(servicio.fecha, servicio.dia_tipo)
+    const { t, language } = useI18n()
+    const dateLocale = getDateFnsLocale(language)
+    const roleRows = useRoleRows()
+    const { dia, numero, mes } = formatFecha(servicio.fecha, servicio.dia_tipo, t, dateLocale)
     const col = TIPO_COLORS[servicio.dia_tipo]
     const g1Members = miembros.filter(m => m.grupo === 1 && m.activo)
     const g2Members = miembros.filter(m => m.grupo === 2 && m.activo)
 
     let turnoLabel: string | null = null
-    if (servicio.dia_tipo === 'domingo') turnoLabel = 'Mañana'
-    else if (servicio.dia_tipo === 'domingo_tarde') turnoLabel = 'Tarde'
+    if (servicio.dia_tipo === 'domingo') turnoLabel = t('ofrenda.days.manana')
+    else if (servicio.dia_tipo === 'domingo_tarde') turnoLabel = t('ofrenda.days.tarde')
 
     return (
         <div className={`rounded-2xl border overflow-hidden ${col.border}`}>
@@ -365,6 +555,8 @@ function ServicioCard({
                     {/* Secuencia de sacos */}
                     <SecuenciaCell
                         servicio={servicio}
+                        planServicios={planServicios}
+                        sacosConfig={sacosConfig}
                         canEdit={canEdit}
                         onAsignacionChange={onAsignacionChange}
                         labelColor={col.label}
@@ -374,16 +566,19 @@ function ServicioCard({
 
             {/* Roles G1 */}
             <div className="divide-y divide-border/50 bg-background">
-                {ROLES_G1.map(({ key, label }) => {
+                {roleRows.g1.map(({ key, label }) => {
                     const asig = getAsig(asignaciones, servicio.id, key)
                     return (
                         <div key={key} className="flex items-center justify-between px-4 py-2.5 gap-2">
-                            <span className={`text-xs font-semibold shrink-0 w-28 ${col.label}`}>
+                            <span className={`text-sm font-semibold shrink-0 w-32 ${col.label}`}>
                                 {label}
                             </span>
                             <AsignacionCell
                                 servicio={servicio}
                                 rol={key}
+                                rolLabel={label}
+                                turnoLabel={turnoLabel}
+                                headerColorClass={col.label}
                                 miembroId={asig?.miembro_id ?? null}
                                 isOverride={asig?.es_override ?? false}
                                 miembros={g1Members}
@@ -400,16 +595,19 @@ function ServicioCard({
 
             {/* Colaboradores G2 */}
             <div className="divide-y divide-border/50 bg-muted/20">
-                {ROLES_G2.map(({ key, label }) => {
+                {roleRows.g2.map(({ key, label }) => {
                     const asig = getAsig(asignaciones, servicio.id, key)
                     return (
                         <div key={key} className="flex items-center justify-between px-4 py-2 gap-2">
-                            <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 shrink-0 w-28">
+                            <span className="text-sm font-semibold text-blue-700 dark:text-blue-300 shrink-0 w-32">
                                 {label}
                             </span>
                             <AsignacionCell
                                 servicio={servicio}
                                 rol={key}
+                                rolLabel={label}
+                                turnoLabel={turnoLabel}
+                                headerColorClass={col.label}
                                 miembroId={asig?.miembro_id ?? null}
                                 isOverride={asig?.es_override ?? false}
                                 miembros={g2Members}
@@ -429,6 +627,9 @@ function ServicioCard({
 interface AsignacionCellProps {
     servicio: OfrServicio
     rol: string
+    rolLabel: string
+    turnoLabel?: string | null
+    headerColorClass: string
     miembroId: string | null
     isOverride: boolean
     miembros: OfrMiembro[]
@@ -436,92 +637,39 @@ interface AsignacionCellProps {
     onChanged: () => void
 }
 
-// ─── Celda de asignación editable (dropdown via Portal para evitar overflow-clip) ─
-
 function AsignacionCell({
     servicio,
     rol,
+    rolLabel,
+    turnoLabel,
+    headerColorClass,
     miembroId,
     isOverride,
     miembros,
     canEdit,
     onChanged,
 }: Readonly<AsignacionCellProps>) {
+    const { t } = useI18n()
+    const feedback = useOfrendaToast()
     const [open, setOpen] = useState(false)
     const [saving, setSaving] = useState(false)
     const [localId, setLocalId] = useState(miembroId)
     const [localOverride, setLocalOverride] = useState(isOverride)
-    const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number; openUp: boolean } | null>(null)
-    const btnRef  = useRef<HTMLButtonElement>(null)
-    const panelRef = useRef<HTMLDivElement>(null)
-    const nombre  = miembros.find(m => m.id === localId)?.nombre ?? '—'
+    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
+    const btnRef = useRef<HTMLButtonElement>(null)
+    const nombre = miembros.find(m => m.id === localId)?.nombre ?? '—'
 
-    // Sync con props externas
     useEffect(() => {
         setLocalId(miembroId)
         setLocalOverride(isOverride)
     }, [miembroId, isOverride])
 
-    // Calcular posición del panel al abrirse
-    const handleOpen = useCallback(() => {
-        if (!btnRef.current) return
-        const r = btnRef.current.getBoundingClientRect()
-        const panelH = 310  // estimado máx del panel
-        const panelW = 240
-        const spaceBelow = window.innerHeight - r.bottom
-        const openUp = spaceBelow < panelH && r.top > panelH
-
-        // Centrar horizontalmente respecto al botón; respetar viewport
-        let left = r.left + r.width / 2 - panelW / 2
-        if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8
-        if (left < 8) left = 8
-
-        setDropPos({
-            top:    openUp ? r.top - 4 : r.bottom + 6,
-            left,
-            width:  panelW,
-            openUp,
-        })
+    const handleOpen = () => {
+        setAnchorRect(btnRef.current?.getBoundingClientRect() ?? null)
         setOpen(true)
-    }, [])
-
-    // Recalcular si el viewport cambia mientras está abierto
-    useEffect(() => {
-        if (!open) return
-        const update = () => {
-            if (!btnRef.current) return
-            const r = btnRef.current.getBoundingClientRect()
-            const panelH = 310
-            const panelW = 240
-            const spaceBelow = window.innerHeight - r.bottom
-            const openUp = spaceBelow < panelH && r.top > panelH
-            let left = r.left + r.width / 2 - panelW / 2
-            if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8
-            if (left < 8) left = 8
-            setDropPos({ top: openUp ? r.top - 4 : r.bottom + 6, left, width: panelW, openUp })
-        }
-        window.addEventListener('scroll', update, true)
-        window.addEventListener('resize', update)
-        return () => {
-            window.removeEventListener('scroll', update, true)
-            window.removeEventListener('resize', update)
-        }
-    }, [open])
-
-    // Cerrar al pulsar fuera (botón + panel)
-    useEffect(() => {
-        if (!open) return
-        const handler = (e: MouseEvent) => {
-            const t = e.target as Node
-            if (btnRef.current?.contains(t) || panelRef.current?.contains(t)) return
-            setOpen(false)
-        }
-        document.addEventListener('mousedown', handler)
-        return () => document.removeEventListener('mousedown', handler)
-    }, [open])
+    }
 
     const handleSelect = useCallback(async (nuevoId: string | null) => {
-        setOpen(false)
         if (nuevoId === localId) return
         setSaving(true)
         const prev = localId
@@ -532,306 +680,220 @@ function AsignacionCell({
         const result = await updateAsignacion(servicio.id, rol, nuevoId)
         setSaving(false)
         if (result.error) {
-            toast.error('Error al asignar persona', {
-                description: result.error,
-                icon: <X className="w-4 h-4 text-red-500" />,
-            })
+            feedback.quickError(t('ofrenda.toast.assignError'), result.error)
             setLocalId(prev)
             setLocalOverride(prevOverride)
         } else {
-            const mNombre = miembros.find(m => m.id === nuevoId)?.nombre ?? 'Sin asignar'
-            toast.success('Asignación modificada', {
-                description: `Se ha asignado a ${mNombre} para este rol. Se muestra un punto amarillo de modificación manual.`,
-                icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
-                duration: 4000,
-            })
+            const mNombre = miembros.find(m => m.id === nuevoId)?.nombre ?? t('ofrenda.picker.unassign')
+            feedback.quickSuccess(
+                t('ofrenda.toast.assignOk'),
+                interpolate(t('ofrenda.toast.assignOkDesc'), { name: mNombre })
+            )
             onChanged()
         }
-    }, [localId, localOverride, servicio.id, rol, onChanged, miembros])
+    }, [localId, localOverride, servicio.id, rol, onChanged, miembros, t, feedback])
 
     if (!canEdit) {
-        return <span className="text-xs font-semibold px-1">{nombre}</span>
+        return <span className="text-sm font-semibold px-1">{nombre}</span>
     }
-
-    // ── Panel como Portal (escapa de cualquier overflow/stacking context padre) ─
-    const panel = open && dropPos ? createPortal(
-        <AnimatePresence>
-            <motion.div
-                key="asig-panel"
-                ref={panelRef}
-                initial={{ opacity: 0, y: dropPos.openUp ? 6 : -6, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ duration: 0.13, ease: 'easeOut' }}
-                style={{
-                    position:        'fixed',
-                    zIndex:          9999,
-                    top:             dropPos.openUp ? 'auto' : dropPos.top,
-                    bottom:          dropPos.openUp ? window.innerHeight - dropPos.top : 'auto',
-                    left:            dropPos.left,
-                    width:           dropPos.width,
-                    pointerEvents:   'auto',
-                    // Fondo opaco garantizado — nunca depende de variables CSS del árbol padre
-                    backgroundColor: 'hsl(var(--background, 210 40% 98.5%))',
-                    color:           'hsl(var(--foreground, 222 47% 11%))',
-                    borderRadius:    '1rem',
-                    border:          '1px solid hsl(var(--border, 220 13% 91%))',
-                    boxShadow:       '0 16px 48px rgba(0,0,0,0.22), 0 4px 12px rgba(0,0,0,0.12)',
-                    overflow:        'hidden',
-                }}
-                role="listbox"
-                aria-label="Seleccionar miembro"
-            >
-                {/* Cabecera —fondo ligeramente diferenciado, totalmente sólido */}
-                <div style={{
-                    display:         'flex',
-                    alignItems:      'center',
-                    justifyContent:  'space-between',
-                    padding:         '10px 14px 9px',
-                    borderBottom:    '1px solid hsl(var(--border, 220 13% 91%))',
-                    backgroundColor: 'hsl(var(--muted, 210 40% 96%))',
-                }}>
-                    <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'hsl(var(--muted-foreground, 215 16% 47%))' }}>
-                            Asignar persona
-                        </p>
-                        <p style={{ fontSize: 12, fontWeight: 700, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
-                            {nombre === '—' ? 'Sin asignar' : nombre}
-                        </p>
-                    </div>
-                    <button
-                        onClick={() => setOpen(false)}
-                        style={{ padding: 4, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: 'hsl(var(--muted-foreground, 215 16% 47%))' }}
-                        aria-label="Cerrar"
-                    >
-                        <X style={{ width: 14, height: 14 }} />
-                    </button>
-                </div>
-
-                {/* Lista de opciones — fondo sólido en cada fila */}
-                <div style={{ maxHeight: 280, overflowY: 'auto', overscrollBehavior: 'contain' }}>
-                    {/* Sin asignar */}
-                    <button
-                        onClick={() => handleSelect(null)}
-                        style={{
-                            display:         'flex',
-                            alignItems:      'center',
-                            gap:             10,
-                            width:           '100%',
-                            padding:         '11px 14px',
-                            textAlign:       'left',
-                            fontSize:        12,
-                            fontWeight:      500,
-                            border:          'none',
-                            borderBottom:    '1px solid hsl(var(--border, 220 13% 91%))',
-                            cursor:          'pointer',
-                            backgroundColor: localId === null ? 'hsl(var(--primary, 222 89% 55%) / 0.12)' : 'transparent',
-                            color:           localId === null ? 'hsl(var(--primary, 222 89% 55%))' : 'hsl(var(--muted-foreground, 215 16% 47%))',
-                        }}
-                        role="option"
-                        aria-selected={localId === null}
-                    >
-                        <span style={{ flex: 1 }}>— Sin asignar —</span>
-                        {localId === null && <Check style={{ width: 13, height: 13, flexShrink: 0 }} />}
-                    </button>
-
-                    {miembros.map((m, idx) => {
-                        const isSelected = m.id === localId
-                        return (
-                            <button
-                                key={m.id}
-                                onClick={() => handleSelect(m.id)}
-                                style={{
-                                    display:         'flex',
-                                    alignItems:      'center',
-                                    gap:             10,
-                                    width:           '100%',
-                                    padding:         '11px 14px',
-                                    textAlign:       'left',
-                                    fontSize:        12,
-                                    fontWeight:      isSelected ? 700 : 600,
-                                    border:          'none',
-                                    borderBottom:    idx < miembros.length - 1 ? '1px solid hsl(var(--border, 220 13% 91%) / 0.5)' : 'none',
-                                    cursor:          'pointer',
-                                    backgroundColor: isSelected ? 'hsl(var(--primary, 222 89% 55%))' : 'transparent',
-                                    color:           isSelected ? '#fff' : 'hsl(var(--foreground, 222 47% 11%))',
-                                    WebkitTapHighlightColor: 'transparent',
-                                }}
-                                role="option"
-                                aria-selected={isSelected}
-                            >
-                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nombre}</span>
-                                {isSelected && <Check style={{ width: 13, height: 13, flexShrink: 0 }} />}
-                            </button>
-                        )
-                    })}
-                </div>
-            </motion.div>
-        </AnimatePresence>,
-        document.body
-    ) : null
 
     return (
         <>
             <button
                 ref={btnRef}
+                type="button"
                 onClick={handleOpen}
                 disabled={saving}
                 className={`
-                    flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold
-                    border transition-all touch-manipulation min-h-[32px]
+                    flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-semibold
+                    border transition-all touch-manipulation min-h-[40px]
                     ${getCellClass(localId, localOverride)}
                     ${saving ? 'opacity-50 cursor-wait' : 'hover:shadow-sm'}
                 `}
-                aria-label={`Cambiar asignación de ${rol} en ${servicio.fecha} ${servicio.dia_tipo}`}
                 aria-expanded={open}
-                aria-haspopup="listbox"
+                aria-haspopup="dialog"
             >
                 {saving && (
                     <div className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
                 )}
                 {!saving && localOverride && localId && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" aria-label="Modificado manualmente" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                 )}
-                <span className="truncate max-w-[90px]">{nombre}</span>
+                <span className="truncate max-w-[110px] lg:max-w-[100px]">{nombre}</span>
             </button>
-            {panel}
+            <PersonaPicker
+                open={open}
+                onClose={() => setOpen(false)}
+                miembros={miembros}
+                selectedId={localId}
+                onSelect={handleSelect}
+                anchorRect={anchorRect}
+                context={{
+                    servicio,
+                    rolLabel,
+                    turnoLabel,
+                    headerColorClass,
+                }}
+            />
         </>
     )
 }
 
-// ─── Celda de secuencia editable ───────────────────────────────────────────────
+function dayConfigLabel(
+    diaTipo: OfrServicio['dia_tipo'],
+    t: (key: string) => string
+): string {
+    switch (diaTipo) {
+        case 'jueves':
+            return t('ofrenda.sacos.jueves')
+        case 'domingo':
+            return t('ofrenda.sacos.domingo')
+        case 'domingo_tarde':
+            return t('ofrenda.sacos.domingoTarde')
+        default:
+            return diaTipo
+    }
+}
 
 function SecuenciaCell({
     servicio,
+    planServicios,
+    sacosConfig,
     canEdit,
     onAsignacionChange,
     labelColor,
 }: Readonly<{
     servicio: OfrServicio
+    planServicios: OfrServicio[]
+    sacosConfig: PlanCompleto['plan']
     canEdit: boolean
     onAsignacionChange: () => void
     labelColor: string
 }>) {
-    const [editing, setEditing]           = useState(false)
-    const [desde, setDesde]               = useState(String(servicio.secuencia_desde))
-    const [hasta, setHasta]               = useState(String(servicio.secuencia_hasta))
+    const { t } = useI18n()
+    const feedback = useOfrendaToast()
+    const [open, setOpen] = useState(false)
     const [displayTexto, setDisplayTexto] = useState(servicio.secuencia_texto)
-    const [saving, setSaving]             = useState(false)
-    const fromRef = useRef<HTMLInputElement>(null)
+    const [saving, setSaving] = useState(false)
+
+    const secuenciaMaximo = getSecuenciaMaximo(sacosConfig)
+    const maxSacos = getMaxSacosForDiaTipo(servicio.dia_tipo, sacosConfig)
+    const followingCount = countFollowingServicios(planServicios, servicio.posicion)
+    const configDayLabel = dayConfigLabel(servicio.dia_tipo, t)
 
     useEffect(() => {
-        setDesde(String(servicio.secuencia_desde))
-        setHasta(String(servicio.secuencia_hasta))
         setDisplayTexto(servicio.secuencia_texto)
-    }, [servicio.secuencia_desde, servicio.secuencia_hasta, servicio.secuencia_texto])
+    }, [servicio.secuencia_texto])
 
-    const handleSave = async () => {
-        const d = Number.parseInt(desde, 10)
-        const h = Number.parseInt(hasta, 10)
-        if (Number.isNaN(d) || Number.isNaN(h) || d < 1 || d > 20 || h < 1 || h > 20) {
-            toast.error('Valores no válidos', {
-                description: 'Los rangos de saco deben estar comprendidos entre 1 y 20.',
-                icon: <AlertTriangle className="w-4 h-4 text-amber-500" />,
-            })
+    const showLimitFeedback = (d: number, h: number) => {
+        const v = validateSecuenciaSacos(d, h, maxSacos, secuenciaMaximo)
+        if (v.ok) return
+        const descKey =
+            v.reason === 'too_few'
+                ? 'ofrenda.sequence.limitTooFewDesc'
+                : 'ofrenda.sequence.limitTooManyDesc'
+        feedback.planWarning(
+            t('ofrenda.sequence.limitMismatch'),
+            interpolate(t(descKey), {
+                day: configDayLabel,
+                required: String(maxSacos),
+                count: String(v.count),
+                range: formatSecuenciaRange(d, h),
+            }),
+            0,
+        )
+    }
+
+    const handleSave = async (d: number, h: number, scope: SecuenciaApplyScope) => {
+        const validation = validateSecuenciaSacos(d, h, maxSacos, secuenciaMaximo)
+        if (!validation.ok) {
+            if (validation.reason === 'bounds') {
+                feedback.quickWarning(
+                    t('ofrenda.toast.sequenceInvalid'),
+                    interpolate(t('ofrenda.toast.sequenceInvalidDesc'), {
+                        max: String(secuenciaMaximo),
+                    })
+                )
+            } else if (
+                validation.reason === 'too_few' ||
+                validation.reason === 'too_many'
+            ) {
+                showLimitFeedback(d, h)
+            }
             return
         }
         setSaving(true)
         const nuevoTexto = `${String(d).padStart(2, '0')} al ${String(h).padStart(2, '0')}`
         const prevTexto = displayTexto
-
         setDisplayTexto(nuevoTexto)
-        setEditing(false)
+        setOpen(false)
 
-        const result = await updateSecuenciaServicio(servicio.id, d, h)
+        const result = await updateSecuenciaServicio(servicio.id, d, h, scope)
         setSaving(false)
         if (result.error) {
-            toast.error('Error al actualizar secuencia', {
-                description: result.error,
-                icon: <X className="w-4 h-4 text-red-500" />,
-            })
+            if (
+                result.code === 'limit' ||
+                result.code === 'too_few' ||
+                result.code === 'too_many'
+            ) {
+                showLimitFeedback(d, h)
+            } else {
+                feedback.quickError(t('ofrenda.toast.sequenceError'), result.error)
+            }
             setDisplayTexto(prevTexto)
         } else {
-            toast.success('Secuencia actualizada', {
-                description: `Se ha guardado la secuencia de sacos de ${nuevoTexto} para este servicio.`,
-                icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
-                duration: 4000,
-            })
+            const descKey =
+                scope === 'forward' && (result.updatedCount ?? 0) > 1
+                    ? 'ofrenda.toast.sequenceOkForwardDesc'
+                    : 'ofrenda.toast.sequenceOkDesc'
+            feedback.quickSuccess(
+                t('ofrenda.toast.sequenceOk'),
+                interpolate(t(descKey), {
+                    range: nuevoTexto,
+                    count: String((result.updatedCount ?? 1) - 1),
+                })
+            )
             onAsignacionChange()
         }
     }
 
     if (!canEdit) {
         return (
-            <span className={`text-xs font-black font-mono ${labelColor}`}>
+            <span className={`text-sm font-black font-mono ${labelColor}`}>
                 {displayTexto}
             </span>
         )
     }
 
-    if (!editing) {
-        return (
-            <button
-                onClick={() => { setEditing(true); setTimeout(() => fromRef.current?.focus(), 50) }}
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-black font-mono hover:bg-black/10 dark:hover:bg-white/10 transition-colors touch-manipulation ${labelColor}`}
-                title="Editar secuencia de sacos"
-                aria-label={`Secuencia: ${displayTexto}. Clic para editar`}
-            >
-                {saving ? (
-                    <div className="w-2.5 h-2.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                ) : (
-                    <RotateCcw className="w-2.5 h-2.5 opacity-40" />
-                )}
-                {displayTexto}
-            </button>
-        )
-    }
-
     return (
-        <div className="flex items-center gap-1" aria-label="Editar secuencia de sacos">
-            <input
-                ref={fromRef}
-                type="number"
-                min={1}
-                max={20}
-                value={desde}
-                onChange={e => setDesde(e.target.value)}
-                className="w-10 text-center text-xs font-mono border border-border rounded-lg p-1 bg-background outline-none focus:ring-1 focus:ring-primary/50"
-                aria-label="Saco inicial"
-            />
-            <span className="text-xs text-muted-foreground" aria-hidden="true">al</span>
-            <input
-                type="number"
-                min={1}
-                max={20}
-                value={hasta}
-                onChange={e => setHasta(e.target.value)}
-                onKeyDown={e => {
-                    if (e.key === 'Enter') handleSave()
-                    if (e.key === 'Escape') {
-                        setEditing(false)
-                        setDesde(String(servicio.secuencia_desde))
-                        setHasta(String(servicio.secuencia_hasta))
-                    }
-                }}
-                className="w-10 text-center text-xs font-mono border border-border rounded-lg p-1 bg-background outline-none focus:ring-1 focus:ring-primary/50"
-                aria-label="Saco final"
-            />
+        <>
             <button
-                onClick={handleSave}
-                disabled={saving}
-                className="p-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-700 dark:text-emerald-300 touch-manipulation"
-                aria-label="Guardar secuencia"
+                type="button"
+                onClick={() => setOpen(true)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-black font-mono hover:bg-black/10 dark:hover:bg-white/10 transition-colors touch-manipulation min-h-[36px] ${labelColor}`}
             >
                 {saving ? (
                     <div className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
                 ) : (
-                    <Check className="w-3 h-3" />
+                    <RotateCcw className="w-3 h-3 opacity-40" />
                 )}
+                {displayTexto}
             </button>
-        </div>
+            <SecuenciaEditor
+                open={open}
+                onClose={() => setOpen(false)}
+                servicio={servicio}
+                initialDesde={servicio.secuencia_desde}
+                initialHasta={servicio.secuencia_hasta}
+                displayTexto={displayTexto}
+                saving={saving}
+                maxSacos={maxSacos}
+                secuenciaMaximo={secuenciaMaximo}
+                followingCount={followingCount}
+                dayConfigLabel={configDayLabel}
+                onSave={handleSave}
+                onLimitExceeded={showLimitFeedback}
+            />
+        </>
     )
 }
-
-// Re-export ALL_ROLES for use in other components
-export { ALL_ROLES }
