@@ -1,0 +1,89 @@
+/**
+ * @vitest-environment happy-dom
+ */
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { renderHook, act } from '@testing-library/react'
+import {
+    useOfrendaMobileOrTablet,
+    OFRENDA_MOBILE_TABLET_MQ,
+    resetOfrendaMqCacheForTests,
+} from './ofrendaViewport'
+
+describe('useOfrendaMobileOrTablet', () => {
+    let listeners: Array<() => void> = []
+    const matchesRef = { current: false }
+
+    beforeEach(() => {
+        resetOfrendaMqCacheForTests()
+        listeners = []
+        matchesRef.current = false
+        Object.defineProperty(window, 'matchMedia', {
+            writable: true,
+            configurable: true,
+            value: vi.fn().mockImplementation(() => ({
+                get matches() {
+                    return matchesRef.current
+                },
+                media: OFRENDA_MOBILE_TABLET_MQ,
+                addEventListener: (_: string, cb: () => void) => {
+                    listeners.push(cb)
+                },
+                removeEventListener: (_: string, cb: () => void) => {
+                    listeners = listeners.filter((l) => l !== cb)
+                },
+                dispatchEvent: vi.fn(),
+            })),
+        })
+    })
+
+    afterEach(() => {
+        resetOfrendaMqCacheForTests()
+        vi.restoreAllMocks()
+    })
+
+    it('reutiliza una sola instancia matchMedia', () => {
+        const { unmount: u1 } = renderHook(() => useOfrendaMobileOrTablet())
+        const { unmount: u2 } = renderHook(() => useOfrendaMobileOrTablet())
+        expect(window.matchMedia).toHaveBeenCalledTimes(1)
+        u1()
+        u2()
+    })
+
+    it('getSnapshot estable: no re-notifica si matches no cambió', async () => {
+        const { result } = renderHook(() => useOfrendaMobileOrTablet())
+        const renders: boolean[] = [result.current]
+
+        await act(async () => {
+            matchesRef.current = true
+            listeners.forEach((l) => l())
+            await Promise.resolve()
+        })
+        renders.push(result.current)
+        expect(renders).toEqual([false, true])
+
+        const notifySpy = vi.fn()
+        const { unmount } = renderHook(() => {
+            notifySpy(useOfrendaMobileOrTablet())
+        })
+        const callsBefore = notifySpy.mock.calls.length
+
+        await act(async () => {
+            listeners.forEach((l) => l())
+            await Promise.resolve()
+        })
+        expect(notifySpy.mock.calls.length).toBe(callsBefore)
+        unmount()
+    })
+
+    it('actualiza cuando cambia el media query', async () => {
+        const { result } = renderHook(() => useOfrendaMobileOrTablet())
+        expect(result.current).toBe(false)
+
+        await act(async () => {
+            matchesRef.current = true
+            listeners.forEach((l) => l())
+            await Promise.resolve()
+        })
+        expect(result.current).toBe(true)
+    })
+})

@@ -1,3 +1,5 @@
+import { ofrendaKeysCa, ofrendaKeysEs } from './ofrendaKeys'
+
 export const translations = {
     'es-ES': {
         // Login
@@ -713,6 +715,8 @@ export const translations = {
         'notifications.pwaOnly.title': 'Solo en la app instalada',
         'notifications.pwaOnly.desc': 'Abre el acceso directo de IDMJI en tu pantalla de inicio y activa las notificaciones ahí. Así evitas avisos duplicados (Chrome + app).',
         'notifications.pwaOnly.revokeBrowser': 'Quitar permiso en este navegador',
+
+        ...ofrendaKeysEs,
     },
     'ca-ES': {
         // Login
@@ -1428,5 +1432,7 @@ export const translations = {
         'notifications.pwaOnly.title': 'Només a l\'app instal·lada',
         'notifications.pwaOnly.desc': 'Obre la drecera d\'IDMJI a la pantalla d\'inici i activa les notificacions allà. Així evites avisos duplicats (Chrome + app).',
         'notifications.pwaOnly.revokeBrowser': 'Treure permís en aquest navegador',
+
+        ...ofrendaKeysCa,
     },
 } as const

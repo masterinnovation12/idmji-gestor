@@ -52,6 +52,8 @@ export interface SacosConfig {
     jueves: number
     domingo: number
     domingoTarde: number
+    /** Tamaño del ciclo 1..N (por defecto {@link SACOS_MAX}). */
+    secuenciaMax?: number
 }
 
 /** Un servicio calculado (antes de persistir). */
@@ -319,8 +321,10 @@ export function generarPlan(
         jueves:       sacosConfig.jueves       ?? SACOS_JUEVES,
         domingo:      sacosConfig.domingo      ?? SACOS_DOMINGO,
         domingoTarde: sacosConfig.domingoTarde ?? SACOS_DOMINGO_TARDE,
+        secuenciaMax: sacosConfig.secuenciaMax,
     }
 
+    const secuenciaMax = config.secuenciaMax ?? SACOS_MAX
     const fechas = generarFechasDelPlan(anio, mes)
 
     // ── Secuencias de sacos ──────────────────────────────────────────────────
@@ -335,9 +339,9 @@ export function generarPlan(
     const servicios: ServicioCalculado[] = fechas.map(({ fecha, diaTipo }, idx) => {
         const sacos = sacosPorTipo[diaTipo]
         const desde = puntero
-        const hasta = calcHasta(desde, sacos)
+        const hasta = calcHasta(desde, sacos, secuenciaMax)
         const texto = formatSecuencia(desde, hasta)
-        puntero = advancePuntero(desde, sacos)
+        puntero = advancePuntero(desde, sacos, secuenciaMax)
         return {
             fecha: toDateStr(fecha),
             diaTipo,

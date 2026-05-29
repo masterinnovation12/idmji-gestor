@@ -2,30 +2,26 @@
 
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Gift, Users, Download, ChevronLeft, ChevronRight, RefreshCw, Plus, Settings2, ChevronDown, CheckCircle2, X, AlertTriangle } from 'lucide-react'
-import { toast } from 'sonner'
+import { Gift, Users, Download, RefreshCw, Plus, Trash2 } from 'lucide-react'
 import BackButton from '@/components/BackButton'
+import { OfrendaFeedbackProvider, useOfrendaToast } from './ofrendaFeedback'
 import { MiembrosManager } from './MiembrosManager'
 import { PlanTable } from './PlanTable'
 import { ExportPanel } from './ExportPanel'
-import { getPlan, generarORegenerarPlan, updateSacosConfig } from './actions'
+import { getPlan, generarORegenerarPlan, updateSacosConfig, eliminarPlan } from './actions'
 import type { OfrMiembro, OfrPlan, PlanCompleto } from './actions'
-
-// ─── Tipos de tab ─────────────────────────────────────────────────────────────
+import { useI18n } from '@/lib/i18n/I18nProvider'
+import type { TranslationKey } from '@/lib/i18n/types'
+import { getTituloMes, interpolate } from './ofrendaLocale'
+import { SacosConfigPanel } from './SacosConfigPanel'
+import { PlanMonthNavigator } from './PlanMonthNavigator'
 
 type Tab = 'plan' | 'personas' | 'exportar'
 
-const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'plan',      label: 'Plan Mensual',  icon: Gift },
-    { id: 'personas',  label: 'Personas',       icon: Users },
-    { id: 'exportar',  label: 'Exportar',       icon: Download },
-]
-
-// ─── Nombres de meses ─────────────────────────────────────────────────────────
-
-const MESES = [
-    '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+const TAB_DEFS: { id: Tab; labelKey: TranslationKey; icon: React.ElementType }[] = [
+    { id: 'plan', labelKey: 'ofrenda.tabs.plan', icon: Gift },
+    { id: 'personas', labelKey: 'ofrenda.tabs.people', icon: Users },
+    { id: 'exportar', labelKey: 'ofrenda.tabs.export', icon: Download },
 ]
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -40,13 +36,23 @@ interface Props {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function OfrendaPageClient({
+export default function OfrendaPageClient(props: Readonly<Props>) {
+    return (
+        <OfrendaFeedbackProvider>
+            <OfrendaPageClientInner {...props} />
+        </OfrendaFeedbackProvider>
+    )
+}
+
+function OfrendaPageClientInner({
     initialMiembros,
     initialPlan,
     initialAnio,
     initialMes,
     canEdit,
 }: Readonly<Props>) {
+    const { t, language } = useI18n()
+    const feedback = useOfrendaToast()
     const [activeTab, setActiveTab] = useState<Tab>('plan')
     const [anio, setAnio]           = useState(initialAnio)
     const [mes,  setMes]            = useState(initialMes)
@@ -67,24 +73,18 @@ export default function OfrendaPageClient({
         const result = await getPlan(newAnio, newMes)
         setIsLoading(false)
         if (result.error) {
-            toast.error('Error al cargar plan', {
-                description: result.error,
-                icon: <X className="w-4 h-4 text-red-500" />,
-            })
+            feedback.planError(t('ofrenda.toast.loadError'), result.error)
         } else {
             setPlan(result.data ?? null)
         }
-    }, [anio, mes])
+    }, [anio, mes, t, feedback])
 
     // ── Generar / Regenerar ──────────────────────────────────────────────────
     const handleGenerar = useCallback(async (grupo?: 1 | 2) => {
         setIsLoading(true)
         const result = await generarORegenerarPlan(anio, mes, undefined, grupo ?? null)
         if (result.error) {
-            toast.error('Error al generar plan', {
-                description: result.error,
-                icon: <X className="w-4 h-4 text-red-500" />,
-            })
+            feedback.planError(t('ofrenda.toast.generateError'), result.error)
             setIsLoading(false)
             return
         }
@@ -92,23 +92,15 @@ export default function OfrendaPageClient({
         const planResult = await getPlan(anio, mes)
         setIsLoading(false)
         if (planResult.error) {
-            toast.error('Error al recargar plan', {
-                description: planResult.error,
-                icon: <X className="w-4 h-4 text-red-500" />,
-            })
+            feedback.planError(t('ofrenda.toast.loadError'), planResult.error)
         } else {
             setPlan(planResult.data ?? null)
-            const msgTitle = plan ? 'Plan regenerado correctamente' : 'Plan generado correctamente'
-            const msgDesc = plan 
-                ? 'Se han actualizado las asignaciones manteniendo tus cambios manuales.'
-                : 'Se han distribuido de forma equitativa las asignaciones de este mes.'
-            toast.success(msgTitle, {
-                description: msgDesc,
-                icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
-                duration: 4000,
-            })
+            feedback.planSuccess(
+                plan ? t('ofrenda.toast.planRegenerated') : t('ofrenda.toast.planGenerated'),
+                plan ? t('ofrenda.toast.planRegeneratedDesc') : t('ofrenda.toast.planGeneratedDesc'),
+            )
         }
-    }, [anio, mes, plan])
+    }, [anio, mes, plan, t, feedback])
 
     // ── Callback para PlanTable cuando hay cambios de asignación ─────────────
     const handleAsignacionChange = useCallback(async () => {
@@ -122,7 +114,24 @@ export default function OfrendaPageClient({
     }, [])
 
     // ── Título del mes ───────────────────────────────────────────────────────
-    const tituloMes = `${MESES[mes]} ${anio}`
+    const tituloMes = getTituloMes(language, mes, anio)
+
+    const handleTabChange = useCallback((tab: Tab) => {
+        feedback.dismiss()
+        setActiveTab(tab)
+    }, [feedback])
+
+    const handleEliminarPlan = useCallback(async () => {
+        setIsLoading(true)
+        const result = await eliminarPlan(anio, mes)
+        setIsLoading(false)
+        if (result.error) {
+            feedback.planError(t('ofrenda.toast.loadError'), result.error)
+            return
+        }
+        setPlan(null)
+        feedback.planSuccess(t('ofrenda.toast.planDeleted'), t('ofrenda.toast.planDeletedDesc'))
+    }, [anio, mes, t, feedback])
 
     return (
         <div className="min-h-dvh bg-background">
@@ -136,10 +145,10 @@ export default function OfrendaPageClient({
                         </div>
                         <div className="min-w-0">
                             <h1 className="font-black text-base sm:text-lg leading-tight truncate">
-                                Labor Ofrenda
+                                {t('ofrenda.title')}
                             </h1>
                             <p className="text-xs text-muted-foreground hidden sm:block">
-                                Iglesia de Dios Ministerial de Jesucristo Internacional
+                                {t('ofrenda.subtitle')}
                             </p>
                         </div>
                     </div>
@@ -148,13 +157,13 @@ export default function OfrendaPageClient({
                 {/* ── Tabs ─────────────────────────────────────────────── */}
                 <div className="max-w-5xl mx-auto px-4">
                     <div className="flex gap-1 pb-0.5 overflow-x-auto no-scrollbar">
-                        {TABS.map(tab => {
+                        {TAB_DEFS.map(tab => {
                             const Icon = tab.icon
                             const active = activeTab === tab.id
                             return (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
+                                    onClick={() => handleTabChange(tab.id)}
                                     className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-t-lg whitespace-nowrap transition-all border-b-2 ${
                                         active
                                             ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500 bg-emerald-500/5'
@@ -164,7 +173,7 @@ export default function OfrendaPageClient({
                                     role="tab"
                                 >
                                     <Icon className="w-3.5 h-3.5" />
-                                    <span>{tab.label}</span>
+                                    <span>{t(tab.labelKey)}</span>
                                 </button>
                             )
                         })}
@@ -173,7 +182,7 @@ export default function OfrendaPageClient({
             </div>
 
             {/* ── Contenido ───────────────────────────────────────────────── */}
-            <div className="max-w-5xl mx-auto px-4 py-5">
+            <div className={`mx-auto px-4 py-5 ${activeTab === 'plan' ? 'max-w-[100%] xl:max-w-7xl' : 'max-w-5xl'}`}>
                 <AnimatePresence mode="wait">
                     {/* ── TAB: PLAN ─────────────────────────────────────── */}
                     {activeTab === 'plan' && (
@@ -183,53 +192,51 @@ export default function OfrendaPageClient({
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.18 }}
+                            className="min-w-0"
                         >
-                            {/* Selector de mes */}
-                            <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => navigate(-1)}
-                                        disabled={isLoading}
-                                        aria-label="Mes anterior"
-                                        className="p-2 rounded-xl hover:bg-muted transition-colors disabled:opacity-50 touch-manipulation min-w-[40px] min-h-[40px] flex items-center justify-center"
-                                    >
-                                        <ChevronLeft className="w-5 h-5" />
-                                    </button>
-
-                                    <h2 className="text-lg sm:text-xl font-black tracking-tight min-w-[160px] text-center">
-                                        {isLoading ? (
-                                            <span className="inline-block w-32 h-6 bg-muted animate-pulse rounded-lg" />
-                                        ) : tituloMes}
-                                    </h2>
-
-                                    <button
-                                        onClick={() => navigate(1)}
-                                        disabled={isLoading}
-                                        aria-label="Mes siguiente"
-                                        className="p-2 rounded-xl hover:bg-muted transition-colors disabled:opacity-50 touch-manipulation min-w-[40px] min-h-[40px] flex items-center justify-center"
-                                    >
-                                        <ChevronRight className="w-5 h-5" />
-                                    </button>
-                                </div>
+                            {/* Selector de mes + acciones */}
+                            <div className="mb-5 space-y-3" data-testid="ofrenda-plan-toolbar">
+                                <PlanMonthNavigator
+                                    title={tituloMes}
+                                    isLoading={isLoading}
+                                    onPrev={() => navigate(-1)}
+                                    onNext={() => navigate(1)}
+                                    prevAriaLabel={t('ofrenda.month.prev')}
+                                    nextAriaLabel={t('ofrenda.month.next')}
+                                />
 
                                 {canEdit && (
-                                    <div className="flex items-center gap-2 flex-wrap">
+                                    <div
+                                        className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end"
+                                        data-testid="ofrenda-plan-actions"
+                                    >
                                         {plan && (
-                                            <RegenerateMenu onRegenerate={handleGenerar} isLoading={isLoading} />
+                                            <>
+                                                <RegenerateMenu
+                                                    onRegenerate={handleGenerar}
+                                                    isLoading={isLoading}
+                                                />
+                                                <DeletePlanButton
+                                                    tituloMes={tituloMes}
+                                                    isLoading={isLoading}
+                                                    onConfirm={handleEliminarPlan}
+                                                />
+                                            </>
                                         )}
                                         {!plan && (
                                             <motion.button
                                                 whileTap={{ scale: 0.97 }}
+                                                type="button"
                                                 onClick={() => handleGenerar()}
                                                 disabled={isLoading}
-                                                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 touch-manipulation"
+                                                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 touch-manipulation"
                                             >
                                                 {isLoading ? (
                                                     <RefreshCw className="w-4 h-4 animate-spin" />
                                                 ) : (
                                                     <Plus className="w-4 h-4" />
                                                 )}
-                                                Generar Plan
+                                                {t('ofrenda.generate')}
                                             </motion.button>
                                         )}
                                     </div>
@@ -241,31 +248,30 @@ export default function OfrendaPageClient({
                                 <SacosConfigPanel
                                     plan={plan.plan}
                                     isLoading={isLoading}
-                                    onUpdate={async (j, d, dt) => {
+                                    onUpdate={async (j, d, dt, secuenciaMaximo) => {
                                         setIsLoading(true)
-                                        const r = await updateSacosConfig(plan.plan.id, j, d, dt)
+                                        const r = await updateSacosConfig(
+                                            plan.plan.id,
+                                            j,
+                                            d,
+                                            dt,
+                                            secuenciaMaximo,
+                                        )
                                         if (r.error) {
-                                            toast.error('Error al actualizar sacos', {
-                                                description: r.error,
-                                                icon: <X className="w-4 h-4 text-red-500" />,
-                                            })
+                                            feedback.planError(t('ofrenda.toast.sacosInvalid'), r.error)
                                             setIsLoading(false)
                                             return
                                         }
                                         const fr = await getPlan(anio, mes)
                                         setIsLoading(false)
                                         if (fr.error) {
-                                            toast.error('Error al recargar plan', {
-                                                description: fr.error,
-                                                icon: <X className="w-4 h-4 text-red-500" />,
-                                            })
+                                            feedback.planError(t('ofrenda.toast.loadError'), fr.error)
                                         } else {
                                             setPlan(fr.data ?? null)
-                                            toast.success('Configuración actualizada', {
-                                                description: 'Sacos guardados y secuencias del plan recalculadas con éxito.',
-                                                icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
-                                                duration: 4000,
-                                            })
+                                            feedback.planSuccess(
+                                                t('ofrenda.toast.sacosUpdated'),
+                                                t('ofrenda.toast.sacosUpdatedDesc'),
+                                            )
                                         }
                                     }}
                                 />
@@ -315,6 +321,7 @@ export default function OfrendaPageClient({
                     {activeTab === 'exportar' && (
                         <motion.div
                             key="exportar"
+                            className="relative z-10 bg-background"
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
@@ -337,6 +344,64 @@ export default function OfrendaPageClient({
 
 // ─── Subcomponentes internos ──────────────────────────────────────────────────
 
+function DeletePlanButton({
+    tituloMes,
+    isLoading,
+    onConfirm,
+}: Readonly<{
+    tituloMes: string
+    isLoading: boolean
+    onConfirm: () => void
+}>) {
+    const { t } = useI18n()
+    const [confirmOpen, setConfirmOpen] = useState(false)
+
+    if (confirmOpen) {
+        return (
+            <div
+                className="flex w-full flex-col gap-2 rounded-2xl border border-red-500/25 bg-red-500/5 p-3 sm:flex-row sm:flex-wrap sm:items-center"
+                data-testid="ofrenda-delete-plan-confirm"
+            >
+                <span className="text-xs font-semibold text-red-600 dark:text-red-400 text-center sm:text-left flex-1 min-w-0">
+                    {interpolate(t('ofrenda.deletePlan.confirm'), { month: tituloMes })}
+                </span>
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <button
+                        type="button"
+                        onClick={() => { setConfirmOpen(false); onConfirm() }}
+                        disabled={isLoading}
+                        className="flex-1 sm:flex-initial px-3 py-2.5 min-h-[44px] text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl disabled:opacity-50 touch-manipulation"
+                    >
+                        {t('ofrenda.deletePlan.yes')}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setConfirmOpen(false)}
+                        disabled={isLoading}
+                        className="flex-1 sm:flex-initial px-3 py-2.5 min-h-[44px] text-xs font-medium border border-border rounded-xl hover:bg-muted touch-manipulation"
+                    >
+                        {t('ofrenda.deletePlan.no')}
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <motion.button
+            whileTap={{ scale: 0.97 }}
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            disabled={isLoading}
+            className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 text-red-700 dark:text-red-300 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 touch-manipulation"
+            data-testid="ofrenda-delete-plan-btn"
+        >
+            <Trash2 className="w-4 h-4" />
+            {t('ofrenda.deletePlan')}
+        </motion.button>
+    )
+}
+
 function RegenerateMenu({
     onRegenerate,
     isLoading,
@@ -344,34 +409,42 @@ function RegenerateMenu({
     onRegenerate: (grupo?: 1 | 2) => void
     isLoading: boolean
 }>) {
+    const { t } = useI18n()
     const [open, setOpen] = useState(false)
 
     return (
-        <div className="relative">
+        <div className="relative w-full sm:w-auto" data-testid="ofrenda-regenerate-menu">
             <motion.button
                 whileTap={{ scale: 0.97 }}
+                type="button"
                 onClick={() => setOpen(v => !v)}
                 disabled={isLoading}
-                className="flex items-center gap-1.5 px-4 py-2 border border-border bg-background hover:bg-muted text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 touch-manipulation"
+                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] border border-border bg-background hover:bg-muted text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 touch-manipulation"
+                data-testid="ofrenda-regenerate-btn"
             >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Regenerar
+                <RefreshCw className={`w-4 h-4 shrink-0 ${isLoading ? 'animate-spin' : ''}`} />
+                {t('ofrenda.regenerate')}
             </motion.button>
 
             <AnimatePresence>
                 {open && (
                     <>
-                        <button className="fixed inset-0 z-10 bg-transparent cursor-default" onClick={() => setOpen(false)} aria-label="Cerrar menú" />
+                        <button
+                            type="button"
+                            className="fixed inset-0 z-10 bg-transparent cursor-default"
+                            onClick={() => setOpen(false)}
+                            aria-label="Cerrar menú"
+                        />
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: -4 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                            className="absolute right-0 top-full mt-2 z-20 bg-background border border-border rounded-2xl shadow-xl overflow-hidden min-w-[190px]"
+                            className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 z-20 bg-background border border-border rounded-2xl shadow-xl overflow-hidden sm:min-w-[190px]"
                         >
                             {[
-                                { label: 'Todo el plan',           grupo: undefined },
-                                { label: 'Solo Grupo 1 (roles)',   grupo: 1 as const },
-                                { label: 'Solo Grupo 2 (colabor.)',grupo: 2 as const },
+                                { label: t('ofrenda.regenerate.all'), grupo: undefined },
+                                { label: t('ofrenda.regenerate.g1'), grupo: 1 as const },
+                                { label: t('ofrenda.regenerate.g2'), grupo: 2 as const },
                             ].map(item => (
                                 <button
                                     key={item.label}
@@ -400,15 +473,16 @@ function EmptyPlanState({
     onGenerar: () => void
     isLoading: boolean
 }>) {
+    const { t } = useI18n()
     return (
         <div className="flex flex-col items-center justify-center py-20 text-center gap-5">
             <div className="p-5 bg-emerald-500/10 rounded-3xl">
                 <Gift className="w-12 h-12 text-emerald-500" />
             </div>
             <div>
-                <h3 className="text-lg font-bold mb-1">Sin plan para {tituloMes}</h3>
+                <h3 className="text-lg font-bold mb-1">{t('ofrenda.emptyPlan.title')} — {tituloMes}</h3>
                 <p className="text-sm text-muted-foreground max-w-xs">
-                    Genera el plan mensual para ver y gestionar las asignaciones de labor ofrenda.
+                    {t('ofrenda.emptyPlan.desc')}
                 </p>
             </div>
             {canEdit && (
@@ -416,10 +490,10 @@ function EmptyPlanState({
                     whileTap={{ scale: 0.97 }}
                     onClick={onGenerar}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-colors disabled:opacity-50 touch-manipulation min-h-[48px]"
                 >
                     {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                    Generar Plan de {tituloMes}
+                    {t('ofrenda.generate')}
                 </motion.button>
             )}
         </div>
@@ -438,155 +512,6 @@ function PlanSkeleton() {
 }
 
 // ─── Acordeón de configuración de sacos ──────────────────────────────────────
-
-function SacosConfigPanel({
-    plan,
-    isLoading,
-    onUpdate,
-}: Readonly<{
-    plan: OfrPlan
-    isLoading: boolean
-    onUpdate: (jueves: number, domingo: number, domingoTarde: number) => Promise<void>
-}>) {
-    const [open, setOpen] = useState(false)
-    const [j,  setJ]  = useState(plan.sacos_jueves)
-    const [d,  setD]  = useState(plan.sacos_domingo)
-    const [dt, setDt] = useState(plan.sacos_domingo_tarde)
-
-    const handleApply = async () => {
-        if (j < 1 || j > 20 || d < 1 || d > 20 || dt < 1 || dt > 20) {
-            toast.error('Valores incorrectos', {
-                description: 'Los sacos deben estar comprendidos entre 1 y 20.',
-                icon: <AlertTriangle className="w-4 h-4 text-amber-500" />,
-            })
-            return
-        }
-        await onUpdate(j, d, dt)
-        setOpen(false)
-    }
-
-    return (
-        <div className="mb-4 rounded-2xl border border-border/50 overflow-hidden">
-            <button
-                onClick={() => setOpen(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
-                aria-expanded={open}
-            >
-                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                    <Settings2 className="w-3.5 h-3.5" />
-                    Configuración de sacos por servicio
-                </div>
-                <motion.div
-                    animate={{ rotate: open ? 180 : 0 }}
-                    transition={{ duration: 0.18 }}
-                >
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                </motion.div>
-            </button>
-
-            <AnimatePresence initial={false}>
-                {open && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                    >
-                        <div className="px-4 py-4 bg-background space-y-4">
-                            <p className="text-xs text-muted-foreground">
-                                Cambia la cantidad de sacos por tipo de servicio. Al guardar, el plan se regenera automáticamente manteniendo los overrides manuales.
-                            </p>
-                            <div className="grid grid-cols-3 gap-4">
-                                <SacosInput
-                                    label="Jueves"
-                                    color="emerald"
-                                    value={j}
-                                    onChange={setJ}
-                                />
-                                <SacosInput
-                                    label="Dom. Mañana"
-                                    color="blue"
-                                    value={d}
-                                    onChange={setD}
-                                />
-                                <SacosInput
-                                    label="Dom. Tarde"
-                                    color="violet"
-                                    value={dt}
-                                    onChange={setDt}
-                                />
-                            </div>
-                            <div className="flex items-center gap-3 pt-1">
-                                <button
-                                    onClick={handleApply}
-                                    disabled={isLoading}
-                                    className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition-colors disabled:opacity-50"
-                                >
-                                    {isLoading ? (
-                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                        <RefreshCw className="w-3.5 h-3.5" />
-                                    )}
-                                    Actualizar y regenerar
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setJ(plan.sacos_jueves)
-                                        setD(plan.sacos_domingo)
-                                        setDt(plan.sacos_domingo_tarde)
-                                        setOpen(false)
-                                    }}
-                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
-    )
-}
-
-function SacosInput({
-    label,
-    color,
-    value,
-    onChange,
-}: Readonly<{
-    label: string
-    color: 'emerald' | 'blue' | 'violet'
-    value: number
-    onChange: (v: number) => void
-}>) {
-    const colorClass = {
-        emerald: 'text-emerald-700 dark:text-emerald-300 border-emerald-500/30 focus:ring-emerald-500/30',
-        blue:    'text-blue-700 dark:text-blue-300 border-blue-500/30 focus:ring-blue-500/30',
-        violet:  'text-violet-700 dark:text-violet-300 border-violet-500/30 focus:ring-violet-500/30',
-    }[color]
-
-    return (
-        <div className="space-y-1">
-            <label className={`text-[10px] font-bold uppercase tracking-wide ${colorClass.split(' ')[0]}`}>
-                {label}
-            </label>
-            <div className="flex items-center gap-1">
-                <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={value}
-                    onChange={e => onChange(Math.max(1, Math.min(20, Number(e.target.value))))}
-                    className={`w-full text-center text-sm font-black font-mono border rounded-xl p-2 bg-background outline-none focus:ring-2 ${colorClass}`}
-                    aria-label={`Sacos ${label}`}
-                />
-                <span className="text-[10px] text-muted-foreground shrink-0">sacos</span>
-            </div>
-        </div>
-    )
-}
 
 // Re-exportar tipos para que los hijos puedan importar desde aquí
 export type { OfrMiembro, OfrPlan, PlanCompleto }

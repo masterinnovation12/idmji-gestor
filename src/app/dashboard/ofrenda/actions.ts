@@ -6,7 +6,20 @@ import {
     generarPlan,
     type OfrendaMiembro,
     type SacosConfig,
+    type DiaTipo,
 } from '@/lib/utils/ofrendaEngine'
+import {
+    getMaxSacosForDiaTipo,
+    getSecuenciaMaximo,
+    validateSecuenciaSacos,
+} from '@/app/dashboard/ofrenda/secuenciaSacosLimits'
+import {
+    findServicioIndexById,
+    propagateSecuenciasFromIndex,
+    type SecuenciaApplyScope,
+} from '@/app/dashboard/ofrenda/secuenciaPropagation'
+
+export type { SecuenciaApplyScope } from '@/app/dashboard/ofrenda/secuenciaPropagation'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -50,6 +63,7 @@ export interface OfrPlan {
     sacos_jueves: number
     sacos_domingo: number
     sacos_domingo_tarde: number
+    secuencia_maximo: number
     created_at: string
     updated_at: string
 }
@@ -348,7 +362,7 @@ export async function generarORegenerarPlan(
 
     const { data: planExistente } = await supabase
         .from('ofrenda_planes')
-        .select('id, secuencia_puntero, sacos_jueves, sacos_domingo, sacos_domingo_tarde')
+        .select('id, secuencia_puntero, sacos_jueves, sacos_domingo, sacos_domingo_tarde, secuencia_maximo')
         .eq('anio', anio).eq('mes', mes).maybeSingle()
 
     const punteroInicio = await resolvePunteroInicio(supabase, planExistente, punteroManual, anio, mes)
@@ -357,6 +371,7 @@ export async function generarORegenerarPlan(
         jueves:       sacosOverride?.jueves       ?? planExistente?.sacos_jueves        ?? 4,
         domingo:      sacosOverride?.domingo      ?? planExistente?.sacos_domingo       ?? 8,
         domingoTarde: sacosOverride?.domingoTarde ?? planExistente?.sacos_domingo_tarde ?? 4,
+        secuenciaMax: sacosOverride?.secuenciaMax ?? planExistente?.secuencia_maximo    ?? 20,
     }
 
     const overridesMap = await loadOverrides(supabase, planExistente, regenerarGrupo)
@@ -372,6 +387,7 @@ export async function generarORegenerarPlan(
             sacos_jueves:          sacosConfig.jueves,
             sacos_domingo:         sacosConfig.domingo,
             sacos_domingo_tarde:   sacosConfig.domingoTarde,
+            secuencia_maximo:      sacosConfig.secuenciaMax ?? 20,
             created_by: userId,
         }, { onConflict: 'anio,mes' })
         .select().single()
@@ -416,20 +432,149 @@ export async function updateAsignacion(
 export async function updateSecuenciaServicio(
     servicioId: string,
     secuenciaDesde: number,
-    secuenciaHasta: number
-): Promise<{ error?: string }> {
+    secuenciaHasta: number,
+    scope: SecuenciaApplyScope = 'single',
+): Promise<{
+    error?: string
+    code?: 'limit' | 'too_few' | 'too_many' | 'bounds'
+    updatedCount?: number
+}> {
     const { error: authError, supabase } = await requireEditor()
     if (authError || !supabase) return { error: authError ?? 'Error' }
 
-    const texto = `${String(secuenciaDesde).padStart(2, '0')} al ${String(secuenciaHasta).padStart(2, '0')}`
-    const { error } = await supabase
+    const { data: servicio, error: srvErr } = await supabase
         .from('ofrenda_servicios')
-        .update({ secuencia_desde: secuenciaDesde, secuencia_hasta: secuenciaHasta, secuencia_texto: texto })
+        .select('dia_tipo, plan_id, posicion')
         .eq('id', servicioId)
+        .single()
 
-    if (error) return { error: error.message }
+    if (srvErr || !servicio) {
+        return { error: srvErr?.message ?? 'Servicio no encontrado' }
+    }
+
+    const { data: plan, error: planErr } = await supabase
+        .from('ofrenda_planes')
+        .select('sacos_jueves, sacos_domingo, sacos_domingo_tarde, secuencia_maximo')
+        .eq('id', servicio.plan_id)
+        .single()
+
+    if (planErr || !plan) {
+        return { error: planErr?.message ?? 'Plan no encontrado' }
+    }
+
+    const planConfig = {
+        sacos_jueves: plan.sacos_jueves,
+        sacos_domingo: plan.sacos_domingo,
+        sacos_domingo_tarde: plan.sacos_domingo_tarde,
+        secuencia_maximo: getSecuenciaMaximo(plan),
+    }
+    const cicloMax = planConfig.secuencia_maximo
+
+    const maxSacos = getMaxSacosForDiaTipo(servicio.dia_tipo as DiaTipo, planConfig)
+    const validation = validateSecuenciaSacos(
+        secuenciaDesde,
+        secuenciaHasta,
+        maxSacos,
+        cicloMax,
+    )
+    if (!validation.ok) {
+        if (validation.reason === 'bounds') {
+            return {
+                error: `Rango de sacos entre 1 y ${cicloMax}.`,
+                code: 'bounds',
+            }
+        }
+        if (validation.reason === 'too_few') {
+            return {
+                error: `Deben ser exactamente ${maxSacos} sacos; el rango solo incluye ${validation.count}.`,
+                code: 'too_few',
+            }
+        }
+        return {
+            error: `Deben ser exactamente ${maxSacos} sacos; el rango incluye ${validation.count}.`,
+            code: 'too_many',
+        }
+    }
+
+    if (scope === 'single') {
+        const texto = `${String(secuenciaDesde).padStart(2, '0')} al ${String(secuenciaHasta).padStart(2, '0')}`
+        const { error } = await supabase
+            .from('ofrenda_servicios')
+            .update({
+                secuencia_desde: secuenciaDesde,
+                secuencia_hasta: secuenciaHasta,
+                secuencia_texto: texto,
+            })
+            .eq('id', servicioId)
+
+        if (error) return { error: error.message }
+        revalidatePath('/dashboard/ofrenda')
+        return { updatedCount: 1 }
+    }
+
+    const { data: todosServicios, error: listErr } = await supabase
+        .from('ofrenda_servicios')
+        .select('id, dia_tipo, posicion')
+        .eq('plan_id', servicio.plan_id)
+        .order('posicion')
+
+    if (listErr || !todosServicios?.length) {
+        return { error: listErr?.message ?? 'No hay servicios en el plan' }
+    }
+
+    const startIndex = findServicioIndexById(todosServicios, servicioId)
+    if (startIndex < 0) {
+        return { error: 'Servicio no encontrado en el plan' }
+    }
+
+    const { updates, punteroFin } = propagateSecuenciasFromIndex(
+        todosServicios,
+        startIndex,
+        secuenciaDesde,
+        secuenciaHasta,
+        planConfig,
+    )
+
+    for (const row of updates) {
+        const pasos = getMaxSacosForDiaTipo(
+            todosServicios.find((s) => s.id === row.id)!.dia_tipo as DiaTipo,
+            planConfig,
+        )
+        const v = validateSecuenciaSacos(
+            row.secuencia_desde,
+            row.secuencia_hasta,
+            pasos,
+            cicloMax,
+        )
+        if (!v.ok) {
+            return {
+                error: 'La propagación generó una secuencia inválida.',
+                code: v.reason === 'bounds' ? 'bounds' : v.reason,
+            }
+        }
+    }
+
+    for (const row of updates) {
+        const { error } = await supabase
+            .from('ofrenda_servicios')
+            .update({
+                secuencia_desde: row.secuencia_desde,
+                secuencia_hasta: row.secuencia_hasta,
+                secuencia_texto: row.secuencia_texto,
+            })
+            .eq('id', row.id)
+        if (error) return { error: error.message }
+    }
+
+    const { error: punteroErr } = await supabase
+        .from('ofrenda_planes')
+        .update({ secuencia_puntero_fin: punteroFin })
+        .eq('id', servicio.plan_id)
+
+    if (punteroErr) return { error: punteroErr.message }
+
     revalidatePath('/dashboard/ofrenda')
-    return {}
+    return { updatedCount: updates.length }
 }
 
 /**
@@ -439,7 +584,8 @@ export async function updateSacosConfig(
     planId: string,
     sacosJueves: number,
     sacosDomingo: number,
-    sacosDomingoTarde: number
+    sacosDomingoTarde: number,
+    secuenciaMaximo: number,
 ): Promise<{ error?: string }> {
     const { error: authError, supabase } = await requireEditor()
     if (authError || !supabase) return { error: authError ?? 'Error' }
@@ -459,13 +605,36 @@ export async function updateSacosConfig(
         planData.mes,
         undefined,
         null,
-        { jueves: sacosJueves, domingo: sacosDomingo, domingoTarde: sacosDomingoTarde }
+        {
+            jueves: sacosJueves,
+            domingo: sacosDomingo,
+            domingoTarde: sacosDomingoTarde,
+            secuenciaMax: secuenciaMaximo,
+        }
     )
 }
 
 /**
  * Devuelve lista de planes disponibles (para el historial de meses).
  */
+/**
+ * Elimina el plan de un mes (servicios y asignaciones en cascada).
+ */
+export async function eliminarPlan(anio: number, mes: number): Promise<{ error?: string }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    const { error } = await supabase
+        .from('ofrenda_planes')
+        .delete()
+        .eq('anio', anio)
+        .eq('mes', mes)
+
+    if (error) return { error: error.message }
+    revalidatePath('/dashboard/ofrenda')
+    return {}
+}
+
 export async function getPlanesList(): Promise<{ data?: { anio: number; mes: number }[]; error?: string }> {
     const supabase = await createClient()
     const { data, error } = await supabase

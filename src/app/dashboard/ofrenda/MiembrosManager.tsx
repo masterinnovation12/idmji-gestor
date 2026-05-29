@@ -6,8 +6,13 @@ import {
     Plus, Trash2, GripVertical, UserCheck, UserX, UserPlus,
     Search, AlertTriangle, CheckCircle2, Info, X, Users
 } from 'lucide-react'
-import { toast } from 'sonner'
-import { Modal } from '@/components/ui/Modal'
+import { useI18n } from '@/lib/i18n/I18nProvider'
+import { useOfrendaToast } from './ofrendaFeedback'
+import { OfrendaLiquidShell } from './OfrendaLiquidShell'
+import { interpolate } from './ofrendaLocale'
+import type { TranslationKey } from '@/lib/i18n/types'
+
+type OfrendaT = (key: TranslationKey) => string
 import {
     upsertMiembro,
     deleteMiembro,
@@ -25,40 +30,9 @@ function getRowClass(isPendingDelete: boolean, activo: boolean): string {
     return 'border-dashed border-border/50 opacity-60'
 }
 
-function getLabelClass(yaEsta: boolean, isSel: boolean): string {
-    if (yaEsta) return 'opacity-50 cursor-not-allowed bg-muted/50'
-    if (isSel) return 'bg-emerald-500/10 border border-emerald-500/20 cursor-pointer'
-    return 'hover:bg-muted cursor-pointer'
-}
-
 function getCheckboxClass(yaEsta: boolean, isSel: boolean): string {
     if (yaEsta || isSel) return 'border-emerald-500 bg-emerald-500'
     return 'border-border bg-background'
-}
-
-// ─── Toasts premium con descripción e icono ──────────────────────────────────
-
-function toastOk(title: string, description?: string) {
-    toast.success(title, {
-        description,
-        duration: 3500,
-        icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
-    })
-}
-
-function toastWarn(title: string, description?: string) {
-    toast.warning(title, {
-        description,
-        duration: 4000,
-        icon: <AlertTriangle className="w-4 h-4 text-amber-500" />,
-    })
-}
-
-function toastErr(msg: string) {
-    toast.error(msg, {
-        duration: 5000,
-        icon: <X className="w-4 h-4 text-red-500" />,
-    })
 }
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -72,6 +46,8 @@ interface Props {
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly<Props>) {
+    const { t } = useI18n()
+    const feedback = useOfrendaToast()
     const [miembros, setMiembros]         = useState<OfrMiembro[]>(initialMiembros)
     const [addModalOpen, setAddModalOpen] = useState(false)
     const [addGrupo, setAddGrupo]         = useState<1 | 2>(1)
@@ -100,10 +76,10 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
     const handleAddSubmit = async (nombre: string) => {
         const orden = miembros.filter(m => m.grupo === addGrupo).length
         const result = await upsertMiembro({ nombre, grupo: addGrupo, orden })
-        if (result.error) { toastErr(result.error); return }
-        toastOk(
-            `${nombre} añadido`,
-            `Grupo ${addGrupo} — aparecerá en la rotación automática del próximo plan generado.`
+        if (result.error) { feedback.quickError(result.error); return }
+        feedback.quickSuccess(
+            interpolate(t('ofrenda.toast.memberAdded'), { name: nombre }),
+            interpolate(t('ofrenda.toast.memberAddedDesc'), { grupo: String(addGrupo) })
         )
         setAddModalOpen(false)
         await refresh()
@@ -113,10 +89,10 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
     const handleDeleteConfirmed = async (id: string, nombre: string) => {
         setPendingDelete(null)
         const result = await deleteMiembro(id)
-        if (result.error) { toastErr(result.error); return }
-        toastWarn(
-            `${nombre} eliminado`,
-            'Ha sido quitado de la lista. Sus asignaciones pasadas no se borran.'
+        if (result.error) { feedback.quickError(result.error); return }
+        feedback.quickWarning(
+            interpolate(t('ofrenda.toast.memberDeleted'), { name: nombre }),
+            t('ofrenda.toast.memberDeletedDesc')
         )
         await refresh()
     }
@@ -124,16 +100,16 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
     // ── Toggle activo / inactivo ──────────────────────────────────────────────
     const handleToggleActivo = async (m: OfrMiembro) => {
         const result = await upsertMiembro({ ...m, activo: !m.activo })
-        if (result.error) { toastErr(result.error); return }
+        if (result.error) { feedback.quickError(result.error); return }
         if (m.activo) {
-            toastWarn(
-                `${m.nombre} desactivado`,
-                'No recibirá asignaciones automáticas hasta que se reactive.'
+            feedback.quickWarning(
+                interpolate(t('ofrenda.toast.memberDeactivated'), { name: m.nombre }),
+                t('ofrenda.toast.memberDeactivatedDesc')
             )
         } else {
-            toastOk(
-                `${m.nombre} activado`,
-                'Volverá a entrar en la rotación al regenerar el plan.'
+            feedback.quickSuccess(
+                interpolate(t('ofrenda.toast.memberActivated'), { name: m.nombre }),
+                t('ofrenda.toast.memberActivatedDesc')
             )
         }
         await refresh()
@@ -146,7 +122,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
         setMiembros([...otros, ...updated])
         onChange([...otros, ...updated])
         const result = await reordenarMiembros(updated.map(m => ({ id: m.id, orden: m.orden })))
-        if (result.error) toastErr(result.error)
+        if (result.error) feedback.quickError(result.error)
     }
 
     return (
@@ -155,26 +131,28 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
             <div className="flex flex-wrap gap-3">
                 <LegendCard
                     grupo={1}
-                    label="Grupo 1 — Quienes realizan la labor"
-                    description="Cada servicio se asignan 3: Realiza la labor · Apoyo · Vigilancia y Orientación"
+                    label={t('ofrenda.people.g1.legend')}
+                    description={t('ofrenda.people.g1.legendDesc')}
                     color="emerald"
                     count={g1.length}
                     active={g1.filter(m => m.activo).length}
+                    t={t}
                 />
                 <LegendCard
                     grupo={2}
-                    label="Grupo 2 — Colaboradores de entrada"
-                    description="Cada servicio se asignan 3 colaboradores para apoyar en la recepción"
+                    label={t('ofrenda.people.g2.legend')}
+                    description={t('ofrenda.people.g2.legendDesc')}
                     color="blue"
                     count={g2.length}
                     active={g2.filter(m => m.activo).length}
+                    t={t}
                 />
             </div>
 
             {/* ── Grupos ───────────────────────────────────────────── */}
             {([
-                { grupo: 1 as const, lista: g1, color: 'emerald', label: 'Grupo 1 — Roles de Servicio' },
-                { grupo: 2 as const, lista: g2, color: 'blue',    label: 'Grupo 2 — Colaboradores' },
+                { grupo: 1 as const, lista: g1, color: 'emerald', label: t('ofrenda.people.g1.section') },
+                { grupo: 2 as const, lista: g2, color: 'blue',    label: t('ofrenda.people.g2.section') },
             ] as const).map(({ grupo, lista, color, label }) => (
                 <section key={grupo} aria-label={label}>
                     <div className="flex items-center justify-between mb-3">
@@ -187,11 +165,11 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                                 <button
                                     onClick={() => { setSyncModalOpen(true); setAddGrupo(grupo) }}
                                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-xl hover:bg-muted transition-colors touch-manipulation"
-                                    title="Importar personas desde el Directorio de Hermanos del sistema"
+                                    title={t('ofrenda.people.import')}
                                 >
                                     <Users className="w-3.5 h-3.5" />
-                                    <span className="hidden sm:inline">Importar del Directorio</span>
-                                    <span className="sm:hidden">Importar</span>
+                                    <span className="hidden sm:inline">{t('ofrenda.people.import')}</span>
+                                    <span className="sm:hidden">{t('ofrenda.people.importShort')}</span>
                                 </button>
 
                                 <button
@@ -199,7 +177,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                                     className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-${color}-600 hover:bg-${color}-700 text-white rounded-xl transition-colors touch-manipulation`}
                                 >
                                     <Plus className="w-3.5 h-3.5" />
-                                    Añadir
+                                    {t('ofrenda.people.add')}
                                 </button>
                             </div>
                         )}
@@ -208,8 +186,8 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                     {lista.length === 0 && (
                         <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center text-sm text-muted-foreground">
                             {canEdit
-                                ? 'Sin personas todavía. Usa «Añadir» para crear una nueva o «Importar del Directorio» para traer hermanos del sistema.'
-                                : `Sin personas en ${label}.`}
+                                ? t('ofrenda.people.emptyEdit')
+                                : interpolate(t('ofrenda.people.emptyReadonly'), { section: label })}
                         </div>
                     )}
                     {lista.length > 0 && canEdit && (
@@ -232,6 +210,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                                     onDeleteConfirmed={() => handleDeleteConfirmed(m.id, m.nombre)}
                                     onToggleActivo={handleToggleActivo}
                                     isDraggable
+                                    t={t}
                                 />
                             ))}
                         </Reorder.Group>
@@ -251,6 +230,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                                     onDeleteConfirmed={() => undefined}
                                     onToggleActivo={handleToggleActivo}
                                     isDraggable={false}
+                                    t={t}
                                 />
                             ))}
                         </div>
@@ -264,6 +244,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                 grupo={addGrupo}
                 onClose={() => setAddModalOpen(false)}
                 onSubmit={handleAddSubmit}
+                t={t}
             />
 
             <ImportDirectorioModal
@@ -272,6 +253,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                 miembrosExistentes={miembros}
                 onClose={() => setSyncModalOpen(false)}
                 onSync={refresh}
+                t={t}
             />
         </div>
     )
@@ -290,6 +272,7 @@ interface MiembroRowProps {
     onDeleteConfirmed: () => void
     onToggleActivo: (m: OfrMiembro) => void
     isDraggable: boolean
+    t: OfrendaT
 }
 
 function MiembroRow({
@@ -303,6 +286,7 @@ function MiembroRow({
     onDeleteConfirmed,
     onToggleActivo,
     isDraggable,
+    t,
 }: Readonly<MiembroRowProps>) {
     const Row = isDraggable ? Reorder.Item : motion.div
 
@@ -345,7 +329,7 @@ function MiembroRow({
                                 : 'bg-muted text-muted-foreground'
                         }`}
                     >
-                        {miembro.activo ? '● Activo' : '○ Inactivo'}
+                        {miembro.activo ? t('ofrenda.people.active') : t('ofrenda.people.inactive')}
                     </motion.span>
                 )}
             </AnimatePresence>
@@ -356,6 +340,7 @@ function MiembroRow({
                     miembro={miembro}
                     onToggleActivo={onToggleActivo}
                     onDeleteRequest={onDeleteRequest}
+                    t={t}
                 />
             )}
 
@@ -370,19 +355,19 @@ function MiembroRow({
                         className="flex items-center gap-1.5 overflow-hidden shrink-0"
                     >
                         <span className="text-xs font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
-                            ¿Eliminar?
+                            {t('ofrenda.people.deleteConfirm')}
                         </span>
                         <button
                             onClick={onDeleteConfirmed}
                             className="px-2.5 py-1 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors touch-manipulation whitespace-nowrap"
                         >
-                            Sí, eliminar
+                            {t('ofrenda.people.deleteYes')}
                         </button>
                         <button
                             onClick={onDeleteCancel}
                             className="px-2.5 py-1 text-xs font-medium border border-border rounded-lg hover:bg-muted transition-colors touch-manipulation"
                         >
-                            Cancelar
+                            {t('ofrenda.people.cancel')}
                         </button>
                     </motion.div>
                 )}
@@ -397,36 +382,40 @@ function MiembroAcciones({
     miembro,
     onToggleActivo,
     onDeleteRequest,
+    t,
 }: Readonly<{
     miembro: OfrMiembro
     onToggleActivo: (m: OfrMiembro) => void
     onDeleteRequest: () => void
+    t: OfrendaT
 }>) {
     const toggleClass = miembro.activo
         ? 'hover:bg-amber-500/10 text-amber-500 hover:text-amber-600'
         : 'hover:bg-emerald-500/10 text-emerald-500 hover:text-emerald-600'
     const toggleLabel = miembro.activo
-        ? `Desactivar a ${miembro.nombre}`
-        : `Activar a ${miembro.nombre}`
+        ? interpolate(t('ofrenda.people.deactivateAria'), { name: miembro.nombre })
+        : interpolate(t('ofrenda.people.activateAria'), { name: miembro.nombre })
     const toggleTitle = miembro.activo
-        ? 'Desactivar — no recibirá asignaciones'
-        : 'Activar — entrará en la rotación'
+        ? t('ofrenda.people.deactivateTitle')
+        : t('ofrenda.people.activateTitle')
 
     return (
         <div className="flex items-center gap-1 shrink-0">
             <button
+                type="button"
                 onClick={() => onToggleActivo(miembro)}
                 className={`p-1.5 rounded-lg transition-colors touch-manipulation min-w-[36px] min-h-[36px] flex items-center justify-center ${toggleClass}`}
                 aria-label={toggleLabel}
                 title={toggleTitle}
+                data-testid="ofrenda-member-toggle"
             >
                 {miembro.activo ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
             </button>
             <button
                 onClick={onDeleteRequest}
                 className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors touch-manipulation min-w-[36px] min-h-[36px] flex items-center justify-center"
-                aria-label={`Eliminar a ${miembro.nombre}`}
-                title="Eliminar de la lista de labor ofrenda"
+                aria-label={interpolate(t('ofrenda.people.deleteAria'), { name: miembro.nombre })}
+                title={t('ofrenda.people.deleteTitle')}
             >
                 <Trash2 className="w-4 h-4" />
             </button>
@@ -441,11 +430,13 @@ function AddPersonaModal({
     grupo,
     onClose,
     onSubmit,
+    t,
 }: Readonly<{
     isOpen: boolean
     grupo: 1 | 2
     onClose: () => void
     onSubmit: (nombre: string) => Promise<void>
+    t: OfrendaT
 }>) {
     const [nombre, setNombre]     = useState('')
     const [isLoading, setIsLoading] = useState(false)
@@ -464,23 +455,43 @@ function AddPersonaModal({
         setNombre('')
     }
 
+    const sectionLabel = grupo === 1 ? t('ofrenda.people.g1.section') : t('ofrenda.people.g2.section')
+
     return (
-        <Modal
-            isOpen={isOpen}
+        <OfrendaLiquidShell
+            open={isOpen}
             onClose={onClose}
-            title={`Añadir persona al Grupo ${grupo}`}
-            size="sm"
-            keyPrefix="add-miembro"
+            ariaLabel={interpolate(t('ofrenda.people.addModal.title'), { grupo: String(grupo) })}
+            title={interpolate(t('ofrenda.people.addModal.title'), { grupo: String(grupo) })}
+            headline={sectionLabel}
+            subtitle={grupo === 1 ? t('ofrenda.people.addModal.descG1') : t('ofrenda.people.addModal.descG2')}
+            accent={grupo === 1 ? 'emerald' : 'blue'}
+            panelSize="sm"
+            testIdPrefix="ofrenda-add-miembro"
+            closeLabel={t('common.close')}
+            footer={
+                <div className="flex gap-2">
+                    <button type="button" onClick={onClose} className="ofrenda-liquid-btn-secondary">
+                        {t('ofrenda.people.cancel')}
+                    </button>
+                    <button
+                        type="submit"
+                        form="ofrenda-add-miembro-form"
+                        disabled={isLoading || !nombre.trim()}
+                        className="ofrenda-liquid-btn-primary"
+                    >
+                        {isLoading
+                            ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                            : <Plus className="h-3.5 w-3.5" />}
+                        {isLoading ? t('ofrenda.people.addModal.saving') : t('ofrenda.people.add')}
+                    </button>
+                </div>
+            }
         >
-            <p className="text-xs text-muted-foreground mb-4">
-                {grupo === 1
-                    ? 'Esta persona participará en los roles: Realiza labor, Apoyo y Vigilancia.'
-                    : 'Esta persona participará como Colaboradora en la recepción de ofrendas.'}
-            </p>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form id="ofrenda-add-miembro-form" onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label htmlFor="nombre-miembro" className="block text-xs font-semibold mb-1.5 text-muted-foreground uppercase tracking-wide">
-                        Nombre completo
+                    <label htmlFor="nombre-miembro" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#8a7340]">
+                        {t('ofrenda.people.addModal.nameLabel')}
                     </label>
                     <input
                         id="nombre-miembro"
@@ -488,32 +499,13 @@ function AddPersonaModal({
                         type="text"
                         value={nombre}
                         onChange={e => setNombre(e.target.value)}
-                        placeholder="Ej: Pedro García"
+                        placeholder={t('ofrenda.people.addModal.placeholder')}
                         required
-                        className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
+                        className="ofrenda-liquid-search w-full rounded-2xl px-3 py-2.5 text-sm"
                     />
                 </div>
-                <div className="flex gap-2 justify-end">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm font-medium border border-border rounded-xl hover:bg-muted transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={isLoading || !nombre.trim()}
-                        className="px-4 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
-                    >
-                        {isLoading
-                            ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</>
-                            : <><Plus className="w-3.5 h-3.5" /> Añadir</>
-                        }
-                    </button>
-                </div>
             </form>
-        </Modal>
+        </OfrendaLiquidShell>
     )
 }
 
@@ -525,13 +517,16 @@ function ImportDirectorioModal({
     miembrosExistentes,
     onClose,
     onSync,
+    t,
 }: Readonly<{
     isOpen: boolean
     grupo: 1 | 2
     miembrosExistentes: OfrMiembro[]
     onClose: () => void
     onSync: () => Promise<void>
+    t: OfrendaT
 }>) {
+    const feedback = useOfrendaToast()
     const [hermanos, setHermanos] = useState<{ id: string; nombre: string; apellidos: string }[]>([])
     const [selected, setSelected] = useState<Set<string>>(new Set())
     const [search, setSearch]     = useState('')
@@ -581,12 +576,11 @@ function ImportDirectorioModal({
         const result = await syncHermanos(Array.from(selected), grupo)
         setIsLoading(false)
         if (result.error) {
-            toastErr(result.error)
+            feedback.quickError(result.error)
         } else {
-            const plural = result.importados === 1 ? '' : 's'
-            toastOk(
-                `${result.importados} persona${plural} importada${plural}`,
-                `Añadidas al Grupo ${grupo} de Labor Ofrenda. Regenera el plan para incluirlas en la rotación.`
+            feedback.quickSuccess(
+                interpolate(t('ofrenda.toast.memberImported'), { count: String(result.importados) }),
+                interpolate(t('ofrenda.toast.memberImportedDesc'), { grupo: String(grupo) })
             )
             setSelected(new Set())
             onClose()
@@ -594,80 +588,103 @@ function ImportDirectorioModal({
         }
     }
 
-    const grupoLabel = grupo === 1 ? 'Grupo 1 — Roles de Servicio' : 'Grupo 2 — Colaboradores'
+    const grupoLabel = grupo === 1 ? t('ofrenda.people.g1.section') : t('ofrenda.people.g2.section')
     const nuevosDisponibles = filtrados.filter(h => yaEnOfrenda.has(h.id) === false).length
 
     return (
-        <Modal
-            isOpen={isOpen}
+        <OfrendaLiquidShell
+            open={isOpen}
             onClose={onClose}
-            title="Importar del Directorio de Hermanos"
-            size="md"
-            keyPrefix="sync-hermanos"
+            ariaLabel={t('ofrenda.people.importModal.title')}
+            title={t('ofrenda.people.importModal.title')}
+            headline={grupoLabel}
+            subtitle={interpolate(t('ofrenda.people.importModal.desc'), { section: grupoLabel })}
+            accent={grupo === 1 ? 'emerald' : 'blue'}
+            panelSize="md"
+            testIdPrefix="ofrenda-import-miembro"
+            closeLabel={t('common.close')}
+            unstyledBody
+            footer={
+                <div className="flex gap-2">
+                    <button type="button" onClick={onClose} className="ofrenda-liquid-btn-secondary">
+                        {t('ofrenda.people.cancel')}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleImport}
+                        disabled={isLoading || selected.size === 0}
+                        className="ofrenda-liquid-btn-primary"
+                    >
+                        {isLoading
+                            ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                            : <UserPlus className="h-3.5 w-3.5" />}
+                        {isLoading
+                            ? t('ofrenda.people.importModal.importing')
+                            : `${t('ofrenda.people.importModal.importBtn')}${selected.size > 0 ? ` (${selected.size})` : ''}`}
+                    </button>
+                </div>
+            }
         >
-            <div className="space-y-4">
-                {/* Banner informativo */}
-                <div className="flex gap-3 p-3 bg-blue-500/8 border border-blue-500/20 rounded-xl">
-                    <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                    <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                        <p className="font-semibold">¿Qué hace esto?</p>
-                        <p>Importa personas del <strong>Directorio de Hermanos</strong> del sistema directamente a <strong>{grupoLabel}</strong> de la lista de Labor Ofrenda.</p>
-                        <p className="text-blue-600/80 dark:text-blue-400/80">
-                            Los hermanos marcados con ✓ ya están en la lista. Selecciona los que quieras añadir y pulsa «Importar».
-                        </p>
+            <div className="flex max-h-[min(52vh,420px)] flex-col px-4 py-4">
+                <div className="ofrenda-liquid-info mb-4 shrink-0">
+                    <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#b8964a]" />
+                    <div className="space-y-1">
+                        <p className="font-semibold">{t('ofrenda.people.importModal.what')}</p>
+                        <p>{t('ofrenda.people.importModal.hint')}</p>
                     </div>
                 </div>
 
                 {isFetching ? (
-                    /* Skeleton de carga */
                     <div className="space-y-2 animate-pulse">
                         {Array.from({ length: 6 }, (_, i) => i).map(i => (
-                            <div key={`sk-${i}`} className="h-11 bg-muted rounded-xl" />
+                            <div key={`sk-${i}`} className="h-11 rounded-xl bg-slate-100" />
                         ))}
                     </div>
                 ) : (
                     <>
-                        {/* Buscador */}
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <div className="relative mb-3 shrink-0">
+                            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <input
                                 type="search"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                placeholder="Buscar por nombre..."
-                                className="w-full pl-9 pr-3 py-2.5 bg-background border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/40"
-                                aria-label="Buscar hermano para importar"
+                                placeholder={t('ofrenda.people.importModal.search')}
+                                className="ofrenda-liquid-search w-full rounded-2xl py-3 pl-10 pr-3 text-sm"
+                                aria-label={t('ofrenda.people.importModal.search')}
                             />
                         </div>
 
-                        {/* Contador */}
-                        <p className="text-xs text-muted-foreground px-0.5">
-                            {nuevosDisponibles} disponible{nuevosDisponibles === 1 ? '' : 's'} para importar
-                            {selected.size > 0 && <span className="ml-2 text-emerald-600 dark:text-emerald-400 font-semibold">· {selected.size} seleccionado{selected.size === 1 ? '' : 's'}</span>}
+                        <p className="mb-2 shrink-0 px-0.5 text-xs text-slate-600">
+                            {interpolate(t('ofrenda.people.importModal.available'), { count: String(nuevosDisponibles) })}
+                            {selected.size > 0 && (
+                                <span className="ml-2 font-semibold text-[#1f2e85]">
+                                    {interpolate(t('ofrenda.people.importModal.selected'), { count: String(selected.size) })}
+                                </span>
+                            )}
                         </p>
 
-                        {/* Lista */}
-                        <div className="space-y-1 max-h-64 overflow-y-auto pr-0.5 rounded-xl">
+                        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-0.5">
                             {filtrados.length === 0 ? (
-                                <p className="text-center py-8 text-sm text-muted-foreground">Sin resultados para «{search}»</p>
+                                <p className="py-8 text-center text-sm text-slate-500">
+                                    {interpolate(t('ofrenda.people.importModal.noResults'), { query: search })}
+                                </p>
                             ) : filtrados.map(h => {
                                 const nombreCompleto = [h.nombre, h.apellidos].filter(Boolean).join(' ')
                                 const yaEsta = yaEnOfrenda.has(h.id)
-                                const isSel  = selected.has(h.id)
+                                const isSel = selected.has(h.id)
+                                const rowClass = yaEsta
+                                    ? 'ofrenda-liquid-member opacity-60 cursor-not-allowed'
+                                    : isSel
+                                      ? 'ofrenda-liquid-member ofrenda-liquid-member--selected font-bold'
+                                      : 'ofrenda-liquid-member'
                                 return (
                                     <label
                                         key={h.id}
-                                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${getLabelClass(yaEsta, isSel)}`}
+                                        className={`${rowClass} flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm`}
                                     >
-                                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${getCheckboxClass(yaEsta, isSel)}`}>
+                                        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${getCheckboxClass(yaEsta, isSel)}`}>
                                             {(yaEsta || isSel) && (
-                                                <motion.div
-                                                    initial={{ scale: 0 }}
-                                                    animate={{ scale: 1 }}
-                                                    transition={{ type: 'spring', stiffness: 400 }}
-                                                >
-                                                    <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                                                </motion.div>
+                                                <CheckCircle2 className="h-3.5 w-3.5 text-white" />
                                             )}
                                         </div>
                                         <input
@@ -678,40 +695,20 @@ function ImportDirectorioModal({
                                             className="sr-only"
                                             aria-label={`Seleccionar ${nombreCompleto}`}
                                         />
-                                        <span className="flex-1 text-sm font-medium">{nombreCompleto}</span>
+                                        <span className="flex-1 font-medium">{nombreCompleto}</span>
                                         {yaEsta && (
-                                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                                                Ya en lista
+                                            <span className="shrink-0 text-[10px] font-bold text-[#8a7340]">
+                                                {t('ofrenda.people.importModal.already')}
                                             </span>
                                         )}
                                     </label>
                                 )
                             })}
                         </div>
-
-                        {/* Footer con acciones */}
-                        <div className="flex items-center justify-between pt-3 border-t border-border">
-                            <button
-                                onClick={onClose}
-                                className="px-3 py-2 text-sm border border-border rounded-xl hover:bg-muted transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleImport}
-                                disabled={isLoading || selected.size === 0}
-                                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl disabled:opacity-50 transition-colors"
-                            >
-                                {isLoading
-                                    ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Importando...</>
-                                    : <><UserPlus className="w-3.5 h-3.5" /> Importar {selected.size > 0 ? `(${selected.size})` : ''}</>
-                                }
-                            </button>
-                        </div>
                     </>
                 )}
             </div>
-        </Modal>
+        </OfrendaLiquidShell>
     )
 }
 
@@ -724,6 +721,7 @@ function LegendCard({
     color,
     count,
     active,
+    t,
 }: Readonly<{
     grupo: 1 | 2
     label: string
@@ -731,6 +729,7 @@ function LegendCard({
     color: string
     count: number
     active: number
+    t: OfrendaT
 }>) {
     const inactive = count - active
     return (
@@ -743,9 +742,17 @@ function LegendCard({
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
             <div className="flex gap-3 text-xs font-semibold pt-1">
-                <span className={`text-${color}-600 dark:text-${color}-400`}>{active} activos</span>
-                {inactive > 0 && <span className="text-muted-foreground">{inactive} inactivos</span>}
-                <span className="text-muted-foreground/60 ml-auto">{count} total</span>
+                <span className={`text-${color}-600 dark:text-${color}-400`}>
+                    {interpolate(t('ofrenda.people.legend.active'), { count: String(active) })}
+                </span>
+                {inactive > 0 && (
+                    <span className="text-muted-foreground">
+                        {interpolate(t('ofrenda.people.legend.inactive'), { count: String(inactive) })}
+                    </span>
+                )}
+                <span className="text-muted-foreground/60 ml-auto">
+                    {interpolate(t('ofrenda.people.legend.total'), { count: String(count) })}
+                </span>
             </div>
         </div>
     )
