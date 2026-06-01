@@ -114,6 +114,62 @@ describe('SacosConfigPanel', () => {
         expect(onUpdate).toHaveBeenCalledWith(6, 8, 4, 20)
     })
 
+    it('permite borrar y escribir otro valor sin forzar el mínimo al instante', () => {
+        renderPanel()
+        openPanel()
+
+        const input = screen
+            .getByTestId('ofrenda-sacos-jueves')
+            .querySelector('input') as HTMLInputElement
+
+        expect(input).toHaveValue('4')
+        fireEvent.change(input, { target: { value: '' } })
+        expect(input).toHaveValue('')
+        fireEvent.change(input, { target: { value: '6' } })
+        expect(input).toHaveValue('6')
+        fireEvent.blur(input)
+        expect(input).toHaveValue('6')
+    })
+
+    it('permite escribir 12 en dos pasos (domingo mañana)', () => {
+        renderPanel()
+        openPanel()
+
+        const input = screen
+            .getByTestId('ofrenda-sacos-domingo-manana')
+            .querySelector('input') as HTMLInputElement
+
+        fireEvent.change(input, { target: { value: '' } })
+        fireEvent.change(input, { target: { value: '1' } })
+        fireEvent.change(input, { target: { value: '12' } })
+        fireEvent.blur(input)
+        expect(input).toHaveValue('12')
+    })
+
+    it('aplicar sin blur toma el borrador del input (jueves 7)', () => {
+        const { onUpdate } = renderPanel()
+        openPanel()
+
+        const input = screen
+            .getByTestId('ofrenda-sacos-jueves')
+            .querySelector('input') as HTMLInputElement
+        fireEvent.change(input, { target: { value: '7' } })
+        fireEvent.click(screen.getByTestId('ofrenda-sacos-apply'))
+
+        expect(onUpdate).toHaveBeenCalledWith(7, 8, 4, 20)
+    })
+
+    it('inputs de texto con teclado numérico (no type=number bloqueado)', () => {
+        renderPanel()
+        openPanel()
+
+        const input = screen
+            .getByTestId('ofrenda-sacos-domingo-tarde')
+            .querySelector('input') as HTMLInputElement
+        expect(input.type).toBe('text')
+        expect(input).toHaveAttribute('inputmode', 'numeric')
+    })
+
     it('muestra campo máximo del ciclo de secuencia', () => {
         renderPanel()
         openPanel()

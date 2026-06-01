@@ -18,6 +18,10 @@ import {
     propagateSecuenciasFromIndex,
     type SecuenciaApplyScope,
 } from '@/app/dashboard/ofrenda/secuenciaPropagation'
+function clampPunteroSaco(n: number, secuenciaMax: number): number {
+    const max = Math.max(1, Math.min(99, secuenciaMax))
+    return Math.max(1, Math.min(max, n))
+}
 
 export type { SecuenciaApplyScope } from '@/app/dashboard/ofrenda/secuenciaPropagation'
 
@@ -377,17 +381,19 @@ export async function generarORegenerarPlan(
     const overridesMap = await loadOverrides(supabase, planExistente, regenerarGrupo)
     const planCalc = generarPlan(anio, mes, punteroInicio, miembros, overridesMap, regenerarGrupo ?? null, sacosConfig)
 
+    const secuenciaMax = sacosConfig.secuenciaMax ?? 20
+
     const { data: plan, error: planErr } = await supabase
         .from('ofrenda_planes')
         .upsert({
             ...(planExistente?.id ? { id: planExistente.id } : {}),
             anio, mes,
-            secuencia_puntero:     punteroInicio,
-            secuencia_puntero_fin: planCalc.punteroFin,
+            secuencia_puntero:     clampPunteroSaco(punteroInicio, secuenciaMax),
+            secuencia_puntero_fin: clampPunteroSaco(planCalc.punteroFin, secuenciaMax),
             sacos_jueves:          sacosConfig.jueves,
             sacos_domingo:         sacosConfig.domingo,
             sacos_domingo_tarde:   sacosConfig.domingoTarde,
-            secuencia_maximo:      sacosConfig.secuenciaMax ?? 20,
+            secuencia_maximo:      secuenciaMax,
             created_by: userId,
         }, { onConflict: 'anio,mes' })
         .select().single()
