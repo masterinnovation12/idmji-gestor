@@ -15,6 +15,7 @@ import type { TranslationKey } from '@/lib/i18n/types'
 import { getTituloMes, interpolate } from './ofrendaLocale'
 import { SacosConfigPanel } from './SacosConfigPanel'
 import { PlanMonthNavigator } from './PlanMonthNavigator'
+import { formatOfrendaActionError, isOfrendaDbConstraintError } from './ofrendaDbErrors'
 
 type Tab = 'plan' | 'personas' | 'exportar'
 
@@ -258,7 +259,13 @@ function OfrendaPageClientInner({
                                             secuenciaMaximo,
                                         )
                                         if (r.error) {
-                                            feedback.planError(t('ofrenda.toast.sacosInvalid'), r.error)
+                                            const raw = r.error
+                                            feedback.planError(
+                                                isOfrendaDbConstraintError(raw)
+                                                    ? t('ofrenda.toast.sacosDbError')
+                                                    : t('ofrenda.toast.sacosInvalid'),
+                                                formatOfrendaActionError(raw),
+                                            )
                                             setIsLoading(false)
                                             return
                                         }

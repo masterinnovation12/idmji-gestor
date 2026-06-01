@@ -1,6 +1,7 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState, type Ref } from 'react'
+import { commitSacosDraft, isSacosDraftAllowed } from './sacosNumericInput'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Settings2, ChevronDown, RefreshCw } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -33,17 +34,45 @@ export function SacosConfigPanel({
     const [d, setD] = useState(plan.sacos_domingo)
     const [dt, setDt] = useState(plan.sacos_domingo_tarde)
     const [secMax, setSecMax] = useState(plan.secuencia_maximo ?? 20)
+    const jInputRef = useRef<HTMLInputElement>(null)
+    const dInputRef = useRef<HTMLInputElement>(null)
+    const dtInputRef = useRef<HTMLInputElement>(null)
+    const secMaxInputRef = useRef<HTMLInputElement>(null)
+
+    useEffect(() => {
+        if (!open) return
+        setJ(plan.sacos_jueves)
+        setD(plan.sacos_domingo)
+        setDt(plan.sacos_domingo_tarde)
+        setSecMax(plan.secuencia_maximo ?? 20)
+    }, [
+        open,
+        plan.sacos_jueves,
+        plan.sacos_domingo,
+        plan.sacos_domingo_tarde,
+        plan.secuencia_maximo,
+    ])
 
     const handleApply = async () => {
+        const jVal = commitSacosDraft(jInputRef.current?.value ?? String(j), 1, 20)
+        const dVal = commitSacosDraft(dInputRef.current?.value ?? String(d), 1, 20)
+        const dtVal = commitSacosDraft(dtInputRef.current?.value ?? String(dt), 1, 20)
+        const secVal = commitSacosDraft(secMaxInputRef.current?.value ?? String(secMax), 1, 99)
+
+        setJ(jVal)
+        setD(dVal)
+        setDt(dtVal)
+        setSecMax(secVal)
+
         if (
-            j < 1 ||
-            j > 20 ||
-            d < 1 ||
-            d > 20 ||
-            dt < 1 ||
-            dt > 20 ||
-            secMax < 1 ||
-            secMax > 99
+            jVal < 1 ||
+            jVal > 20 ||
+            dVal < 1 ||
+            dVal > 20 ||
+            dtVal < 1 ||
+            dtVal > 20 ||
+            secVal < 1 ||
+            secVal > 99
         ) {
             feedback.quickWarning(
                 t('ofrenda.toast.sacosInvalid'),
@@ -51,7 +80,7 @@ export function SacosConfigPanel({
             )
             return
         }
-        await onUpdate(j, d, dt, secMax)
+        await onUpdate(jVal, dVal, dtVal, secVal)
         setOpen(false)
     }
 
@@ -98,40 +127,48 @@ export function SacosConfigPanel({
                             </p>
                             <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-3 min-[480px]:gap-4">
                                 <SacosInput
+                                    ref={jInputRef}
                                     label={t('ofrenda.sacos.jueves')}
                                     color="emerald"
                                     value={j}
                                     min={1}
                                     max={20}
+                                    maxDigits={2}
                                     onChange={setJ}
                                     testId="ofrenda-sacos-jueves"
                                 />
                                 <SacosInput
+                                    ref={dInputRef}
                                     label={t('ofrenda.sacos.domingo')}
                                     color="blue"
                                     value={d}
                                     min={1}
                                     max={20}
+                                    maxDigits={2}
                                     onChange={setD}
                                     testId="ofrenda-sacos-domingo-manana"
                                 />
                                 <SacosInput
+                                    ref={dtInputRef}
                                     label={t('ofrenda.sacos.domingoTarde')}
                                     color="violet"
                                     value={dt}
                                     min={1}
                                     max={20}
+                                    maxDigits={2}
                                     onChange={setDt}
                                     testId="ofrenda-sacos-domingo-tarde"
                                 />
                             </div>
                             <div className="rounded-xl border border-[rgba(184,150,74,0.35)] bg-[#1f2e85]/[0.04] p-3">
                                 <SacosInput
+                                    ref={secMaxInputRef}
                                     label={t('ofrenda.sacos.secuenciaMax')}
                                     color="blue"
                                     value={secMax}
                                     min={1}
                                     max={99}
+                                    maxDigits={2}
                                     onChange={setSecMax}
                                     testId="ofrenda-sacos-secuencia-max"
                                 />
@@ -177,23 +214,32 @@ export function SacosConfigPanel({
 }
 
 function SacosInput({
+    ref: inputRef,
     label,
     color,
     value,
     min,
     max,
+    maxDigits,
     onChange,
     testId,
 }: Readonly<{
+    ref?: Ref<HTMLInputElement>
     label: string
     color: 'emerald' | 'blue' | 'violet'
     value: number
     min: number
     max: number
+    maxDigits: number
     onChange: (v: number) => void
     testId: string
 }>) {
     const inputId = useId()
+    const [draft, setDraft] = useState(() => String(value))
+
+    useEffect(() => {
+        setDraft(String(value))
+    }, [value])
 
     const styles = {
         emerald: {
@@ -216,10 +262,10 @@ function SacosInput({
         },
     }[color]
 
-    const parseValue = (raw: string) => {
-        const n = Number.parseInt(raw, 10)
-        if (Number.isNaN(n)) return min
-        return Math.max(min, Math.min(max, n))
+    const commitDraft = () => {
+        const next = commitSacosDraft(draft, min, max)
+        setDraft(String(next))
+        onChange(next)
     }
 
     return (
@@ -234,16 +280,31 @@ function SacosInput({
                 {label}
             </span>
             <input
+                ref={inputRef}
                 id={inputId}
-                type="number"
+                type="text"
                 inputMode="numeric"
-                pattern="[0-9]*"
-                min={min}
-                max={max}
-                value={value}
-                onChange={(e) => onChange(parseValue(e.target.value))}
+                autoComplete="off"
+                enterKeyHint="done"
+                value={draft}
+                onChange={(e) => {
+                    const raw = e.target.value
+                    if (!isSacosDraftAllowed(raw, maxDigits)) return
+                    setDraft(raw)
+                }}
+                onBlur={commitDraft}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault()
+                        commitDraft()
+                        ;(e.target as HTMLInputElement).blur()
+                    }
+                }}
                 className={`w-full rounded-lg border border-border/60 bg-background px-2 py-2.5 text-center text-lg font-black font-mono text-foreground outline-none focus:ring-2 min-h-[48px] ${SACOS_INPUT_SPINNER_HIDE} ${styles.ring}`}
                 aria-label={label}
+                aria-valuemin={min}
+                aria-valuemax={max}
+                aria-valuenow={value}
             />
         </label>
     )
