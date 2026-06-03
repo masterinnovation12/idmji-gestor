@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useCallback, useEffect, useSyncExternalStore } from 'react'
+import { useRef, useState, useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -13,8 +13,21 @@ import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useOfrendaToast } from './ofrendaFeedback'
 import { ExportLayout } from './ExportLayout'
 import { ExportPreviewViewer } from './ExportPreviewViewer'
-import { captureExportLayoutToPng, EXPORT_LAYOUT_WIDTH } from './exportCapture'
+import { captureExportLayoutToPng } from './exportCapture'
+import { ExportScopeControls, type ExportScope } from './ExportScopeControls'
+import {
+    exportPdfColumnLayout,
+    exportPdfHeaderHeightMm,
+    exportLayoutWidthPx,
+} from './exportLayoutMetrics'
+import {
+    buildWeekFileSlug,
+    formatWeekRangeLabel,
+    groupServiciosByWeek,
+} from './exportWeekUtils'
 import { IDMJI_BRAND, SERVICE_EXPORT_COLORS, EXPORT_CELL } from './exportBrand'
+import { buildExportLegend, formatExportPeriodLabel } from './exportHeaderShared'
+import { drawExportPdfHeader } from './drawExportPdfHeader'
 import { getDateFnsLocale, getExportLabels, getMonthLabel, interpolate } from './ofrendaLocale'
 import type { PlanCompleto, OfrMiembro, OfrServicio } from './actions'
 
@@ -53,8 +66,10 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
     const feedback = useOfrendaToast()
     const labels = getExportLabels(language)
     const mesSlug = getMonthLabel(language, mes).toLowerCase().replace(/\s+/g, '-')
-    const fileBase = `labor-ofrenda-${mesSlug}-${anio}`
+    const mesFileBase = `labor-ofrenda-${mesSlug}-${anio}`
     const dateLocale = getDateFnsLocale(language)
+    const [exportScope, setExportScope] = useState<ExportScope>('month')
+    const [weekIndex, setWeekIndex] = useState(0)
     const stepLabels: Record<ExportStep, string> = {
         idle: '',
         rendering: t('ofrenda.export.step.rendering'),
@@ -71,6 +86,47 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
     const [previewUrl, setPreviewUrl]   = useState<string | null>(null)
     const [previewLoading, setPreviewLoading] = useState(false)
     const [canShare, setCanShare]       = useState(false)
+
+    const weeks = useMemo(
+        () => (plan ? groupServiciosByWeek(plan.servicios) : []),
+        [plan],
+    )
+
+    const weekRangeLabels = useMemo(
+        () => weeks.map(w => formatWeekRangeLabel(w, dateLocale)),
+        [weeks, dateLocale],
+    )
+
+    useEffect(() => {
+        if (weekIndex >= weeks.length) setWeekIndex(0)
+    }, [weekIndex, weeks.length])
+
+    const activeServicios = useMemo((): OfrServicio[] => {
+        if (!plan) return []
+        if (exportScope === 'month') return plan.servicios
+        return weeks[weekIndex] ?? []
+    }, [plan, exportScope, weeks, weekIndex])
+
+    const layoutWidth = useMemo(
+        () => exportLayoutWidthPx(activeServicios.length),
+        [activeServicios.length],
+    )
+
+    const periodSubtitle = useMemo(() => {
+        if (exportScope !== 'week' || weeks.length === 0) return undefined
+        const range = weekRangeLabels[weekIndex]
+        const weekOf = interpolate(t('ofrenda.week.of'), {
+            current: weekIndex + 1,
+            total: weeks.length,
+        })
+        return range ? `${weekOf} · ${range}` : weekOf
+    }, [exportScope, weekIndex, weeks.length, weekRangeLabels, t])
+
+    const fileBase = useMemo(() => {
+        if (exportScope === 'month') return mesFileBase
+        const slug = buildWeekFileSlug(weekIndex, weekRangeLabels[weekIndex] ?? '')
+        return `${mesFileBase}-${slug}`
+    }, [exportScope, mesFileBase, weekIndex, weekRangeLabels])
 
     // Detectar Web Share API con soporte de archivos
     useEffect(() => {
@@ -92,7 +148,10 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             await new Promise(r => setTimeout(r, 120))
             if (!layoutRef.current || cancelled) return
             try {
-                const dataUrl = await captureExportLayoutToPng(layoutRef.current, { pixelRatio: 1.5 })
+                const dataUrl = await captureExportLayoutToPng(layoutRef.current, {
+                    pixelRatio: 1.5,
+                    layoutWidth,
+                })
                 if (!cancelled) setPreviewUrl(dataUrl)
             } catch (e) {
                 console.error('Preview capture error:', e)
@@ -101,7 +160,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             }
         })()
         return () => { cancelled = true }
-    }, [previewOpen, plan, mes, anio, language])
+    }, [previewOpen, plan, mes, anio, language, exportScope, weekIndex, activeServicios, layoutWidth, periodSubtitle])
 
     // ── Helper: capturar el layout oculto como PNG data URL ──────────────────
     const captureLayoutPNG = useCallback(async (): Promise<string | null> => {
@@ -112,8 +171,11 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
         await new Promise(r => setTimeout(r, 120))
 
         setStep('encoding')
-        return captureExportLayoutToPng(layoutRef.current, { pixelRatio: 2.5 })
-    }, [])
+        return captureExportLayoutToPng(layoutRef.current, {
+            pixelRatio: exportScope === 'week' ? 2 : 2.5,
+            layoutWidth,
+        })
+    }, [exportScope, layoutWidth])
 
     // ── Exportar PNG (descarga directa) ──────────────────────────────────────
     const handleExportPNG = useCallback(async () => {
@@ -143,21 +205,23 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
 
     // ── Exportar PDF VECTORIAL (jsPDF Puro — Nítido, < 100KB, sin popups) ───
     const handleExportPDF = useCallback(async () => {
-        if (!plan) return
+        if (!plan || activeServicios.length === 0) return
         setExportType('pdf')
         setStep('rendering')
         try {
-            // Importar jsPDF dinámicamente
             const { jsPDF } = await import('jspdf')
-            
-            // Forzar pequeña pausa para animación fluida de carga
+
             await new Promise(r => setTimeout(r, 150))
             setStep('encoding')
 
-            // A3 horizontal da el ancho necesario para meses de 5 semanas sin comprimir nombres.
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' })
-            const pageW = 420
-            const marginX = 16
+            const isWeek = exportScope === 'week'
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: isWeek ? 'a4' : 'a3',
+            })
+            const pageW = isWeek ? 297 : 420
+            const marginX = isWeek ? 12 : 16
 
             // Cargar Logo del sistema
             let base64Logo: string | null = null
@@ -180,64 +244,28 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 console.error('Error loading logo in PDF generator:', e)
             }
 
-            // 1. Encabezado institucional (idmji.org: navy + dorado)
-            const goldRgb = hexToRgb(IDMJI_BRAND.gold)
-            const navyRgb = hexToRgb(IDMJI_BRAND.navy)
-            doc.setFillColor(goldRgb.r, goldRgb.g, goldRgb.b)
-            doc.rect(0, 0, pageW, 2.2, 'F')
-            doc.setFillColor(navyRgb.r, navyRgb.g, navyRgb.b)
-            doc.rect(0, 2.2, pageW, 36, 'F')
-
-            if (base64Logo) {
-                doc.setFillColor(255, 255, 255)
-                doc.roundedRect(marginX, 9, 23, 23, 2, 2, 'F')
-                doc.addImage(base64Logo, 'JPEG', marginX + 1, 10, 21, 21)
-            }
-
-            doc.setFont('helvetica', 'bold')
-            doc.setFontSize(8)
-            doc.setTextColor(goldRgb.r, goldRgb.g, goldRgb.b)
-            doc.text(labels.churchName.toUpperCase(), pageW / 2, 14, { align: 'center' })
-
-            doc.setFont('helvetica', 'bold')
-            doc.setFontSize(21)
-            doc.setTextColor(255, 255, 255)
-            doc.text(`${labels.titleDoc} — ${tituloMes}`, pageW / 2, 24, { align: 'center' })
-
-            doc.setFont('helvetica', 'normal')
-            doc.setFontSize(7)
-            doc.setTextColor(220, 225, 235)
-            doc.text(labels.officialSite, pageW - marginX, 12, { align: 'right' })
-
-            const legendItems = [
-                { color: SERVICE_EXPORT_COLORS.jueves.headerBg, label: labels.legendJueves },
-                { color: SERVICE_EXPORT_COLORS.domingo.headerBg, label: labels.legendDomManana },
-                { color: SERVICE_EXPORT_COLORS.domingo_tarde.headerBg, label: labels.legendDomTarde },
-            ]
-
-            let legendX = (pageW / 2) - 48
-            const legendY = 33
-            doc.setFont('helvetica', 'bold')
-            doc.setFontSize(7)
-            for (const item of legendItems) {
-                const rgb = hexToRgb(item.color)
-                doc.setFillColor(rgb.r, rgb.g, rgb.b)
-                doc.rect(legendX, legendY - 2.2, 2.5, 2.5, 'F')
-                doc.setTextColor(230, 235, 245)
-                doc.text(item.label, legendX + 4, legendY, { align: 'left' })
-                legendX += 30
-            }
-
-            // 2. Dibujar la Tabla Vectorial
-            const { servicios, asignaciones } = plan
+            const servicios = activeServicios
+            const { asignaciones } = plan
             const numCols = servicios.length
-            const firstColW = 54
-            const printableW = pageW - (marginX * 2)
-            const remainingW = printableW - firstColW
-            const colW = remainingW / numCols
+            const { firstColW, colW, tableX } = exportPdfColumnLayout(
+                pageW,
+                marginX,
+                numCols,
+            )
 
-            // Coordenadas Y
-            const startY = 44
+            const headerBlockH = exportPdfHeaderHeightMm(!!periodSubtitle)
+            const periodLabel = formatExportPeriodLabel(tituloMes, anio)
+            const startY = drawExportPdfHeader(doc, {
+                pageW,
+                headerBlockH,
+                base64Logo,
+                churchName: labels.churchName,
+                titleDoc: labels.titleDoc,
+                periodLabel,
+                periodSubtitle,
+                legend: buildExportLegend(labels),
+                isWeek,
+            })
             const headerH = 16
             const seqH = 9
             const rowH = 10.5
@@ -389,19 +417,19 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             }
 
             // Fila 1: Header
-            drawCell(labels.rolFecha, marginX, startY, firstColW, headerH, IDMJI_BRAND.tableMeta, '#ffffff', 'bold', 9, 'left')
+            drawCell(labels.rolFecha, tableX, startY, firstColW, headerH, IDMJI_BRAND.tableMeta, '#ffffff', 'bold', 9, 'left')
             servicios.forEach((srv, idx) => {
                 const isWeekStart = idx % 3 === 0 && idx > 0
-                drawHeaderCell(srv, marginX + firstColW + idx * colW, startY, colW, headerH, isWeekStart)
+                drawHeaderCell(srv, tableX + firstColW + idx * colW, startY, colW, headerH, isWeekStart)
             })
 
             // Fila 2: Secuencias de sacos
             let nextY = startY + headerH
-            drawCell(labels.secuencia, marginX, nextY, firstColW, seqH, IDMJI_BRAND.goldPale, IDMJI_BRAND.navy, 'bold', 8.5, 'left')
+            drawCell(labels.secuencia, tableX, nextY, firstColW, seqH, IDMJI_BRAND.goldPale, IDMJI_BRAND.navy, 'bold', 8.5, 'left')
             servicios.forEach((srv, idx) => {
                 const isWeekStart = idx % 3 === 0 && idx > 0
                 const svc = SERVICE_EXPORT_COLORS[srv.dia_tipo]
-                drawCell(srv.secuencia_texto, marginX + firstColW + idx * colW, nextY, colW, seqH, svc.seqBg, svc.seqText, 'bold', 9.5, 'center', isWeekStart)
+                drawCell(srv.secuencia_texto, tableX + firstColW + idx * colW, nextY, colW, seqH, svc.seqBg, svc.seqText, 'bold', 9.5, 'center', isWeekStart)
             })
 
             // Filas de Grupo 1 (Roles)
@@ -416,20 +444,21 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             ROLES_G1.forEach((rol, rIdx) => {
                 const rowY = nextY + rIdx * rowH
                 const bgLabel = rIdx % 2 === 0 ? rol.bgEven : rol.bgOdd
-                drawCell(rol.label, marginX, rowY, firstColW, rowH, bgLabel, rol.labelTxt, 'bold', 8.5, 'left')
+                drawCell(rol.label, tableX, rowY, firstColW, rowH, bgLabel, rol.labelTxt, 'bold', 8.5, 'left')
 
                 servicios.forEach((srv, idx) => {
                     const isWeekStart = idx % 3 === 0 && idx > 0
                     const asig = asignaciones.find(a => a.servicio_id === srv.id && a.rol === rol.key)
                     const nombre = asig?.miembro?.nombre ?? '—'
                     const cellBg = rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd
-                    drawCell(nombre, marginX + firstColW + idx * colW, rowY, colW, rowH, cellBg, IDMJI_BRAND.text, 'bold', 7.2, 'center', isWeekStart)
+                    drawCell(nombre, tableX + firstColW + idx * colW, rowY, colW, rowH, cellBg, IDMJI_BRAND.text, 'bold', 7.2, 'center', isWeekStart)
                 })
             })
 
             // Fila Divisor
             nextY += ROLES_G1.length * rowH
-            drawCell('', marginX, nextY, printableW, dividerH, EXPORT_CELL.divider, EXPORT_CELL.divider)
+            const tableW = firstColW + numCols * colW
+            drawCell('', tableX, nextY, tableW, dividerH, EXPORT_CELL.divider, EXPORT_CELL.divider)
 
             // Filas de Grupo 2 (Colaboradores)
             const g2 = SERVICE_EXPORT_COLORS.domingo
@@ -443,23 +472,23 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             ROLES_G2.forEach((rol, rIdx) => {
                 const rowY = nextY + rIdx * rowH
                 const bgLabel = rIdx % 2 === 0 ? rol.bgEven : rol.bgOdd
-                drawCell(rol.label, marginX, rowY, firstColW, rowH, bgLabel, rol.labelTxt, 'bold', 8.5, 'left')
+                drawCell(rol.label, tableX, rowY, firstColW, rowH, bgLabel, rol.labelTxt, 'bold', 8.5, 'left')
 
                 servicios.forEach((srv, idx) => {
                     const isWeekStart = idx % 3 === 0 && idx > 0
                     const asig = asignaciones.find(a => a.servicio_id === srv.id && a.rol === rol.key)
                     const nombre = asig?.miembro?.nombre ?? '—'
                     const cellBg = rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd
-                    drawCell(nombre, marginX + firstColW + idx * colW, rowY, colW, rowH, cellBg, IDMJI_BRAND.text, 'bold', 7.2, 'center', isWeekStart)
+                    drawCell(nombre, tableX + firstColW + idx * colW, rowY, colW, rowH, cellBg, IDMJI_BRAND.text, 'bold', 7.2, 'center', isWeekStart)
                 })
             })
 
             // Fila de Semana ISO
             nextY += ROLES_G2.length * rowH
-            drawCell(labels.semanaIso, marginX, nextY, firstColW, footerH, IDMJI_BRAND.tableMeta, '#b8c0cc', 'bold', 7.5, 'left')
+            drawCell(labels.semanaIso, tableX, nextY, firstColW, footerH, IDMJI_BRAND.tableMeta, '#b8c0cc', 'bold', 7.5, 'left')
             servicios.forEach((srv, idx) => {
                 const isWeekStart = idx % 3 === 0 && idx > 0
-                drawCell(`S${srv.semana_iso}`, marginX + firstColW + idx * colW, nextY, colW, footerH, IDMJI_BRAND.navyDark, '#e2e8f0', 'bold', 8, 'center', isWeekStart)
+                drawCell(`S${srv.semana_iso}`, tableX + firstColW + idx * colW, nextY, colW, footerH, IDMJI_BRAND.navyDark, '#e2e8f0', 'bold', 8, 'center', isWeekStart)
             })
 
             // 3. Pie de página de metadatos
@@ -474,13 +503,9 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             doc.setTextColor(122, 122, 122)
             const localeTag = language === 'ca-ES' ? 'ca-ES' : 'es-ES'
             const creationDate = new Date().toLocaleDateString(localeTag, { day: '2-digit', month: 'long', year: 'numeric' })
-            doc.setFont('helvetica', 'bold')
-            doc.setTextColor(goldLine.r, goldLine.g, goldLine.b)
-            doc.text(`${labels.officialSite} · `, marginX, footerY, { align: 'left' })
-            const siteW = doc.getTextWidth(`${labels.officialSite} · `)
             doc.setFont('helvetica', 'normal')
             doc.setTextColor(122, 122, 122)
-            doc.text(`${labels.footer} · ${creationDate}`, marginX + siteW, footerY, { align: 'left' })
+            doc.text(`${labels.footer} · ${creationDate}`, tableX, footerY, { align: 'left' })
 
             const { sacos_jueves: sJ, sacos_domingo: sD, sacos_domingo_tarde: sDT } = plan.plan
             const sSemana = (sJ ?? 4) + (sD ?? 8) + (sDT ?? 4)
@@ -497,7 +522,20 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             feedback.planError(t('ofrenda.toast.exportError'), t('ofrenda.toast.exportErrorDesc'))
             setStep('idle'); setExportType(null)
         }
-    }, [plan, tituloMes, fileBase, labels, dateLocale, language, t, feedback])
+    }, [
+        plan,
+        activeServicios,
+        exportScope,
+        periodSubtitle,
+        tituloMes,
+        anio,
+        fileBase,
+        labels,
+        dateLocale,
+        language,
+        t,
+        feedback,
+    ])
 
     // ── Compartir vía Web Share API (nativo móvil → WhatsApp, etc.) ──────────
     const handleShare = useCallback(async () => {
@@ -571,6 +609,23 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 </p>
             </div>
 
+            <ExportScopeControls
+                scope={exportScope}
+                onScopeChange={setExportScope}
+                weekIndex={weekIndex}
+                weeks={weeks}
+                weekRangeLabels={weekRangeLabels}
+                onWeekChange={setWeekIndex}
+                disabled={isExporting}
+                labels={{
+                    scopeMonth: t('ofrenda.export.scope.month'),
+                    scopeWeek: t('ofrenda.export.scope.week'),
+                    weekPicker: t('ofrenda.export.scope.label'),
+                    weekChip: (n, total) =>
+                        interpolate(t('ofrenda.export.scope.weekChip'), { n, total }),
+                }}
+            />
+
             {/* ── Lista de opciones de exportación (Premium y Justas) ────── */}
             <div className="space-y-3">
                 {/* PNG */}
@@ -596,7 +651,11 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                     badge={t('ofrenda.export.badge.vector')}
                     badgeColor="red"
                     title={t('ofrenda.export.pdf.title')}
-                    description={t('ofrenda.export.pdf.desc')}
+                    description={
+                        exportScope === 'week'
+                            ? t('ofrenda.export.pdf.descWeek')
+                            : t('ofrenda.export.pdf.desc')
+                    }
                     actionLabel={t('ofrenda.export.pdf.btn')}
                     isActive={exportType === 'pdf'}
                     isDisabled={isExporting && exportType !== 'pdf'}
@@ -693,11 +752,11 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                         position: 'fixed',
                         left: '-10000px',
                         top: 0,
-                        width: EXPORT_LAYOUT_WIDTH,
-                        minWidth: EXPORT_LAYOUT_WIDTH,
+                        width: layoutWidth,
+                        minWidth: layoutWidth,
                         maxWidth: 'none',
                         pointerEvents: 'none',
-                        overflow: 'hidden',
+                        overflow: 'visible',
                     }}
                 >
                     <ExportLayout
@@ -707,6 +766,9 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                         mesTitulo={getMonthLabel(language, mes)}
                         anio={anio}
                         labels={labels}
+                        servicios={activeServicios}
+                        periodSubtitle={periodSubtitle}
+                        exportScope={exportScope}
                     />
                 </div>,
                 document.body

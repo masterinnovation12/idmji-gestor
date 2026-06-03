@@ -4,6 +4,9 @@ import { forwardRef } from 'react'
 import type { PlanCompleto, OfrMiembro, OfrServicio } from './actions'
 import type { OfrendaExportLabels } from './ofrendaLocale'
 import { IDMJI_BRAND, SERVICE_EXPORT_COLORS, EXPORT_CELL } from './exportBrand'
+import { exportLayoutWidthPx } from './exportLayoutMetrics'
+import { ExportHeaderBlock } from './ExportHeaderBlock'
+import { formatExportPeriodLabel } from './exportHeaderShared'
 
 const ROLES_G1_KEYS = ['realiza', 'apoyo', 'vigilancia'] as const
 const ROLES_G2_KEYS = ['colaborador_1', 'colaborador_2', 'colaborador_3'] as const
@@ -14,6 +17,11 @@ interface ExportLayoutProps {
     mesTitulo: string
     anio: number
     labels: OfrendaExportLabels
+    /** Si se indica, solo exporta estos servicios (p. ej. una semana). */
+    servicios?: OfrServicio[]
+    /** Subtítulo bajo el título (p. ej. «Semana 2 de 4 · 14–17 may»). */
+    periodSubtitle?: string
+    exportScope?: 'month' | 'week'
 }
 
 function getDayShort(tipo: OfrServicio['dia_tipo'], labels: OfrendaExportLabels): string {
@@ -46,8 +54,19 @@ function getMiembroNombre(
  * Capturado con html-to-image (skipFonts:true evita error CORS de Google Fonts).
  */
 export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
-    function ExportLayout({ plan, miembros, mesTitulo, anio, labels }, ref) {
-        const { servicios, asignaciones } = plan
+    function ExportLayout({
+        plan,
+        miembros,
+        mesTitulo,
+        anio,
+        labels,
+        servicios: serviciosProp,
+        periodSubtitle,
+        exportScope: exportScopeProp,
+    }, ref) {
+        const servicios = serviciosProp ?? plan.servicios
+        void exportScopeProp
+        const { asignaciones } = plan
         const roleLabels = {
             realiza: labels.realiza,
             apoyo: labels.apoyo,
@@ -56,7 +75,8 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
 
         const { sacos_jueves: sJ, sacos_domingo: sD, sacos_domingo_tarde: sDT } = plan.plan
         const sacosPorSemana = (sJ ?? 4) + (sD ?? 8) + (sDT ?? 4)
-        const layoutWidth = Math.max(1600, 145 + servicios.length * 100)
+        const layoutWidth = exportLayoutWidthPx(servicios.length)
+        const periodLabel = formatExportPeriodLabel(mesTitulo, anio)
 
         const creationDate = new Date().toLocaleDateString('es-ES', {
             day: '2-digit', month: 'long', year: 'numeric',
@@ -92,114 +112,11 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                     {/* Franja dorada — única aparición del dorado en la tabla */}
                     <div style={{ height: 5, background: IDMJI_BRAND.goldGradient }} />
 
-                    {/* Cabecera navy */}
-                    <div
-                        style={{
-                            background: IDMJI_BRAND.headerGradient,
-                            padding: '22px 28px 20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 24,
-                        }}
-                    >
-                        <div
-                            style={{
-                                width: 88,
-                                height: 88,
-                                flexShrink: 0,
-                                borderRadius: 12,
-                                padding: 4,
-                                background: IDMJI_BRAND.goldGradient,
-                                boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
-                            }}
-                        >
-                            <div
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    borderRadius: 8,
-                                    backgroundColor: '#fff',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    overflow: 'hidden',
-                                }}
-                            >
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src="/logo.jpg"
-                                    alt="IDMJI"
-                                    style={{ width: 76, height: 76, objectFit: 'contain' }}
-                                />
-                            </div>
-                        </div>
-
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <div
-                                style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    letterSpacing: '0.14em',
-                                    textTransform: 'uppercase',
-                                    color: IDMJI_BRAND.goldLight,
-                                    marginBottom: 6,
-                                }}
-                            >
-                                {labels.churchName}
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: 28,
-                                    fontWeight: 800,
-                                    letterSpacing: '-0.02em',
-                                    color: IDMJI_BRAND.textOnNavy,
-                                    lineHeight: 1.15,
-                                }}
-                            >
-                                {labels.titleDoc}
-                                <span style={{ fontWeight: 600, opacity: 0.85 }}>
-                                    {' — '}{mesTitulo} {anio}
-                                </span>
-                            </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, marginTop: 12 }}>
-                                {[
-                                    { color: SERVICE_EXPORT_COLORS.jueves.headerBg,       label: labels.legendJueves },
-                                    { color: SERVICE_EXPORT_COLORS.domingo.headerBg,       label: labels.legendDomManana },
-                                    { color: SERVICE_EXPORT_COLORS.domingo_tarde.headerBg, label: labels.legendDomTarde },
-                                ].map(({ color, label }) => (
-                                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <div
-                                            style={{
-                                                width: 11,
-                                                height: 11,
-                                                borderRadius: 3,
-                                                backgroundColor: color,
-                                                border: '1px solid rgba(255,255,255,0.3)',
-                                            }}
-                                        />
-                                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
-                                            {label}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div
-                            style={{
-                                textAlign: 'right',
-                                flexShrink: 0,
-                                color: 'rgba(255,255,255,0.65)',
-                                fontSize: 9,
-                                fontWeight: 600,
-                                letterSpacing: '0.06em',
-                                lineHeight: 1.6,
-                            }}
-                        >
-                            <div style={{ color: IDMJI_BRAND.goldLight }}>{labels.officialSite}</div>
-                            <div>CGMJCI · IDMJI</div>
-                        </div>
-                    </div>
+                    <ExportHeaderBlock
+                        labels={labels}
+                        periodLabel={periodLabel}
+                        periodSubtitle={periodSubtitle}
+                    />
 
                     {/* ── Tabla ── */}
                     <div style={{ padding: '0 0 0 0' }}>
@@ -442,10 +359,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                         }}
                     >
                         <div style={{ fontSize: 9, color: IDMJI_BRAND.textMuted, fontWeight: 600 }}>
-                            <span style={{ color: IDMJI_BRAND.gold, fontWeight: 700 }}>
-                                {labels.officialSite}
-                            </span>
-                            {' · '}{labels.footer}{' · '}{creationDate}
+                            {labels.footer}{' · '}{creationDate}
                         </div>
                         <div style={{ fontSize: 9, color: IDMJI_BRAND.textSecondary, fontWeight: 600, textAlign: 'right' }}>
                             {labels.sacosMeta(sacosPorSemana, sJ ?? 4, sD ?? 8, sDT ?? 4)}
