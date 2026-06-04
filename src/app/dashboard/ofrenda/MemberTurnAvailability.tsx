@@ -20,10 +20,12 @@ export function TurnAvailabilityDots({
     value,
     color,
     testIdPrefix = 'ofrenda-turn-dots',
+    compact = false,
 }: Readonly<{
     value: MiembroDisponibilidadTurnos
     color: 'emerald' | 'blue'
     testIdPrefix?: string
+    compact?: boolean
 }>) {
     const onClass =
         color === 'emerald'
@@ -37,9 +39,11 @@ export function TurnAvailabilityDots({
         { key: 'dom-tarde', on: value.puede_domingo_tarde },
     ] as const
 
+    const dotSize = compact ? 'h-1.5 w-1.5 ring-1 ring-offset-0' : 'h-2 w-2 ring-2 ring-offset-1 ring-offset-background'
+
     return (
         <span
-            className="inline-flex items-center gap-1 shrink-0"
+            className={`inline-flex items-center shrink-0 ${compact ? 'gap-0.5' : 'gap-1'}`}
             data-testid={`${testIdPrefix}-summary`}
             aria-hidden
         >
@@ -47,7 +51,7 @@ export function TurnAvailabilityDots({
                 <span
                     key={d.key}
                     data-testid={`${testIdPrefix}-${d.key}`}
-                    className={`h-2 w-2 rounded-full ring-2 ring-offset-1 ring-offset-background ${d.on ? onClass : offClass}`}
+                    className={`rounded-full ${dotSize} ${d.on ? onClass : offClass}`}
                 />
             ))}
         </span>

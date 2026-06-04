@@ -368,102 +368,99 @@ function MiembroRow({
         <Row
             value={isDraggable ? miembro : undefined}
             layout
-            className={`flex flex-col px-3 py-2.5 bg-background border rounded-2xl transition-all ${getRowClass(isPendingDelete, miembro.activo)}`}
-            whileDrag={isDraggable ? { scale: 1.01, boxShadow: '0 8px 24px rgba(0,0,0,0.1)' } : undefined}
+            className={`group flex flex-col px-2 py-2 sm:px-2.5 bg-background border rounded-xl transition-all ${getRowClass(isPendingDelete, miembro.activo)}`}
+            whileDrag={isDraggable ? { scale: 1.01, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' } : undefined}
             data-testid={`ofrenda-miembro-row-${miembro.id}`}
         >
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1 min-w-0">
                 {isDraggable && (
-                    <div className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground touch-manipulation p-1 shrink-0">
-                        <GripVertical className="w-4 h-4" />
+                    <div className="cursor-grab active:cursor-grabbing text-muted-foreground/35 hover:text-muted-foreground touch-manipulation shrink-0 -ml-0.5">
+                        <GripVertical className="w-3.5 h-3.5" />
                     </div>
                 )}
 
-                <span className={`text-xs font-black w-5 text-center text-${color}-600 dark:text-${color}-400 shrink-0`}>
+                <span className={`text-[10px] font-black w-3.5 text-center tabular-nums shrink-0 text-${color}-600 dark:text-${color}-400`}>
                     {posicion}
                 </span>
 
-                <span className={`flex-1 min-w-0 text-sm font-semibold truncate ${miembro.activo ? '' : 'line-through text-muted-foreground'}`}>
+                <p
+                    className={`flex-1 min-w-0 text-sm font-semibold leading-tight line-clamp-2 sm:line-clamp-1 ${miembro.activo ? 'text-foreground' : 'line-through text-muted-foreground'}`}
+                    title={miembro.nombre}
+                    data-testid={`ofrenda-miembro-name-${miembro.id}`}
+                >
                     {miembro.nombre}
-                </span>
-
-                {showTurnSummary && (
-                    <TurnAvailabilityDots
-                        value={disp}
-                        color={accent}
-                        testIdPrefix={`ofrenda-member-turns-${miembro.id}`}
-                    />
-                )}
+                </p>
 
                 <AnimatePresence mode="wait">
-                    {isPendingDelete ? null : (
-                        <motion.span
-                            key={`badge-${miembro.activo}`}
-                            initial={{ opacity: 0, scale: 0.85 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.85 }}
-                            transition={{ duration: 0.15 }}
-                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 hidden sm:inline ${
-                                miembro.activo
-                                    ? `bg-${color}-500/10 text-${color}-700 dark:text-${color}-300`
-                                    : 'bg-muted text-muted-foreground'
-                            }`}
-                        >
-                            {miembro.activo ? t('ofrenda.people.active') : t('ofrenda.people.inactive')}
-                        </motion.span>
-                    )}
-                </AnimatePresence>
-
-                {canExpandTurns && (
-                    <button
-                        type="button"
-                        onClick={onToggleExpand}
-                        className="p-1.5 rounded-lg hover:bg-muted/60 text-muted-foreground touch-manipulation min-w-[36px] min-h-[36px] flex items-center justify-center shrink-0"
-                        aria-expanded={expanded}
-                        aria-label={
-                            expanded
-                                ? interpolate(t('ofrenda.people.turns.collapse'), { name: miembro.nombre })
-                                : interpolate(t('ofrenda.people.turns.expand'), { name: miembro.nombre })
-                        }
-                        data-testid={`ofrenda-member-turns-toggle-${miembro.id}`}
-                    >
-                        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                )}
-
-                {canEdit && !isPendingDelete && (
-                    <MiembroAcciones
-                        miembro={miembro}
-                        onToggleActivo={onToggleActivo}
-                        onDeleteRequest={onDeleteRequest}
-                        t={t}
-                    />
-                )}
-
-                <AnimatePresence>
-                    {isPendingDelete && (
+                    {isPendingDelete ? (
                         <motion.div
-                            initial={{ opacity: 0, width: 0 }}
-                            animate={{ opacity: 1, width: 'auto' }}
-                            exit={{ opacity: 0, width: 0 }}
-                            transition={{ duration: 0.18 }}
-                            className="flex flex-wrap items-center justify-end gap-1.5 overflow-hidden shrink-0 ml-auto"
+                            key="delete"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="flex items-center gap-1 shrink-0"
                         >
-                            <span className="text-xs font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
+                            <span className="hidden min-[400px]:inline text-[10px] font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
                                 {t('ofrenda.people.deleteConfirm')}
                             </span>
                             <button
+                                type="button"
                                 onClick={onDeleteConfirmed}
-                                className="px-2.5 py-1 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors touch-manipulation whitespace-nowrap"
+                                className="px-2 py-1 text-[10px] font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg touch-manipulation whitespace-nowrap"
                             >
                                 {t('ofrenda.people.deleteYes')}
                             </button>
                             <button
+                                type="button"
                                 onClick={onDeleteCancel}
-                                className="px-2.5 py-1 text-xs font-medium border border-border rounded-lg hover:bg-muted transition-colors touch-manipulation"
+                                className="px-2 py-1 text-[10px] font-medium border border-border rounded-lg hover:bg-muted touch-manipulation"
                             >
                                 {t('ofrenda.people.cancel')}
                             </button>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="actions"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="flex items-center gap-0 shrink-0"
+                        >
+                            {showTurnSummary && (
+                                <TurnAvailabilityDots
+                                    value={disp}
+                                    color={accent}
+                                    compact
+                                    testIdPrefix={`ofrenda-member-turns-${miembro.id}`}
+                                />
+                            )}
+
+                            {canExpandTurns && (
+                                <button
+                                    type="button"
+                                    onClick={onToggleExpand}
+                                    className="p-1 rounded-md hover:bg-muted/60 text-muted-foreground touch-manipulation min-w-[30px] min-h-[30px] flex items-center justify-center"
+                                    aria-expanded={expanded}
+                                    aria-label={
+                                        expanded
+                                            ? interpolate(t('ofrenda.people.turns.collapse'), { name: miembro.nombre })
+                                            : interpolate(t('ofrenda.people.turns.expand'), { name: miembro.nombre })
+                                    }
+                                    data-testid={`ofrenda-member-turns-toggle-${miembro.id}`}
+                                >
+                                    {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                </button>
+                            )}
+
+                            {canEdit && (
+                                <MiembroAcciones
+                                    miembro={miembro}
+                                    onToggleActivo={onToggleActivo}
+                                    onDeleteRequest={onDeleteRequest}
+                                    t={t}
+                                    compact
+                                />
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -476,7 +473,7 @@ function MiembroRow({
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="overflow-hidden border-t border-border/40 mt-2"
+                        className="overflow-hidden border-t border-border/30 mt-1.5 pt-1.5"
                     >
                         <MemberTurnAvailability
                             value={disp}
@@ -500,12 +497,18 @@ function MiembroAcciones({
     onToggleActivo,
     onDeleteRequest,
     t,
+    compact = false,
 }: Readonly<{
     miembro: OfrMiembro
     onToggleActivo: (m: OfrMiembro) => void
     onDeleteRequest: () => void
     t: OfrendaT
+    compact?: boolean
 }>) {
+    const btnClass = compact
+        ? 'p-1 rounded-md touch-manipulation min-w-[30px] min-h-[30px] flex items-center justify-center'
+        : 'p-1.5 rounded-lg touch-manipulation min-w-[36px] min-h-[36px] flex items-center justify-center'
+    const iconClass = compact ? 'w-3.5 h-3.5' : 'w-4 h-4'
     const toggleClass = miembro.activo
         ? 'hover:bg-amber-500/10 text-amber-500 hover:text-amber-600'
         : 'hover:bg-emerald-500/10 text-emerald-500 hover:text-emerald-600'
@@ -517,24 +520,25 @@ function MiembroAcciones({
         : t('ofrenda.people.activateTitle')
 
     return (
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center shrink-0">
             <button
                 type="button"
                 onClick={() => onToggleActivo(miembro)}
-                className={`p-1.5 rounded-lg transition-colors touch-manipulation min-w-[36px] min-h-[36px] flex items-center justify-center ${toggleClass}`}
+                className={`${btnClass} transition-colors ${toggleClass}`}
                 aria-label={toggleLabel}
                 title={toggleTitle}
                 data-testid="ofrenda-member-toggle"
             >
-                {miembro.activo ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                {miembro.activo ? <UserX className={iconClass} /> : <UserCheck className={iconClass} />}
             </button>
             <button
+                type="button"
                 onClick={onDeleteRequest}
-                className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors touch-manipulation min-w-[36px] min-h-[36px] flex items-center justify-center"
+                className={`${btnClass} hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors`}
                 aria-label={interpolate(t('ofrenda.people.deleteAria'), { name: miembro.nombre })}
                 title={t('ofrenda.people.deleteTitle')}
             >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className={iconClass} />
             </button>
         </div>
     )
