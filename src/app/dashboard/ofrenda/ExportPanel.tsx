@@ -15,6 +15,13 @@ import { ExportLayout } from './ExportLayout'
 import { ExportPreviewViewer } from './ExportPreviewViewer'
 import { captureExportLayoutToPng } from './exportCapture'
 import { ExportScopeControls, type ExportScope } from './ExportScopeControls'
+import { ExportPeopleScopeControls } from './ExportPeopleScopeControls'
+import {
+    type ExportPeopleScope,
+    exportPeopleScopeFileSuffix,
+    exportIncludesGroup1,
+    exportIncludesSacosRows,
+} from './exportPeopleScope'
 import {
     exportPdfColumnLayout,
     exportPdfHeaderHeightMm,
@@ -69,6 +76,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
     const mesFileBase = `labor-ofrenda-${mesSlug}-${anio}`
     const dateLocale = getDateFnsLocale(language)
     const [exportScope, setExportScope] = useState<ExportScope>('month')
+    const [peopleScope, setPeopleScope] = useState<ExportPeopleScope>('all')
     const [weekIndex, setWeekIndex] = useState(0)
     const stepLabels: Record<ExportStep, string> = {
         idle: '',
@@ -123,10 +131,11 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
     }, [exportScope, weekIndex, weeks.length, weekRangeLabels, t])
 
     const fileBase = useMemo(() => {
-        if (exportScope === 'month') return mesFileBase
+        const peopleSuffix = exportPeopleScopeFileSuffix(peopleScope)
+        if (exportScope === 'month') return `${mesFileBase}${peopleSuffix}`
         const slug = buildWeekFileSlug(weekIndex, weekRangeLabels[weekIndex] ?? '')
-        return `${mesFileBase}-${slug}`
-    }, [exportScope, mesFileBase, weekIndex, weekRangeLabels])
+        return `${mesFileBase}-${slug}${peopleSuffix}`
+    }, [exportScope, peopleScope, mesFileBase, weekIndex, weekRangeLabels])
 
     // Detectar Web Share API con soporte de archivos
     useEffect(() => {
@@ -160,7 +169,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             }
         })()
         return () => { cancelled = true }
-    }, [previewOpen, plan, mes, anio, language, exportScope, weekIndex, activeServicios, layoutWidth, periodSubtitle])
+    }, [previewOpen, plan, mes, anio, language, exportScope, peopleScope, weekIndex, activeServicios, layoutWidth, periodSubtitle])
 
     // ── Helper: capturar el layout oculto como PNG data URL ──────────────────
     const captureLayoutPNG = useCallback(async (): Promise<string | null> => {
@@ -423,42 +432,47 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 drawHeaderCell(srv, tableX + firstColW + idx * colW, startY, colW, headerH, isWeekStart)
             })
 
-            // Fila 2: Secuencias de sacos
+            const showSacos = exportIncludesSacosRows(peopleScope)
+            const showG1 = exportIncludesGroup1(peopleScope)
+
             let nextY = startY + headerH
-            drawCell(labels.secuencia, tableX, nextY, firstColW, seqH, IDMJI_BRAND.goldPale, IDMJI_BRAND.navy, 'bold', 8.5, 'left')
-            servicios.forEach((srv, idx) => {
-                const isWeekStart = idx % 3 === 0 && idx > 0
-                const svc = SERVICE_EXPORT_COLORS[srv.dia_tipo]
-                drawCell(srv.secuencia_texto, tableX + firstColW + idx * colW, nextY, colW, seqH, svc.seqBg, svc.seqText, 'bold', 9.5, 'center', isWeekStart)
-            })
-
-            // Filas de Grupo 1 (Roles)
-            const g1 = SERVICE_EXPORT_COLORS.jueves
-            const ROLES_G1 = [
-                { key: 'realiza' as const,    label: labels.realiza,    bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText },
-                { key: 'apoyo' as const,      label: labels.apoyo,      bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText },
-                { key: 'vigilancia' as const, label: labels.vigilancia, bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText },
-            ]
-
-            nextY += seqH
-            ROLES_G1.forEach((rol, rIdx) => {
-                const rowY = nextY + rIdx * rowH
-                const bgLabel = rIdx % 2 === 0 ? rol.bgEven : rol.bgOdd
-                drawCell(rol.label, tableX, rowY, firstColW, rowH, bgLabel, rol.labelTxt, 'bold', 8.5, 'left')
-
+            if (showSacos) {
+                drawCell(labels.secuencia, tableX, nextY, firstColW, seqH, IDMJI_BRAND.goldPale, IDMJI_BRAND.navy, 'bold', 8.5, 'left')
                 servicios.forEach((srv, idx) => {
                     const isWeekStart = idx % 3 === 0 && idx > 0
-                    const asig = asignaciones.find(a => a.servicio_id === srv.id && a.rol === rol.key)
-                    const nombre = asig?.miembro?.nombre ?? '—'
-                    const cellBg = rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd
-                    drawCell(nombre, tableX + firstColW + idx * colW, rowY, colW, rowH, cellBg, IDMJI_BRAND.text, 'bold', 7.2, 'center', isWeekStart)
+                    const svc = SERVICE_EXPORT_COLORS[srv.dia_tipo]
+                    drawCell(srv.secuencia_texto, tableX + firstColW + idx * colW, nextY, colW, seqH, svc.seqBg, svc.seqText, 'bold', 9.5, 'center', isWeekStart)
                 })
-            })
+                nextY += seqH
+            }
 
-            // Fila Divisor
-            nextY += ROLES_G1.length * rowH
-            const tableW = firstColW + numCols * colW
-            drawCell('', tableX, nextY, tableW, dividerH, EXPORT_CELL.divider, EXPORT_CELL.divider)
+            if (showG1) {
+                const g1 = SERVICE_EXPORT_COLORS.jueves
+                const ROLES_G1 = [
+                    { key: 'realiza' as const,    label: labels.realiza,    bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText },
+                    { key: 'apoyo' as const,      label: labels.apoyo,      bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText },
+                    { key: 'vigilancia' as const, label: labels.vigilancia, bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText },
+                ]
+
+                ROLES_G1.forEach((rol, rIdx) => {
+                    const rowY = nextY + rIdx * rowH
+                    const bgLabel = rIdx % 2 === 0 ? rol.bgEven : rol.bgOdd
+                    drawCell(rol.label, tableX, rowY, firstColW, rowH, bgLabel, rol.labelTxt, 'bold', 8.5, 'left')
+
+                    servicios.forEach((srv, idx) => {
+                        const isWeekStart = idx % 3 === 0 && idx > 0
+                        const asig = asignaciones.find(a => a.servicio_id === srv.id && a.rol === rol.key)
+                        const nombre = asig?.miembro?.nombre ?? '—'
+                        const cellBg = rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd
+                        drawCell(nombre, tableX + firstColW + idx * colW, rowY, colW, rowH, cellBg, IDMJI_BRAND.text, 'bold', 7.2, 'center', isWeekStart)
+                    })
+                })
+
+                nextY += ROLES_G1.length * rowH
+                const tableW = firstColW + numCols * colW
+                drawCell('', tableX, nextY, tableW, dividerH, EXPORT_CELL.divider, EXPORT_CELL.divider)
+                nextY += dividerH
+            }
 
             // Filas de Grupo 2 (Colaboradores)
             const g2 = SERVICE_EXPORT_COLORS.domingo
@@ -468,7 +482,6 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 { key: 'colaborador_3' as const, label: labels.colaborador3, bgEven: g2.labelBgEven, bgOdd: g2.labelBgOdd, labelTxt: g2.labelText },
             ]
 
-            nextY += dividerH
             ROLES_G2.forEach((rol, rIdx) => {
                 const rowY = nextY + rIdx * rowH
                 const bgLabel = rIdx % 2 === 0 ? rol.bgEven : rol.bgOdd
@@ -505,11 +518,14 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             const creationDate = new Date().toLocaleDateString(localeTag, { day: '2-digit', month: 'long', year: 'numeric' })
             doc.setFont('helvetica', 'normal')
             doc.setTextColor(122, 122, 122)
-            doc.text(`${labels.footer} · ${creationDate}`, tableX, footerY, { align: 'left' })
+            const footerAlign = peopleScope === 'g2' ? 'center' : 'left'
+            doc.text(`${labels.footer} · ${creationDate}`, peopleScope === 'g2' ? pageW / 2 : tableX, footerY, { align: footerAlign })
 
-            const { sacos_jueves: sJ, sacos_domingo: sD, sacos_domingo_tarde: sDT } = plan.plan
-            const sSemana = (sJ ?? 4) + (sD ?? 8) + (sDT ?? 4)
-            doc.text(labels.sacosMeta(sSemana, sJ ?? 4, sD ?? 8, sDT ?? 4), pageW - marginX, footerY, { align: 'right' })
+            if (peopleScope === 'all') {
+                const { sacos_jueves: sJ, sacos_domingo: sD, sacos_domingo_tarde: sDT } = plan.plan
+                const sSemana = (sJ ?? 4) + (sD ?? 8) + (sDT ?? 4)
+                doc.text(labels.sacosMeta(sSemana, sJ ?? 4, sD ?? 8, sDT ?? 4), pageW - marginX, footerY, { align: 'right' })
+            }
 
             setStep('downloading')
             doc.save(`${fileBase}.pdf`)
@@ -526,6 +542,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
         plan,
         activeServicios,
         exportScope,
+        peopleScope,
         periodSubtitle,
         tituloMes,
         anio,
@@ -625,6 +642,23 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                         interpolate(t('ofrenda.export.scope.weekChip'), { n, total }),
                 }}
             />
+
+            <ExportPeopleScopeControls
+                scope={peopleScope}
+                onScopeChange={setPeopleScope}
+                disabled={isExporting}
+                labels={{
+                    label: t('ofrenda.export.people.label'),
+                    all: t('ofrenda.export.people.all'),
+                    g2: t('ofrenda.export.people.g2'),
+                }}
+            />
+
+            {peopleScope === 'g2' ? (
+                <p className="text-[11px] text-muted-foreground font-medium leading-relaxed px-0.5">
+                    {t('ofrenda.export.people.g2Hint')}
+                </p>
+            ) : null}
 
             {/* ── Lista de opciones de exportación (Premium y Justas) ────── */}
             <div className="space-y-3">
@@ -769,6 +803,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                         servicios={activeServicios}
                         periodSubtitle={periodSubtitle}
                         exportScope={exportScope}
+                        peopleScope={peopleScope}
                     />
                 </div>,
                 document.body

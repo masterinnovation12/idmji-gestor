@@ -7,6 +7,12 @@ import { IDMJI_BRAND, SERVICE_EXPORT_COLORS, EXPORT_CELL } from './exportBrand'
 import { exportLayoutWidthPx } from './exportLayoutMetrics'
 import { ExportHeaderBlock } from './ExportHeaderBlock'
 import { formatExportPeriodLabel } from './exportHeaderShared'
+import type { ExportPeopleScope } from './exportPeopleScope'
+import {
+    exportIncludesGroup1,
+    exportIncludesSacosRows,
+    isCollaboratorsOnlyExport,
+} from './exportPeopleScope'
 
 const ROLES_G1_KEYS = ['realiza', 'apoyo', 'vigilancia'] as const
 const ROLES_G2_KEYS = ['colaborador_1', 'colaborador_2', 'colaborador_3'] as const
@@ -22,6 +28,8 @@ interface ExportLayoutProps {
     /** Subtítulo bajo el título (p. ej. «Semana 2 de 4 · 14–17 may»). */
     periodSubtitle?: string
     exportScope?: 'month' | 'week'
+    /** Completo (G1+G2+sacos) o solo colaboradores sin sacos. */
+    peopleScope?: ExportPeopleScope
 }
 
 function getDayShort(tipo: OfrServicio['dia_tipo'], labels: OfrendaExportLabels): string {
@@ -63,9 +71,13 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
         servicios: serviciosProp,
         periodSubtitle,
         exportScope: exportScopeProp,
+        peopleScope = 'all',
     }, ref) {
         const servicios = serviciosProp ?? plan.servicios
         void exportScopeProp
+        const collaboratorsOnly = isCollaboratorsOnlyExport(peopleScope)
+        const showSacos = exportIncludesSacosRows(peopleScope)
+        const showG1 = exportIncludesGroup1(peopleScope)
         const { asignaciones } = plan
         const roleLabels = {
             realiza: labels.realiza,
@@ -73,8 +85,6 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
             vigilancia: labels.vigilancia,
         }
 
-        const { sacos_jueves: sJ, sacos_domingo: sD, sacos_domingo_tarde: sDT } = plan.plan
-        const sacosPorSemana = (sJ ?? 4) + (sD ?? 8) + (sDT ?? 4)
         const layoutWidth = exportLayoutWidthPx(servicios.length)
         const periodLabel = formatExportPeriodLabel(mesTitulo, anio)
 
@@ -185,47 +195,47 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                     })}
                                 </tr>
 
-                                {/* Fila de secuencias */}
-                                <tr>
-                                    <td
-                                        style={{
-                                            ...tdBase,
-                                            backgroundColor: IDMJI_BRAND.goldPale,
-                                            fontWeight: 800,
-                                            fontSize: 10,
-                                            padding: '6px 14px',
-                                            color: IDMJI_BRAND.navy,
-                                        }}
-                                    >
-                                        {labels.secuencia}
-                                    </td>
-                                    {servicios.map((srv, idx) => {
-                                        const col = SERVICE_EXPORT_COLORS[srv.dia_tipo]
-                                        return (
-                                            <td
-                                                key={srv.id}
-                                                style={{
-                                                    ...tdBase,
-                                                    backgroundColor: col.seqBg,
-                                                    textAlign: 'center',
-                                                    fontWeight: 800,
-                                                    fontFamily: 'ui-monospace, "Courier New", monospace',
-                                                    fontSize: 12,
-                                                    color: col.seqText,
-                                                    padding: '6px 4px',
-                                                    ...weekLeftBorder(idx),
-                                                }}
-                                            >
-                                                {srv.secuencia_texto}
-                                            </td>
-                                        )
-                                    })}
-                                </tr>
+                                {showSacos ? (
+                                    <tr>
+                                        <td
+                                            style={{
+                                                ...tdBase,
+                                                backgroundColor: IDMJI_BRAND.goldPale,
+                                                fontWeight: 800,
+                                                fontSize: 10,
+                                                padding: '6px 14px',
+                                                color: IDMJI_BRAND.navy,
+                                            }}
+                                        >
+                                            {labels.secuencia}
+                                        </td>
+                                        {servicios.map((srv, idx) => {
+                                            const col = SERVICE_EXPORT_COLORS[srv.dia_tipo]
+                                            return (
+                                                <td
+                                                    key={srv.id}
+                                                    style={{
+                                                        ...tdBase,
+                                                        backgroundColor: col.seqBg,
+                                                        textAlign: 'center',
+                                                        fontWeight: 800,
+                                                        fontFamily: 'ui-monospace, "Courier New", monospace',
+                                                        fontSize: 12,
+                                                        color: col.seqText,
+                                                        padding: '6px 4px',
+                                                        ...weekLeftBorder(idx),
+                                                    }}
+                                                >
+                                                    {srv.secuencia_texto}
+                                                </td>
+                                            )
+                                        })}
+                                    </tr>
+                                ) : null}
                             </thead>
 
                             <tbody>
-                                {/* Grupo 1: Roles operativos */}
-                                {ROLES_G1_KEYS.map((key, rIdx) => {
+                                {showG1 ? ROLES_G1_KEYS.map((key, rIdx) => {
                                     const sCol = SERVICE_EXPORT_COLORS.jueves
                                     return (
                                         <tr key={key}>
@@ -260,17 +270,17 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                             ))}
                                         </tr>
                                     )
-                                })}
+                                }) : null}
 
-                                {/* Separador entre grupos */}
-                                <tr>
-                                    <td
-                                        colSpan={servicios.length + 1}
-                                        style={{ height: 3, backgroundColor: EXPORT_CELL.divider, padding: 0 }}
-                                    />
-                                </tr>
+                                {showG1 ? (
+                                    <tr>
+                                        <td
+                                            colSpan={servicios.length + 1}
+                                            style={{ height: 3, backgroundColor: EXPORT_CELL.divider, padding: 0 }}
+                                        />
+                                    </tr>
+                                ) : null}
 
-                                {/* Grupo 2: Colaboradores */}
                                 {ROLES_G2_KEYS.map((key, rIdx) => {
                                     const colLabel = [labels.colaborador1, labels.colaborador2, labels.colaborador3][rIdx]
                                     const sCol = SERVICE_EXPORT_COLORS.domingo
@@ -353,17 +363,31 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                             backgroundColor: '#f7f8fa',
                             padding: '11px 24px 13px',
                             display: 'flex',
-                            justifyContent: 'space-between',
+                            justifyContent: collaboratorsOnly ? 'center' : 'space-between',
                             alignItems: 'center',
                             gap: 16,
                         }}
                     >
-                        <div style={{ fontSize: 9, color: IDMJI_BRAND.textMuted, fontWeight: 600 }}>
+                        <div
+                            style={{
+                                fontSize: 9,
+                                color: IDMJI_BRAND.textMuted,
+                                fontWeight: 600,
+                                textAlign: collaboratorsOnly ? 'center' : 'left',
+                            }}
+                        >
                             {labels.footer}{' · '}{creationDate}
                         </div>
-                        <div style={{ fontSize: 9, color: IDMJI_BRAND.textSecondary, fontWeight: 600, textAlign: 'right' }}>
-                            {labels.sacosMeta(sacosPorSemana, sJ ?? 4, sD ?? 8, sDT ?? 4)}
-                        </div>
+                        {!collaboratorsOnly ? (
+                            <div style={{ fontSize: 9, color: IDMJI_BRAND.textSecondary, fontWeight: 600, textAlign: 'right' }}>
+                                {labels.sacosMeta(
+                                    (plan.plan.sacos_jueves ?? 4) + (plan.plan.sacos_domingo ?? 8) + (plan.plan.sacos_domingo_tarde ?? 4),
+                                    plan.plan.sacos_jueves ?? 4,
+                                    plan.plan.sacos_domingo ?? 8,
+                                    plan.plan.sacos_domingo_tarde ?? 4,
+                                )}
+                            </div>
+                        ) : null}
                     </div>
                 </div>
             </div>
