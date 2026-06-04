@@ -5,28 +5,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { PersonaPicker } from './PersonaPicker'
-import type { OfrMiembro, OfrServicio } from './actions'
+import type { OfrServicio } from './actions'
 import { OFRENDA_MOBILE_TABLET_MQ, resetOfrendaMqCacheForTests } from './ofrendaViewport'
+import { makeOfrMiembro } from './ofrendaTestFixtures'
+import { disponibilidadFromPreset } from './ofrendaMemberAvailability'
 
-const miembros: OfrMiembro[] = [
-    {
+const miembros = [
+    makeOfrMiembro({
         id: 'a1',
         nombre: 'Hugo Bolaños',
         grupo: 1,
-        activo: true,
         orden: 1,
-        profile_id: null,
-        created_at: '2026-01-01T00:00:00Z',
-    },
-    {
+        ...disponibilidadFromPreset('all'),
+    }),
+    makeOfrMiembro({
         id: 'a2',
         nombre: 'Yesid Payares',
         grupo: 2,
-        activo: true,
         orden: 2,
-        profile_id: null,
-        created_at: '2026-01-01T00:00:00Z',
-    },
+        ...disponibilidadFromPreset('all'),
+    }),
 ]
 
 const servicio = {
@@ -46,6 +44,7 @@ vi.mock('@/lib/i18n/I18nProvider', () => ({
                 'ofrenda.picker.current': 'Asignación actual',
                 'ofrenda.picker.search': 'Buscar por nombre...',
                 'ofrenda.picker.unassign': 'Sin asignar',
+                'ofrenda.picker.outOfTurn': 'Fuera de turno habitual',
                 'common.close': 'Cerrar',
             }
             return map[key] ?? key
@@ -302,5 +301,88 @@ describe('PersonaPicker — liquid glass desktop', () => {
         const dialog = screen.getByRole('dialog', { name: 'Asignar persona' })
         expect(dialog).toHaveAttribute('aria-modal', 'true')
         expect(screen.getByTestId('ofrenda-picker-current-name')).toHaveTextContent('Yesid Payares')
+    })
+})
+
+describe('PersonaPicker — override manual (todos activos, orden por elegibilidad)', () => {
+    beforeEach(() => mockViewport(true))
+
+    afterEach(() => resetOfrendaMqCacheForTests())
+
+    const servicioDomingo = {
+        ...servicio,
+        dia_tipo: 'domingo',
+        fecha: '2026-05-10',
+    } as OfrServicio
+
+    const listaMixta = [
+        makeOfrMiembro({
+            id: 'z-last',
+            nombre: 'Zeta Solo Jueves',
+            grupo: 1,
+            orden: 1,
+            ...disponibilidadFromPreset('jueves'),
+        }),
+        makeOfrMiembro({
+            id: 'a-first',
+            nombre: 'Ana Domingo',
+            grupo: 1,
+            orden: 2,
+            ...disponibilidadFromPreset('domingo'),
+        }),
+    ]
+
+    it('muestra personas fuera de turno con badge y permite seleccionarlas', () => {
+        const onSelect = vi.fn()
+        render(
+            <PersonaPicker
+                open
+                onClose={vi.fn()}
+                miembros={listaMixta}
+                selectedId={null}
+                onSelect={onSelect}
+                context={{
+                    servicio: servicioDomingo,
+                    rolLabel: 'Realiza',
+                    headerColorClass: '',
+                }}
+            />,
+        )
+
+        expect(screen.getByTestId('ofrenda-picker-out-of-turn-z-last')).toBeInTheDocument()
+        expect(screen.getByTestId('ofrenda-picker-member-z-last')).toHaveAttribute(
+            'data-elegible-turno',
+            'false',
+        )
+        expect(screen.getByTestId('ofrenda-picker-member-a-first')).toHaveAttribute(
+            'data-elegible-turno',
+            'true',
+        )
+
+        fireEvent.click(screen.getByTestId('ofrenda-picker-member-z-last'))
+        expect(onSelect).toHaveBeenCalledWith('z-last')
+    })
+
+    it('ordena elegibles antes que fuera de turno', () => {
+        render(
+            <PersonaPicker
+                open
+                onClose={vi.fn()}
+                miembros={listaMixta}
+                selectedId={null}
+                onSelect={vi.fn()}
+                context={{
+                    servicio: servicioDomingo,
+                    rolLabel: 'Realiza',
+                    headerColorClass: '',
+                }}
+            />,
+        )
+
+        const buttons = screen
+            .getAllByRole('button')
+            .filter(b => b.dataset.testid?.startsWith('ofrenda-picker-member-'))
+        const ids = buttons.map(b => b.dataset.testid!.replace('ofrenda-picker-member-', ''))
+        expect(ids.indexOf('a-first')).toBeLessThan(ids.indexOf('z-last'))
     })
 })

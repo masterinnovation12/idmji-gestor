@@ -27,13 +27,20 @@ import {
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-function makeMiembros(n: number, grupo: 1 | 2): OfrendaMiembro[] {
+function makeMiembros(
+    n: number,
+    grupo: 1 | 2,
+    overrides?: Partial<Pick<OfrendaMiembro, 'puede_jueves' | 'puede_domingo_manana' | 'puede_domingo_tarde'>>,
+): OfrendaMiembro[] {
     return Array.from({ length: n }, (_, i) => ({
         id: `m${grupo}-${i + 1}`,
         nombre: `Persona${grupo}-${i + 1}`,
         grupo,
         orden: i,
         activo: true,
+        puede_jueves: overrides?.puede_jueves ?? true,
+        puede_domingo_manana: overrides?.puede_domingo_manana ?? true,
+        puede_domingo_tarde: overrides?.puede_domingo_tarde ?? true,
     }))
 }
 
@@ -427,7 +434,10 @@ describe('edge cases', () => {
     })
 
     it('un solo miembro G1 se asigna en todos los roles (fallback activo)', () => {
-        const one = [{ id: 'solo', nombre: 'Solo', grupo: 1 as const, orden: 0, activo: true }]
+        const one = [{
+            id: 'solo', nombre: 'Solo', grupo: 1 as const, orden: 0, activo: true,
+            puede_jueves: true, puede_domingo_manana: true, puede_domingo_tarde: true,
+        }]
         const { asignaciones } = generarPlan(2026, 5, 1, one)
         const g1Asigs = asignaciones.filter(a => ['realiza', 'apoyo', 'vigilancia'].includes(a.rol))
         // Todos los roles G1 deben tener al único miembro
@@ -438,8 +448,14 @@ describe('edge cases', () => {
 
     it('miembros inactivos no reciben asignaciones automáticas', () => {
         const mixtos = [
-            { id: 'activo', nombre: 'Activo', grupo: 1 as const, orden: 0, activo: true },
-            { id: 'inactivo', nombre: 'Inactivo', grupo: 1 as const, orden: 1, activo: false },
+            {
+                id: 'activo', nombre: 'Activo', grupo: 1 as const, orden: 0, activo: true,
+                puede_jueves: true, puede_domingo_manana: true, puede_domingo_tarde: true,
+            },
+            {
+                id: 'inactivo', nombre: 'Inactivo', grupo: 1 as const, orden: 1, activo: false,
+                puede_jueves: true, puede_domingo_manana: true, puede_domingo_tarde: true,
+            },
         ]
         const { asignaciones } = generarPlan(2026, 5, 1, mixtos)
         const g1Asigs = asignaciones.filter(a => ['realiza', 'apoyo', 'vigilancia'].includes(a.rol))
@@ -453,5 +469,73 @@ describe('edge cases', () => {
         const { punteroFin } = generarPlan(2026, 5, 1, [], {}, null, config)
         // 4 semanas × 20 sacos = 80 → mod20 = 0 → puntero regresa a 1
         expect(punteroFin).toBe(1)
+    })
+})
+
+describe('disponibilidad por turno — sin turnos marcados', () => {
+    it('miembro con cero turnos no recibe asignaciones automáticas', () => {
+        const sinTurnos: OfrendaMiembro = {
+            ...makeMiembros(1, 1)[0],
+            id: 'sin-turnos',
+            puede_jueves: false,
+            puede_domingo_manana: false,
+            puede_domingo_tarde: false,
+        }
+        const otros = makeMiembros(3, 1)
+        const { asignaciones } = generarPlan(2026, 5, 1, [sinTurnos, ...otros], {}, null)
+        expect(asignaciones.filter(a => a.miembroId === sinTurnos.id)).toHaveLength(0)
+    })
+})
+
+describe('disponibilidad por turno', () => {
+    it('miembro solo jueves nunca se asigna en domingo', () => {
+        const jeffrey: OfrendaMiembro = {
+            ...makeMiembros(1, 1, {
+                puede_jueves: true,
+                puede_domingo_manana: false,
+                puede_domingo_tarde: false,
+            })[0],
+            id: 'solo-jueves',
+            nombre: 'Solo Jueves',
+            orden: 0,
+        }
+        const otros = makeMiembros(3, 1).map((m, i) => ({ ...m, orden: i + 1 }))
+        const { asignaciones } = generarPlan(2026, 5, 1, [jeffrey, ...otros], {}, null)
+        const jeffreyDom = asignaciones.filter(
+            a => a.miembroId === jeffrey.id && a.servicioTipo !== 'jueves',
+        )
+        expect(jeffreyDom).toHaveLength(0)
+        const jeffreyJue = asignaciones.filter(
+            a => a.miembroId === jeffrey.id && a.servicioTipo === 'jueves',
+        )
+        expect(jeffreyJue.length).toBeGreaterThan(0)
+    })
+
+    it('rota entre varios miembros solo-jueves en distintos jueves del mes', () => {
+        const soloJueves = {
+            puede_jueves: true,
+            puede_domingo_manana: false,
+            puede_domingo_tarde: false,
+        } as const
+        const a: OfrendaMiembro = {
+            ...makeMiembros(1, 2, soloJueves)[0],
+            id: 'g2-jueves-a',
+            nombre: 'A',
+            orden: 0,
+        }
+        const b: OfrendaMiembro = {
+            ...makeMiembros(1, 2, soloJueves)[0],
+            id: 'g2-jueves-b',
+            nombre: 'B',
+            orden: 1,
+        }
+        const { asignaciones } = generarPlan(2026, 5, 1, [a, b], {}, 2)
+        const juevesIds = new Set(
+            asignaciones
+                .filter(x => x.servicioTipo === 'jueves')
+                .map(x => x.miembroId),
+        )
+        expect(juevesIds.has(a.id)).toBe(true)
+        expect(juevesIds.has(b.id)).toBe(true)
     })
 })

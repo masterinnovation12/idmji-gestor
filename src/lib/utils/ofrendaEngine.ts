@@ -45,6 +45,20 @@ export interface OfrendaMiembro {
     grupo: 1 | 2
     orden: number
     activo: boolean
+    puede_jueves: boolean
+    puede_domingo_manana: boolean
+    puede_domingo_tarde: boolean
+}
+
+export function miembrosElegiblesParaTurno(
+    miembros: OfrendaMiembro[],
+    diaTipo: DiaTipo,
+): OfrendaMiembro[] {
+    return miembros.filter(m => {
+        if (diaTipo === 'jueves') return m.puede_jueves
+        if (diaTipo === 'domingo') return m.puede_domingo_manana
+        return m.puede_domingo_tarde
+    })
 }
 
 /** Configuración de sacos por tipo de servicio (extraída del plan). */
@@ -356,8 +370,12 @@ export function generarPlan(
     const punteroFin = puntero
 
     // ── Asignaciones ──────────────────────────────────────────────────────────
-    const g1 = miembros.filter(m => m.grupo === 1 && m.activo).sort((a, b) => a.orden - b.orden)
-    const g2 = miembros.filter(m => m.grupo === 2 && m.activo).sort((a, b) => a.orden - b.orden)
+    const participa = (m: OfrendaMiembro) =>
+        m.activo &&
+        (m.puede_jueves || m.puede_domingo_manana || m.puede_domingo_tarde)
+
+    const g1 = miembros.filter(m => m.grupo === 1 && participa(m)).sort((a, b) => a.orden - b.orden)
+    const g2 = miembros.filter(m => m.grupo === 2 && participa(m)).sort((a, b) => a.orden - b.orden)
 
     const asignaciones: AsignacionCalculada[] = []
 
@@ -381,12 +399,14 @@ export function generarPlan(
 
         // ── Grupo 1 ────────────────────────────────────────────────────────
         if (regenerarGrupo !== 2) {
-            asignarGrupo1(srv.fecha, srv.diaTipo, g1, rol => overrides[key(rol)], punterosG1, prevG1, usadosHoy, asignaciones)
+            const g1Turno = miembrosElegiblesParaTurno(g1, srv.diaTipo)
+            asignarGrupo1(srv.fecha, srv.diaTipo, g1Turno, rol => overrides[key(rol)], punterosG1, prevG1, usadosHoy, asignaciones)
         }
 
         // ── Grupo 2 ────────────────────────────────────────────────────────
         if (regenerarGrupo !== 1 && g2.length > 0) {
-            const result = asignarGrupo2(srv.fecha, srv.diaTipo, g2, rol => overrides[key(rol)], punteroG2, prevG2, asignaciones)
+            const g2Turno = miembrosElegiblesParaTurno(g2, srv.diaTipo)
+            const result = asignarGrupo2(srv.fecha, srv.diaTipo, g2Turno, rol => overrides[key(rol)], punteroG2, prevG2, asignaciones)
             punteroG2 = result.punteroG2
             prevG2 = result.prevG2
         }

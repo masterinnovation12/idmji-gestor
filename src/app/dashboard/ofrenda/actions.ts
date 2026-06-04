@@ -4,10 +4,15 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import {
     generarPlan,
+    generarFechasDelPlan,
     type OfrendaMiembro,
     type SacosConfig,
     type DiaTipo,
 } from '@/lib/utils/ofrendaEngine'
+import {
+    normalizeMiembroDisponibilidad,
+    validarDisponibilidadParaGenerar,
+} from '@/app/dashboard/ofrenda/ofrendaMemberAvailability'
 import {
     getMaxSacosForDiaTipo,
     getSecuenciaMaximo,
@@ -33,8 +38,29 @@ export interface OfrMiembro {
     grupo: 1 | 2
     orden: number
     activo: boolean
+    puede_jueves: boolean
+    puede_domingo_manana: boolean
+    puede_domingo_tarde: boolean
     profile_id: string | null
     created_at: string
+}
+
+function mapRowToOfrMiembro(row: Record<string, unknown>): OfrMiembro {
+    const disp = normalizeMiembroDisponibilidad({
+        puede_jueves: row.puede_jueves as boolean | undefined,
+        puede_domingo_manana: row.puede_domingo_manana as boolean | undefined,
+        puede_domingo_tarde: row.puede_domingo_tarde as boolean | undefined,
+    })
+    return {
+        id: row.id as string,
+        nombre: row.nombre as string,
+        grupo: row.grupo as 1 | 2,
+        orden: row.orden as number,
+        activo: row.activo as boolean,
+        ...disp,
+        profile_id: (row.profile_id as string | null) ?? null,
+        created_at: row.created_at as string,
+    }
 }
 
 export interface OfrServicio {
@@ -109,7 +135,7 @@ export async function getMiembros(): Promise<{ data?: OfrMiembro[]; error?: stri
         .order('orden')
 
     if (error) return { error: error.message }
-    return { data: data as OfrMiembro[] }
+    return { data: (data ?? []).map(row => mapRowToOfrMiembro(row as Record<string, unknown>)) }
 }
 
 export async function upsertMiembro(
@@ -117,6 +143,8 @@ export async function upsertMiembro(
 ): Promise<{ data?: OfrMiembro; error?: string }> {
     const { error: authError, supabase } = await requireEditor()
     if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    const disp = normalizeMiembroDisponibilidad(miembro)
 
     const { data, error } = await supabase
         .from('ofrenda_miembros')
@@ -126,6 +154,7 @@ export async function upsertMiembro(
             grupo: miembro.grupo,
             orden: miembro.orden ?? 0,
             activo: miembro.activo ?? true,
+            ...disp,
             profile_id: miembro.profile_id ?? null,
         })
         .select()
@@ -133,7 +162,7 @@ export async function upsertMiembro(
 
     if (error) return { error: error.message }
     revalidatePath('/dashboard/ofrenda')
-    return { data: data as OfrMiembro }
+    return { data: mapRowToOfrMiembro(data as Record<string, unknown>) }
 }
 
 export async function deleteMiembro(id: string): Promise<{ error?: string }> {
@@ -185,6 +214,9 @@ export async function syncHermanos(
             nombre,
             grupo,
             activo: true,
+            puede_jueves: true,
+            puede_domingo_manana: true,
+            puede_domingo_tarde: true,
             profile_id: p.id,
         }, { onConflict: 'profile_id' })
         if (!upsertErr) importados++
@@ -242,7 +274,7 @@ export async function getPlan(anio: number, mes: number): Promise<{ data?: PlanC
             plan: plan as OfrPlan,
             servicios: (servicios ?? []) as OfrServicio[],
             asignaciones: (asignaciones ?? []) as OfrAsignacion[],
-            miembros: (miembros ?? []) as OfrMiembro[],
+            miembros: (miembros ?? []).map(m => mapRowToOfrMiembro(m as Record<string, unknown>)),
         }
     }
 }
@@ -258,10 +290,7 @@ async function fetchMiembrosActivos(supabase: SupabaseClient): Promise<OfrendaMi
         .eq('activo', true)
         .order('grupo')
         .order('orden')
-    return (data ?? []).map(m => ({
-        id: m.id, nombre: m.nombre,
-        grupo: m.grupo as 1 | 2, orden: m.orden, activo: m.activo,
-    }))
+    return (data ?? []).map(m => mapRowToOfrMiembro(m as Record<string, unknown>))
 }
 
 async function resolvePunteroInicio(
@@ -358,11 +387,24 @@ export async function generarORegenerarPlan(
     punteroManual?: number,
     regenerarGrupo?: 1 | 2 | null,
     sacosOverride?: Partial<SacosConfig>
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; problemas?: import('./ofrendaMemberAvailability').ValidacionGeneracionTurno[] }> {
     const { error: authError, supabase, userId } = await requireEditor()
     if (authError || !supabase || !userId) return { error: authError ?? 'Error' }
 
     const miembros = await fetchMiembrosActivos(supabase)
+
+    const fechasPlan = generarFechasDelPlan(anio, mes)
+    const validacion = validarDisponibilidadParaGenerar(
+        fechasPlan,
+        miembros,
+        regenerarGrupo ?? null,
+    )
+    if (!validacion.ok) {
+        return {
+            error: 'DISPONIBILIDAD_INSUFICIENTE',
+            problemas: validacion.problemas,
+        }
+    }
 
     const { data: planExistente } = await supabase
         .from('ofrenda_planes')
