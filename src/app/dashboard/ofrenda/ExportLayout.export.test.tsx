@@ -153,6 +153,41 @@ describe('ExportLayout export branding', () => {
         expect(screen.getByTestId(EXPORT_HEADER_CLUSTER_TEST_ID)).toBeInTheDocument()
     })
 
+    it('solo colaboradores: sin G1, secuencia ni meta de sacos en pie', () => {
+        const week = servicios.slice(0, 3)
+        render(
+            <ExportLayout
+                plan={plan}
+                miembros={miembros}
+                mesTitulo="Mayo"
+                anio={2026}
+                labels={labels}
+                servicios={week}
+                peopleScope="g2"
+            />,
+        )
+        expect(screen.getByText('Col. 1')).toBeInTheDocument()
+        expect(screen.queryByText(labels.realiza)).not.toBeInTheDocument()
+        expect(screen.queryByText(labels.secuencia)).not.toBeInTheDocument()
+        expect(screen.queryByText(/sacos\/semana/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/01 al 04/)).not.toBeInTheDocument()
+    })
+
+    it('completo: incluye G1 y secuencia', () => {
+        render(
+            <ExportLayout
+                plan={plan}
+                miembros={miembros}
+                mesTitulo="Mayo"
+                anio={2026}
+                labels={labels}
+                peopleScope="all"
+            />,
+        )
+        expect(screen.getByText(labels.realiza)).toBeInTheDocument()
+        expect(screen.getByText(labels.secuencia)).toBeInTheDocument()
+    })
+
     it('modo semanal: solo 3 columnas de servicio y subtítulo', () => {
         const week = servicios.slice(0, 3)
         render(
