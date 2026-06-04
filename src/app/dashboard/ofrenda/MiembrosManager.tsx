@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import {
     Plus, Trash2, GripVertical, UserCheck, UserX, UserPlus,
-    Search, AlertTriangle, CheckCircle2, Info, X, Users
+    Search, CheckCircle2, Info, Users, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useOfrendaToast } from './ofrendaFeedback'
@@ -21,6 +21,8 @@ import {
     getMiembros,
 } from './actions'
 import type { OfrMiembro } from './actions'
+import { MemberTurnAvailability, TurnAvailabilityDots } from './MemberTurnAvailability'
+import { normalizeMiembroDisponibilidad, type MiembroDisponibilidadTurnos } from './ofrendaMemberAvailability'
 
 // ─── Helpers de estilo inline ────────────────────────────────────────────────
 
@@ -49,23 +51,33 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
     const { t } = useI18n()
     const feedback = useOfrendaToast()
     const [miembros, setMiembros]         = useState<OfrMiembro[]>(initialMiembros)
+
+    useEffect(() => {
+        setMiembros(initialMiembros)
+    }, [initialMiembros])
     const [addModalOpen, setAddModalOpen] = useState(false)
     const [addGrupo, setAddGrupo]         = useState<1 | 2>(1)
     const [syncModalOpen, setSyncModalOpen] = useState(false)
     // id del miembro esperando confirmación de borrado
     const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+    const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null)
 
     const g1 = miembros.filter(m => m.grupo === 1).sort((a, b) => a.orden - b.orden)
     const g2 = miembros.filter(m => m.grupo === 2).sort((a, b) => a.orden - b.orden)
+
+    /** Actualiza estado local y padre sin llamar onChange dentro de un updater de setState. */
+    const syncMiembros = useCallback((updated: OfrMiembro[]) => {
+        setMiembros(updated)
+        onChange(updated)
+    }, [onChange])
 
     // ── Actualizar lista desde BD ──────────────────────────────────────────────
     const refresh = useCallback(async () => {
         const result = await getMiembros()
         if (result.data) {
-            setMiembros(result.data)
-            onChange(result.data)
+            syncMiembros(result.data)
         }
-    }, [onChange])
+    }, [syncMiembros])
 
     // ── Añadir persona ─────────────────────────────────────────────────────────
     const handleAddClick = (grupo: 1 | 2) => {
@@ -98,6 +110,38 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
     }
 
     // ── Toggle activo / inactivo ──────────────────────────────────────────────
+    const turnLabels = {
+        jueves: t('ofrenda.people.turns.jueves'),
+        domManana: t('ofrenda.people.turns.domManana'),
+        domTarde: t('ofrenda.people.turns.domTarde'),
+    }
+
+    const handleDisponibilidadChange = async (m: OfrMiembro, next: MiembroDisponibilidadTurnos) => {
+        const merged = { ...m, ...next }
+        const optimistic = miembros.map(x => (x.id === m.id ? merged : x))
+        syncMiembros(optimistic)
+
+        const result = await upsertMiembro({
+            id: m.id,
+            nombre: m.nombre,
+            grupo: m.grupo,
+            orden: m.orden,
+            activo: m.activo,
+            profile_id: m.profile_id,
+            puede_jueves: next.puede_jueves,
+            puede_domingo_manana: next.puede_domingo_manana,
+            puede_domingo_tarde: next.puede_domingo_tarde,
+        })
+        if (result.error) {
+            feedback.quickError(result.error)
+            await refresh()
+            return
+        }
+        if (result.data) {
+            syncMiembros(optimistic.map(x => (x.id === m.id ? result.data! : x)))
+        }
+    }
+
     const handleToggleActivo = async (m: OfrMiembro) => {
         const result = await upsertMiembro({ ...m, activo: !m.activo })
         if (result.error) { feedback.quickError(result.error); return }
@@ -119,14 +163,20 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
     const handleReorder = async (grupo: 1 | 2, nuevaLista: OfrMiembro[]) => {
         const otros   = miembros.filter(m => m.grupo !== grupo)
         const updated = nuevaLista.map((m, i) => ({ ...m, orden: i }))
-        setMiembros([...otros, ...updated])
-        onChange([...otros, ...updated])
+        syncMiembros([...otros, ...updated])
         const result = await reordenarMiembros(updated.map(m => ({ id: m.id, orden: m.orden })))
         if (result.error) feedback.quickError(result.error)
     }
 
     return (
         <div className="space-y-6">
+            <div className="flex gap-3 p-3.5 rounded-2xl border border-[#1f2e85]/15 bg-[#1f2e85]/5">
+                <Info className="w-4 h-4 text-[#1f2e85] dark:text-[#e8d9a8] mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground font-medium leading-relaxed">
+                    {t('ofrenda.people.turns.hint')}
+                </p>
+            </div>
+
             {/* ── Leyenda explicativa de grupos ─────────────────────── */}
             <div className="flex flex-wrap gap-3">
                 <LegendCard
@@ -209,6 +259,12 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                                     onDeleteCancel={() => setPendingDelete(null)}
                                     onDeleteConfirmed={() => handleDeleteConfirmed(m.id, m.nombre)}
                                     onToggleActivo={handleToggleActivo}
+                                    onDisponibilidadChange={handleDisponibilidadChange}
+                                    turnLabels={turnLabels}
+                                    expanded={expandedMemberId === m.id}
+                                    onToggleExpand={() =>
+                                        setExpandedMemberId(prev => (prev === m.id ? null : m.id))
+                                    }
                                     isDraggable
                                     t={t}
                                 />
@@ -229,6 +285,12 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                                     onDeleteCancel={() => undefined}
                                     onDeleteConfirmed={() => undefined}
                                     onToggleActivo={handleToggleActivo}
+                                    onDisponibilidadChange={handleDisponibilidadChange}
+                                    turnLabels={turnLabels}
+                                    expanded={expandedMemberId === m.id}
+                                    onToggleExpand={() =>
+                                        setExpandedMemberId(prev => (prev === m.id ? null : m.id))
+                                    }
                                     isDraggable={false}
                                     t={t}
                                 />
@@ -271,6 +333,10 @@ interface MiembroRowProps {
     onDeleteCancel: () => void
     onDeleteConfirmed: () => void
     onToggleActivo: (m: OfrMiembro) => void
+    onDisponibilidadChange: (m: OfrMiembro, next: MiembroDisponibilidadTurnos) => void
+    turnLabels: MemberTurnAvailabilityProps['labels']
+    expanded: boolean
+    onToggleExpand: () => void
     isDraggable: boolean
     t: OfrendaT
 }
@@ -285,90 +351,141 @@ function MiembroRow({
     onDeleteCancel,
     onDeleteConfirmed,
     onToggleActivo,
+    onDisponibilidadChange,
+    turnLabels,
+    expanded,
+    onToggleExpand,
     isDraggable,
     t,
 }: Readonly<MiembroRowProps>) {
     const Row = isDraggable ? Reorder.Item : motion.div
+    const accent = color === 'emerald' ? 'emerald' : 'blue'
+    const disp = normalizeMiembroDisponibilidad(miembro)
+    const showTurnSummary = !isPendingDelete && miembro.activo
+    const canExpandTurns = canEdit && showTurnSummary
 
     return (
         <Row
             value={isDraggable ? miembro : undefined}
             layout
-            className={`flex items-center gap-3 px-3 py-2.5 bg-background border rounded-2xl transition-all ${getRowClass(isPendingDelete, miembro.activo)}`}
-            whileDrag={isDraggable ? { scale: 1.02, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } : undefined}
+            className={`flex flex-col px-3 py-2.5 bg-background border rounded-2xl transition-all ${getRowClass(isPendingDelete, miembro.activo)}`}
+            whileDrag={isDraggable ? { scale: 1.01, boxShadow: '0 8px 24px rgba(0,0,0,0.1)' } : undefined}
+            data-testid={`ofrenda-miembro-row-${miembro.id}`}
         >
-            {/* Grip */}
-            {isDraggable && (
-                <div className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground touch-manipulation p-1 shrink-0">
-                    <GripVertical className="w-4 h-4" />
-                </div>
-            )}
-
-            {/* Número de orden */}
-            <span className={`text-xs font-black w-5 text-center text-${color}-600 dark:text-${color}-400 shrink-0`}>
-                {posicion}
-            </span>
-
-            {/* Nombre */}
-            <span className={`flex-1 text-sm font-semibold ${miembro.activo ? '' : 'line-through text-muted-foreground'}`}>
-                {miembro.nombre}
-            </span>
-
-            {/* Badge estado */}
-            <AnimatePresence mode="wait">
-                {isPendingDelete ? null : (
-                    <motion.span
-                        key={`badge-${miembro.activo}`}
-                        initial={{ opacity: 0, scale: 0.85 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.85 }}
-                        transition={{ duration: 0.15 }}
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${
-                            miembro.activo
-                                ? `bg-${color}-500/10 text-${color}-700 dark:text-${color}-300`
-                                : 'bg-muted text-muted-foreground'
-                        }`}
-                    >
-                        {miembro.activo ? t('ofrenda.people.active') : t('ofrenda.people.inactive')}
-                    </motion.span>
+            <div className="flex items-center gap-2 min-w-0">
+                {isDraggable && (
+                    <div className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground touch-manipulation p-1 shrink-0">
+                        <GripVertical className="w-4 h-4" />
+                    </div>
                 )}
-            </AnimatePresence>
 
-            {/* Acciones normales */}
-            {canEdit && !isPendingDelete && (
-                <MiembroAcciones
-                    miembro={miembro}
-                    onToggleActivo={onToggleActivo}
-                    onDeleteRequest={onDeleteRequest}
-                    t={t}
-                />
-            )}
+                <span className={`text-xs font-black w-5 text-center text-${color}-600 dark:text-${color}-400 shrink-0`}>
+                    {posicion}
+                </span>
 
-            {/* Confirmación inline de borrado */}
-            <AnimatePresence>
-                {isPendingDelete && (
-                    <motion.div
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 'auto' }}
-                        exit={{ opacity: 0, width: 0 }}
-                        transition={{ duration: 0.18 }}
-                        className="flex items-center gap-1.5 overflow-hidden shrink-0"
+                <span className={`flex-1 min-w-0 text-sm font-semibold truncate ${miembro.activo ? '' : 'line-through text-muted-foreground'}`}>
+                    {miembro.nombre}
+                </span>
+
+                {showTurnSummary && (
+                    <TurnAvailabilityDots
+                        value={disp}
+                        color={accent}
+                        testIdPrefix={`ofrenda-member-turns-${miembro.id}`}
+                    />
+                )}
+
+                <AnimatePresence mode="wait">
+                    {isPendingDelete ? null : (
+                        <motion.span
+                            key={`badge-${miembro.activo}`}
+                            initial={{ opacity: 0, scale: 0.85 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.85 }}
+                            transition={{ duration: 0.15 }}
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 hidden sm:inline ${
+                                miembro.activo
+                                    ? `bg-${color}-500/10 text-${color}-700 dark:text-${color}-300`
+                                    : 'bg-muted text-muted-foreground'
+                            }`}
+                        >
+                            {miembro.activo ? t('ofrenda.people.active') : t('ofrenda.people.inactive')}
+                        </motion.span>
+                    )}
+                </AnimatePresence>
+
+                {canExpandTurns && (
+                    <button
+                        type="button"
+                        onClick={onToggleExpand}
+                        className="p-1.5 rounded-lg hover:bg-muted/60 text-muted-foreground touch-manipulation min-w-[36px] min-h-[36px] flex items-center justify-center shrink-0"
+                        aria-expanded={expanded}
+                        aria-label={
+                            expanded
+                                ? interpolate(t('ofrenda.people.turns.collapse'), { name: miembro.nombre })
+                                : interpolate(t('ofrenda.people.turns.expand'), { name: miembro.nombre })
+                        }
+                        data-testid={`ofrenda-member-turns-toggle-${miembro.id}`}
                     >
-                        <span className="text-xs font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
-                            {t('ofrenda.people.deleteConfirm')}
-                        </span>
-                        <button
-                            onClick={onDeleteConfirmed}
-                            className="px-2.5 py-1 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors touch-manipulation whitespace-nowrap"
+                        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                )}
+
+                {canEdit && !isPendingDelete && (
+                    <MiembroAcciones
+                        miembro={miembro}
+                        onToggleActivo={onToggleActivo}
+                        onDeleteRequest={onDeleteRequest}
+                        t={t}
+                    />
+                )}
+
+                <AnimatePresence>
+                    {isPendingDelete && (
+                        <motion.div
+                            initial={{ opacity: 0, width: 0 }}
+                            animate={{ opacity: 1, width: 'auto' }}
+                            exit={{ opacity: 0, width: 0 }}
+                            transition={{ duration: 0.18 }}
+                            className="flex flex-wrap items-center justify-end gap-1.5 overflow-hidden shrink-0 ml-auto"
                         >
-                            {t('ofrenda.people.deleteYes')}
-                        </button>
-                        <button
-                            onClick={onDeleteCancel}
-                            className="px-2.5 py-1 text-xs font-medium border border-border rounded-lg hover:bg-muted transition-colors touch-manipulation"
-                        >
-                            {t('ofrenda.people.cancel')}
-                        </button>
+                            <span className="text-xs font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
+                                {t('ofrenda.people.deleteConfirm')}
+                            </span>
+                            <button
+                                onClick={onDeleteConfirmed}
+                                className="px-2.5 py-1 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors touch-manipulation whitespace-nowrap"
+                            >
+                                {t('ofrenda.people.deleteYes')}
+                            </button>
+                            <button
+                                onClick={onDeleteCancel}
+                                className="px-2.5 py-1 text-xs font-medium border border-border rounded-lg hover:bg-muted transition-colors touch-manipulation"
+                            >
+                                {t('ofrenda.people.cancel')}
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            <AnimatePresence initial={false}>
+                {expanded && showTurnSummary && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden border-t border-border/40 mt-2"
+                    >
+                        <MemberTurnAvailability
+                            value={disp}
+                            onChange={next => onDisponibilidadChange(miembro, next)}
+                            disabled={!canEdit}
+                            color={accent}
+                            labels={turnLabels}
+                            testIdPrefix={`ofrenda-member-turns-${miembro.id}`}
+                        />
                     </motion.div>
                 )}
             </AnimatePresence>

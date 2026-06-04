@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Search, Check, User } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { formatServicioFechaLabel } from './ofrendaLocale'
 import { OfrendaLiquidShell, diaTipoToAccent, useOfrendaMobileOrTablet } from './OfrendaLiquidShell'
-import type { OfrMiembro } from './actions'
-import type { OfrServicio } from './actions'
+import type { OfrMiembro, OfrServicio } from './actions'
+import { puedeMiembroEnTurno } from './ofrendaMemberAvailability'
 
 export interface PersonaPickerContext {
     servicio: OfrServicio
@@ -26,13 +26,13 @@ interface PersonaPickerProps {
 }
 
 function MemberList({
-    filtered,
+    members,
     selectedId,
     onSelect,
     onClose,
     t,
 }: Readonly<{
-    filtered: OfrMiembro[]
+    members: Array<OfrMiembro & { elegibleEnTurno: boolean }>
     selectedId: string | null
     onSelect: (id: string | null) => void
     onClose: () => void
@@ -56,25 +56,37 @@ function MemberList({
                 <span className="flex-1 font-medium">{t('ofrenda.picker.unassign')}</span>
                 {unassignSelected && <Check className="w-4 h-4 shrink-0" aria-hidden />}
             </button>
-            {filtered.map(m => {
+            {members.map(m => {
                 const isSel = m.id === selectedId
+                const outOfTurn = !m.elegibleEnTurno
                 return (
                     <button
                         key={m.id}
                         type="button"
                         onClick={() => { onSelect(m.id); onClose() }}
-                        className={`${rowBase} ${isSel ? 'ofrenda-liquid-member--selected font-bold' : ''}`}
+                        className={`${rowBase} ${isSel ? 'ofrenda-liquid-member--selected font-bold' : ''} ${outOfTurn ? 'opacity-90' : ''}`}
                         data-testid={`ofrenda-picker-member-${m.id}`}
+                        data-elegible-turno={m.elegibleEnTurno ? 'true' : 'false'}
                     >
                         <span className="ofrenda-liquid-avatar flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs">
                             {m.nombre.slice(0, 2).toUpperCase()}
                         </span>
-                        <span className="flex-1 truncate">{m.nombre}</span>
+                        <span className="flex-1 min-w-0">
+                            <span className="block truncate">{m.nombre}</span>
+                            {outOfTurn && (
+                                <span
+                                    className="mt-0.5 block text-[10px] font-semibold text-amber-700 dark:text-amber-300"
+                                    data-testid={`ofrenda-picker-out-of-turn-${m.id}`}
+                                >
+                                    {t('ofrenda.picker.outOfTurn')}
+                                </span>
+                            )}
+                        </span>
                         {isSel && <Check className="w-4 h-4 shrink-0" aria-hidden />}
                     </button>
                 )
             })}
-            {filtered.length === 0 && (
+            {members.length === 0 && (
                 <p className="px-4 py-8 text-sm text-center text-slate-500">—</p>
             )}
         </div>
@@ -94,6 +106,24 @@ export function PersonaPicker({
     const [search, setSearch] = useState('')
     const searchRef = useRef<HTMLInputElement>(null)
 
+    const diaTipo = context.servicio.dia_tipo
+
+    const sortedMembers = useMemo(() => {
+        const q = search.trim().toLowerCase()
+        const withFlag = miembros
+            .filter(m => m.nombre.toLowerCase().includes(q))
+            .map(m => ({
+                ...m,
+                elegibleEnTurno: puedeMiembroEnTurno(m, diaTipo),
+            }))
+        return withFlag.sort((a, b) => {
+            const orderA = a.elegibleEnTurno ? 0 : 1
+            const orderB = b.elegibleEnTurno ? 0 : 1
+            if (orderA !== orderB) return orderA - orderB
+            return a.nombre.localeCompare(b.nombre, language)
+        })
+    }, [miembros, search, diaTipo, language])
+
     const selectedName = miembros.find(m => m.id === selectedId)?.nombre ?? t('ofrenda.picker.unassign')
 
     useEffect(() => {
@@ -104,10 +134,6 @@ export function PersonaPicker({
         const tId = setTimeout(() => searchRef.current?.focus(), isMobileOrTablet ? 220 : 120)
         return () => clearTimeout(tId)
     }, [open, isMobileOrTablet])
-
-    const filtered = miembros.filter(m =>
-        m.nombre.toLowerCase().includes(search.trim().toLowerCase())
-    )
 
     const fechaLabel = formatServicioFechaLabel(
         language,
@@ -156,7 +182,7 @@ export function PersonaPicker({
                 </div>
                 <div className="ofrenda-liquid-picker__body min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50/80">
                     <MemberList
-                        filtered={filtered}
+                        members={sortedMembers}
                         selectedId={selectedId}
                         onSelect={onSelect}
                         onClose={onClose}

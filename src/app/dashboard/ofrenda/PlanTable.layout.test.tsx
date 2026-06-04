@@ -8,17 +8,15 @@ import { scrollLeftForWeekIndex } from './planTableScroll'
 import { PlanTable } from './PlanTable'
 import type { PlanCompleto, OfrMiembro } from './actions'
 import { planTableMinWidthPx } from './planTableLayout'
+import { makeOfrMiembro } from './ofrendaTestFixtures'
 
 const miembros: OfrMiembro[] = [
-    {
+    makeOfrMiembro({
         id: 'm1',
         nombre: 'Ana Test',
         grupo: 1,
-        activo: true,
         orden: 0,
-        profile_id: null,
-        created_at: '2026-01-01T00:00:00Z',
-    },
+    }),
 ]
 
 function buildPlan(serviceCount: number): PlanCompleto {

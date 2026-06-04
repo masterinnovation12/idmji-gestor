@@ -10,6 +10,9 @@ import { PlanTable } from './PlanTable'
 import { ExportPanel } from './ExportPanel'
 import { getPlan, generarORegenerarPlan, updateSacosConfig, eliminarPlan } from './actions'
 import type { OfrMiembro, OfrPlan, PlanCompleto } from './actions'
+import { generarFechasDelPlan } from '@/lib/utils/ofrendaEngine'
+import { validarDisponibilidadParaGenerar } from './ofrendaMemberAvailability'
+import { formatDisponibilidadProblemas } from './ofrendaGeneracionValidation'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import type { TranslationKey } from '@/lib/i18n/types'
 import { getTituloMes, interpolate } from './ofrendaLocale'
@@ -82,10 +85,28 @@ function OfrendaPageClientInner({
 
     // ── Generar / Regenerar ──────────────────────────────────────────────────
     const handleGenerar = useCallback(async (grupo?: 1 | 2) => {
+        const fechasPlan = generarFechasDelPlan(anio, mes)
+        const precheck = validarDisponibilidadParaGenerar(
+            fechasPlan,
+            miembros,
+            grupo ?? null,
+        )
+        if (!precheck.ok) {
+            feedback.planError(
+                t('ofrenda.toast.generateError'),
+                formatDisponibilidadProblemas(t, precheck.problemas),
+            )
+            return
+        }
+
         setIsLoading(true)
         const result = await generarORegenerarPlan(anio, mes, undefined, grupo ?? null)
         if (result.error) {
-            feedback.planError(t('ofrenda.toast.generateError'), result.error)
+            const msg =
+                result.error === 'DISPONIBILIDAD_INSUFICIENTE' && result.problemas
+                    ? formatDisponibilidadProblemas(t, result.problemas)
+                    : formatOfrendaActionError(result.error)
+            feedback.planError(t('ofrenda.toast.generateError'), msg)
             setIsLoading(false)
             return
         }
@@ -101,7 +122,7 @@ function OfrendaPageClientInner({
                 plan ? t('ofrenda.toast.planRegeneratedDesc') : t('ofrenda.toast.planGeneratedDesc'),
             )
         }
-    }, [anio, mes, plan, t, feedback])
+    }, [anio, mes, plan, miembros, t, feedback])
 
     // ── Callback para PlanTable cuando hay cambios de asignación ─────────────
     const handleAsignacionChange = useCallback(async () => {
@@ -351,7 +372,7 @@ function OfrendaPageClientInner({
 
 // ─── Subcomponentes internos ──────────────────────────────────────────────────
 
-function DeletePlanButton({
+export function DeletePlanButton({
     tituloMes,
     isLoading,
     onConfirm,
@@ -366,18 +387,23 @@ function DeletePlanButton({
     if (confirmOpen) {
         return (
             <div
-                className="flex w-full flex-col gap-2 rounded-2xl border border-red-500/25 bg-red-500/5 p-3 sm:flex-row sm:flex-wrap sm:items-center"
+                className="w-full rounded-2xl border border-red-500/30 bg-red-500/8 p-3 shadow-sm"
                 data-testid="ofrenda-delete-plan-confirm"
+                role="alertdialog"
+                aria-labelledby="ofrenda-delete-plan-confirm-text"
             >
-                <span className="text-xs font-semibold text-red-600 dark:text-red-400 text-center sm:text-left flex-1 min-w-0">
+                <p
+                    id="ofrenda-delete-plan-confirm-text"
+                    className="text-sm font-semibold text-red-700 dark:text-red-300 leading-snug mb-3"
+                >
                     {interpolate(t('ofrenda.deletePlan.confirm'), { month: tituloMes })}
-                </span>
-                <div className="flex gap-2 w-full sm:w-auto">
+                </p>
+                <div className="grid grid-cols-2 gap-2">
                     <button
                         type="button"
                         onClick={() => { setConfirmOpen(false); onConfirm() }}
                         disabled={isLoading}
-                        className="flex-1 sm:flex-initial px-3 py-2.5 min-h-[44px] text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl disabled:opacity-50 touch-manipulation"
+                        className="w-full px-3 py-3 min-h-[48px] text-sm font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl disabled:opacity-50 touch-manipulation order-1"
                     >
                         {t('ofrenda.deletePlan.yes')}
                     </button>
@@ -385,7 +411,7 @@ function DeletePlanButton({
                         type="button"
                         onClick={() => setConfirmOpen(false)}
                         disabled={isLoading}
-                        className="flex-1 sm:flex-initial px-3 py-2.5 min-h-[44px] text-xs font-medium border border-border rounded-xl hover:bg-muted touch-manipulation"
+                        className="w-full px-3 py-3 min-h-[48px] text-sm font-semibold border-2 border-border bg-background rounded-xl hover:bg-muted touch-manipulation order-2"
                     >
                         {t('ofrenda.deletePlan.no')}
                     </button>
