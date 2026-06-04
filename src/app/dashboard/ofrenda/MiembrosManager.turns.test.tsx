@@ -57,6 +57,25 @@ describe('MiembrosManager — turnos colapsables y guardado explícito', () => {
         expect(screen.queryByTestId('ofrenda-member-turns-m1-puede_jueves')).not.toBeInTheDocument()
     })
 
+    it('muestra el nombre completo sin truncar', () => {
+        const largo = makeOfrMiembro({
+            id: 'm2',
+            nombre: 'Alejandro Perez Martinez',
+            grupo: 1,
+            orden: 1,
+        })
+        render(
+            <MiembrosManager
+                initialMiembros={[...initial, largo]}
+                canEdit
+                onChange={vi.fn()}
+            />,
+        )
+        const nameEl = screen.getByTestId('ofrenda-miembro-name-m2')
+        expect(nameEl).toHaveTextContent('Alejandro Perez Martinez')
+        expect(nameEl).toHaveAttribute('title', 'Alejandro Perez Martinez')
+    })
+
     it('al desmarcar domingo mañana guarda false explícito en BD', async () => {
         vi.mocked(upsertMiembro).mockResolvedValue({
             data: makeOfrMiembro({
