@@ -1,13 +1,9 @@
 /**
  * InstallPrompt - IDMJI Gestor de Púlpito
  *
- * Invita a instalar la PWA. Coordinado con NotificationPrompt vía PromptsContext.
- *
- * Reglas:
- * - Fuente de verdad: standalone + getInstalledRelatedApps (no localStorage obsoleto)
- * - "Más tarde" / "Entendido": ocultar hasta recargar (sessionStorage)
- * - Cerrar (X): no mostrar durante REPROMPT_DAYS
- * - Android sin beforeinstallprompt: instrucciones del menú del navegador
+ * - Android/Chrome: solo si beforeinstallprompt (diálogo nativo al pulsar Instalar)
+ * - iOS: instrucciones Añadir a pantalla de inicio (no hay BIP)
+ * - Sin fallback manual: "Crear acceso directo" no es instalación PWA real
  */
 
 'use client'
@@ -21,9 +17,9 @@ import { useTheme } from '@/lib/theme/ThemeProvider'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { usePrompts } from '@/lib/PromptsContext'
 import {
-    ANDROID_FALLBACK_DELAY_MS,
     IOS_PROMPT_DELAY_MS,
     INSTALL_PROMPT_DELAY_MS,
+    PWA_SW_READY_EVENT,
     dismissInstallPromptForSession,
     dismissInstallPromptLongTerm,
     detectPlatform,
@@ -32,7 +28,9 @@ import {
     markPwaInstalled,
     readInstallPromptStorage,
     shouldShowInstallPrompt,
+    shouldUseNativeInstallFlow,
     syncPwaInstalledStorage,
+    waitForInstallServiceWorker,
     type RelatedAppInstallState,
 } from '@/lib/pwa-install-prompt'
 
@@ -44,14 +42,15 @@ interface BeforeInstallPromptEvent extends Event {
 export function InstallPrompt() {
     const [showPrompt, setShowPrompt] = useState(false)
     const [showIOSInstructions, setShowIOSInstructions] = useState(false)
-    const [showManualInstall, setShowManualInstall] = useState(false)
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
     const [relatedAppInstalled, setRelatedAppInstalled] = useState<RelatedAppInstallState>(null)
     const [installCheckReady, setInstallCheckReady] = useState(false)
+    const [swReady, setSwReady] = useState(false)
     const { isDark } = useTheme()
     const { t } = useI18n()
     const prompts = usePrompts()
     const showScheduledRef = useRef(false)
+    const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null)
 
     const platform = useMemo(() => {
         if (typeof window === 'undefined') return null
@@ -78,11 +77,14 @@ export function InstallPrompt() {
         if (!canOfferInstallPrompt() || showScheduledRef.current) return
         if (prompts?.activePrompt !== null && prompts.activePrompt !== 'install') return
 
+        const isNativeFlow = platform && shouldUseNativeInstallFlow(platform.name)
+        if (isNativeFlow && !deferredPromptRef.current) return
+
         showScheduledRef.current = true
         markPromptShownThisSession(window)
         prompts?.setActivePrompt('install')
         setShowPrompt(true)
-    }, [canOfferInstallPrompt, prompts])
+    }, [canOfferInstallPrompt, platform, prompts])
 
     useEffect(() => {
         let cancelled = false
@@ -101,18 +103,32 @@ export function InstallPrompt() {
     }, [])
 
     useEffect(() => {
-        if (!installCheckReady || !canOfferInstallPrompt()) return
+        if (typeof window === 'undefined') return
+
+        const onSwReady = () => setSwReady(true)
+        window.addEventListener(PWA_SW_READY_EVENT, onSwReady)
+
+        void waitForInstallServiceWorker(window.navigator).then((ready) => {
+            if (ready) setSwReady(true)
+        })
+
+        return () => window.removeEventListener(PWA_SW_READY_EVENT, onSwReady)
+    }, [])
+
+    useEffect(() => {
+        if (!installCheckReady || !swReady || !canOfferInstallPrompt()) return
 
         let isMounted = true
         let showTimer: ReturnType<typeof setTimeout> | null = null
         let iosTimer: ReturnType<typeof setTimeout> | null = null
-        let fallbackTimer: ReturnType<typeof setTimeout> | null = null
 
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault()
             if (!isMounted) return
-            setDeferredPrompt(e as BeforeInstallPromptEvent)
-            setShowManualInstall(false)
+
+            const bip = e as BeforeInstallPromptEvent
+            deferredPromptRef.current = bip
+            setDeferredPrompt(bip)
 
             if (showTimer) clearTimeout(showTimer)
             showTimer = setTimeout(() => {
@@ -126,22 +142,15 @@ export function InstallPrompt() {
             iosTimer = setTimeout(() => {
                 if (isMounted) revealPrompt()
             }, IOS_PROMPT_DELAY_MS)
-        } else if (platform?.name === 'android' || platform?.name === 'other') {
-            fallbackTimer = setTimeout(() => {
-                if (!isMounted || showScheduledRef.current) return
-                setShowManualInstall(true)
-                revealPrompt()
-            }, ANDROID_FALLBACK_DELAY_MS)
         }
 
         return () => {
             isMounted = false
             if (showTimer) clearTimeout(showTimer)
             if (iosTimer) clearTimeout(iosTimer)
-            if (fallbackTimer) clearTimeout(fallbackTimer)
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
         }
-    }, [installCheckReady, canOfferInstallPrompt, platform, revealPrompt])
+    }, [installCheckReady, swReady, canOfferInstallPrompt, platform, revealPrompt])
 
     useEffect(() => {
         const handleAppInstalled = () => {
@@ -161,10 +170,7 @@ export function InstallPrompt() {
             return
         }
 
-        if (!deferredPrompt) {
-            setShowManualInstall(true)
-            return
-        }
+        if (!deferredPrompt) return
 
         try {
             await deferredPrompt.prompt()
@@ -178,9 +184,9 @@ export function InstallPrompt() {
             }
         } catch (error) {
             console.error('Error durante instalación:', error)
-            setShowManualInstall(true)
         }
 
+        deferredPromptRef.current = null
         setDeferredPrompt(null)
     }
 
@@ -188,7 +194,6 @@ export function InstallPrompt() {
         dismissInstallPromptForSession(window)
         setShowPrompt(false)
         setShowIOSInstructions(false)
-        setShowManualInstall(false)
         prompts?.onInstallPromptClosed()
     }
 
@@ -196,13 +201,10 @@ export function InstallPrompt() {
         dismissInstallPromptLongTerm(window)
         setShowPrompt(false)
         setShowIOSInstructions(false)
-        setShowManualInstall(false)
         prompts?.onInstallPromptClosed()
     }
 
     if (!showPrompt) return null
-
-    const manualInstallVisible = showManualInstall && !deferredPrompt && platform?.name !== 'ios'
 
     return (
         <AnimatePresence>
@@ -229,7 +231,7 @@ export function InstallPrompt() {
                         <X size={18} />
                     </button>
 
-                    {!showIOSInstructions && !manualInstallVisible ? (
+                    {!showIOSInstructions ? (
                         <div className="p-5">
                             <div className="flex items-start gap-4">
                                 <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${isDark ? 'bg-blue-500/20' : 'bg-blue-50'
@@ -275,29 +277,6 @@ export function InstallPrompt() {
                                     {t('pwa.install')}
                                 </Button>
                             </div>
-                        </div>
-                    ) : manualInstallVisible ? (
-                        <div className="p-5">
-                            <h4 className={`font-bold text-base text-center mb-3 ${isDark ? 'text-white' : 'text-slate-900'
-                                }`}>
-                                {t('pwa.manualTitle')}
-                            </h4>
-                            <p className={`text-sm text-center mb-4 ${isDark ? 'text-slate-400' : 'text-slate-600'
-                                }`}>
-                                {t('pwa.manualDesc')}
-                            </p>
-                            <ol className={`space-y-2 text-sm list-decimal list-inside ${isDark ? 'text-slate-300' : 'text-slate-700'
-                                }`}>
-                                <li>{t('pwa.manualStep1')}</li>
-                                <li>{t('pwa.manualStep2')}</li>
-                            </ol>
-                            <Button
-                                onClick={handleLater}
-                                className="w-full mt-5 h-11 rounded-xl font-medium bg-blue-600 hover:bg-blue-700 text-white"
-                                data-testid="pwa-manual-understood"
-                            >
-                                {t('pwa.understood')}
-                            </Button>
                         </div>
                     ) : (
                         <div className="p-5">

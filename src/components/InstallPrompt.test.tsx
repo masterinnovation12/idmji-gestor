@@ -6,10 +6,10 @@ import { PromptsProvider } from '@/lib/PromptsContext'
 import { I18nProvider } from '@/lib/i18n/I18nProvider'
 import { ThemeProvider } from '@/lib/theme/ThemeProvider'
 import {
-    ANDROID_FALLBACK_DELAY_MS,
     IOS_PROMPT_DELAY_MS,
     INSTALL_PROMPT_DELAY_MS,
     PWA_STORAGE_KEYS,
+    PWA_SW_READY_EVENT,
 } from '@/lib/pwa-install-prompt'
 
 vi.mock('next/image', () => ({
@@ -30,6 +30,7 @@ function renderInstallPrompt() {
 
 async function flushInstallSync() {
     await act(async () => {
+        signalServiceWorkerReady()
         await Promise.resolve()
         await Promise.resolve()
     })
@@ -47,12 +48,26 @@ function stubAndroidChrome() {
     })
 }
 
+function stubServiceWorkerReady() {
+    Object.defineProperty(window.navigator, 'serviceWorker', {
+        configurable: true,
+        value: {
+            ready: Promise.resolve({} as ServiceWorkerRegistration),
+        },
+    })
+}
+
+function signalServiceWorkerReady() {
+    window.dispatchEvent(new CustomEvent(PWA_SW_READY_EVENT))
+}
+
 describe('InstallPrompt', () => {
     beforeEach(() => {
         vi.useFakeTimers({ shouldAdvanceTime: true })
         localStorage.clear()
         sessionStorage.clear()
         stubAndroidChrome()
+        stubServiceWorkerReady()
         vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
             matches: false,
             media: query,
@@ -85,6 +100,18 @@ describe('InstallPrompt', () => {
         expect(sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBe('true')
     })
 
+    it('no muestra fallback manual en Android sin beforeinstallprompt', async () => {
+        renderInstallPrompt()
+        await flushInstallSync()
+
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(15000)
+        })
+
+        expect(screen.queryByTestId('pwa-install-prompt')).not.toBeInTheDocument()
+        expect(screen.queryByText(/Instalar desde el navegador/i)).not.toBeInTheDocument()
+    })
+
     it('Más tarde oculta sin dismissedAt prolongado', async () => {
         renderInstallPrompt()
         await flushInstallSync()
@@ -115,19 +142,20 @@ describe('InstallPrompt', () => {
         expect(localStorage.getItem(PWA_STORAGE_KEYS.DISMISS_AT)).not.toBeNull()
     })
 
-    it('limpia pwa_installed obsoleto y muestra fallback manual sin BIP', async () => {
+    it('limpia estado obsoleto tras desinstalar sin mostrar banner sin BIP', async () => {
         localStorage.setItem(PWA_STORAGE_KEYS.INSTALLED, 'true')
+        localStorage.setItem(PWA_STORAGE_KEYS.DISMISS_AT, '123')
 
         renderInstallPrompt()
         await flushInstallSync()
 
         await act(async () => {
-            await vi.advanceTimersByTimeAsync(ANDROID_FALLBACK_DELAY_MS)
+            await vi.advanceTimersByTimeAsync(10000)
         })
 
         expect(localStorage.getItem(PWA_STORAGE_KEYS.INSTALLED)).toBeNull()
-        expect(screen.getByTestId('pwa-install-prompt')).toBeInTheDocument()
-        expect(screen.getByText(/Instalar desde el navegador/i)).toBeInTheDocument()
+        expect(localStorage.getItem(PWA_STORAGE_KEYS.DISMISS_AT)).toBeNull()
+        expect(screen.queryByTestId('pwa-install-prompt')).not.toBeInTheDocument()
     })
 
     it('no muestra si getInstalledRelatedApps confirma instalación', async () => {
@@ -141,7 +169,7 @@ describe('InstallPrompt', () => {
 
         await act(async () => {
             window.dispatchEvent(new Event('beforeinstallprompt'))
-            await vi.advanceTimersByTimeAsync(ANDROID_FALLBACK_DELAY_MS)
+            await vi.advanceTimersByTimeAsync(INSTALL_PROMPT_DELAY_MS)
         })
 
         expect(screen.queryByTestId('pwa-install-prompt')).not.toBeInTheDocument()

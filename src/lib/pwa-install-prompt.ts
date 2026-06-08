@@ -16,8 +16,8 @@ export const REPROMPT_DAYS = 14
 
 export const INSTALL_PROMPT_DELAY_MS = 5000
 export const IOS_PROMPT_DELAY_MS = 4000
-/** Si Android no dispara beforeinstallprompt, mostrar instrucciones manuales */
-export const ANDROID_FALLBACK_DELAY_MS = 8000
+
+export const PWA_SW_READY_EVENT = 'idmji-sw-ready'
 
 export type PwaPlatform = 'ios' | 'android' | 'other'
 
@@ -89,10 +89,34 @@ export async function syncPwaInstalledStorage(
     if (related === true) {
         win.localStorage.setItem(PWA_STORAGE_KEYS.INSTALLED, 'true')
     } else if (related === false) {
-        win.localStorage.removeItem(PWA_STORAGE_KEYS.INSTALLED)
+        resetInstallPromptAfterUninstall(win)
     }
 
     return related
+}
+
+/** Tras desinstalar: estado limpio como primera visita en este navegador */
+export function resetInstallPromptAfterUninstall(win: Window): void {
+    win.localStorage.removeItem(PWA_STORAGE_KEYS.INSTALLED)
+    win.localStorage.removeItem(PWA_STORAGE_KEYS.DISMISS_AT)
+    win.sessionStorage.removeItem(PWA_STORAGE_KEYS.SESSION_SHOWN)
+}
+
+export async function waitForInstallServiceWorker(
+    nav: Navigator = typeof navigator !== 'undefined' ? navigator : ({} as Navigator)
+): Promise<boolean> {
+    if (!('serviceWorker' in nav)) return false
+    try {
+        await nav.serviceWorker.ready
+        return true
+    } catch {
+        return false
+    }
+}
+
+/** Android/Chrome: solo banner si hay beforeinstallprompt (instalación nativa) */
+export function shouldUseNativeInstallFlow(platform: PwaPlatform): boolean {
+    return platform === 'android' || platform === 'other'
 }
 
 export interface ShouldShowInstallPromptInput {
