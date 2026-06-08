@@ -11,6 +11,8 @@ import {
     dismissInstallPromptLongTerm,
     readInstallPromptStorage,
     markPromptShownThisSession,
+    resetInstallPromptAfterUninstall,
+    shouldUseNativeInstallFlow,
 } from './pwa-install-prompt'
 
 function createStorage(): Storage {
@@ -168,8 +170,12 @@ describe('syncPwaInstalledStorage', () => {
 
     it('limpia pwa_installed obsoleto cuando related apps está vacío', async () => {
         win.localStorage.setItem(PWA_STORAGE_KEYS.INSTALLED, 'true')
+        win.localStorage.setItem(PWA_STORAGE_KEYS.DISMISS_AT, '123')
+        win.sessionStorage.setItem(PWA_STORAGE_KEYS.SESSION_SHOWN, 'true')
         await expect(syncPwaInstalledStorage(win)).resolves.toBe(false)
         expect(win.localStorage.getItem(PWA_STORAGE_KEYS.INSTALLED)).toBeNull()
+        expect(win.localStorage.getItem(PWA_STORAGE_KEYS.DISMISS_AT)).toBeNull()
+        expect(win.sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBeNull()
     })
 
     it('conserva marca cuando related apps confirma instalación', async () => {
@@ -208,6 +214,27 @@ describe('checkRelatedAppInstalled', () => {
     it('devuelve null si la API no existe', async () => {
         vi.stubGlobal('navigator', {})
         await expect(checkRelatedAppInstalled()).resolves.toBeNull()
+    })
+})
+
+describe('resetInstallPromptAfterUninstall', () => {
+    it('borra todas las marcas de instalación y cierre', () => {
+        const win = createWindow()
+        win.localStorage.setItem(PWA_STORAGE_KEYS.INSTALLED, 'true')
+        win.localStorage.setItem(PWA_STORAGE_KEYS.DISMISS_AT, '999')
+        win.sessionStorage.setItem(PWA_STORAGE_KEYS.SESSION_SHOWN, 'true')
+        resetInstallPromptAfterUninstall(win)
+        expect(win.localStorage.getItem(PWA_STORAGE_KEYS.INSTALLED)).toBeNull()
+        expect(win.localStorage.getItem(PWA_STORAGE_KEYS.DISMISS_AT)).toBeNull()
+        expect(win.sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBeNull()
+    })
+})
+
+describe('shouldUseNativeInstallFlow', () => {
+    it('android y desktop usan BIP nativo', () => {
+        expect(shouldUseNativeInstallFlow('android')).toBe(true)
+        expect(shouldUseNativeInstallFlow('other')).toBe(true)
+        expect(shouldUseNativeInstallFlow('ios')).toBe(false)
     })
 })
 

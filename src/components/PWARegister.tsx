@@ -1,11 +1,10 @@
 'use client'
 
 import { useEffect } from 'react'
+import { PWA_SW_READY_EVENT } from '@/lib/pwa-install-prompt'
 
 export function PWARegister() {
     useEffect(() => {
-        // No registrar Service Worker en desarrollo (localhost)
-        // Excepción: NEXT_PUBLIC_ENABLE_PUSH_DEV=true permite probar notificaciones push en local
         const enablePushInDev = process.env.NEXT_PUBLIC_ENABLE_PUSH_DEV === 'true'
         const isDevelopment =
             typeof window !== 'undefined' &&
@@ -14,7 +13,6 @@ export function PWARegister() {
                 process.env.NODE_ENV === 'development')
 
         if (isDevelopment && !enablePushInDev) {
-            // En desarrollo, desregistrar cualquier SW existente y limpiar caché
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then((registrations) => {
                     registrations.forEach((registration) => {
@@ -23,7 +21,6 @@ export function PWARegister() {
                     })
                 })
 
-                // Limpiar cachés
                 if ('caches' in window) {
                     caches.keys().then((cacheNames) => {
                         cacheNames.forEach((cacheName) => {
@@ -36,11 +33,16 @@ export function PWARegister() {
             return
         }
 
-        // Solo registrar en producción
         if ('serviceWorker' in navigator && typeof window !== 'undefined') {
-            navigator.serviceWorker.register('/sw.js').catch((error) => {
-                console.error('SW registration failed: ', error)
-            })
+            navigator.serviceWorker
+                .register('/sw.js', { scope: '/' })
+                .then(() => navigator.serviceWorker.ready)
+                .then(() => {
+                    window.dispatchEvent(new CustomEvent(PWA_SW_READY_EVENT))
+                })
+                .catch((error) => {
+                    console.error('SW registration failed: ', error)
+                })
         }
     }, [])
 

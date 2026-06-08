@@ -1,0 +1,29 @@
+---
+description: Deploy a producción — test, build, commit, push, merge main y volver a rama actual
+alwaysApply: false
+---
+
+# Deploy a producción
+
+Cuando el usuario pida **subir a producción**, **merge a main**, **test build web** o variantes similares, sigue el workflow completo en:
+
+**`.agent/workflows/deploy-produccion-main.md`**
+
+## Resumen obligatorio
+
+1. Guardar rama actual (`$ramaTrabajo`)
+2. `npm test` → debe pasar
+3. `npm run build` → debe pasar
+4. Commit **solo archivos del cambio** (nunca `git add .` con screenshots/logs)
+5. `git push -u origin HEAD`
+6. `git checkout main` → `git pull` → `git merge $ramaTrabajo` → `git push origin main`
+7. `git checkout $ramaTrabajo`
+
+## Prohibido
+
+- Push/merge sin que el usuario lo pida
+- `git push --force` a `main`
+- Commitear `.env*` o secretos
+- Asumir siempre rama `desarrollo` sin comprobar
+
+`main` en remoto = **producción Vercel**.
