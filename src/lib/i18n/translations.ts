@@ -683,8 +683,11 @@ export const translations = {
         'pwa.iosStep3': 'Pulsa',
         'pwa.add': 'Añadir',
         'pwa.understood': 'Entendido',
-
-        // Notifications
+        'pwa.manualTitle': 'Instalar desde el navegador',
+        'pwa.manualDesc': 'Si no aparece el botón automático, instala manualmente desde el menú del navegador.',
+        'pwa.manualStep1': 'Abre el menú ⋮ (tres puntos) del navegador.',
+        'pwa.manualStep2': 'Elige «Instalar aplicación» o «Añadir a pantalla de inicio».',
+        'pwa.iosInAppWarning': 'Estás en un navegador limitado. Para instalar, abre esta web en Safari.',
         'notifications.prompt.title': '¿Activar notificaciones?',
         'notifications.prompt.desc': 'Recibe recordatorios de tus asignaciones directamente en tu móvil.',
         'notifications.prompt.activate': 'SÍ, ACTIVAR',
@@ -1400,6 +1403,11 @@ export const translations = {
         'pwa.iosStep3': 'Prem',
         'pwa.add': 'Afegir',
         'pwa.understood': 'Entès',
+        'pwa.manualTitle': 'Instal·lar des del navegador',
+        'pwa.manualDesc': 'Si no apareix el botó automàtic, instal·la manualment des del menú del navegador.',
+        'pwa.manualStep1': 'Obre el menú ⋮ (tres punts) del navegador.',
+        'pwa.manualStep2': 'Tria «Instal·lar aplicació» o «Afegir a la pantalla d\'inici».',
+        'pwa.iosInAppWarning': 'Estàs en un navegador limitat. Per instal·lar, obre aquesta web a Safari.',
 
         // Notifications
         'notifications.prompt.title': 'Activar notificacions?',
