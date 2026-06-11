@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 3,
+  "tipo": "plano-calibracion-completo",
+  "modo": "sacos_4",
+  "vista": "3d",
+  "fondo": "png",
+  "exportedAt": "2026-06-11T14:36:32.453Z",
+  "vistas": {
+    "2d": {
+      "lienzo": {
+        "w": 1448,
+        "h": 1316
+      },
+      "layout": {
+        "margenPared": {
+          "izq": 80,
+          "der": 80,
+          "sup": 58,
+          "inf": 120
+        },
+        "pasillo": 64,
+        "asiento": {
+          "w": 26,
+          "h": 24,
+          "gapX": 5,
+          "rowH": 38,
+          "frontY": 900
+        },
+        "pared": {
+          "inset": 14,
+          "stroke": 10
+        },
+        "tarjetas": {
+          "minW": 108,
+          "maxW": 182,
+          "roleFont": 16,
+          "nameFont": 18,
+          "pad": 8
+        },
+        "figuraScale": 1.1,
+        "etiquetaBloque": {
+          "size": 92,
+          "font": 41
+        },
+        "alfolid": {
+          "cx": 338.49227345365887,
+          "cy": 58.04621080393795,
+          "w": 289,
+          "h": 108,
+          "doorW": 30,
+          "doorH": 40
+        },
+        "pulpito": {
+          "cx": 724,
+          "cy": 1170,
+          "tarimaW": 450,
+          "tarimaH": 106,
+          "podiumW": 145,
+          "podiumH": 88,
+          "topW": 88,
+          "topH": 29,
+          "scale": 0.68,
+          "placed": true
+        },
+        "lienzo": {
+          "w": 1448,
+          "h": 1316
+        }
+      },
+      "sacos_8": {
+        "bloques": [
+          { "n": 1, "color": "#ec2f87", "labelText": "1", "labelPos": { "x": 1266, "y": 728 } },
+          { "n": 2, "color": "#14b8b8", "labelText": "2", "labelPos": { "x": 919, "y": 734 } },
+          { "n": 3, "color": "#f97316", "labelText": "3", "labelPos": { "x": 515, "y": 729 } },
+          { "n": 4, "color": "#1688ff", "labelText": "4", "labelPos": { "x": 186, "y": 748 } },
+          { "n": 5, "color": "#7e22ce", "labelText": "5", "labelPos": { "x": 1271, "y": 395 } },
+          { "n": 6, "color": "#13843d", "labelText": "6", "labelPos": { "x": 918, "y": 318 } },
+          { "n": 7, "color": "#f4b000", "labelText": "7", "labelPos": { "x": 530, "y": 424 } },
+          { "n": 8, "color": "#0b4bb3", "labelText": "8", "labelPos": { "x": 187, "y": 448 } }
+        ],
+        "posiciones": [
+          { "id": "B1-ofrendario", "bloque": 1, "rol": "ofrendario", "nombre": "", "card": { "x": 1193, "y": 929 }, "figura": { "x": 1126, "y": 863 } },
+          { "id": "B1-apoyo",      "bloque": 1, "rol": "apoyo",      "nombre": "", "card": { "x": 1340, "y": 927 }, "figura": { "x": 1403, "y": 863 } },
+          { "id": "B2-ofrendario", "bloque": 2, "rol": "ofrendario", "nombre": "", "card": { "x": 799,  "y": 936 }, "figura": { "x": 724,  "y": 870 } },
+          { "id": "B2-apoyo",      "bloque": 2, "rol": "apoyo",      "nombre": "", "card": { "x": 1018, "y": 930 }, "figura": { "x": 1096, "y": 863 } },
+          { "id": "B3-ofrendario", "bloque": 3, "rol": "ofrendario", "nombre": "", "card": { "x": 619,  "y": 934 }, "figura": { "x": 691,  "y": 870 } },
+          { "id": "B3-apoyo",      "bloque": 3, "rol": "apoyo",      "nombre": "", "card": { "x": 422,  "y": 936 }, "figura": { "x": 357,  "y": 872 } },
+          { "id": "B4-ofrendario", "bloque": 4, "rol": "ofrendario", "nombre": "", "card": { "x": 276,  "y": 936 }, "figura": { "x": 324,  "y": 870 } },
+          { "id": "B4-apoyo",      "bloque": 4, "rol": "apoyo",      "nombre": "", "card": { "x": 78,   "y": 930 }, "figura": { "x": 46,   "y": 862 } },
+          { "id": "B5-ofrendario", "bloque": 5, "rol": "ofrendario", "nombre": "", "card": { "x": 1181, "y": 593 }, "figura": { "x": 1123, "y": 518 } },
+          { "id": "B5-apoyo",      "bloque": 5, "rol": "apoyo",      "nombre": "", "card": { "x": 1342, "y": 593 }, "figura": { "x": 1402, "y": 520 } },
+          { "id": "B6-ofrendario", "bloque": 6, "rol": "ofrendario", "nombre": "", "card": { "x": 811,  "y": 560 }, "figura": { "x": 721,  "y": 483 } },
+          { "id": "B6-apoyo",      "bloque": 6, "rol": "apoyo",      "nombre": "", "card": { "x": 1020, "y": 561 }, "figura": { "x": 1092, "y": 485 } },
+          { "id": "B7-ofrendario", "bloque": 7, "rol": "ofrendario", "nombre": "", "card": { "x": 649,  "y": 595 }, "figura": { "x": 352,  "y": 525 } },
+          { "id": "B7-apoyo",      "bloque": 7, "rol": "apoyo",      "nombre": "", "card": { "x": 430,  "y": 595 }, "figura": { "x": 692,  "y": 525 } },
+          { "id": "B8-ofrendario", "bloque": 8, "rol": "ofrendario", "nombre": "", "card": { "x": 265,  "y": 630 }, "figura": { "x": 326,  "y": 560 } },
+          { "id": "B8-apoyo",      "bloque": 8, "rol": "apoyo",      "nombre": "", "card": { "x": 90,   "y": 638 }, "figura": { "x": 45,   "y": 562 } }
+        ]
+      },
+      "sacos_4": {
+        "bloques": [
+          { "n": 1, "color": "#ec2f87", "labelText": "1", "labelPos": { "x": 1276, "y": 552 } },
+          { "n": 2, "color": "#14b8b8", "labelText": "2", "labelPos": { "x": 919,  "y": 552 } },
+          { "n": 3, "color": "#f97316", "labelText": "3", "labelPos": { "x": 538,  "y": 571 } },
+          { "n": 4, "color": "#1688ff", "labelText": "4", "labelPos": { "x": 188,  "y": 585 } }
+        ],
+        "posiciones": [
+          { "id": "B1-ofrendario", "bloque": 1, "rol": "ofrendario", "nombre": "", "card": { "x": 1181, "y": 935 }, "figura": { "x": 1126, "y": 865 } },
+          { "id": "B1-apoyo",      "bloque": 1, "rol": "apoyo",      "nombre": "", "card": { "x": 1349, "y": 929 }, "figura": { "x": 1408, "y": 862 } },
+          { "id": "B2-ofrendario", "bloque": 2, "rol": "ofrendario", "nombre": "", "card": { "x": 798,  "y": 932 }, "figura": { "x": 726,  "y": 863 } },
+          { "id": "B2-apoyo",      "bloque": 2, "rol": "apoyo",      "nombre": "", "card": { "x": 1018, "y": 931 }, "figura": { "x": 1093, "y": 863 } },
+          { "id": "B3-ofrendario", "bloque": 3, "rol": "ofrendario", "nombre": "", "card": { "x": 613,  "y": 931 }, "figura": { "x": 692,  "y": 863 } },
+          { "id": "B3-apoyo",      "bloque": 3, "rol": "apoyo",      "nombre": "", "card": { "x": 428,  "y": 932 }, "figura": { "x": 354,  "y": 862 } },
+          { "id": "B4-ofrendario", "bloque": 4, "rol": "ofrendario", "nombre": "", "card": { "x": 263,  "y": 933 }, "figura": { "x": 320,  "y": 863 } },
+          { "id": "B4-apoyo",      "bloque": 4, "rol": "apoyo",      "nombre": "", "card": { "x": 109,  "y": 934 }, "figura": { "x": 43,   "y": 860 } }
+        ]
+      }
+    },
+    "3d": {
+      "lienzo": {
+        "w": 1024,
+        "h": 768
+      },
+      "layout": {
+        "tarjetas": {
+          "minW": 106,
+          "maxW": 132,
+          "roleFont": 13,
+          "nameFont": 15,
+          "pad": 6
+        },
+        "etiquetaBloque": {
+          "size": 54,
+          "font": 26
+        },
+        "figuraScale": 0.7,
+        "lienzo": {
+          "w": 1024,
+          "h": 768
+        }
+      },
+      "fondos": {
+        "sacos_8": "plano-3d-sacos-8.jpg",
+        "sacos_4": "plano-3d-sacos-4.jpg"
+      },
+      "sacos_8": {
+        "bloques": [
+          { "n": 1, "color": "#ec2f87", "labelText": "1", "labelPos": { "x": 861, "y": 432 } },
+          { "n": 2, "color": "#14b8b8", "labelText": "2", "labelPos": { "x": 643, "y": 427 } },
+          { "n": 3, "color": "#f97316", "labelText": "3", "labelPos": { "x": 402, "y": 427 } },
+          { "n": 4, "color": "#1688ff", "labelText": "4", "labelPos": { "x": 168, "y": 418 } },
+          { "n": 5, "color": "#7e22ce", "labelText": "5", "labelPos": { "x": 813, "y": 231 } },
+          { "n": 6, "color": "#13843d", "labelText": "6", "labelPos": { "x": 628, "y": 234 } },
+          { "n": 7, "color": "#f4b000", "labelText": "7", "labelPos": { "x": 418, "y": 231 } },
+          { "n": 8, "color": "#0b4bb3", "labelText": "8", "labelPos": { "x": 213, "y": 224 } }
+        ],
+        "posiciones": [
+          { "id": "B1-ofrendario", "bloque": 1, "rol": "ofrendario", "nombre": "", "card": { "x": 836, "y": 538 }, "figura": { "x": 787, "y": 483 } },
+          { "id": "B1-apoyo",      "bloque": 1, "rol": "apoyo",      "nombre": "", "card": { "x": 962, "y": 537 }, "figura": { "x": 948, "y": 484 } },
+          { "id": "B2-ofrendario", "bloque": 2, "rol": "ofrendario", "nombre": "", "card": { "x": 582, "y": 538 }, "figura": { "x": 559, "y": 483 } },
+          { "id": "B2-apoyo",      "bloque": 2, "rol": "apoyo",      "nombre": "", "card": { "x": 708, "y": 538 }, "figura": { "x": 736, "y": 483 } },
+          { "id": "B3-ofrendario", "bloque": 3, "rol": "ofrendario", "nombre": "", "card": { "x": 457, "y": 538 }, "figura": { "x": 295, "y": 484 } },
+          { "id": "B3-apoyo",      "bloque": 3, "rol": "apoyo",      "nombre": "", "card": { "x": 328, "y": 538 }, "figura": { "x": 493, "y": 483 } },
+          { "id": "B4-ofrendario", "bloque": 4, "rol": "ofrendario", "nombre": "", "card": { "x": 207, "y": 540 }, "figura": { "x": 67,  "y": 483 } },
+          { "id": "B4-apoyo",      "bloque": 4, "rol": "apoyo",      "nombre": "", "card": { "x": 88,  "y": 538 }, "figura": { "x": 245, "y": 486 } },
+          { "id": "B5-ofrendario", "bloque": 5, "rol": "ofrendario", "nombre": "", "card": { "x": 817, "y": 346 }, "figura": { "x": 755, "y": 298 } },
+          { "id": "B5-apoyo",      "bloque": 5, "rol": "apoyo",      "nombre": "", "card": { "x": 936, "y": 346 }, "figura": { "x": 898, "y": 293 } },
+          { "id": "B6-ofrendario", "bloque": 6, "rol": "ofrendario", "nombre": "", "card": { "x": 574, "y": 346 }, "figura": { "x": 551, "y": 297 } },
+          { "id": "B6-apoyo",      "bloque": 6, "rol": "apoyo",      "nombre": "", "card": { "x": 695, "y": 346 }, "figura": { "x": 712, "y": 297 } },
+          { "id": "B7-ofrendario", "bloque": 7, "rol": "ofrendario", "nombre": "", "card": { "x": 452, "y": 346 }, "figura": { "x": 321, "y": 293 } },
+          { "id": "B7-apoyo",      "bloque": 7, "rol": "apoyo",      "nombre": "", "card": { "x": 332, "y": 344 }, "figura": { "x": 499, "y": 288 } },
+          { "id": "B8-ofrendario", "bloque": 8, "rol": "ofrendario", "nombre": "", "card": { "x": 213, "y": 346 }, "figura": { "x": 117, "y": 288 } },
+          { "id": "B8-apoyo",      "bloque": 8, "rol": "apoyo",      "nombre": "", "card": { "x": 93,  "y": 345 }, "figura": { "x": 279, "y": 293 } }
+        ]
+      },
+      "sacos_4": {
+        "bloques": [
+          { "n": 1, "color": "#ec2f87", "labelText": "1", "labelPos": { "x": 849, "y": 319 } },
+          { "n": 2, "color": "#14b8b8", "labelText": "2", "labelPos": { "x": 630, "y": 310 } },
+          { "n": 3, "color": "#f97316", "labelText": "3", "labelPos": { "x": 406, "y": 307 } },
+          { "n": 4, "color": "#1688ff", "labelText": "4", "labelPos": { "x": 181, "y": 302 } }
+        ],
+        "posiciones": [
+          { "id": "B1-ofrendario", "bloque": 1, "rol": "ofrendario", "nombre": "", "card": { "x": 835, "y": 535 }, "figura": { "x": 799, "y": 482 } },
+          { "id": "B1-apoyo",      "bloque": 1, "rol": "apoyo",      "nombre": "", "card": { "x": 957, "y": 535 }, "figura": { "x": 966, "y": 482 } },
+          { "id": "B2-ofrendario", "bloque": 2, "rol": "ofrendario", "nombre": "", "card": { "x": 590, "y": 535 }, "figura": { "x": 550, "y": 487 } },
+          { "id": "B2-apoyo",      "bloque": 2, "rol": "apoyo",      "nombre": "", "card": { "x": 715, "y": 533 }, "figura": { "x": 740, "y": 481 } },
+          { "id": "B3-ofrendario", "bloque": 3, "rol": "ofrendario", "nombre": "", "card": { "x": 324, "y": 536 }, "figura": { "x": 300, "y": 484 } },
+          { "id": "B3-apoyo",      "bloque": 3, "rol": "apoyo",      "nombre": "", "card": { "x": 457, "y": 536 }, "figura": { "x": 486, "y": 485 } },
+          { "id": "B4-ofrendario", "bloque": 4, "rol": "ofrendario", "nombre": "", "card": { "x": 198, "y": 536 }, "figura": { "x": 45,  "y": 482 } },
+          { "id": "B4-apoyo",      "bloque": 4, "rol": "apoyo",      "nombre": "", "card": { "x": 72,  "y": 538 }, "figura": { "x": 231, "y": 487 } }
+        ]
+      }
+    }
+  }
+}

@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Gift, Users, Download, RefreshCw, Plus, Trash2 } from 'lucide-react'
+import { Gift, Users, Download, Map, RefreshCw, Plus, Trash2 } from 'lucide-react'
 import BackButton from '@/components/BackButton'
 import { OfrendaFeedbackProvider, useOfrendaToast } from './ofrendaFeedback'
 import { MiembrosManager } from './MiembrosManager'
@@ -20,13 +21,27 @@ import { SacosConfigPanel } from './SacosConfigPanel'
 import { PlanMonthNavigator } from './PlanMonthNavigator'
 import { formatOfrendaActionError, isOfrendaDbConstraintError } from './ofrendaDbErrors'
 
-type Tab = 'plan' | 'personas' | 'exportar'
+type Tab = 'plan' | 'personas' | 'exportar' | 'plano'
 
 const TAB_DEFS: { id: Tab; labelKey: TranslationKey; icon: React.ElementType }[] = [
     { id: 'plan', labelKey: 'ofrenda.tabs.plan', icon: Gift },
     { id: 'personas', labelKey: 'ofrenda.tabs.people', icon: Users },
     { id: 'exportar', labelKey: 'ofrenda.tabs.export', icon: Download },
+    { id: 'plano', labelKey: 'ofrenda.tabs.plano', icon: Map },
 ]
+
+// Carga perezosa del plano: el lienzo (SVG + react-zoom-pan-pinch) no debe
+// penalizar el LCP de las otras pestañas.
+const PlanoTab = dynamic(() => import('./plano/PlanoTab'), {
+    ssr: false,
+    loading: () => (
+        <div
+            className="min-h-[52dvh] h-[calc(100dvh-18rem)] max-h-[72dvh] bg-muted rounded-2xl animate-pulse"
+            aria-busy="true"
+            aria-label="Cargando plano"
+        />
+    ),
+})
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -204,7 +219,7 @@ function OfrendaPageClientInner({
             </div>
 
             {/* ── Contenido ───────────────────────────────────────────────── */}
-            <div className={`mx-auto px-4 py-5 ${activeTab === 'plan' ? 'max-w-[100%] xl:max-w-7xl' : 'max-w-5xl'}`}>
+            <div className={`mx-auto px-4 py-5 ${activeTab === 'plan' || activeTab === 'plano' ? 'max-w-[100%] xl:max-w-7xl' : 'max-w-5xl'}`}>
                 <AnimatePresence mode="wait">
                     {/* ── TAB: PLAN ─────────────────────────────────────── */}
                     {activeTab === 'plan' && (
@@ -341,6 +356,25 @@ function OfrendaPageClientInner({
                                 initialMiembros={miembros}
                                 canEdit={canEdit}
                                 onChange={handleMiembrosChange}
+                            />
+                        </motion.div>
+                    )}
+
+                    {/* ── TAB: PLANO ────────────────────────────────────── */}
+                    {activeTab === 'plano' && (
+                        <motion.div
+                            key="plano"
+                            initial={false}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.18 }}
+                            className="min-w-0"
+                        >
+                            <PlanoTab
+                                plan={plan}
+                                tituloMes={tituloMes}
+                                canEdit={canEdit}
+                                onGoToPlan={() => handleTabChange('plan')}
                             />
                         </motion.div>
                     )}

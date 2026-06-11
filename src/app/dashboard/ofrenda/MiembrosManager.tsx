@@ -22,6 +22,7 @@ import {
 } from './actions'
 import type { OfrMiembro } from './actions'
 import { MemberTurnAvailability, TurnAvailabilityDots } from './MemberTurnAvailability'
+import type { MemberTurnAvailabilityProps } from './MemberTurnAvailability'
 import { normalizeMiembroDisponibilidad, type MiembroDisponibilidadTurnos } from './ofrendaMemberAvailability'
 
 // ─── Helpers de estilo inline ────────────────────────────────────────────────

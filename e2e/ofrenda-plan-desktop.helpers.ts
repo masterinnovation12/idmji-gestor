@@ -1,7 +1,7 @@
 /**
  * Helpers E2E — auditoría visual/geometría tabla plan desktop.
  */
-import type { Page, expect } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 import {
     isServiceColumnClearOfStickyRole,
     scrollLeftForWeekIndex,

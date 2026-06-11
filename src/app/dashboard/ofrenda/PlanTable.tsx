@@ -756,7 +756,7 @@ function AsignacionCell({
 
 function dayConfigLabel(
     diaTipo: OfrServicio['dia_tipo'],
-    t: (key: string) => string
+    t: (key: import('@/lib/i18n/types').TranslationKey) => string
 ): string {
     switch (diaTipo) {
         case 'jueves':
