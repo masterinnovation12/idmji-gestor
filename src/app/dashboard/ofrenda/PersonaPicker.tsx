@@ -6,6 +6,7 @@ import { useI18n } from '@/lib/i18n/I18nProvider'
 import { formatServicioFechaLabel } from './ofrendaLocale'
 import { OfrendaLiquidShell, diaTipoToAccent, useOfrendaMobileOrTablet } from './OfrendaLiquidShell'
 import type { OfrMiembro, OfrServicio } from './actions'
+import type { TranslationKey } from '@/lib/i18n/types'
 import { puedeMiembroEnTurno } from './ofrendaMemberAvailability'
 
 export interface PersonaPickerContext {
@@ -36,7 +37,7 @@ function MemberList({
     selectedId: string | null
     onSelect: (id: string | null) => void
     onClose: () => void
-    t: (key: string) => string
+    t: (key: TranslationKey) => string
 }>) {
     const rowBase =
         'ofrenda-liquid-member w-[calc(100%-1.5rem)] flex items-center gap-3 px-4 py-3.5 text-left text-sm transition-all touch-manipulation min-h-[52px]'

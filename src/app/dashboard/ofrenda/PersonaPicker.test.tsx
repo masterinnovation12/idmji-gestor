@@ -27,14 +27,17 @@ const miembros = [
     }),
 ]
 
-const servicio = {
+const servicio: OfrServicio = {
     id: 's1',
+    plan_id: 'p1',
     fecha: '2026-05-07',
     dia_tipo: 'jueves',
     semana_iso: 19,
-    mes: 5,
-    anio: 2026,
-} as OfrServicio
+    secuencia_desde: 1,
+    secuencia_hasta: 4,
+    secuencia_texto: '01 al 04',
+    posicion: 0,
+}
 
 vi.mock('@/lib/i18n/I18nProvider', () => ({
     useI18n: () => ({

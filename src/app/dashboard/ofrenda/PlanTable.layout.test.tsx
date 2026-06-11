@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { scrollLeftForWeekIndex } from './planTableScroll'
 import { PlanTable } from './PlanTable'
-import type { PlanCompleto, OfrMiembro } from './actions'
+import type { PlanCompleto, OfrMiembro, OfrServicio } from './actions'
 import { planTableMinWidthPx } from './planTableLayout'
 import { makeOfrMiembro } from './ofrendaTestFixtures'
 
@@ -24,13 +24,12 @@ function buildPlan(serviceCount: number): PlanCompleto {
         id: `s${i}`,
         plan_id: 'p1',
         fecha: `2026-05-${String(7 + i).padStart(2, '0')}`,
-        dia_tipo: (i % 3 === 0 ? 'jueves' : i % 3 === 1 ? 'domingo' : 'domingo_tarde') as const,
+        dia_tipo: (i % 3 === 0 ? 'jueves' : i % 3 === 1 ? 'domingo' : 'domingo_tarde') as OfrServicio['dia_tipo'],
         semana_iso: 19 + Math.floor(i / 3),
-        mes: 5,
-        anio: 2026,
         secuencia_desde: 1,
         secuencia_hasta: 4,
         secuencia_texto: '01 al 04',
+        posicion: i,
     }))
 
     return {
@@ -38,13 +37,18 @@ function buildPlan(serviceCount: number): PlanCompleto {
             id: 'p1',
             mes: 5,
             anio: 2026,
+            secuencia_puntero: 1,
+            secuencia_puntero_fin: 4,
+            secuencia_maximo: 80,
             sacos_jueves: 4,
             sacos_domingo: 8,
             sacos_domingo_tarde: 4,
             created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-01T00:00:00Z',
         },
         servicios,
         asignaciones: [],
+        miembros,
     }
 }
 

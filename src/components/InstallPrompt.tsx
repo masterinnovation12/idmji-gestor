@@ -75,7 +75,7 @@ export function InstallPrompt() {
 
     const revealPrompt = useCallback(() => {
         if (!canOfferInstallPrompt() || showScheduledRef.current) return
-        if (prompts?.activePrompt !== null && prompts.activePrompt !== 'install') return
+        if (prompts && prompts.activePrompt !== null && prompts.activePrompt !== 'install') return
 
         const isNativeFlow = platform && shouldUseNativeInstallFlow(platform.name)
         if (isNativeFlow && !deferredPromptRef.current) return
