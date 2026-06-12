@@ -5,24 +5,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useOfrendaClientMounted, useOfrendaMobileOrTablet } from '../ofrendaViewport'
 import type { OfrServicio } from '../actions'
+import { usePlanoStripTouchScroll } from './usePlanoStripTouchScroll'
 import './plano-service-strip.css'
 
 const SCROLL_EDGE = 8
-const TOUCH_DRAG_THRESHOLD_PX = 6
-
-type PointerDragState = {
-    pointerId: number
-    startX: number
-    startScrollLeft: number
-    dragging: boolean
-}
-
-const IDLE_DRAG: PointerDragState = {
-    pointerId: -1,
-    startX: 0,
-    startScrollLeft: 0,
-    dragging: false,
-}
 
 export type PlanoServiceAccent = Record<
     OfrServicio['dia_tipo'],
@@ -50,11 +36,25 @@ export function PlanoServiceStrip({
     const isTouchLayout = mounted && isCompact
 
     const scrollRef = useRef<HTMLDivElement>(null)
-    const pointerDragRef = useRef<PointerDragState>(IDLE_DRAG)
     const suppressChipClickRef = useRef(false)
     const [overflow, setOverflow] = useState(false)
     const [edges, setEdges] = useState({ left: false, right: false })
     const [touchDragging, setTouchDragging] = useState(false)
+
+    const onStripDragEnd = useCallback((wasDragging: boolean) => {
+        if (wasDragging) {
+            suppressChipClickRef.current = true
+            queueMicrotask(() => {
+                suppressChipClickRef.current = false
+            })
+        }
+    }, [])
+
+    usePlanoStripTouchScroll(scrollRef, {
+        enabled: isTouchLayout,
+        onDragChange: setTouchDragging,
+        onDragEnd: onStripDragEnd,
+    })
 
     const updateEdges = useCallback(() => {
         const el = scrollRef.current
@@ -102,58 +102,6 @@ export function PlanoServiceStrip({
             behavior: 'smooth',
         })
     }
-
-    const finishPointerDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-        const state = pointerDragRef.current
-        if (state.pointerId !== e.pointerId) return
-        const wasDragging = state.dragging
-        pointerDragRef.current = IDLE_DRAG
-        setTouchDragging(false)
-        try {
-            e.currentTarget.releasePointerCapture(e.pointerId)
-        } catch {
-            /* ya liberado */
-        }
-        if (wasDragging) {
-            suppressChipClickRef.current = true
-            queueMicrotask(() => {
-                suppressChipClickRef.current = false
-            })
-        }
-    }, [])
-
-    const onScrollPointerDown = useCallback(
-        (e: React.PointerEvent<HTMLDivElement>) => {
-            if (!isTouchLayout || e.button !== 0) return
-            const el = scrollRef.current
-            if (!el) return
-            pointerDragRef.current = {
-                pointerId: e.pointerId,
-                startX: e.clientX,
-                startScrollLeft: el.scrollLeft,
-                dragging: false,
-            }
-            e.currentTarget.setPointerCapture(e.pointerId)
-        },
-        [isTouchLayout],
-    )
-
-    const onScrollPointerMove = useCallback(
-        (e: React.PointerEvent<HTMLDivElement>) => {
-            const state = pointerDragRef.current
-            if (state.pointerId !== e.pointerId) return
-            const dx = e.clientX - state.startX
-            if (!state.dragging) {
-                if (Math.abs(dx) < TOUCH_DRAG_THRESHOLD_PX) return
-                state.dragging = true
-                setTouchDragging(true)
-            }
-            e.preventDefault()
-            const el = scrollRef.current
-            if (el) el.scrollLeft = state.startScrollLeft - dx
-        },
-        [],
-    )
 
     const showArrows = !isTouchLayout && overflow
 
@@ -218,10 +166,6 @@ export function PlanoServiceStrip({
                     role="tablist"
                     aria-label={t('ofrenda.plano.serviceSelector')}
                     data-testid="plano-service-strip-scroll"
-                    onPointerDown={isTouchLayout ? onScrollPointerDown : undefined}
-                    onPointerMove={isTouchLayout ? onScrollPointerMove : undefined}
-                    onPointerUp={isTouchLayout ? finishPointerDrag : undefined}
-                    onPointerCancel={isTouchLayout ? finishPointerDrag : undefined}
                 >
                     {servicios.map(s => {
                         const active = s.id === activeId
