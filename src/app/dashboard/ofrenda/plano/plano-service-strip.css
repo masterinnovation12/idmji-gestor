@@ -1,0 +1,52 @@
+/* Plano — franja de servicios del mes (scroll horizontal premium) */
+
+.plano-service-strip-shell {
+    border: 1px solid rgba(184, 150, 74, 0.22);
+    background: linear-gradient(165deg, #ffffff 0%, #faf8f3 55%, #f3f5f9 100%);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.85) inset,
+        0 8px 28px -14px rgba(31, 46, 133, 0.12);
+}
+
+.dark .plano-service-strip-shell {
+    background: linear-gradient(165deg, hsl(var(--background)) 0%, hsl(var(--muted) / 0.28) 100%);
+    border-color: rgba(184, 150, 74, 0.18);
+}
+
+.plano-service-strip-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+    scrollbar-width: none;
+}
+
+.plano-service-strip-scroll::-webkit-scrollbar {
+    display: none;
+    height: 0;
+}
+
+/* Degradados laterales que funden con el fondo del shell */
+.plano-strip-fade-l {
+    background: linear-gradient(to right, #fdfcf9 25%, rgba(253, 252, 249, 0));
+}
+
+.plano-strip-fade-r {
+    background: linear-gradient(to left, #f5f6f9 25%, rgba(245, 246, 249, 0));
+}
+
+.dark .plano-strip-fade-l,
+.dark .plano-strip-fade-r {
+    background: linear-gradient(
+        to right,
+        hsl(var(--background)) 25%,
+        hsl(var(--background) / 0)
+    );
+}
+
+.dark .plano-strip-fade-r {
+    background: linear-gradient(
+        to left,
+        hsl(var(--background)) 25%,
+        hsl(var(--background) / 0)
+    );
+}

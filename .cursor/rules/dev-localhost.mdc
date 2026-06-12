@@ -1,0 +1,15 @@
+---
+description: Servidor de desarrollo local siempre en puerto 3004
+alwaysApply: true
+---
+
+# Desarrollo local — puerto 3004
+
+Este proyecto usa **puerto 3004** para `npm run dev` y pruebas en navegador.
+
+- URL local: `http://localhost:3004`
+- Script: `package.json` → `"dev": "next dev -p 3004"`
+- Variable: `.env.local` → `NEXT_PUBLIC_SITE_URL=http://localhost:3004`
+- Ngrok: `npm run ngrok` → túnel al puerto 3004
+
+Al arrancar el servidor de desarrollo o abrir la app en el navegador para QA, usar siempre el puerto **3004**, no 3000 ni 3001.

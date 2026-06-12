@@ -5,10 +5,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Map as MapIcon, AlertTriangle, Loader2 } from 'lucide-react'
+import { Map as MapIcon, AlertTriangle, Loader2, Move } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { interpolate } from '../ofrendaLocale'
-import { useOfrendaToast } from '../ofrendaFeedback'
+import { buildOfrendaFeedbackPayload, useOfrendaToast } from '../ofrendaFeedback'
 import { colorDeBloque, getPlanoVista } from './planoData'
 import {
     getPlanoData,
@@ -22,10 +22,12 @@ import { exportPlanoPng } from './planoExportPng'
 import { invokePlanoAction } from './planoInvoke'
 import { PlanoCanvas } from './PlanoCanvas'
 import { PlanoEditorSheet } from './PlanoEditorSheet'
+import { PlanoServiceStrip } from './PlanoServiceStrip'
 import { PlanoPersonaCombobox } from './PlanoPersonaCombobox'
 import { PlanoBlockLabelEdit } from './PlanoBlockLabelEdit'
 import { OfrendaLiquidShell } from '../OfrendaLiquidShell'
 import type { PlanCompleto, OfrServicio } from '../actions'
+import { pickDefaultServicioId, todayIsoLocal } from './planoDefaultServicio'
 import {
     resolverModo,
     sacosParaDia,
@@ -44,18 +46,21 @@ interface Props {
     onGoToPlan: () => void
 }
 
-const ACCENT: Record<OfrServicio['dia_tipo'], { on: string; off: string }> = {
+const ACCENT: Record<OfrServicio['dia_tipo'], { on: string; off: string; dot: string }> = {
     jueves: {
-        on: 'bg-emerald-600 text-white border-emerald-600',
-        off: 'border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10',
+        on: 'bg-linear-to-br from-emerald-500 to-emerald-700 text-white border-transparent shadow-md shadow-emerald-600/35',
+        off: 'border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:border-emerald-500/60 hover:bg-emerald-500/10',
+        dot: 'bg-emerald-500',
     },
     domingo: {
-        on: 'bg-sky-600 text-white border-sky-600',
-        off: 'border-sky-500/40 text-sky-700 dark:text-sky-300 hover:bg-sky-500/10',
+        on: 'bg-linear-to-br from-sky-500 to-sky-700 text-white border-transparent shadow-md shadow-sky-600/35',
+        off: 'border-sky-500/30 text-sky-700 dark:text-sky-300 hover:border-sky-500/60 hover:bg-sky-500/10',
+        dot: 'bg-sky-500',
     },
     domingo_tarde: {
-        on: 'bg-violet-600 text-white border-violet-600',
-        off: 'border-violet-500/40 text-violet-700 dark:text-violet-300 hover:bg-violet-500/10',
+        on: 'bg-linear-to-br from-violet-500 to-violet-700 text-white border-transparent shadow-md shadow-violet-600/35',
+        off: 'border-violet-500/30 text-violet-700 dark:text-violet-300 hover:border-violet-500/60 hover:bg-violet-500/10',
+        dot: 'bg-violet-500',
     },
 }
 
@@ -63,24 +68,32 @@ type LayoutStatus = 'idle' | 'saving' | 'saved'
 
 export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Props>) {
     const { t } = useI18n()
-    const { quickSuccess, planError, planSuccess } = useOfrendaToast()
+    const { quickSuccess, planError, planSuccess, show } = useOfrendaToast()
     const planErrorRef = useRef(planError)
     const quickSuccessRef = useRef(quickSuccess)
     const planSuccessRef = useRef(planSuccess)
+    const showRef = useRef(show)
     planErrorRef.current = planError
     quickSuccessRef.current = quickSuccess
     planSuccessRef.current = planSuccess
+    showRef.current = show
     const [vista, setVista] = useState<PlanoVista>('2d')
     const [planoData, setPlanoData] = useState<PlanoVistaResuelta | null>(null)
+    const [planoLoadedFor, setPlanoLoadedFor] = useState<{
+        servicioId: string
+        modo: NonNullable<ReturnType<typeof resolverModo>>
+        vista: PlanoVista
+    } | null>(null)
     const [loading, setLoading] = useState(false)
     const [editorOpen, setEditorOpen] = useState(false)
     const [comboboxPos, setComboboxPos] = useState<PlanoPosicion | null>(null)
     const [blockEdit, setBlockEdit] = useState<PlanoBloque | null>(null)
+    const [layoutEditMode, setLayoutEditMode] = useState(false)
     const [dragging, setDragging] = useState(false)
+    const canDrag = canEdit && layoutEditMode
     const [layoutStatus, setLayoutStatus] = useState<LayoutStatus>('idle')
     const [exporting, setExporting] = useState(false)
     const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
-    const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const planoDataRef = useRef(planoData)
     planoDataRef.current = planoData
 
@@ -89,7 +102,24 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
         [plan],
     )
     const [servicioId, setServicioId] = useState<string | null>(null)
-    const servicio = servicios.find(s => s.id === servicioId) ?? servicios[0] ?? null
+    const planId = plan?.plan.id ?? null
+    const planIdRef = useRef<string | null>(null)
+
+    useEffect(() => {
+        if (!planId || servicios.length === 0) {
+            setServicioId(null)
+            planIdRef.current = planId
+            return
+        }
+        if (planIdRef.current !== planId) {
+            planIdRef.current = planId
+            setServicioId(pickDefaultServicioId(servicios, todayIsoLocal()))
+        }
+    }, [planId, servicios])
+
+    const effectiveServicioId =
+        servicioId ?? pickDefaultServicioId(servicios, todayIsoLocal())
+    const servicio = servicios.find(s => s.id === effectiveServicioId) ?? servicios[0] ?? null
 
     const sacos = plan && servicio ? sacosParaDia(plan.plan, servicio.dia_tipo) : 0
     const modo = resolverModo(sacos)
@@ -98,43 +128,55 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
     const servicioIdResolved = servicio?.id ?? null
 
     useEffect(() => {
+        setLayoutEditMode(false)
+    }, [servicioIdResolved])
+
+    const displayData = useMemo(() => {
+        if (!fallbackData) return null
+        const matches =
+            planoData &&
+            planoLoadedFor?.servicioId === servicioIdResolved &&
+            planoLoadedFor.modo === modo &&
+            planoLoadedFor.vista === vista
+        return matches ? planoData : fallbackData
+    }, [planoData, planoLoadedFor, servicioIdResolved, modo, vista, fallbackData])
+
+    useEffect(() => {
         if (!servicioIdResolved || !modo) {
             setPlanoData(null)
+            setPlanoLoadedFor(null)
             return
         }
 
         let cancelled = false
-        const timer = window.setTimeout(() => {
-            void (async () => {
-                setLoading(true)
-                setLayoutStatus('idle')
-                try {
-                    const res = await invokePlanoAction(() =>
-                        getPlanoData(servicioIdResolved, vista, modo),
-                    )
-                    if (cancelled) return
-                    const embedded = getPlanoVista(vista, modo)
-                    if (res.error) {
-                        planErrorRef.current(res.error)
-                        setPlanoData(embedded)
-                        return
-                    }
-                    setPlanoData(res.data?.data ?? embedded)
-                } catch (err) {
-                    if (cancelled) return
-                    planErrorRef.current(
-                        err instanceof Error ? err.message : t('ofrenda.plano.loading'),
-                    )
-                    setPlanoData(getPlanoVista(vista, modo))
-                } finally {
-                    if (!cancelled) setLoading(false)
-                }
-            })()
-        }, 0)
+        setLoading(true)
+        setLayoutStatus('idle')
+
+        void (async () => {
+            try {
+                const res = await invokePlanoAction(() =>
+                    getPlanoData(servicioIdResolved, vista, modo),
+                )
+                if (cancelled) return
+                const embedded = getPlanoVista(vista, modo)
+                const nextData = res.error ? embedded : (res.data?.data ?? embedded)
+                if (res.error) planErrorRef.current(res.error)
+                setPlanoData(nextData)
+                setPlanoLoadedFor({ servicioId: servicioIdResolved, modo, vista })
+            } catch (err) {
+                if (cancelled) return
+                planErrorRef.current(
+                    err instanceof Error ? err.message : t('ofrenda.plano.loading'),
+                )
+                setPlanoData(getPlanoVista(vista, modo))
+                setPlanoLoadedFor({ servicioId: servicioIdResolved, modo, vista })
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        })()
 
         return () => {
             cancelled = true
-            window.clearTimeout(timer)
         }
     }, [servicioIdResolved, modo, vista, t])
 
@@ -149,53 +191,64 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
             if (res.error) {
                 planErrorRef.current(res.error)
                 setPlanoData(embedded)
+                setPlanoLoadedFor({ servicioId: servicio.id, modo, vista })
                 return
             }
-            setPlanoData(res.data?.data ?? embedded)
+            const nextData = res.data?.data ?? embedded
+            setPlanoData(nextData)
+            setPlanoLoadedFor({ servicioId: servicio.id, modo, vista })
         } finally {
             setLoading(false)
         }
     }, [servicio, modo, vista])
-
-    useEffect(() => {
-        return () => {
-            if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-        }
-    }, [])
 
     const patchPlanoData = useCallback((fn: (d: PlanoVistaResuelta) => PlanoVistaResuelta) => {
         setPlanoData(prev => (prev ? fn(prev) : prev))
         setLayoutStatus('idle')
     }, [])
 
-    const persistLayout = useCallback(async () => {
-        const data = planoDataRef.current
-        if (!canEdit || !data || !modo) return
-        setLayoutStatus('saving')
-        const res = await invokePlanoAction(() =>
-            savePlanoLayout(vista, modo, vistaResueltaToElementos(data)),
+    const notifyLayoutSaved = useCallback(() => {
+        showRef.current(
+            buildOfrendaFeedbackPayload('success', t('ofrenda.plano.toast.layoutSaved'), undefined, undefined, {
+                skipOpenDelay: true,
+            }),
         )
-        if (res.error) {
-            planErrorRef.current(res.error)
-            setLayoutStatus('idle')
-            return
-        }
         setLayoutStatus('saved')
-        quickSuccessRef.current(t('ofrenda.plano.toast.layoutSaved'))
-    }, [canEdit, modo, vista, t])
+    }, [t])
 
-    const scheduleLayoutSave = useCallback(() => {
-        if (!canEdit) return
-        if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-        saveTimerRef.current = setTimeout(() => {
-            void persistLayout()
-        }, 800)
-    }, [canEdit, persistLayout])
+    const persistLayout = useCallback(
+        async (opts?: { silent?: boolean }) => {
+            const data = planoDataRef.current
+            if (!canEdit || !data || !modo) return
+            setLayoutStatus('saving')
+            const res = await invokePlanoAction(() =>
+                savePlanoLayout(vista, modo, vistaResueltaToElementos(data)),
+            )
+            if (res.error) {
+                planErrorRef.current(res.error)
+                setLayoutStatus('idle')
+                return
+            }
+            setLayoutStatus('saved')
+            if (!opts?.silent) {
+                quickSuccessRef.current(t('ofrenda.plano.toast.layoutSaved'))
+            }
+        },
+        [canEdit, modo, vista, t],
+    )
 
-    const handleDragEnd = useCallback(() => {
-        setDragging(false)
-        scheduleLayoutSave()
-    }, [scheduleLayoutSave])
+    const saveLayoutAfterEdit = useCallback(() => {
+        notifyLayoutSaved()
+        void persistLayout({ silent: true })
+    }, [notifyLayoutSaved, persistLayout])
+
+    const handleDragEnd = useCallback(
+        (moved = false) => {
+            setDragging(false)
+            if (moved && layoutEditMode) saveLayoutAfterEdit()
+        },
+        [layoutEditMode, saveLayoutAfterEdit],
+    )
 
     const handleAsignacion = async (personaId: string | null, nombre: string | null) => {
         if (!servicio || !comboboxPos) return
@@ -218,7 +271,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
     }
 
     const handleExportPng = async () => {
-        const data = planoData ?? fallbackData
+        const data = displayData
         if (!data || !servicio) return
         setExporting(true)
         try {
@@ -288,7 +341,13 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
         )
     }
 
-    const data = planoData ?? fallbackData
+    const data = displayData
+    const planoDataMatches = Boolean(
+        planoData &&
+            planoLoadedFor?.servicioId === servicioIdResolved &&
+            planoLoadedFor.modo === modo &&
+            planoLoadedFor.vista === vista,
+    )
 
     const diaLabel = (s: OfrServicio) => {
         const dayNum = Number(s.fecha.slice(8, 10))
@@ -302,28 +361,15 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
 
     return (
         <div className="space-y-4" data-testid="plano-tab">
-            <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-background/95 backdrop-blur-sm space-y-2 border-b border-border/40 sm:static sm:border-0 sm:bg-transparent sm:backdrop-blur-none sm:p-0">
+            <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-background/95 backdrop-blur-sm space-y-2 border-b border-border/40 min-w-0 max-w-full sm:static sm:border-0 sm:bg-transparent sm:backdrop-blur-none sm:p-0">
                 <h2 className="text-sm font-bold text-muted-foreground">{tituloMes}</h2>
-                <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1" role="tablist" aria-label={t('ofrenda.plano.serviceSelector')}>
-                    {servicios.map(s => {
-                        const active = s.id === servicio.id
-                        const accent = ACCENT[s.dia_tipo]
-                        return (
-                            <button
-                                key={s.id}
-                                type="button"
-                                role="tab"
-                                aria-selected={active}
-                                onClick={() => setServicioId(s.id)}
-                                className={`px-3 py-2 min-h-[44px] rounded-xl border text-xs font-bold whitespace-nowrap transition-colors touch-manipulation ${
-                                    active ? accent.on : `bg-background ${accent.off}`
-                                }`}
-                            >
-                                {diaLabel(s)}
-                            </button>
-                        )
-                    })}
-                </div>
+                <PlanoServiceStrip
+                    servicios={servicios}
+                    activeId={effectiveServicioId ?? servicio.id}
+                    accent={ACCENT}
+                    diaLabel={diaLabel}
+                    onSelect={setServicioId}
+                />
 
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                     <span
@@ -338,22 +384,48 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                             : interpolate(t('ofrenda.plano.sinDisposicion'), { sacos: String(sacos) })}
                     </span>
 
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {canEdit && (
+                        <button
+                            type="button"
+                            aria-pressed={layoutEditMode}
+                            data-testid="plano-layout-edit-toggle"
+                            onClick={() => setLayoutEditMode(v => !v)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl border text-xs font-bold transition-colors touch-manipulation ${
+                                layoutEditMode
+                                    ? 'bg-amber-500 text-amber-950 border-amber-600 shadow-md'
+                                    : 'bg-background border-border text-muted-foreground hover:text-foreground hover:border-amber-500/50'
+                            }`}
+                        >
+                            <Move className="w-3.5 h-3.5 shrink-0" />
+                            <span>{t('ofrenda.plano.layoutEdit')}</span>
+                        </button>
+                    )}
                     <div className="inline-flex rounded-xl border border-border bg-muted/50 p-0.5" role="group" aria-label={t('ofrenda.plano.vistaToggle')}>
-                        {(['2d', '3d'] as const).map(v => (
+                        {(['2d', '3d'] as const).map(v => {
+                            const active = vista === v
+                            const activeClass =
+                                v === '2d'
+                                    ? 'bg-emerald-600 text-white shadow border border-emerald-600'
+                                    : 'bg-violet-600 text-white shadow border border-violet-600'
+                            return (
                             <button
                                 key={v}
                                 type="button"
                                 onClick={() => setVista(v)}
-                                aria-pressed={vista === v}
+                                aria-pressed={active}
+                                data-testid={`plano-vista-${v}`}
                                 className={`px-4 py-2 min-h-[44px] rounded-[10px] text-xs font-black uppercase transition-colors touch-manipulation ${
-                                    vista === v
-                                        ? 'bg-background shadow text-foreground'
-                                        : 'text-muted-foreground hover:text-foreground'
+                                    active
+                                        ? activeClass
+                                        : 'text-muted-foreground hover:text-foreground border border-transparent'
                                 }`}
                             >
                                 {v === '2d' ? t('ofrenda.plano.vista2d') : t('ofrenda.plano.vista3d')}
                             </button>
-                        ))}
+                            )
+                        })}
+                    </div>
                     </div>
                 </div>
             </div>
@@ -361,15 +433,15 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
             <AnimatePresence mode="wait">
                 {data ? (
                     <motion.div
-                        key={`${vista}-${data.modo}-${servicio.id}`}
-                        initial={{ opacity: 0 }}
+                        key={`${vista}-${data.modo}`}
+                        initial={false}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.18 }}
+                        transition={{ duration: 0.12 }}
                         className="grid xl:grid-cols-[1fr_minmax(280px,410px)] gap-4 items-start"
                     >
                         <div className="relative min-w-0">
-                            {loading && (
+                            {loading && planoDataMatches && (
                                 <div className="absolute inset-0 z-30 flex items-center justify-center rounded-2xl bg-background/50 backdrop-blur-[2px]">
                                     <Loader2 className="w-8 h-8 animate-spin text-emerald-600" aria-label={t('ofrenda.plano.loading')} />
                                 </div>
@@ -377,6 +449,8 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                             <PlanoCanvas
                                 data={data}
                                 canEdit={canEdit}
+                                canDrag={canDrag}
+                                layoutEditMode={layoutEditMode}
                                 editingOpen={comboboxPos !== null || blockEdit !== null}
                                 dragging={dragging}
                                 onDragStart={() => setDragging(true)}
@@ -482,7 +556,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                         ...d,
                         bloques: d.bloques.map(b => (b.n === n ? { ...b, labelText: text } : b)),
                     }))
-                    scheduleLayoutSave()
+                    saveLayoutAfterEdit()
                 }}
             />
 

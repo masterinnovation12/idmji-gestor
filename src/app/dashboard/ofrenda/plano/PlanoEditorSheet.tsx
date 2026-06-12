@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { List, ChevronUp, ChevronDown, Download, Eraser, RotateCcw, Save, Check } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import { OfrendaLiquidShell, useOfrendaMobileOrTablet } from '../OfrendaLiquidShell'
+import { OfrendaLiquidShell } from '../OfrendaLiquidShell'
 import { colorDeBloque } from './planoData'
 import type { PlanoPosicion, PlanoVistaResuelta } from './planoTypes'
 
@@ -173,20 +173,15 @@ function EditorPanelContent(props: Readonly<Props>) {
 
 export function PlanoEditorSheet(props: Readonly<Props>) {
     const { t } = useI18n()
-    const isMobile = useOfrendaMobileOrTablet()
-    const { mobileOpen, onMobileOpenChange, canEdit } = props
-
-    const panel = (
-        <div className="ofrenda-liquid-surface rounded-2xl border border-border/60 p-4 hidden xl:block">
-            <h3 className="text-sm font-bold mb-3">{t('ofrenda.plano.editor.title')}</h3>
-            <EditorPanelContent {...props} />
-        </div>
-    )
-
-    if (!isMobile) return panel
+    const { mobileOpen, onMobileOpenChange } = props
 
     return (
         <>
+            <div className="ofrenda-liquid-surface rounded-2xl border border-border/60 p-4 hidden xl:block">
+                <h3 className="text-sm font-bold mb-3">{t('ofrenda.plano.editor.title')}</h3>
+                <EditorPanelContent {...props} />
+            </div>
+
             <button
                 type="button"
                 onClick={() => onMobileOpenChange(true)}

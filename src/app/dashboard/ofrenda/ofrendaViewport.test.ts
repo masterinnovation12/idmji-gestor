@@ -30,7 +30,7 @@ describe('useOfrendaMobileOrTablet', () => {
                     listeners.push(cb)
                 },
                 removeEventListener: (_: string, cb: () => void) => {
-                    listeners = listeners.filter((l) => l !== cb)
+                    listeners = listeners.filter(l => l !== cb)
                 },
                 dispatchEvent: vi.fn(),
             })),
@@ -42,12 +42,26 @@ describe('useOfrendaMobileOrTablet', () => {
         vi.restoreAllMocks()
     })
 
-    it('reutiliza una sola instancia matchMedia', () => {
+    it('reutiliza una sola instancia matchMedia', async () => {
         const { unmount: u1 } = renderHook(() => useOfrendaMobileOrTablet())
         const { unmount: u2 } = renderHook(() => useOfrendaMobileOrTablet())
+        await act(async () => {
+            await Promise.resolve()
+        })
         expect(window.matchMedia).toHaveBeenCalledTimes(1)
         u1()
         u2()
+    })
+
+    it('primer paint devuelve false aunque matchMedia sea true (hidratación)', async () => {
+        matchesRef.current = true
+        const { result } = renderHook(() => useOfrendaMobileOrTablet())
+        expect(result.current).toBe(false)
+
+        await act(async () => {
+            await Promise.resolve()
+        })
+        expect(result.current).toBe(true)
     })
 
     it('getSnapshot estable: no re-notifica si matches no cambió', async () => {
@@ -56,7 +70,6 @@ describe('useOfrendaMobileOrTablet', () => {
 
         await act(async () => {
             matchesRef.current = true
-            listeners.forEach((l) => l())
             await Promise.resolve()
         })
         renders.push(result.current)
@@ -66,10 +79,13 @@ describe('useOfrendaMobileOrTablet', () => {
         const { unmount } = renderHook(() => {
             notifySpy(useOfrendaMobileOrTablet())
         })
+        await act(async () => {
+            await Promise.resolve()
+        })
         const callsBefore = notifySpy.mock.calls.length
 
         await act(async () => {
-            listeners.forEach((l) => l())
+            listeners.forEach(l => l())
             await Promise.resolve()
         })
         expect(notifySpy.mock.calls.length).toBe(callsBefore)
@@ -78,18 +94,36 @@ describe('useOfrendaMobileOrTablet', () => {
 
     it('actualiza cuando cambia el media query', async () => {
         const { result } = renderHook(() => useOfrendaMobileOrTablet())
+        await act(async () => {
+            await Promise.resolve()
+        })
         expect(result.current).toBe(false)
 
         await act(async () => {
             matchesRef.current = true
-            listeners.forEach((l) => l())
+            listeners.forEach(l => l())
             await Promise.resolve()
         })
         expect(result.current).toBe(true)
     })
+})
 
-    it('useOfrendaClientMounted es true tras hidratar (entorno cliente / tests)', () => {
+describe('useOfrendaClientMounted', () => {
+    beforeEach(() => {
+        resetOfrendaMqCacheForTests()
+    })
+
+    afterEach(() => {
+        resetOfrendaMqCacheForTests()
+    })
+
+    it('es false en el primer paint y true tras hidratar', async () => {
         const { result, unmount } = renderHook(() => useOfrendaClientMounted())
+        expect(result.current).toBe(false)
+
+        await act(async () => {
+            await Promise.resolve()
+        })
         expect(result.current).toBe(true)
         unmount()
     })

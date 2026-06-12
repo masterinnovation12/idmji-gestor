@@ -99,20 +99,20 @@
       },
       "sacos_4": {
         "bloques": [
-          { "n": 1, "color": "#ec2f87", "labelText": "1", "labelPos": { "x": 1276, "y": 552 } },
-          { "n": 2, "color": "#14b8b8", "labelText": "2", "labelPos": { "x": 919,  "y": 552 } },
-          { "n": 3, "color": "#f97316", "labelText": "3", "labelPos": { "x": 538,  "y": 571 } },
-          { "n": 4, "color": "#1688ff", "labelText": "4", "labelPos": { "x": 188,  "y": 585 } }
+          { "n": 1, "color": "#ec2f87", "labelText": "1", "labelPos": { "x": 1269, "y": 562 } },
+          { "n": 2, "color": "#14b8b8", "labelText": "2", "labelPos": { "x": 919,  "y": 526 } },
+          { "n": 3, "color": "#f97316", "labelText": "3", "labelPos": { "x": 523,  "y": 577 } },
+          { "n": 4, "color": "#1688ff", "labelText": "4", "labelPos": { "x": 187,  "y": 598 } }
         ],
         "posiciones": [
-          { "id": "B1-ofrendario", "bloque": 1, "rol": "ofrendario", "nombre": "", "card": { "x": 1181, "y": 935 }, "figura": { "x": 1126, "y": 865 } },
-          { "id": "B1-apoyo",      "bloque": 1, "rol": "apoyo",      "nombre": "", "card": { "x": 1349, "y": 929 }, "figura": { "x": 1408, "y": 862 } },
-          { "id": "B2-ofrendario", "bloque": 2, "rol": "ofrendario", "nombre": "", "card": { "x": 798,  "y": 932 }, "figura": { "x": 726,  "y": 863 } },
-          { "id": "B2-apoyo",      "bloque": 2, "rol": "apoyo",      "nombre": "", "card": { "x": 1018, "y": 931 }, "figura": { "x": 1093, "y": 863 } },
-          { "id": "B3-ofrendario", "bloque": 3, "rol": "ofrendario", "nombre": "", "card": { "x": 613,  "y": 931 }, "figura": { "x": 692,  "y": 863 } },
-          { "id": "B3-apoyo",      "bloque": 3, "rol": "apoyo",      "nombre": "", "card": { "x": 428,  "y": 932 }, "figura": { "x": 354,  "y": 862 } },
-          { "id": "B4-ofrendario", "bloque": 4, "rol": "ofrendario", "nombre": "", "card": { "x": 263,  "y": 933 }, "figura": { "x": 320,  "y": 863 } },
-          { "id": "B4-apoyo",      "bloque": 4, "rol": "apoyo",      "nombre": "", "card": { "x": 109,  "y": 934 }, "figura": { "x": 43,   "y": 860 } }
+          { "id": "B1-ofrendario", "bloque": 1, "rol": "ofrendario", "nombre": "", "card": { "x": 1193, "y": 929 }, "figura": { "x": 1126, "y": 863 } },
+          { "id": "B1-apoyo",      "bloque": 1, "rol": "apoyo",      "nombre": "", "card": { "x": 1340, "y": 927 }, "figura": { "x": 1403, "y": 863 } },
+          { "id": "B2-ofrendario", "bloque": 2, "rol": "ofrendario", "nombre": "", "card": { "x": 799,  "y": 936 }, "figura": { "x": 724,  "y": 870 } },
+          { "id": "B2-apoyo",      "bloque": 2, "rol": "apoyo",      "nombre": "", "card": { "x": 1018, "y": 930 }, "figura": { "x": 1096, "y": 863 } },
+          { "id": "B3-ofrendario", "bloque": 3, "rol": "ofrendario", "nombre": "", "card": { "x": 619,  "y": 934 }, "figura": { "x": 691,  "y": 870 } },
+          { "id": "B3-apoyo",      "bloque": 3, "rol": "apoyo",      "nombre": "", "card": { "x": 422,  "y": 936 }, "figura": { "x": 357,  "y": 872 } },
+          { "id": "B4-ofrendario", "bloque": 4, "rol": "ofrendario", "nombre": "", "card": { "x": 276,  "y": 936 }, "figura": { "x": 324,  "y": 870 } },
+          { "id": "B4-apoyo",      "bloque": 4, "rol": "apoyo",      "nombre": "", "card": { "x": 78,   "y": 930 }, "figura": { "x": 46,   "y": 862 } }
         ]
       }
     },

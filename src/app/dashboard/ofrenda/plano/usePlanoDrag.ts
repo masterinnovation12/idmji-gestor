@@ -4,10 +4,16 @@ import { useCallback, useRef, useState } from 'react'
 import { deltaToNatural, type PlanoDragStart } from './planoDrag'
 import type { PlanoLienzo, PlanoPunto } from './planoTypes'
 
+/** Mínimo desplazamiento en px antes de iniciar drag (evita taps accidentales). */
+export const PLANO_DRAG_THRESHOLD_PX = 10
+
 interface Options {
     enabled?: boolean
+    /** Sin umbral: el elemento sigue el dedo desde el primer px (modo ajustar posiciones). */
+    immediate?: boolean
     onDragStart?: () => void
-    onDragEnd?: () => void
+    /** `moved` indica si hubo desplazamiento real (para no guardar en tap sin mover). */
+    onDragEnd?: (moved: boolean) => void
 }
 
 export function usePlanoDrag(
@@ -18,8 +24,11 @@ export function usePlanoDrag(
     options?: Options,
 ) {
     const enabled = options?.enabled ?? true
+    const immediate = options?.immediate ?? false
     const [dragging, setDragging] = useState(false)
     const startRef = useRef<PlanoDragStart | null>(null)
+    const activeRef = useRef(false)
+    const panLockedRef = useRef(false)
     const posRef = useRef(position)
     posRef.current = position
 
@@ -27,6 +36,7 @@ export function usePlanoDrag(
         (e: React.PointerEvent) => {
             if (!enabled) return
             e.stopPropagation()
+            e.preventDefault()
             const box = lienzoRef.current
             if (!box) return
             const r = box.getBoundingClientRect()
@@ -38,7 +48,8 @@ export function usePlanoDrag(
                 rw: r.width,
                 rh: r.height,
             }
-            setDragging(true)
+            activeRef.current = false
+            panLockedRef.current = true
             options?.onDragStart?.()
             ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
         },
@@ -48,25 +59,41 @@ export function usePlanoDrag(
     const onPointerMove = useCallback(
         (e: React.PointerEvent) => {
             const start = startRef.current
-            if (!start || !dragging) return
+            if (!start) return
+            e.stopPropagation()
+
+            const dx = e.clientX - start.cx
+            const dy = e.clientY - start.cy
+            const dist = Math.hypot(dx, dy)
+            const threshold = immediate ? 0 : PLANO_DRAG_THRESHOLD_PX
+
+            if (!activeRef.current) {
+                if (dist < threshold) return
+                activeRef.current = true
+                setDragging(true)
+            }
+
             onChange(deltaToNatural(start, e.clientX, e.clientY, lienzo))
         },
-        [dragging, lienzo, onChange],
+        [immediate, lienzo, onChange],
     )
 
     const finish = useCallback(
         (e: React.PointerEvent) => {
-            if (!dragging) return
+            const wasDragging = activeRef.current
+            const hadPanLock = panLockedRef.current
             startRef.current = null
+            activeRef.current = false
+            panLockedRef.current = false
             setDragging(false)
             try {
                 ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
             } catch {
                 /* pointer ya liberado */
             }
-            options?.onDragEnd?.()
+            if (hadPanLock) options?.onDragEnd?.(wasDragging)
         },
-        [dragging, options],
+        [options],
     )
 
     const dragHandlers = enabled

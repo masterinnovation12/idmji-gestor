@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { OfrendaLiquidShell } from './OfrendaLiquidShell'
 import { resetOfrendaScrollLockForTests } from './ofrendaScrollLock'
-import { resetOfrendaMqCacheForTests } from './ofrendaViewport'
+import { flushOfrendaViewportForTests, resetOfrendaMqCacheForTests } from './ofrendaViewport'
 
 function mockViewport(desktop: boolean) {
     Object.defineProperty(window, 'matchMedia', {
@@ -27,6 +27,7 @@ describe('OfrendaLiquidShell — viewport', () => {
         resetOfrendaScrollLockForTests()
         resetOfrendaMqCacheForTests()
         mockViewport(true)
+        flushOfrendaViewportForTests()
         document.documentElement.classList.add('dark')
         Object.defineProperty(window, 'scrollY', { value: 800, writable: true, configurable: true })
     })
@@ -84,7 +85,9 @@ describe('OfrendaLiquidShell — viewport', () => {
     })
 
     it('sheet al pie del viewport en móvil', () => {
+        resetOfrendaMqCacheForTests()
         mockViewport(false)
+        flushOfrendaViewportForTests()
         render(
             <OfrendaLiquidShell
                 open
