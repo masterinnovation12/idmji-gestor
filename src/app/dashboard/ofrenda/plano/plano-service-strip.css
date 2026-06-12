@@ -16,8 +16,14 @@
 .plano-service-strip-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
-    touch-action: pan-x;
+    touch-action: none;
     scrollbar-width: none;
+}
+
+@media (min-width: 1024px) {
+    .plano-service-strip-scroll {
+        touch-action: auto;
+    }
 }
 
 .plano-service-strip-scroll--dragging {
@@ -25,9 +31,15 @@
 }
 
 .plano-service-strip-chip {
-    touch-action: pan-x;
+    touch-action: none;
     -webkit-user-select: none;
     user-select: none;
+}
+
+@media (min-width: 1024px) {
+    .plano-service-strip-chip {
+        touch-action: manipulation;
+    }
 }
 
 .plano-service-strip-scroll::-webkit-scrollbar {

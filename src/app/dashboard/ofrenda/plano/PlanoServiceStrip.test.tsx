@@ -9,6 +9,7 @@ import type { OfrServicio } from '../actions'
 let mobileMock = false
 
 vi.mock('../ofrendaViewport', () => ({
+    OFRENDA_MOBILE_TABLET_MQ: '(max-width: 1023px)',
     useOfrendaClientMounted: () => true,
     useOfrendaMobileOrTablet: () => mobileMock(),
 }))
@@ -102,6 +103,16 @@ describe('PlanoServiceStrip', () => {
 
     it('en móvil desplaza horizontalmente al arrastrar sobre los chips', () => {
         mobileMock = vi.fn(() => true)
+        Object.defineProperty(window, 'matchMedia', {
+            writable: true,
+            configurable: true,
+            value: vi.fn().mockImplementation((query: string) => ({
+                matches: query.includes('max-width: 1023px'),
+                media: query,
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+            })),
+        })
         const onSelect = vi.fn()
         render(
             <PlanoServiceStrip
@@ -117,11 +128,11 @@ describe('PlanoServiceStrip', () => {
         scroll.releasePointerCapture = vi.fn()
         Object.defineProperty(scroll, 'scrollLeft', { value: 0, writable: true, configurable: true })
 
-        fireEvent.pointerDown(scroll, { clientX: 100, pointerId: 1, button: 0 })
-        fireEvent.pointerMove(scroll, { clientX: 60, pointerId: 1 })
+        fireEvent.touchStart(scroll, { touches: [{ clientX: 100, clientY: 0 }] })
+        fireEvent.touchMove(scroll, { touches: [{ clientX: 60, clientY: 0 }] })
         expect(scroll.scrollLeft).toBeGreaterThan(0)
 
-        fireEvent.pointerUp(scroll, { clientX: 60, pointerId: 1 })
+        fireEvent.touchEnd(scroll)
         fireEvent.click(screen.getByRole('tab', { name: 'Día 02' }))
         expect(onSelect).not.toHaveBeenCalled()
     })
