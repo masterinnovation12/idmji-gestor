@@ -6,7 +6,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { PersonaPicker } from './PersonaPicker'
 import type { OfrServicio } from './actions'
-import { OFRENDA_MOBILE_TABLET_MQ, resetOfrendaMqCacheForTests } from './ofrendaViewport'
+import {
+    OFRENDA_MOBILE_TABLET_MQ,
+    flushOfrendaViewportForTests,
+    resetOfrendaMqCacheForTests,
+} from './ofrendaViewport'
 import { makeOfrMiembro } from './ofrendaTestFixtures'
 import { disponibilidadFromPreset } from './ofrendaMemberAvailability'
 
@@ -97,6 +101,7 @@ const pickerProps = {
 describe('PersonaPicker — liquid glass móvil / tablet', () => {
     beforeEach(() => {
         mockViewport(true)
+        flushOfrendaViewportForTests()
         document.documentElement.classList.add('dark')
     })
 

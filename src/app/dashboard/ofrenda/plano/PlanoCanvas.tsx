@@ -18,10 +18,12 @@ import type { PlanoBloque, PlanoLayout2d, PlanoPosicion, PlanoPunto, PlanoVistaR
 interface Props {
     data: PlanoVistaResuelta
     canEdit?: boolean
+    canDrag?: boolean
+    layoutEditMode?: boolean
     editingOpen?: boolean
     dragging?: boolean
     onDragStart?: () => void
-    onDragEnd?: () => void
+    onDragEnd?: (moved: boolean) => void
     onEditPosicion?: (pos: PlanoPosicion) => void
     onEditBlockLabel?: (bloque: PlanoBloque) => void
     onMoveCard?: (id: string, p: PlanoPunto) => void
@@ -52,6 +54,8 @@ function CanvasToolbar() {
 export function PlanoCanvas({
     data,
     canEdit = false,
+    canDrag = false,
+    layoutEditMode = false,
     editingOpen = false,
     dragging = false,
     onDragStart,
@@ -86,7 +90,7 @@ export function PlanoCanvas({
     const rolLabel = (rol: 'ofrendario' | 'apoyo') =>
         rol === 'ofrendario' ? t('ofrenda.plano.rol.ofrendario') : t('ofrenda.plano.rol.apoyo')
 
-    const panDisabled = editingOpen || dragging
+    const panDisabled = editingOpen || dragging || layoutEditMode
 
     return (
         <div
@@ -152,6 +156,7 @@ export function PlanoCanvas({
                                     etiqueta={data.layout.etiquetaBloque}
                                     lienzoRef={lienzoRef}
                                     canEdit={canEdit}
+                                    canDrag={canDrag}
                                     onDragStart={onDragStart}
                                     onDragEnd={onDragEnd}
                                     onMove={p => onMoveBlockLabel?.(b.n, p)}
@@ -167,7 +172,7 @@ export function PlanoCanvas({
                                     color={colorDeBloque(data.bloques, p.bloque)}
                                     scale={data.layout.figuraScale}
                                     lienzoRef={lienzoRef}
-                                    canEdit={canEdit}
+                                    canDrag={canDrag}
                                     onDragStart={onDragStart}
                                     onDragEnd={onDragEnd}
                                     onMove={pt => onMoveFigure?.(p.id, pt)}
@@ -187,6 +192,7 @@ export function PlanoCanvas({
                                     tarjetas={data.layout.tarjetas}
                                     lienzoRef={lienzoRef}
                                     canEdit={canEdit}
+                                    canDrag={canDrag}
                                     onDragStart={onDragStart}
                                     onDragEnd={onDragEnd}
                                     onMove={pt => onMoveCard?.(p.id, pt)}
@@ -198,11 +204,20 @@ export function PlanoCanvas({
                 </TransformWrapper>
             )}
 
+            {layoutEditMode && (
+                <div
+                    className="absolute left-3 right-14 z-20 px-3 py-1.5 rounded-full bg-amber-500/95 text-amber-950 text-[11px] font-bold backdrop-blur text-center pointer-events-none shadow-md"
+                    style={{ top: 'max(0.75rem, env(safe-area-inset-top))' }}
+                    data-testid="plano-layout-mode-banner"
+                >
+                    {t('ofrenda.plano.layoutEditActive')}
+                </div>
+            )}
             <div
                 className="absolute left-3 z-20 px-3 py-1.5 rounded-full bg-slate-900/80 text-white text-[11px] font-bold backdrop-blur pointer-events-none sm:hidden"
                 style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
             >
-                {t('ofrenda.plano.hint')}
+                {layoutEditMode ? t('ofrenda.plano.hintLayout') : t('ofrenda.plano.hint')}
             </div>
         </div>
     )

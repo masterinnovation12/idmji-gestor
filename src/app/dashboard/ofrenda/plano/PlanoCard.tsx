@@ -18,8 +18,9 @@ interface Props {
     tarjetas: PlanoTarjetasLayout
     lienzoRef: React.RefObject<HTMLElement | null>
     canEdit?: boolean
+    canDrag?: boolean
     onDragStart?: () => void
-    onDragEnd?: () => void
+    onDragEnd?: (moved: boolean) => void
     onMove?: (p: PlanoPunto) => void
     onEditNombre?: () => void
 }
@@ -40,6 +41,7 @@ export const PlanoCard = memo(function PlanoCard({
     tarjetas,
     lienzoRef,
     canEdit = false,
+    canDrag = false,
     onDragStart,
     onDragEnd,
     onMove,
@@ -54,7 +56,7 @@ export const PlanoCard = memo(function PlanoCard({
         lienzo,
         pos,
         p => onMove?.(p),
-        { enabled: canEdit, onDragStart, onDragEnd },
+        { enabled: canDrag, immediate: canDrag, onDragStart, onDragEnd },
     )
 
     return (
@@ -72,12 +74,12 @@ export const PlanoCard = memo(function PlanoCard({
                 background: 'rgba(255,255,255,.97)',
                 boxShadow: dragging ? '0 12px 28px rgba(0,0,0,.32)' : '0 5px 14px rgba(0,0,0,.24)',
                 zIndex: dragging ? 50 : 8,
-                pointerEvents: canEdit ? 'auto' : 'none',
+                pointerEvents: canEdit || canDrag ? 'auto' : 'none',
             }}
         >
             <div
                 className={`text-center font-black text-white whitespace-nowrap select-none touch-none ${
-                    canEdit ? 'cursor-grab active:cursor-grabbing' : ''
+                    canDrag ? 'cursor-grab active:cursor-grabbing' : ''
                 }`}
                 style={{
                     background: color,
@@ -85,7 +87,7 @@ export const PlanoCard = memo(function PlanoCard({
                     lineHeight: `${tarjetas.roleFont + 5}px`,
                     padding: `3px ${tarjetas.pad}px`,
                 }}
-                {...(canEdit ? dragHandlers : {})}
+                {...(canDrag ? dragHandlers : {})}
             >
                 {bloque}- {rolLabel}
             </div>

@@ -13,8 +13,9 @@ interface Props {
     etiqueta: PlanoEtiquetaBloqueLayout
     lienzoRef: React.RefObject<HTMLElement | null>
     canEdit?: boolean
+    canDrag?: boolean
     onDragStart?: () => void
-    onDragEnd?: () => void
+    onDragEnd?: (moved: boolean) => void
     onMove?: (pos: PlanoPunto) => void
     onEditText?: (bloque: PlanoBloque) => void
 }
@@ -25,6 +26,7 @@ export const PlanoBlockLabel = memo(function PlanoBlockLabel({
     etiqueta,
     lienzoRef,
     canEdit = false,
+    canDrag = false,
     onDragStart,
     onDragEnd,
     onMove,
@@ -39,13 +41,17 @@ export const PlanoBlockLabel = memo(function PlanoBlockLabel({
         lienzo,
         pos,
         p => onMove?.(p),
-        { enabled: canEdit, onDragStart, onDragEnd },
+        { enabled: canDrag, immediate: canDrag, onDragStart, onDragEnd },
     )
 
     return (
         <div
             className={`absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full text-white font-black select-none touch-none ${
-                canEdit ? 'cursor-grab active:cursor-grabbing' : 'pointer-events-none'
+                canDrag
+                    ? 'cursor-grab active:cursor-grabbing'
+                    : canEdit
+                      ? 'pointer-events-auto'
+                      : 'pointer-events-none'
             } ${dragging ? 'z-50 scale-105' : ''}`}
             style={{
                 left: `${(pos.x / lienzo.w) * 100}%`,
@@ -60,7 +66,7 @@ export const PlanoBlockLabel = memo(function PlanoBlockLabel({
                 zIndex: dragging ? 50 : 9,
             }}
             onDoubleClick={() => canEdit && onEditText?.(bloque)}
-            {...dragHandlers}
+            {...(canDrag ? dragHandlers : {})}
         >
             {bloque.labelText}
         </div>

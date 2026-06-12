@@ -450,16 +450,16 @@ function defaults4(opts){
   const P = (b,rol,cx,cy,fx,fy)=>({id:`B${b}-${rol}`, bloque:b, rol, card:{x:cx,y:cy}, figura:{x:fx,y:fy}, nombre:""});
   const base = {
     bloques: [
-      {n:1,color:COLORS_4[1],labelText:"1",labelPos:{x:1276,y:552}},
-      {n:2,color:COLORS_4[2],labelText:"2",labelPos:{x:919,y:552}},
-      {n:3,color:COLORS_4[3],labelText:"3",labelPos:{x:538,y:571}},
-      {n:4,color:COLORS_4[4],labelText:"4",labelPos:{x:188,y:585}},
+      {n:1,color:COLORS_4[1],labelText:"1",labelPos:{x:1269,y:562}},
+      {n:2,color:COLORS_4[2],labelText:"2",labelPos:{x:919,y:526}},
+      {n:3,color:COLORS_4[3],labelText:"3",labelPos:{x:523,y:577}},
+      {n:4,color:COLORS_4[4],labelText:"4",labelPos:{x:187,y:598}},
     ],
     posiciones: [
-      P(1,"ofrendario",1181,935,1126,865), P(1,"apoyo",1349,929,1408,862),
-      P(2,"ofrendario",798,932,726,863),   P(2,"apoyo",1018,931,1093,863),
-      P(3,"ofrendario",613,931,692,863),   P(3,"apoyo",428,932,354,862),
-      P(4,"ofrendario",263,933,320,863),   P(4,"apoyo",109,934,43,860),
+      P(1,"ofrendario",1193,929,1126,863), P(1,"apoyo",1340,927,1403,863),
+      P(2,"ofrendario",799,936,724,870),   P(2,"apoyo",1018,930,1096,863),
+      P(3,"ofrendario",619,934,691,870),   P(3,"apoyo",422,936,357,872),
+      P(4,"ofrendario",276,936,324,870),   P(4,"apoyo",78,930,46,862),
     ],
   };
   const emb = window.PLANO_CALIBRATION_DEFAULT;
@@ -572,7 +572,7 @@ function migrateV2ToV3(raw){
     vistas: { "2d": { layout, data }, "3d": createVista3d() },
   };
 }
-/** Punto medio entre bloque delantero N y trasero N+4 del modo 8 sacos */
+/** En 2D: fila delantera (bloques 1–4 del modo 8). En 3D: punto medio delantero+trasero. */
 function derive4From8(){
   const s8 = state.data.sacos_8;
   const s4 = isVista3d() ? defaults4_3d() : defaults4();
@@ -583,15 +583,25 @@ function derive4From8(){
     const b4 = s4.bloques.find(b=>b.n===col);
     if(!front || !back || !b4) continue;
     b4.labelText = front.labelText || String(col);
-    b4.labelPos = { x: mid(front.labelPos.x, back.labelPos.x), y: mid(front.labelPos.y, back.labelPos.y) };
+    if(isVista3d()){
+      b4.labelPos = { x: mid(front.labelPos.x, back.labelPos.x), y: mid(front.labelPos.y, back.labelPos.y) };
+    } else {
+      // 2D: número en el centro vertical de la columna; personas en fila delantera
+      b4.labelPos = { x: mid(front.labelPos.x, back.labelPos.x), y: mid(front.labelPos.y, back.labelPos.y) };
+    }
     for(const rol of ["ofrendario","apoyo"]){
       const pf = s8.posiciones.find(p=>p.bloque===col && p.rol===rol);
       const pb = s8.posiciones.find(p=>p.bloque===col+4 && p.rol===rol);
       const p4 = s4.posiciones.find(p=>p.bloque===col && p.rol===rol);
       if(!pf || !pb || !p4) continue;
       p4.nombre = pf.nombre || pb.nombre || "";
-      p4.card = { x: mid(pf.card.x, pb.card.x), y: mid(pf.card.y, pb.card.y) };
-      p4.figura = { x: mid(pf.figura.x, pb.figura.x), y: mid(pf.figura.y, pb.figura.y) };
+      if(isVista3d()){
+        p4.card = { x: mid(pf.card.x, pb.card.x), y: mid(pf.card.y, pb.card.y) };
+        p4.figura = { x: mid(pf.figura.x, pb.figura.x), y: mid(pf.figura.y, pb.figura.y) };
+      } else {
+        p4.card = { x: pf.card.x, y: pf.card.y };
+        p4.figura = { x: pf.figura.x, y: pf.figura.y };
+      }
     }
   }
   state.data.sacos_4 = s4;

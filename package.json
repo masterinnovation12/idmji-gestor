@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3004",
     "generate-splash": "node scripts/generate-splash.js",
     "build": "next build",
     "start": "next start",
@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "ngrok": "ngrok http 3000",
+    "ngrok": "ngrok http 3004",
     "gh": "./.tools/gh-cli/bin/gh.exe"
   },
   "dependencies": {
