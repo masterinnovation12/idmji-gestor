@@ -20,6 +20,16 @@
     scrollbar-width: none;
 }
 
+.plano-service-strip-scroll--dragging {
+    scroll-snap-type: none;
+}
+
+.plano-service-strip-chip {
+    touch-action: pan-x;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 .plano-service-strip-scroll::-webkit-scrollbar {
     display: none;
     height: 0;

@@ -99,4 +99,30 @@ describe('PlanoServiceStrip', () => {
         const scroll = screen.getByTestId('plano-service-strip-scroll')
         expect(scroll.className).toMatch(/snap-x/)
     })
+
+    it('en móvil desplaza horizontalmente al arrastrar sobre los chips', () => {
+        mobileMock = vi.fn(() => true)
+        const onSelect = vi.fn()
+        render(
+            <PlanoServiceStrip
+                servicios={makeServicios(8)}
+                activeId="srv-0"
+                accent={accent}
+                diaLabel={s => `Día ${s.fecha.slice(8)}`}
+                onSelect={onSelect}
+            />,
+        )
+        const scroll = screen.getByTestId('plano-service-strip-scroll') as HTMLDivElement
+        scroll.setPointerCapture = vi.fn()
+        scroll.releasePointerCapture = vi.fn()
+        Object.defineProperty(scroll, 'scrollLeft', { value: 0, writable: true, configurable: true })
+
+        fireEvent.pointerDown(scroll, { clientX: 100, pointerId: 1, button: 0 })
+        fireEvent.pointerMove(scroll, { clientX: 60, pointerId: 1 })
+        expect(scroll.scrollLeft).toBeGreaterThan(0)
+
+        fireEvent.pointerUp(scroll, { clientX: 60, pointerId: 1 })
+        fireEvent.click(screen.getByRole('tab', { name: 'Día 02' }))
+        expect(onSelect).not.toHaveBeenCalled()
+    })
 })
