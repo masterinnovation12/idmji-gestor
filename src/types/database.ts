@@ -93,6 +93,16 @@ export interface Culto {
         ensenanza_modo?: 'hermano' | 'video_hna_maria_luisa'
         ensenanza_video_titulo?: string
         ensenanza_video_notas?: string
+        /** Observación general del culto (para todos). Soporta saltos de línea y **negrita**. */
+        observaciones?: string
+        /** Nota específica para quien hace la introducción. Soporta saltos de línea y **negrita**. */
+        observaciones_introduccion?: string
+        /** Nota específica para quien hace la finalización. Soporta saltos de línea y **negrita**. */
+        observaciones_finalizacion?: string
+        /** Nota específica para quien hace la enseñanza. Soporta saltos de línea y **negrita**. */
+        observaciones_ensenanza?: string
+        /** Nota específica para quien hace los testimonios. Soporta saltos de línea y **negrita**. */
+        observaciones_testimonios?: string
     }
 
     // Plan de himnos/coros (join desde plan_himnos_coros)

@@ -4,6 +4,7 @@ import { formatTemaAlabanzaLabel } from '@/lib/constants/temasAlabanza'
 import { Profile, LecturaBiblica, PlanHimnoCoro } from '@/types/database'
 import { Clock, BookOpen, Music, Users, BookMarked, Pencil } from 'lucide-react'
 import { UserAvatar } from './UserAvatar'
+import { FormattedNote } from '@/components/ui/FormattedNote'
 
 interface AssignmentPillProps {
     label: string
@@ -15,12 +16,15 @@ interface AssignmentPillProps {
     action?: ReactNode
     footerAction?: ReactNode
     temaIntroduccionAlabanza?: string | null
+    /** Nota específica para este rol (texto plano con **negrita** y saltos de línea). */
+    nota?: string
     onEditReading?: (reading: LecturaBiblica) => void
 }
 
-export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, tipoCulto, action, footerAction, temaIntroduccionAlabanza, onEditReading }: AssignmentPillProps) {
+export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, tipoCulto, action, footerAction, temaIntroduccionAlabanza, nota, onEditReading }: AssignmentPillProps) {
     const { t } = useI18n()
-    if (!usuario && !lectura && (!lecturas || lecturas.length === 0) && (!himnario || himnario.length === 0) && footerAction == null && !temaIntroduccionAlabanza) return null
+    const notaTrim = nota?.trim()
+    if (!usuario && !lectura && (!lecturas || lecturas.length === 0) && (!himnario || himnario.length === 0) && footerAction == null && !temaIntroduccionAlabanza && !notaTrim) return null
 
     const formatDuration = (seconds: number) => {
         const mins = Math.floor(seconds / 60)
@@ -43,7 +47,7 @@ export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, ti
         : himnario
 
     const lecturasRegistradas = (lecturas && lecturas.length > 0) ? lecturas : (lectura ? [lectura] : [])
-    const hasExtraContent = lecturasRegistradas.length > 0 || (himnario && himnario.length > 0) || !!temaIntroduccionAlabanza
+    const hasExtraContent = lecturasRegistradas.length > 0 || (himnario && himnario.length > 0) || !!temaIntroduccionAlabanza || !!notaTrim
     const hasFooter = footerAction != null
     const allCoros = (himnarioOrdenado ?? himnario ?? []).length > 0 && (himnarioOrdenado ?? himnario ?? []).every((item) => item.tipo === 'coro')
 
@@ -74,6 +78,17 @@ export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, ti
                         </p>
                     </div>
                     {action != null && <div className="shrink-0 self-center">{action}</div>}
+                </div>
+            )}
+
+            {/* Nota específica del rol (intro / finalización) */}
+            {notaTrim && (
+                <div className="flex gap-2.5 p-3 bg-amber-50/80 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-800/40 w-full min-w-0">
+                    <span className="text-base shrink-0 leading-none mt-0.5" aria-hidden>📝</span>
+                    <FormattedNote
+                        text={notaTrim}
+                        className="text-[13px] sm:text-sm font-medium leading-snug text-amber-800 dark:text-amber-200 min-w-0"
+                    />
                 </div>
             )}
 

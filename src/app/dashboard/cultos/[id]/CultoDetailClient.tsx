@@ -352,6 +352,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
 
     type CultoMetaData = {
         observaciones?: string;
+        observaciones_introduccion?: string;
+        observaciones_finalizacion?: string;
+        observaciones_ensenanza?: string;
+        observaciones_testimonios?: string;
         tema_introduccion_alabanza?: string;
         ensenanza_modo?: 'hermano' | 'video_hna_maria_luisa';
         ensenanza_video_titulo?: string;
@@ -369,6 +373,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         finalizacion: culto.id_usuario_finalizacion ?? null,
     })
     const [draftObservaciones, setDraftObservaciones] = useState<string>((culto.meta_data as CultoMetaData)?.observaciones || '')
+    const [draftObsIntro, setDraftObsIntro] = useState<string>((culto.meta_data as CultoMetaData)?.observaciones_introduccion || '')
+    const [draftObsFinal, setDraftObsFinal] = useState<string>((culto.meta_data as CultoMetaData)?.observaciones_finalizacion || '')
+    const [draftObsEnsenanza, setDraftObsEnsenanza] = useState<string>((culto.meta_data as CultoMetaData)?.observaciones_ensenanza || '')
+    const [draftObsTestimonios, setDraftObsTestimonios] = useState<string>((culto.meta_data as CultoMetaData)?.observaciones_testimonios || '')
     const [draftTema, setDraftTema] = useState<string | null>((culto.meta_data as CultoMetaData)?.tema_introduccion_alabanza ?? null)
     const [draftProtocolo, setDraftProtocolo] = useState<{ oracion_inicio: boolean; congregacion_pie: boolean } | null>(
         (culto.meta_data as CultoMetaData)?.protocolo ?? null
@@ -403,6 +411,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
             finalizacion: culto.id_usuario_finalizacion ?? null,
         },
         observaciones: (culto.meta_data as CultoMetaData)?.observaciones || '',
+        obsIntro: (culto.meta_data as CultoMetaData)?.observaciones_introduccion || '',
+        obsFinal: (culto.meta_data as CultoMetaData)?.observaciones_finalizacion || '',
+        obsEnsenanza: (culto.meta_data as CultoMetaData)?.observaciones_ensenanza || '',
+        obsTestimonios: (culto.meta_data as CultoMetaData)?.observaciones_testimonios || '',
         tema: (culto.meta_data as CultoMetaData)?.tema_introduccion_alabanza ?? null,
         protocolo: (culto.meta_data as CultoMetaData)?.protocolo ?? null,
         configuracionDefinida: !!(cultoMeta?.protocolo_definido || cultoMeta?.inicio_anticipado_definido),
@@ -520,6 +532,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 cultoId: culto.id,
                 assignments: draftAssignments,
                 observaciones: draftObservaciones,
+                observacionesIntroduccion: draftObsIntro,
+                observacionesFinalizacion: draftObsFinal,
+                observacionesEnsenanza: draftObsEnsenanza,
+                observacionesTestimonios: draftObsTestimonios,
                 temaIntroduccionAlabanza: draftTema,
                 protocolo: draftProtocolo,
                 protocoloDefinido: draftConfiguracionDefinida,
@@ -557,6 +573,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
             initialRef.current = {
                 assignments: { ...draftAssignments },
                 observaciones: draftObservaciones,
+                obsIntro: draftObsIntro,
+                obsFinal: draftObsFinal,
+                obsEnsenanza: draftObsEnsenanza,
+                obsTestimonios: draftObsTestimonios,
                 tema: draftTema,
                 protocolo: draftProtocolo,
                 configuracionDefinida: draftConfiguracionDefinida,
@@ -587,6 +607,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
         const initial = initialRef.current
         setDraftAssignments(initial.assignments)
         setDraftObservaciones(initial.observaciones)
+        setDraftObsIntro(initial.obsIntro)
+        setDraftObsFinal(initial.obsFinal)
+        setDraftObsEnsenanza(initial.obsEnsenanza)
+        setDraftObsTestimonios(initial.obsTestimonios)
         setDraftTema(initial.tema)
         setDraftProtocolo(initial.protocolo)
         setDraftConfiguracionDefinida(initial.configuracionDefinida)
@@ -606,6 +630,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
     const pendingCount = [
         JSON.stringify(draftAssignments) !== JSON.stringify(initialRef.current.assignments),
         draftObservaciones !== initialRef.current.observaciones,
+        draftObsIntro !== initialRef.current.obsIntro,
+        draftObsFinal !== initialRef.current.obsFinal,
+        draftObsEnsenanza !== initialRef.current.obsEnsenanza,
+        draftObsTestimonios !== initialRef.current.obsTestimonios,
         draftTema !== initialRef.current.tema,
         JSON.stringify(draftProtocolo) !== JSON.stringify(initialRef.current.protocolo),
         draftConfiguracionDefinida !== initialRef.current.configuracionDefinida,
@@ -760,23 +788,123 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     Observaciones
                                 </h3>
                                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                                    Notas adicionales del culto
+                                    {t('culto.obs.formatHint')}
                                 </p>
                             </div>
                         </div>
 
-                        {/* Textarea */}
-                        <textarea
-                            placeholder="Escribe aquí las observaciones del culto..."
-                            value={draftObservaciones}
-                            readOnly={readOnlyAssignments}
-                            onChange={readOnlyAssignments ? undefined : (e) => {
-                                setDraftObservaciones(e.target.value)
-                                setIsDirty(true)
-                            }}
-                            className={`w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-amber-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
-                            rows={2}
-                        />
+                        {/* Observación general (para todos) */}
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                                {t('culto.obs.generalLabel')}
+                                <span className="ml-2 font-bold normal-case tracking-normal text-muted-foreground/70">
+                                    {t('culto.obs.generalDesc')}
+                                </span>
+                            </label>
+                            <textarea
+                                placeholder={t('culto.obs.generalPlaceholder')}
+                                value={draftObservaciones}
+                                readOnly={readOnlyAssignments}
+                                onChange={readOnlyAssignments ? undefined : (e) => {
+                                    setDraftObservaciones(e.target.value)
+                                    setIsDirty(true)
+                                }}
+                                className={`w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-amber-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                rows={2}
+                            />
+                        </div>
+
+                        {/* Nota para introducción (solo si el culto tiene este rol) */}
+                        {config.tiene_lectura_introduccion && (
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
+                                    {t('culto.obs.introLabel')}
+                                    <span className="ml-2 font-bold normal-case tracking-normal text-muted-foreground/70">
+                                        {t('culto.obs.introDesc')}
+                                    </span>
+                                </label>
+                                <textarea
+                                    placeholder={t('culto.obs.introPlaceholder')}
+                                    value={draftObsIntro}
+                                    readOnly={readOnlyAssignments}
+                                    onChange={readOnlyAssignments ? undefined : (e) => {
+                                        setDraftObsIntro(e.target.value)
+                                        setIsDirty(true)
+                                    }}
+                                    className={`w-full px-4 py-3 bg-blue-50/60 dark:bg-blue-900/15 border border-blue-200 dark:border-blue-800/40 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                    rows={3}
+                                />
+                            </div>
+                        )}
+
+                        {/* Nota para finalización (solo si el culto tiene este rol) */}
+                        {config.tiene_lectura_finalizacion && (
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400">
+                                    {t('culto.obs.finalLabel')}
+                                    <span className="ml-2 font-bold normal-case tracking-normal text-muted-foreground/70">
+                                        {t('culto.obs.finalDesc')}
+                                    </span>
+                                </label>
+                                <textarea
+                                    placeholder={t('culto.obs.finalPlaceholder')}
+                                    value={draftObsFinal}
+                                    readOnly={readOnlyAssignments}
+                                    onChange={readOnlyAssignments ? undefined : (e) => {
+                                        setDraftObsFinal(e.target.value)
+                                        setIsDirty(true)
+                                    }}
+                                    className={`w-full px-4 py-3 bg-orange-50/60 dark:bg-orange-900/15 border border-orange-200 dark:border-orange-800/40 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-orange-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                    rows={3}
+                                />
+                            </div>
+                        )}
+
+                        {/* Nota para enseñanza (solo si el culto tiene este rol — Enseñanza) */}
+                        {config.tiene_ensenanza && (
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400">
+                                    {t('culto.obs.ensenanzaLabel')}
+                                    <span className="ml-2 font-bold normal-case tracking-normal text-muted-foreground/70">
+                                        {t('culto.obs.ensenanzaDesc')}
+                                    </span>
+                                </label>
+                                <textarea
+                                    placeholder={t('culto.obs.ensenanzaPlaceholder')}
+                                    value={draftObsEnsenanza}
+                                    readOnly={readOnlyAssignments}
+                                    onChange={readOnlyAssignments ? undefined : (e) => {
+                                        setDraftObsEnsenanza(e.target.value)
+                                        setIsDirty(true)
+                                    }}
+                                    className={`w-full px-4 py-3 bg-purple-50/60 dark:bg-purple-900/15 border border-purple-200 dark:border-purple-800/40 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-purple-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                    rows={3}
+                                />
+                            </div>
+                        )}
+
+                        {/* Nota para testimonios (solo si el culto tiene este rol — Enseñanza) */}
+                        {config.tiene_testimonios && (
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                                    {t('culto.obs.testimoniosLabel')}
+                                    <span className="ml-2 font-bold normal-case tracking-normal text-muted-foreground/70">
+                                        {t('culto.obs.testimoniosDesc')}
+                                    </span>
+                                </label>
+                                <textarea
+                                    placeholder={t('culto.obs.testimoniosPlaceholder')}
+                                    value={draftObsTestimonios}
+                                    readOnly={readOnlyAssignments}
+                                    onChange={readOnlyAssignments ? undefined : (e) => {
+                                        setDraftObsTestimonios(e.target.value)
+                                        setIsDirty(true)
+                                    }}
+                                    className={`w-full px-4 py-3 bg-emerald-50/60 dark:bg-emerald-900/15 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                    rows={3}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             </motion.div>
