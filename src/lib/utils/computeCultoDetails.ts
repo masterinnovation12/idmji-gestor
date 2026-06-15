@@ -14,6 +14,14 @@ export interface CultoDetails {
         inicioAnticipado: { activo: boolean; minutos: number; horaReal: string; observaciones?: string } | null
     } | null
     observacionesData: string
+    /** Nota específica para quien hace la introducción (texto plano con **negrita** y saltos de línea). */
+    observacionesIntroduccion: string
+    /** Nota específica para quien hace la finalización (texto plano con **negrita** y saltos de línea). */
+    observacionesFinalizacion: string
+    /** Nota específica para quien hace la enseñanza (texto plano con **negrita** y saltos de línea). */
+    observacionesEnsenanza: string
+    /** Nota específica para quien hace los testimonios (texto plano con **negrita** y saltos de línea). */
+    observacionesTestimonios: string
 }
 
 export function computeCultoDetails(culto: Culto | null): CultoDetails {
@@ -23,7 +31,11 @@ export function computeCultoDetails(culto: Culto | null): CultoDetails {
             lecturaData: null,
             temaIntroduccionAlabanza: null,
             estudioBiblicoData: null,
-            observacionesData: ''
+            observacionesData: '',
+            observacionesIntroduccion: '',
+            observacionesFinalizacion: '',
+            observacionesEnsenanza: '',
+            observacionesTestimonios: ''
         }
     }
 
@@ -89,8 +101,19 @@ export function computeCultoDetails(culto: Culto | null): CultoDetails {
         }
     }
 
-    // 3. Observaciones Data
-    const observacionesData = ((culto.meta_data as unknown) as { observaciones?: string })?.observaciones || ''
+    // 3. Observaciones Data (general + notas por rol)
+    const metaObs = (culto.meta_data as unknown) as {
+        observaciones?: string
+        observaciones_introduccion?: string
+        observaciones_finalizacion?: string
+        observaciones_ensenanza?: string
+        observaciones_testimonios?: string
+    } | null
+    const observacionesData = metaObs?.observaciones || ''
+    const observacionesIntroduccion = metaObs?.observaciones_introduccion || ''
+    const observacionesFinalizacion = metaObs?.observaciones_finalizacion || ''
+    const observacionesEnsenanza = metaObs?.observaciones_ensenanza || ''
+    const observacionesTestimonios = metaObs?.observaciones_testimonios || ''
 
     // 4. Tema introducción Alabanza (solo para cultos de Alabanza)
     const esAlabanza = tipoCulto?.nombre?.toLowerCase().includes('alabanza') ?? false
@@ -100,6 +123,10 @@ export function computeCultoDetails(culto: Culto | null): CultoDetails {
         lecturaData,
         temaIntroduccionAlabanza,
         estudioBiblicoData,
-        observacionesData
+        observacionesData,
+        observacionesIntroduccion,
+        observacionesFinalizacion,
+        observacionesEnsenanza,
+        observacionesTestimonios
     }
 }

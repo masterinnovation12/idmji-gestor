@@ -103,4 +103,29 @@ describe('AssignmentPill', () => {
     expect(itemRow?.className).toContain('flex items-center')
     expect(itemRow?.className).not.toContain('flex-col')
   })
+
+  it('renderiza la nota del rol con negrita y saltos de línea', () => {
+    const { container } = render(
+      <AssignmentPill
+        label="Intro"
+        usuario={{ nombre: 'Juan', apellidos: 'García' }}
+        nota={'Dar la **bienvenida**\nsegunda línea'}
+      />
+    )
+    const strong = container.querySelector('strong')
+    expect(strong?.textContent).toBe('bienvenida')
+    const noteP = container.querySelector('p.whitespace-pre-line')
+    expect(noteP?.textContent).toContain('segunda línea')
+  })
+
+  it('no renderiza bloque de nota cuando nota está vacía o solo espacios', () => {
+    const { container } = render(
+      <AssignmentPill
+        label="Intro"
+        usuario={{ nombre: 'Juan', apellidos: 'García' }}
+        nota={'   '}
+      />
+    )
+    expect(container.querySelector('p.whitespace-pre-line')).toBeNull()
+  })
 })

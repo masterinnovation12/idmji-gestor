@@ -13,10 +13,11 @@ import { InstruccionesCultoModal } from '@/components/InstruccionesCultoModal'
 import AddLecturaModal from '@/components/AddLecturaModal'
 import type { RolInstruccionCulto } from '@/types/database'
 import { CultoInstruccionesIconBtn, type InstrModalState } from './CultoInstruccionesIconBtn'
+import { FormattedNote } from '@/components/ui/FormattedNote'
 
 export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ culto: Culto; esHoy: boolean; currentUserId: string }>) {
     const { t } = useI18n()
-    const { observacionesData, lecturaData, temaIntroduccionAlabanza } = computeCultoDetails(culto)
+    const { observacionesData, lecturaData, temaIntroduccionAlabanza, observacionesIntroduccion, observacionesFinalizacion, observacionesEnsenanza, observacionesTestimonios } = computeCultoDetails(culto)
     const [instrModal, setInstrModal] = useState<InstrModalState>(null)
     const [addLecturaModalOpen, setAddLecturaModalOpen] = useState(false)
     const [editingLectura, setEditingLectura] = useState<LecturaBiblica | null>(null)
@@ -91,9 +92,10 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                         📝 {t('dashboard.observaciones')}
                                     </p>
                                     {hasObs ? (
-                                        <p className="text-sm font-medium leading-snug text-amber-800 dark:text-amber-200">
-                                            {obsContent}
-                                        </p>
+                                        <FormattedNote
+                                            text={obsContent}
+                                            className="text-sm font-medium leading-snug text-amber-800 dark:text-amber-200"
+                                        />
                                     ) : (
                                         <div className="inline-flex items-center rounded-full border border-slate-300 dark:border-slate-600 bg-white/80 dark:bg-slate-700/50 px-2.5 py-1 text-[11px] font-semibold text-slate-500 dark:text-slate-300 italic">
                                             {t('dashboard.noObservaciones')}
@@ -117,6 +119,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                         }}
                                         himnario={culto.plan_himnos_coros as PlanHimnoCoro[] | undefined}
                                         tipoCulto={cultoNombre}
+                                        nota={observacionesIntroduccion}
                                         temaIntroduccionAlabanza={cultoNombre.toLowerCase().includes('alabanza') ? temaIntroduccionAlabanza : undefined}
                         action={cultoTypeId ? <CultoInstruccionesIconBtn rol="introduccion" onOpen={openModal} /> : undefined}
                         footerAction={(canAddReading || showAddHimnos) ? (
@@ -155,6 +158,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                     <AssignmentPill
                                         label={t('cultos.ensenanza')}
                                         usuario={ensenanzaEsVideo ? { nombre: 'Video Hna. María Luisa', apellidos: 'Piraquive' } : culto.usuario_ensenanza}
+                                        nota={observacionesEnsenanza}
                                         action={cultoTypeId ? <CultoInstruccionesIconBtn rol="ensenanza" onOpen={openModal} /> : undefined}
                                     />
                                 )}
@@ -162,6 +166,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                     <AssignmentPill
                                         label={t('cultos.testimonios')}
                                         usuario={culto.usuario_testimonios}
+                                        nota={observacionesTestimonios}
                                         action={cultoTypeId ? <CultoInstruccionesIconBtn rol="testimonios" onOpen={openModal} /> : undefined}
                                     />
                                 )}
@@ -170,6 +175,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                         label={t('cultos.finalizacion')}
                                         usuario={culto.usuario_finalizacion}
                                         lectura={lecturaData?.lecturaFinal ?? undefined}
+                                        nota={observacionesFinalizacion}
                                         action={cultoTypeId ? <CultoInstruccionesIconBtn rol="finalizacion" onOpen={openModal} /> : undefined}
                                     />
                                 )}

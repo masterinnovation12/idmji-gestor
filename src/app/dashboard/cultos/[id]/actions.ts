@@ -451,6 +451,10 @@ interface CultoDraftPayload {
     cultoId: string
     assignments: Partial<Record<'introduccion' | 'finalizacion' | 'ensenanza' | 'testimonios', string | null>>
     observaciones: string
+    observacionesIntroduccion?: string
+    observacionesFinalizacion?: string
+    observacionesEnsenanza?: string
+    observacionesTestimonios?: string
     temaIntroduccionAlabanza: string | null
     protocolo: { oracion_inicio: boolean; congregacion_pie: boolean } | null
     protocoloDefinido: boolean
@@ -495,6 +499,28 @@ export async function saveCultoDraft(payload: CultoDraftPayload) {
     const nextMeta: Record<string, unknown> = {
         ...currentMeta,
         observaciones: payload.observaciones ?? '',
+    }
+
+    // Notas específicas por rol (se omiten del meta si quedan vacías)
+    if (payload.observacionesIntroduccion?.trim()) {
+        nextMeta.observaciones_introduccion = payload.observacionesIntroduccion
+    } else {
+        delete nextMeta.observaciones_introduccion
+    }
+    if (payload.observacionesFinalizacion?.trim()) {
+        nextMeta.observaciones_finalizacion = payload.observacionesFinalizacion
+    } else {
+        delete nextMeta.observaciones_finalizacion
+    }
+    if (payload.observacionesEnsenanza?.trim()) {
+        nextMeta.observaciones_ensenanza = payload.observacionesEnsenanza
+    } else {
+        delete nextMeta.observaciones_ensenanza
+    }
+    if (payload.observacionesTestimonios?.trim()) {
+        nextMeta.observaciones_testimonios = payload.observacionesTestimonios
+    } else {
+        delete nextMeta.observaciones_testimonios
     }
 
     if (payload.temaIntroduccionAlabanza) {
