@@ -16,6 +16,8 @@ import {
 
 const ROLES_G1_KEYS = ['realiza', 'apoyo', 'vigilancia'] as const
 const ROLES_G2_KEYS = ['colaborador_1', 'colaborador_2', 'colaborador_3'] as const
+/** Roles extra de G1 (opcionales en el export); orden canónico. */
+const EXTRA_G1_ORDER = ['primera_vez', 'segunda_tercera_vez', 'imposicion_manos'] as const
 
 interface ExportLayoutProps {
     plan: PlanCompleto
@@ -30,6 +32,8 @@ interface ExportLayoutProps {
     exportScope?: 'month' | 'week'
     /** Completo (G1+G2+sacos) o solo colaboradores sin sacos. */
     peopleScope?: ExportPeopleScope
+    /** Roles extra de G1 a incluir (primera_vez, segunda_tercera_vez, imposicion_manos). */
+    extraG1Roles?: string[]
 }
 
 function getDayShort(tipo: OfrServicio['dia_tipo'], labels: OfrendaExportLabels): string {
@@ -72,6 +76,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
         periodSubtitle,
         exportScope: exportScopeProp,
         peopleScope = 'all',
+        extraG1Roles = [],
     }, ref) {
         const servicios = serviciosProp ?? plan.servicios
         void exportScopeProp
@@ -79,11 +84,19 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
         const showSacos = exportIncludesSacosRows(peopleScope)
         const showG1 = exportIncludesGroup1(peopleScope)
         const { asignaciones } = plan
-        const roleLabels = {
+        const roleLabels: Record<string, string> = {
             realiza: labels.realiza,
             apoyo: labels.apoyo,
             vigilancia: labels.vigilancia,
+            primera_vez: labels.primeraVez,
+            segunda_tercera_vez: labels.segundaTerceraVez,
+            imposicion_manos: labels.imposicionManos,
         }
+        // Roles G1 a pintar: los 3 clásicos + los extra seleccionados (en orden canónico).
+        const g1Keys: string[] = [
+            ...ROLES_G1_KEYS,
+            ...EXTRA_G1_ORDER.filter(k => extraG1Roles.includes(k)),
+        ]
 
         const layoutWidth = exportLayoutWidthPx(servicios.length)
         const periodLabel = formatExportPeriodLabel(mesTitulo, anio)
@@ -235,7 +248,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                             </thead>
 
                             <tbody>
-                                {showG1 ? ROLES_G1_KEYS.map((key, rIdx) => {
+                                {showG1 ? g1Keys.map((key, rIdx) => {
                                     const sCol = SERVICE_EXPORT_COLORS.jueves
                                     return (
                                         <tr key={key}>

@@ -118,12 +118,20 @@ describe('PlanoTab', () => {
         expect(screen.getByTestId('plano-modo-badge').textContent).toContain('8')
     })
 
-    it('cambia a vista 3D al pulsar el toggle', async () => {
+    it('arranca en vista 3D por defecto', async () => {
         const { getPlanoData } = await import('./planoActions')
         renderTab()
-        fireEvent.click(screen.getByRole('button', { name: '3D' }))
         await waitFor(() => {
             expect(getPlanoData).toHaveBeenCalledWith('srv-1', '3d', 'sacos_8')
+        })
+    })
+
+    it('cambia a vista 2D al pulsar el toggle', async () => {
+        const { getPlanoData } = await import('./planoActions')
+        renderTab()
+        fireEvent.click(screen.getByRole('button', { name: '2D' }))
+        await waitFor(() => {
+            expect(getPlanoData).toHaveBeenCalledWith('srv-1', '2d', 'sacos_8')
         })
     })
 

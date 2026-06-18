@@ -164,6 +164,9 @@ function useRoleRows() {
             { key: 'realiza' as const, label: t('ofrenda.roles.realiza') },
             { key: 'apoyo' as const, label: t('ofrenda.roles.apoyo') },
             { key: 'vigilancia' as const, label: t('ofrenda.roles.vigilancia') },
+            { key: 'primera_vez' as const, label: t('ofrenda.roles.colaborador1vez') },
+            { key: 'segunda_tercera_vez' as const, label: t('ofrenda.roles.colaborador23vez') },
+            { key: 'imposicion_manos' as const, label: t('ofrenda.roles.imposicionManos') },
         ],
         g2: [
             { key: 'colaborador_1' as const, label: `${t('ofrenda.roles.colaborador')} 1` },

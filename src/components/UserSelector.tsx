@@ -393,7 +393,7 @@ export default function UserSelector({
                             )}
                         </div>
                         <div className="p-3 bg-muted/20 border-t border-border/50 text-center shrink-0">
-                            <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Selecciona un hermano para asignar</p>
+                            <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">{t('hermanos.selectToAssign')}</p>
                         </div>
                     </motion.div >
                 </div >,

@@ -7,6 +7,7 @@ import { Gift, Users, Download, Map, RefreshCw, Plus, Trash2 } from 'lucide-reac
 import BackButton from '@/components/BackButton'
 import { OfrendaFeedbackProvider, useOfrendaToast } from './ofrendaFeedback'
 import { MiembrosManager } from './MiembrosManager'
+import { PlanoPersonasManager } from './plano/PlanoPersonasManager'
 import { PlanTable } from './PlanTable'
 import { ExportPanel } from './ExportPanel'
 import { getPlan, generarORegenerarPlan, updateSacosConfig, eliminarPlan } from './actions'
@@ -30,17 +31,23 @@ const TAB_DEFS: { id: Tab; labelKey: TranslationKey; icon: React.ElementType }[]
     { id: 'plano', labelKey: 'ofrenda.tabs.plano', icon: Map },
 ]
 
+// Esqueleto de carga del plano (componente para poder usar i18n en el aria-label).
+function PlanoLoadingSkeleton() {
+    const { t } = useI18n()
+    return (
+        <div
+            className="min-h-[52dvh] h-[calc(100dvh-18rem)] max-h-[72dvh] bg-muted rounded-2xl animate-pulse"
+            aria-busy="true"
+            aria-label={t('ofrenda.plano.loading')}
+        />
+    )
+}
+
 // Carga perezosa del plano: el lienzo (SVG + react-zoom-pan-pinch) no debe
 // penalizar el LCP de las otras pestañas.
 const PlanoTab = dynamic(() => import('./plano/PlanoTab'), {
     ssr: false,
-    loading: () => (
-        <div
-            className="min-h-[52dvh] h-[calc(100dvh-18rem)] max-h-[72dvh] bg-muted rounded-2xl animate-pulse"
-            aria-busy="true"
-            aria-label="Cargando plano"
-        />
-    ),
+    loading: () => <PlanoLoadingSkeleton />,
 })
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -73,6 +80,7 @@ function OfrendaPageClientInner({
     const { t, language } = useI18n()
     const feedback = useOfrendaToast()
     const [activeTab, setActiveTab] = useState<Tab>('plan')
+    const [personasView, setPersonasView] = useState<'miembros' | 'plano'>('miembros')
     const [anio, setAnio]           = useState(initialAnio)
     const [mes,  setMes]            = useState(initialMes)
     const [plan, setPlan]           = useState<PlanCompleto | null>(initialPlan)
@@ -351,12 +359,45 @@ function OfrendaPageClientInner({
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.18 }}
+                            className="space-y-4"
                         >
-                            <MiembrosManager
-                                initialMiembros={miembros}
-                                canEdit={canEdit}
-                                onChange={handleMiembrosChange}
-                            />
+                            <div
+                                className="inline-flex w-full sm:w-auto rounded-xl border border-border bg-muted/40 p-0.5"
+                                role="group"
+                                aria-label={t('ofrenda.tabs.people')}
+                            >
+                                {(['miembros', 'plano'] as const).map(view => {
+                                    const active = personasView === view
+                                    return (
+                                        <button
+                                            key={view}
+                                            type="button"
+                                            onClick={() => setPersonasView(view)}
+                                            aria-pressed={active}
+                                            data-testid={`personas-view-${view}`}
+                                            className={`flex-1 sm:flex-none px-4 py-2 min-h-[40px] rounded-[10px] text-xs font-bold transition-colors touch-manipulation ${
+                                                active
+                                                    ? 'bg-emerald-600 text-white shadow'
+                                                    : 'text-muted-foreground hover:text-foreground'
+                                            }`}
+                                        >
+                                            {view === 'miembros'
+                                                ? t('ofrenda.personas.viewMiembros')
+                                                : t('ofrenda.personas.viewPlano')}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+
+                            {personasView === 'miembros' ? (
+                                <MiembrosManager
+                                    initialMiembros={miembros}
+                                    canEdit={canEdit}
+                                    onChange={handleMiembrosChange}
+                                />
+                            ) : (
+                                <PlanoPersonasManager canEdit={canEdit} />
+                            )}
                         </motion.div>
                     )}
 
@@ -500,7 +541,7 @@ function RegenerateMenu({
                             type="button"
                             className="fixed inset-0 z-10 bg-transparent cursor-default"
                             onClick={() => setOpen(false)}
-                            aria-label="Cerrar menú"
+                            aria-label={t('ofrenda.closeMenu')}
                         />
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: -4 }}
@@ -568,8 +609,9 @@ function EmptyPlanState({
 }
 
 function PlanSkeleton() {
+    const { t } = useI18n()
     return (
-        <div className="space-y-3 animate-pulse" aria-busy="true" aria-label="Cargando plan">
+        <div className="space-y-3 animate-pulse" aria-busy="true" aria-label={t('ofrenda.loadingPlan')}>
             <div className="h-10 bg-muted rounded-2xl" />
             {Array.from({ length: 5 }, (_, i) => i).map(i => (
                 <div key={`skel-${i}`} className="h-24 bg-muted rounded-2xl" />

@@ -269,7 +269,7 @@ export default function AddLecturaModal({
               <AlertCircle className="w-10 h-10" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-2xl font-black uppercase tracking-tighter text-red-600">¡Cita Repetida!</h3>
+              <h3 className="text-2xl font-black uppercase tracking-tighter text-red-600">{t('addLectura.repeatedTitle')}</h3>
               <p className="text-muted-foreground text-sm font-medium max-w-xs mx-auto">
                 Esta cita ya fue leída anteriormente el{' '}
                 <span className="text-foreground font-bold">

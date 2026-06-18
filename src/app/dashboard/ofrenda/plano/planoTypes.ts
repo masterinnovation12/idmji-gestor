@@ -16,6 +16,9 @@ export type PlanoModo = 'sacos_4' | 'sacos_8'
 export type PlanoVista = '2d' | '3d'
 export type PlanoRol = 'ofrendario' | 'apoyo'
 
+/** Qué puede hacer una persona del plano: solo ofrendario, solo apoyo (sobres) o ambos. */
+export type PlanoCapacidad = 'ofrendario' | 'apoyo' | 'ambos'
+
 export interface PlanoPunto {
     x: number
     y: number
@@ -161,4 +164,13 @@ export function resolverModo(sacos: number): PlanoModo | null {
     if (sacos === 4) return 'sacos_4'
     if (sacos === 8) return 'sacos_8'
     return null
+}
+
+/**
+ * ¿La capacidad de la persona encaja con el rol del hueco?
+ * 'ambos' encaja siempre; en otro caso, debe coincidir capacidad === rol.
+ * Si NO encaja, la UI avisa antes de asignar (ofrendario en apoyo, o viceversa).
+ */
+export function capacidadEncajaRol(capacidad: PlanoCapacidad, rol: PlanoRol): boolean {
+    return capacidad === 'ambos' || capacidad === rol
 }

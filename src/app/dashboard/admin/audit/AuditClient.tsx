@@ -435,7 +435,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                                 disabled={page === 1 || isLoading}
                                 variant="outline"
                                 className="h-10 w-10 p-0 rounded-xl"
-                                aria-label="Página anterior"
+                                aria-label={t('common.previousPage')}
                             >
                                 <ChevronLeft className="w-5 h-5" />
                             </Button>
@@ -444,7 +444,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                                 disabled={page === totalPages || isLoading}
                                 variant="outline"
                                 className="h-10 w-10 p-0 rounded-xl"
-                                aria-label="Página siguiente"
+                                aria-label={t('common.nextPage')}
                             >
                                 <ChevronRight className="w-5 h-5" />
                             </Button>

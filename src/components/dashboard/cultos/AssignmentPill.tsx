@@ -111,7 +111,7 @@ export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, ti
                         </div>
                         <div className="min-w-0 flex-1 flex flex-col justify-center">
                             <div className="flex items-center flex-wrap gap-1.5 mb-1">
-                                <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">{lecturasRegistradas.length > 1 ? 'Lecturas' : t('dashboard.himnario.reading')}</span>
+                                <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">{lecturasRegistradas.length > 1 ? t('dashboard.himnario.readings') : t('dashboard.himnario.reading')}</span>
                                 <div className="w-1 h-1 rounded-full bg-blue-300 hidden xs:block" />
                                 <div className="flex items-center gap-1 bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
                                     <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
@@ -139,7 +139,7 @@ export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, ti
                                         type="button"
                                         onClick={() => onEditReading(item)}
                                         className="shrink-0 w-7 h-7 rounded-full border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors flex items-center justify-center"
-                                        aria-label="Editar lectura"
+                                        aria-label={t('dashboard.himnario.editReading')}
                                     >
                                         <Pencil className="w-3.5 h-3.5" />
                                     </button>

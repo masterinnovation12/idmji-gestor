@@ -73,14 +73,14 @@ describe('LecturasPageClient - Búsqueda y solapamiento', () => {
     const searchWrap = screen.getByTestId('lecturas-search-wrap')
     expect(searchWrap).toBeInTheDocument()
 
-    const input = screen.getByRole('textbox', { name: /buscar lecturas/i })
+    const input = screen.getByRole('textbox', { name: 'lecturas.searchAria' })
     expect(input).toBeInTheDocument()
   })
 
   it('permite escribir en la búsqueda', () => {
     render(<LecturasPageClient {...defaultProps} />)
 
-    const input = screen.getByRole('textbox', { name: /buscar lecturas/i })
+    const input = screen.getByRole('textbox', { name: 'lecturas.searchAria' })
     fireEvent.change(input, { target: { value: 'salmos' } })
 
     expect(input).toHaveValue('salmos')

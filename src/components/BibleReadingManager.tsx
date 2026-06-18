@@ -44,6 +44,7 @@ interface ReadingItemProps {
 }
 
 function ReadingItem({ lectura, onEdit, onDelete }: ReadingItemProps) {
+    const { t } = useI18n()
     return (
         <motion.div
             layout
@@ -71,7 +72,7 @@ function ReadingItem({ lectura, onEdit, onDelete }: ReadingItemProps) {
                             {lectura.es_repetida && (
                                 <div className="flex items-center gap-1 text-red-600 font-black text-[7px] uppercase bg-red-500/10 px-1.5 py-0.5 rounded-full border border-red-500/20 shrink-0">
                                     <AlertCircle className="w-2.5 h-2.5" />
-                                    <span>Repetida</span>
+                                    <span>{t('bibleManager.repeated')}</span>
                                 </div>
                             )}
                         </div>
@@ -110,14 +111,14 @@ function ReadingItem({ lectura, onEdit, onDelete }: ReadingItemProps) {
                         className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white dark:bg-slate-800 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all shadow-sm border border-border/50 group/btn"
                     >
                         <Edit2 className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Modificar</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest">{t('culto.detail.modify')}</span>
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); onDelete(lectura.id); }}
                         className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white dark:bg-slate-800 text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-all shadow-sm border border-border/50 group/btn"
                     >
                         <Trash2 className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Eliminar</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest">{t('common.delete')}</span>
                     </button>
                 </div>
             </div>
@@ -212,7 +213,7 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                 {isLoading ? (
                     <div className="p-12 flex flex-col items-center justify-center gap-4 opacity-50">
                         <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Cargando lecturas...</p>
+                        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('bibleManager.loadingReadings')}</p>
                     </div>
                 ) : lecturas.length > 0 ? (
                     <div className="space-y-3">
@@ -225,8 +226,8 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
                                     type="button"
                                     onClick={() => { setEditingLectura(null); setActiveTipo('introduccion'); setIsModalOpen(true); }}
                                     className="h-8 w-8 rounded-full border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center justify-center"
-                                    aria-label="Añadir lectura"
-                                    title="Añadir lectura"
+                                    aria-label={t('dashboard.addReadingButton')}
+                                    title={t('dashboard.addReadingButton')}
                                 >
                                     <Plus className="w-4 h-4" />
                                 </button>
@@ -280,7 +281,7 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
             <Modal
                 isOpen={!!deleteConfirmId}
                 onClose={() => setDeleteConfirmId(null)}
-                title="Confirmar eliminación"
+                title={t('bibleManager.confirmDelete')}
                 size="sm"
                 keyPrefix="delete-reading"
             >

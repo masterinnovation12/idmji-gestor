@@ -7,6 +7,8 @@ export function makeOfrMiembro(
     return {
         activo: true,
         orden: 0,
+        fijo_dia_tipo: null,
+        fijo_rol: null,
         profile_id: null,
         created_at: '2026-01-01T00:00:00Z',
         ...DISPONIBILIDAD_TURNOS_DEFAULT,

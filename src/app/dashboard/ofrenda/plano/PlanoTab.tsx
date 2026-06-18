@@ -16,6 +16,7 @@ import {
     savePlanoLayout,
     clearPlanoNombres,
     resetPlanoLayout,
+    setPlanoPersonaCapacidad,
 } from './planoActions'
 import { vistaResueltaToElementos } from './planoLayoutSerialize'
 import { exportPlanoPng } from './planoExportPng'
@@ -31,7 +32,9 @@ import { pickDefaultServicioId, todayIsoLocal } from './planoDefaultServicio'
 import {
     resolverModo,
     sacosParaDia,
+    capacidadEncajaRol,
     type PlanoBloque,
+    type PlanoCapacidad,
     type PlanoPosicion,
     type PlanoVista,
     type PlanoVistaResuelta,
@@ -77,7 +80,16 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
     quickSuccessRef.current = quickSuccess
     planSuccessRef.current = planSuccess
     showRef.current = show
-    const [vista, setVista] = useState<PlanoVista>('2d')
+    // Traduce los códigos de error de auth de las server actions; el resto pasa tal cual.
+    const planoErr = useCallback(
+        (e?: string) => {
+            if (e === 'no_auth') return t('ofrenda.plano.err.noAuth')
+            if (e === 'no_permission') return t('ofrenda.plano.err.noPermission')
+            return e ?? ''
+        },
+        [t],
+    )
+    const [vista, setVista] = useState<PlanoVista>('3d')
     const [planoData, setPlanoData] = useState<PlanoVistaResuelta | null>(null)
     const [planoLoadedFor, setPlanoLoadedFor] = useState<{
         servicioId: string
@@ -87,6 +99,12 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
     const [loading, setLoading] = useState(false)
     const [editorOpen, setEditorOpen] = useState(false)
     const [comboboxPos, setComboboxPos] = useState<PlanoPosicion | null>(null)
+    const [pendingAssign, setPendingAssign] = useState<{
+        pos: PlanoPosicion
+        personaId: string
+        nombre: string
+        capacidad: PlanoCapacidad
+    } | null>(null)
     const [blockEdit, setBlockEdit] = useState<PlanoBloque | null>(null)
     const [layoutEditMode, setLayoutEditMode] = useState(false)
     const [dragging, setDragging] = useState(false)
@@ -160,7 +178,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                 if (cancelled) return
                 const embedded = getPlanoVista(vista, modo)
                 const nextData = res.error ? embedded : (res.data?.data ?? embedded)
-                if (res.error) planErrorRef.current(res.error)
+                if (res.error) planErrorRef.current(planoErr(res.error))
                 setPlanoData(nextData)
                 setPlanoLoadedFor({ servicioId: servicioIdResolved, modo, vista })
             } catch (err) {
@@ -189,7 +207,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
             )
             const embedded = getPlanoVista(vista, modo)
             if (res.error) {
-                planErrorRef.current(res.error)
+                planErrorRef.current(planoErr(res.error))
                 setPlanoData(embedded)
                 setPlanoLoadedFor({ servicioId: servicio.id, modo, vista })
                 return
@@ -225,7 +243,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                 savePlanoLayout(vista, modo, vistaResueltaToElementos(data)),
             )
             if (res.error) {
-                planErrorRef.current(res.error)
+                planErrorRef.current(planoErr(res.error))
                 setLayoutStatus('idle')
                 return
             }
@@ -250,24 +268,63 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
         [layoutEditMode, saveLayoutAfterEdit],
     )
 
-    const handleAsignacion = async (personaId: string | null, nombre: string | null) => {
+    const saveAssign = useCallback(
+        async (pos: PlanoPosicion, personaId: string | null, nombre: string | null) => {
+            if (!servicio) return
+            const res = await invokePlanoAction(() =>
+                savePlanoAsignacion(servicio.id, pos.bloque, pos.rol, personaId, nombre),
+            )
+            if (res.error) {
+                planErrorRef.current(planoErr(res.error))
+                return
+            }
+            quickSuccessRef.current(t('ofrenda.plano.toast.saved'))
+            void reloadPlano()
+        },
+        [servicio, reloadPlano, t],
+    )
+
+    const handleAsignacion = async (
+        personaId: string | null,
+        nombre: string | null,
+        capacidad: PlanoCapacidad | null,
+        alreadyExisted?: boolean,
+    ) => {
         if (!servicio || !comboboxPos) return
-        const res = await invokePlanoAction(() =>
-            savePlanoAsignacion(
-                servicio.id,
-                comboboxPos.bloque,
-                comboboxPos.rol,
-                personaId,
-                nombre,
-            ),
-        )
+        const pos = comboboxPos
         setComboboxPos(null)
-        if (res.error) {
-            planErrorRef.current(res.error)
+        if (alreadyExisted) quickSuccessRef.current(t('ofrenda.plano.combobox.reused'))
+
+        // Limpiar el hueco
+        if (!personaId) {
+            await saveAssign(pos, null, null)
             return
         }
-        quickSuccessRef.current(t('ofrenda.plano.toast.saved'))
-        void reloadPlano()
+
+        // Aviso si la capacidad de la persona no encaja con el rol del hueco
+        if (capacidad && !capacidadEncajaRol(capacidad, pos.rol)) {
+            setPendingAssign({ pos, personaId, nombre: nombre ?? '', capacidad })
+            return
+        }
+
+        await saveAssign(pos, personaId, nombre)
+    }
+
+    const resolvePendingAssign = async (mode: 'once' | 'permanent') => {
+        if (!pendingAssign) return
+        const { pos, personaId, nombre } = pendingAssign
+        setPendingAssign(null)
+        if (mode === 'permanent') {
+            const res = await invokePlanoAction(() =>
+                setPlanoPersonaCapacidad(personaId, 'ambos'),
+            )
+            if (res.error) {
+                planErrorRef.current(planoErr(res.error))
+                return
+            }
+            quickSuccessRef.current(t('ofrenda.plano.capacidad.updated'))
+        }
+        await saveAssign(pos, personaId, nombre)
     }
 
     const handleExportPng = async () => {
@@ -301,7 +358,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
         setConfirmAction(null)
         if (action === 'clear' && servicio) {
             const res = await invokePlanoAction(() => clearPlanoNombres(servicio.id))
-            if (res.error) planErrorRef.current(res.error)
+            if (res.error) planErrorRef.current(planoErr(res.error))
             else {
                 quickSuccessRef.current(t('ofrenda.plano.toast.cleared'))
                 void reloadPlano()
@@ -310,7 +367,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
         }
         if (action === 'reset' && modo) {
             const res = await invokePlanoAction(() => resetPlanoLayout(vista, modo))
-            if (res.error) planErrorRef.current(res.error)
+            if (res.error) planErrorRef.current(planoErr(res.error))
             else {
                 planSuccessRef.current(t('ofrenda.plano.toast.reset'))
                 void reloadPlano()
@@ -546,6 +603,55 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                     value={comboboxPos.nombre ?? ''}
                     onSelect={handleAsignacion}
                 />
+            )}
+
+            {pendingAssign && (
+                <OfrendaLiquidShell
+                    open
+                    onClose={() => setPendingAssign(null)}
+                    ariaLabel={t('ofrenda.plano.rolWarn.title')}
+                    title={t('ofrenda.plano.rolWarn.title')}
+                    headline={t('ofrenda.plano.rolWarn.title')}
+                    accent="gold"
+                    testIdPrefix="plano-rolwarn"
+                    unstyledBody
+                >
+                    <div className="px-4 pb-4 space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                            {interpolate(
+                                t(
+                                    pendingAssign.pos.rol === 'apoyo'
+                                        ? 'ofrenda.plano.rolWarn.toApoyo'
+                                        : 'ofrenda.plano.rolWarn.toOfrendario',
+                                ),
+                                { nombre: pendingAssign.nombre },
+                            )}
+                        </p>
+                        <div className="flex flex-col gap-2">
+                            <button
+                                type="button"
+                                onClick={() => void resolvePendingAssign('once')}
+                                className="w-full py-3 min-h-[48px] rounded-xl bg-amber-600 text-white font-bold touch-manipulation"
+                            >
+                                {t('ofrenda.plano.rolWarn.once')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void resolvePendingAssign('permanent')}
+                                className="w-full py-3 min-h-[48px] rounded-xl border border-amber-500/50 font-semibold touch-manipulation"
+                            >
+                                {t('ofrenda.plano.rolWarn.permanent')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPendingAssign(null)}
+                                className="w-full py-3 min-h-[48px] rounded-xl border border-border font-semibold touch-manipulation"
+                            >
+                                {t('ofrenda.plano.rolWarn.no')}
+                            </button>
+                        </div>
+                    </div>
+                </OfrendaLiquidShell>
             )}
 
             <PlanoBlockLabelEdit

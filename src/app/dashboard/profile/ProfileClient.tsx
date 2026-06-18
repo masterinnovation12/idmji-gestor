@@ -340,7 +340,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                         {avatarPreview ? (
                                             <NextImage
                                                 src={avatarPreview}
-                                                alt="Avatar"
+                                                alt="Avatar" /* i18n-ignore: idéntico en es/ca */
                                                 fill
                                                 className="object-cover"
                                                 unoptimized={avatarPreview.startsWith('blob:')}
@@ -503,7 +503,7 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                                                 type="email"
                                                 value={formData.email_contacto}
                                                 onChange={handleInputChange}
-                                                placeholder="email@ejemplo.com"
+                                                placeholder={t('login.emailPlaceholder')}
                                                 className="h-14 rounded-2xl bg-white/5 border-border/50 focus:ring-2 focus:ring-primary/50 font-bold pl-12 pr-5"
                                             />
                                         </div>
@@ -681,11 +681,10 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                             <div className="p-2 bg-red-500/10 rounded-xl">
                                 <Trash2 className="w-5 h-5 text-red-500" />
                             </div>
-                            <DialogTitle className="text-xl font-black uppercase tracking-tight">Eliminar Avatar</DialogTitle>
+                            <DialogTitle className="text-xl font-black uppercase tracking-tight">{t('profile.deleteAvatarTitle')}</DialogTitle>
                         </div>
                         <DialogDescription className="text-sm text-muted-foreground">
-                            La foto se quitará al pulsar &quot;Guardar cambios&quot; en la barra inferior. Puedes descartar antes
-                            si cambias de idea.
+                            {t('profile.deleteAvatarDesc')}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="p-6 pt-0 gap-2">

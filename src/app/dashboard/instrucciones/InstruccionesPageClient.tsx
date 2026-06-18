@@ -287,7 +287,7 @@ export default function InstruccionesPageClient({ cultos }: Props) {
       </div>
 
       {/* ── Tabs ── Accesibilidad: Añadidos roles de pestañas ──────── */}
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Tipos de Culto">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label={t('instrucciones.cultoTypesAria')}>
         {cultos.map((c) => {
           const style = getCultoStyle(c.nombre)
           const { icon: Icon } = style

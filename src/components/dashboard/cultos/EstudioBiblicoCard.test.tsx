@@ -204,4 +204,29 @@ describe('EstudioBiblicoCard', () => {
     expect(screen.getAllByText('19:00').length).toBeGreaterThan(0)
     expect(screen.getByText(/dashboard\.minBefore/)).toBeInTheDocument()
   })
+
+  // Regresión responsive (portátiles de 14"): el reparto decide columnas por ancho de tarjeta
+  // (@container), no por viewport, para que el himnario no se comprima cuando la sidebar estrecha
+  // la tarjeta. Debe ser consistente con StandardCultoCard.
+  describe('layout responsive del reparto (himnario en 14")', () => {
+    const hasClass = (container: HTMLElement, fragment: string) =>
+      [...container.querySelectorAll('div')].find((el) => el.className.includes(fragment))
+
+    it('usa @container y apila por defecto (@xl:flex-row), con introducción full-width al apilar', () => {
+      const { container } = render(
+        <EstudioBiblicoCard culto={mockCulto({})} esHoy={false} currentUserId="user-1" />
+      )
+      expect(hasClass(container, '@container')).toBeTruthy()
+
+      const distribucion = hasClass(container, '@xl:flex-row')
+      expect(distribucion).toBeTruthy()
+      expect(distribucion!.className).toContain('flex-col')
+      expect(distribucion!.className).not.toContain('md:flex-row')
+
+      const introCol = hasClass(container, '@xl:w-[58%]')
+      expect(introCol).toBeTruthy()
+      expect(introCol!.className).toContain('w-full')
+      expect(introCol!.className).not.toContain('lg:w-[58%]')
+    })
+  })
 })

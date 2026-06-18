@@ -270,7 +270,7 @@ export function PushNotificationToggle() {
                         <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
                             <AlertCircle className="w-5 h-5" />
                             <div>
-                                <p className="font-medium text-sm">Error</p>
+                                <p className="font-medium text-sm">{t('common.error')}</p>
                                 <p className="text-xs opacity-70">{errorMessage}</p>
                             </div>
                         </div>

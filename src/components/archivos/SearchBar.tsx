@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from 'react'
 import { Search, X } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 
 type SearchBarProps = Readonly<{
   value: string
@@ -28,6 +29,7 @@ export function SearchBar({
   totalCount,
   debounceMs = 250,
 }: SearchBarProps) {
+  const { t } = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)
   const [localValue, setLocalValue] = useState(value)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -86,7 +88,7 @@ export function SearchBar({
       {isActive && (
         <button
           type="button"
-          aria-label="Limpiar búsqueda"
+          aria-label={t('common.clearSearch')}
           onClick={() => { handleChange(''); inputRef.current?.focus() }}
           className="absolute inset-y-0 right-3 flex items-center p-1.5 hover:bg-muted rounded-lg transition-colors group"
         >

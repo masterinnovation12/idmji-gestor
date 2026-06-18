@@ -495,7 +495,7 @@ export default function BibleSelector({
                             onFocus={() => setIsOpen(true)}
                             onKeyDown={handleKeyDown}
                             onClick={() => setIsOpen(true)}
-                            placeholder="Buscar libro (ej. Mateo, Salmos)..."
+                            placeholder={t('bible.searchBook')}
                             disabled={disabled}
                             autoComplete="off"
                             className="w-full bg-muted/30 border border-border/50 rounded-2xl pl-12 pr-10 py-4 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all text-sm md:text-base font-bold placeholder:text-muted-foreground/40 shadow-sm md:cursor-text"
@@ -579,7 +579,7 @@ export default function BibleSelector({
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <div className="flex justify-between items-end ml-1">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Capítulo</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t('bible.chapter')}</label>
                             {selectedLibroObj && (
                                 <span className="text-[8px] font-black text-primary uppercase">Máx: {getMaxChapters()}</span>
                             )}
@@ -600,7 +600,7 @@ export default function BibleSelector({
                                 resetChapterHistory()
                             }}
                             onBlur={handleCapituloBlur}
-                            placeholder="Ej: 1"
+                            placeholder={t('lecturas.chapterPlaceholder')}
                             disabled={disabled || !selectedLibroObj || chapterGate === 'checking'}
                             className={`w-full h-14 bg-muted/30 border rounded-2xl px-5 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${error && (error.includes('capítulos') || (capituloInicio !== '' && Number(capituloInicio) > getMaxChapters())) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
                                 }`}
@@ -695,7 +695,7 @@ export default function BibleSelector({
 
                     <div className="space-y-2">
                         <div className="flex justify-between items-end ml-1">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Versículos (Rango)</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t('bible.versesRange')}</label>
                             {selectedLibroObj && capituloInicio !== '' && (
                                 <span className="text-[8px] font-black text-primary uppercase">Máx: {getMaxVerses(Number(capituloInicio))}</span>
                             )}
@@ -714,7 +714,7 @@ export default function BibleSelector({
                                         setVersiculoInicio(e.target.value === '' ? '' : Number(e.target.value))
                                         setSubmitError(null)
                                     }}
-                                    placeholder="Inicio"
+                                    placeholder={t('bible.start')}
                                     disabled={disabled || !selectedLibroObj || !versesAllowed}
                                     className={`w-full h-14 bg-muted/30 border rounded-2xl pl-8 pr-2 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${error && (error.includes('versículos') && versiculoInicio !== '' && Number(versiculoInicio) > getMaxVerses(Number(capituloInicio))) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
                                         }`}
@@ -722,7 +722,7 @@ export default function BibleSelector({
                             </div>
                             <span className="text-muted-foreground font-black">—</span>
                             <div className="flex-1 relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground/40 uppercase">Hasta</span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground/40 uppercase">{t('bible.to')}</span>
                                 <input
                                     type="number"
                                     inputMode="numeric"
@@ -734,7 +734,7 @@ export default function BibleSelector({
                                         setVersiculoFin(e.target.value === '' ? '' : Number(e.target.value))
                                         setSubmitError(null)
                                     }}
-                                    placeholder="Fin"
+                                    placeholder={t('bible.end')}
                                     disabled={disabled || !selectedLibroObj || !versesAllowed}
                                     className={`w-full h-14 bg-muted/30 border rounded-2xl pl-10 pr-2 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${error && (error.includes('versículos') && versiculoFin !== '' && Number(versiculoFin) > getMaxVerses(Number(capituloInicio))) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
                                         }`}
@@ -768,7 +768,7 @@ export default function BibleSelector({
                         className="p-5 bg-primary/5 rounded-[2rem] border border-primary/10 shadow-inner relative overflow-hidden"
                     >
                         <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12" />
-                        <p className="text-[9px] font-black text-muted-foreground/60 mb-2 uppercase tracking-[0.3em] relative z-10">Vista previa de la cita:</p>
+                        <p className="text-[9px] font-black text-muted-foreground/60 mb-2 uppercase tracking-[0.3em] relative z-10">{t('bible.citationPreview')}</p>
                         <p className="text-2xl md:text-3xl font-black text-primary tracking-tighter uppercase italic relative z-10">
                             {selectedLibroObj.nombre} {capituloInicio}:{versiculoInicio}
                             {versiculoFin && versiculoFin !== versiculoInicio && `-${versiculoFin}`}

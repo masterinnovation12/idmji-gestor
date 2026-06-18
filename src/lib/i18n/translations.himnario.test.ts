@@ -12,6 +12,7 @@ describe('traducciones Himnario (sentence case)', () => {
   it('ca-ES: nav y título en formato Himnari', () => {
     expect(translations['ca-ES']['nav.himnario']).toBe('Himnari')
     expect(translations['ca-ES']['himnario.title']).toBe('Himnari')
-    expect(translations['ca-ES']['himnario.desc']).toBe("Catàleg d'himnes i coros")
+    // "coros" és castellanisme; en català el plural de "cor" és "cors"
+    expect(translations['ca-ES']['himnario.desc']).toBe("Catàleg d'himnes i cors")
   })
 })

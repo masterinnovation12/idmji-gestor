@@ -42,7 +42,7 @@ export default function NotificationToggle() {
                 </button>
             )
         } else {
-            toggleControl = <span className="text-xs text-muted-foreground">No soportado</span>
+            toggleControl = <span className="text-xs text-muted-foreground">{t('notifications.notSupportedShort')}</span>
         }
     }
 

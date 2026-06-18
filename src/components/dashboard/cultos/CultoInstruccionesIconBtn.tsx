@@ -2,6 +2,7 @@
 
 import { Info } from 'lucide-react'
 import type { RolInstruccionCulto } from '@/types/database'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 
 export type InstrModalState = { open: boolean; rol: RolInstruccionCulto } | null
 
@@ -12,11 +13,12 @@ interface CultoInstruccionesIconBtnProps {
 
 /** Icono «i» de instrucciones: abre el mismo contenido que /dashboard/instrucciones (por tipo + rol). */
 export function CultoInstruccionesIconBtn({ rol, onOpen }: CultoInstruccionesIconBtnProps) {
+  const { t } = useI18n()
   return (
     <button
       type="button"
       onClick={() => onOpen(rol)}
-      aria-label="Ver instrucciones"
+      aria-label={t('culto.instrucciones.ver')}
       data-testid={`ver-instrucciones-icon-${rol}`}
       className="flex items-center justify-center w-9 h-9 min-w-9 min-h-9 rounded-full
                 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400

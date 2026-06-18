@@ -370,7 +370,7 @@ export default function TemasAlabanzaClient({
                                         </div>
                                         {stats.temasPorUso.length > 0 && (
                                             <div className="mt-6 pt-6 border-t border-border/50">
-                                                <h3 className="text-sm font-semibold mb-3">Temas por uso</h3>
+                                                <h3 className="text-sm font-semibold mb-3">{t('temasAlabanza.statsByUse')}</h3>
                                                 <div className="space-y-2">
                                                     {stats.temasPorUso.slice(0, 6).map((item) => (
                                                         <div key={item.temaKey} className="flex items-center justify-between gap-2 text-sm">

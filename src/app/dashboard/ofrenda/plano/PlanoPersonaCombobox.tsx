@@ -7,7 +7,8 @@ import { OfrendaLiquidShell, useOfrendaMobileOrTablet } from '../OfrendaLiquidSh
 import { normalizePlanoPersonaNombre } from './planoPersonaNormalize'
 import { searchPlanoPersonas, createPlanoPersona } from './planoActions'
 import { invokePlanoAction } from './planoInvoke'
-import type { PlanoPersona } from './planoActions'
+import type { PlanoPersona, PlanoCreatePersonaError } from './planoActions'
+import type { PlanoCapacidad } from './planoTypes'
 
 interface Props {
     open: boolean
@@ -16,7 +17,12 @@ interface Props {
     rolLabel: string
     color: string
     value: string
-    onSelect: (personaId: string | null, nombre: string | null) => void
+    onSelect: (
+        personaId: string | null,
+        nombre: string | null,
+        capacidad: PlanoCapacidad | null,
+        alreadyExisted?: boolean,
+    ) => void
 }
 
 export function PlanoPersonaCombobox({
@@ -79,20 +85,27 @@ export function PlanoPersonaCombobox({
     const normQuery = normalizePlanoPersonaNombre(trimmed)
     const exactMatch = results.find(p => normalizePlanoPersonaNombre(p.nombre) === normQuery)
 
+    const createErrorLabel = (code: PlanoCreatePersonaError): string => {
+        if (code === 'too_short') return t('ofrenda.plano.combobox.tooShort')
+        if (code === 'too_long') return t('ofrenda.plano.combobox.tooLong')
+        if (code === 'no_permission') return t('ofrenda.plano.combobox.noPermission')
+        return t('ofrenda.plano.combobox.createError')
+    }
+
     const handleCreate = async () => {
         if (!trimmed || exactMatch) {
-            if (exactMatch) onSelect(exactMatch.id, exactMatch.nombre)
+            if (exactMatch) onSelect(exactMatch.id, exactMatch.nombre, exactMatch.capacidad)
             onClose()
             return
         }
         setLoading(true)
         try {
             const res = await invokePlanoAction(() => createPlanoPersona(trimmed))
-            if (res.error) {
-                setError(res.error)
+            if (res.errorCode) {
+                setError(createErrorLabel(res.errorCode))
                 return
             }
-            if (res.data) onSelect(res.data.id, res.data.nombre)
+            if (res.data) onSelect(res.data.id, res.data.nombre, res.data.capacidad, res.alreadyExisted)
             onClose()
         } catch (err) {
             setError(err instanceof Error ? err.message : t('ofrenda.plano.combobox.loading'))
@@ -109,7 +122,7 @@ export function PlanoPersonaCombobox({
             <button
                 type="button"
                 className={rowClass}
-                onClick={() => { onSelect(null, null); onClose() }}
+                onClick={() => { onSelect(null, null, null); onClose() }}
             >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
                     <User className="w-4 h-4 opacity-70" />
@@ -129,7 +142,7 @@ export function PlanoPersonaCombobox({
                     key={p.id}
                     type="button"
                     className={rowClass}
-                    onClick={() => { onSelect(p.id, p.nombre); onClose() }}
+                    onClick={() => { onSelect(p.id, p.nombre, p.capacidad); onClose() }}
                 >
                     <span
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
@@ -139,7 +152,10 @@ export function PlanoPersonaCombobox({
                     </span>
                     <span className="flex-1 min-w-0 truncate">{p.nombre}</span>
                     {normalizePlanoPersonaNombre(p.nombre) === normQuery && (
-                        <Check className="w-4 h-4 shrink-0 text-emerald-600" />
+                        <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                            <Check className="w-3 h-3" />
+                            {t('ofrenda.plano.combobox.existing')}
+                        </span>
                     )}
                 </button>
             ))}
