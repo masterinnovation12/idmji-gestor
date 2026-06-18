@@ -5,6 +5,7 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import {
     Plus, Trash2, GripVertical, UserCheck, UserX, UserPlus,
     Search, CheckCircle2, Info, Users, ChevronDown, ChevronUp,
+    Calendar, Sun, Sunset, Star,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useOfrendaToast } from './ofrendaFeedback'
@@ -19,8 +20,10 @@ import {
     reordenarMiembros,
     syncHermanos,
     getMiembros,
+    setMiembroFijo,
 } from './actions'
 import type { OfrMiembro } from './actions'
+import type { DiaTipo } from '@/lib/utils/ofrendaEngine'
 import { MemberTurnAvailability, TurnAvailabilityDots } from './MemberTurnAvailability'
 import type { MemberTurnAvailabilityProps } from './MemberTurnAvailability'
 import { normalizeMiembroDisponibilidad, type MiembroDisponibilidadTurnos } from './ofrendaMemberAvailability'
@@ -160,6 +163,28 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
         await refresh()
     }
 
+    // ── Puesto fijo (coordinador/apoyo siempre la misma persona ese día) ───────
+    const handleFijoChange = async (
+        m: OfrMiembro,
+        dia: DiaTipo | null,
+        rol: 'realiza' | 'apoyo' | null,
+    ) => {
+        const set = Boolean(dia && rol)
+        const optimistic = miembros.map(x => {
+            if (x.id === m.id) return { ...x, fijo_dia_tipo: dia, fijo_rol: rol }
+            // Un (día, rol) solo puede tener un titular: liberar al anterior.
+            if (set && x.fijo_dia_tipo === dia && x.fijo_rol === rol) {
+                return { ...x, fijo_dia_tipo: null, fijo_rol: null }
+            }
+            return x
+        })
+        syncMiembros(optimistic)
+        const result = await setMiembroFijo(m.id, dia, rol)
+        if (result.error) { feedback.quickError(result.error); await refresh(); return }
+        feedback.quickSuccess(t('ofrenda.people.fijo.saved'))
+        await refresh()
+    }
+
     // ── Reordenar (drag & drop) ────────────────────────────────────────────────
     const handleReorder = async (grupo: 1 | 2, nuevaLista: OfrMiembro[]) => {
         const otros   = miembros.filter(m => m.grupo !== grupo)
@@ -261,6 +286,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                                     onDeleteConfirmed={() => handleDeleteConfirmed(m.id, m.nombre)}
                                     onToggleActivo={handleToggleActivo}
                                     onDisponibilidadChange={handleDisponibilidadChange}
+                                    onFijoChange={handleFijoChange}
                                     turnLabels={turnLabels}
                                     expanded={expandedMemberId === m.id}
                                     onToggleExpand={() =>
@@ -287,6 +313,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                                     onDeleteConfirmed={() => undefined}
                                     onToggleActivo={handleToggleActivo}
                                     onDisponibilidadChange={handleDisponibilidadChange}
+                                    onFijoChange={handleFijoChange}
                                     turnLabels={turnLabels}
                                     expanded={expandedMemberId === m.id}
                                     onToggleExpand={() =>
@@ -335,6 +362,7 @@ interface MiembroRowProps {
     onDeleteConfirmed: () => void
     onToggleActivo: (m: OfrMiembro) => void
     onDisponibilidadChange: (m: OfrMiembro, next: MiembroDisponibilidadTurnos) => void
+    onFijoChange: (m: OfrMiembro, dia: DiaTipo | null, rol: 'realiza' | 'apoyo' | null) => void
     turnLabels: MemberTurnAvailabilityProps['labels']
     expanded: boolean
     onToggleExpand: () => void
@@ -353,6 +381,7 @@ function MiembroRow({
     onDeleteConfirmed,
     onToggleActivo,
     onDisponibilidadChange,
+    onFijoChange,
     turnLabels,
     expanded,
     onToggleExpand,
@@ -364,6 +393,10 @@ function MiembroRow({
     const disp = normalizeMiembroDisponibilidad(miembro)
     const showTurnSummary = !isPendingDelete && miembro.activo
     const canExpandTurns = canEdit && showTurnSummary
+    const esG1 = miembro.grupo === 1
+    const tieneFijo = Boolean(miembro.fijo_dia_tipo && miembro.fijo_rol)
+    const fijoDiaLabel = (d: DiaTipo) =>
+        d === 'jueves' ? turnLabels.jueves : d === 'domingo' ? turnLabels.domManana : turnLabels.domTarde
 
     return (
         <Row
@@ -391,6 +424,16 @@ function MiembroRow({
                 >
                     {miembro.nombre}
                 </p>
+
+                {esG1 && tieneFijo && (
+                    <span
+                        className="hidden min-[480px]:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300 whitespace-nowrap"
+                        title={t('ofrenda.people.fijo.title')}
+                        data-testid={`ofrenda-miembro-fijo-badge-${miembro.id}`}
+                    >
+                        {t('ofrenda.people.fijo.badge')}: {fijoDiaLabel(miembro.fijo_dia_tipo as DiaTipo)} · {miembro.fijo_rol === 'realiza' ? t('ofrenda.roles.realiza') : t('ofrenda.roles.apoyo')}
+                    </span>
+                )}
 
                 <AnimatePresence mode="wait">
                     {isPendingDelete ? (
@@ -484,10 +527,124 @@ function MiembroRow({
                             labels={turnLabels}
                             testIdPrefix={`ofrenda-member-turns-${miembro.id}`}
                         />
+
+                        {esG1 && canEdit && (
+                            <FijoEditor
+                                miembro={miembro}
+                                onChange={(dia, rol) => onFijoChange(miembro, dia, rol)}
+                                fijoDiaLabel={fijoDiaLabel}
+                                t={t}
+                            />
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
         </Row>
+    )
+}
+
+// ─── Editor de puesto fijo (G1) ───────────────────────────────────────────────
+
+function FijoEditor({
+    miembro,
+    onChange,
+    fijoDiaLabel,
+    t,
+}: Readonly<{
+    miembro: OfrMiembro
+    onChange: (dia: DiaTipo | null, rol: 'realiza' | 'apoyo' | null) => void
+    fijoDiaLabel: (d: DiaTipo) => string
+    t: OfrendaT
+}>) {
+    const [selDia, setSelDia] = useState<DiaTipo | null>(miembro.fijo_dia_tipo)
+    const [selRol, setSelRol] = useState<'realiza' | 'apoyo' | null>(miembro.fijo_rol)
+
+    // Re-sincronizar cuando el padre actualiza el miembro (tras guardar/refresh).
+    useEffect(() => {
+        setSelDia(miembro.fijo_dia_tipo)
+        setSelRol(miembro.fijo_rol)
+    }, [miembro.fijo_dia_tipo, miembro.fijo_rol])
+
+    // Aplica la selección: guarda solo si día+rol completos; si se rompe un fijo previo, lo limpia.
+    const apply = (d: DiaTipo | null, r: 'realiza' | 'apoyo' | null) => {
+        setSelDia(d)
+        setSelRol(r)
+        if (d && r) onChange(d, r)
+        else if (miembro.fijo_dia_tipo && miembro.fijo_rol) onChange(null, null)
+    }
+
+    const dias = [
+        { key: 'jueves' as const, icon: Calendar },
+        { key: 'domingo' as const, icon: Sun },
+        { key: 'domingo_tarde' as const, icon: Sunset },
+    ]
+    const roles = [
+        { key: 'realiza' as const, label: t('ofrenda.roles.realiza'), icon: Star },
+        { key: 'apoyo' as const, label: t('ofrenda.roles.apoyo'), icon: Users },
+    ]
+
+    const chipBase =
+        'flex items-center justify-center gap-1 min-h-[36px] rounded-lg border px-1.5 py-1 text-[10px] font-bold transition-colors touch-manipulation'
+    const chipOn = 'bg-amber-600 text-white border-amber-600 shadow-sm'
+    const chipOff = 'bg-background border-border/70 text-muted-foreground hover:bg-muted/40'
+
+    return (
+        <div className="mt-2 pt-2 border-t border-border/30" data-testid={`ofrenda-miembro-fijo-${miembro.id}`}>
+            <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                    {t('ofrenda.people.fijo.title')}
+                </p>
+                {(selDia || selRol) && (
+                    <button
+                        type="button"
+                        onClick={() => apply(null, null)}
+                        className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline-offset-2 hover:underline touch-manipulation"
+                    >
+                        {t('ofrenda.people.fijo.none')}
+                    </button>
+                )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-1.5" role="group" aria-label={t('ofrenda.people.fijo.title')}>
+                {dias.map(({ key, icon: Icon }) => {
+                    const active = selDia === key
+                    return (
+                        <button
+                            key={key}
+                            type="button"
+                            aria-pressed={active}
+                            data-testid={`ofrenda-miembro-fijo-dia-${miembro.id}-${key}`}
+                            onClick={() => apply(active ? null : key, active ? null : selRol)}
+                            className={`${chipBase} ${active ? chipOn : chipOff}`}
+                        >
+                            <Icon className="w-3 h-3 shrink-0 opacity-90" aria-hidden />
+                            <span className="truncate">{fijoDiaLabel(key)}</span>
+                        </button>
+                    )
+                })}
+            </div>
+
+            <div className="grid grid-cols-2 gap-1.5 mt-1.5" role="group">
+                {roles.map(({ key, label, icon: Icon }) => {
+                    const active = selRol === key
+                    return (
+                        <button
+                            key={key}
+                            type="button"
+                            aria-pressed={active}
+                            data-testid={`ofrenda-miembro-fijo-rol-${miembro.id}-${key}`}
+                            onClick={() => apply(selDia, active ? null : key)}
+                            className={`${chipBase} ${active ? chipOn : chipOff}`}
+                        >
+                            <Icon className="w-3 h-3 shrink-0 opacity-90" aria-hidden />
+                            <span className="truncate">{label}</span>
+                        </button>
+                    )
+                })}
+            </div>
+
+            <p className="mt-1.5 text-[10px] text-muted-foreground leading-snug">{t('ofrenda.people.fijo.help')}</p>
+        </div>
     )
 }
 

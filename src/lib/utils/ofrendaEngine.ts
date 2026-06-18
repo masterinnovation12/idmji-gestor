@@ -32,12 +32,28 @@ export const SACOS_DOMINGO_TARDE = 4
 
 export type DiaTipo = 'jueves' | 'domingo' | 'domingo_tarde'
 
-export type RolGrupo1 = 'realiza' | 'apoyo' | 'vigilancia'
+export type RolGrupo1 =
+    | 'realiza'
+    | 'apoyo'
+    | 'vigilancia'
+    | 'primera_vez'
+    | 'segunda_tercera_vez'
+    | 'imposicion_manos'
 export type RolGrupo2 = 'colaborador_1' | 'colaborador_2' | 'colaborador_3'
 export type Rol = RolGrupo1 | RolGrupo2
 
-export const ROLES_GRUPO1: RolGrupo1[] = ['realiza', 'apoyo', 'vigilancia']
+export const ROLES_GRUPO1: RolGrupo1[] = [
+    'realiza',
+    'apoyo',
+    'vigilancia',
+    'primera_vez',
+    'segunda_tercera_vez',
+    'imposicion_manos',
+]
 export const ROLES_GRUPO2: RolGrupo2[] = ['colaborador_1', 'colaborador_2', 'colaborador_3']
+
+/** Roles G1 fijos (puesto fijo por miembro). El resto de G1 se sortea. */
+export const ROLES_GRUPO1_FIJABLES: RolGrupo1[] = ['realiza', 'apoyo']
 
 export interface OfrendaMiembro {
     id: string
@@ -48,6 +64,9 @@ export interface OfrendaMiembro {
     puede_jueves: boolean
     puede_domingo_manana: boolean
     puede_domingo_tarde: boolean
+    /** Puesto fijo opcional: si ambos están definidos, queda clavado a ese hueco. */
+    fijoDiaTipo?: DiaTipo | null
+    fijoRol?: RolGrupo1 | null
 }
 
 export function miembrosElegiblesParaTurno(
@@ -377,12 +396,21 @@ export function generarPlan(
     const g1 = miembros.filter(m => m.grupo === 1 && participa(m)).sort((a, b) => a.orden - b.orden)
     const g2 = miembros.filter(m => m.grupo === 2 && participa(m)).sort((a, b) => a.orden - b.orden)
 
+    // Puestos fijos (coordinador/apoyo siempre la misma persona ese día_tipo).
+    // Clave `${diaTipo}:${rol}` → miembroId. Tienen precedencia sobre los overrides.
+    const fijos: Record<string, string> = {}
+    for (const m of miembros) {
+        if (m.activo && m.fijoDiaTipo && m.fijoRol) {
+            fijos[`${m.fijoDiaTipo}:${m.fijoRol}`] = m.id
+        }
+    }
+
     const asignaciones: AsignacionCalculada[] = []
 
-    // Punteros de rotación independientes por rol G1
-    const punterosG1: Record<RolGrupo1, number> = { realiza: 0, apoyo: 0, vigilancia: 0 }
+    // Punteros de rotación independientes por rol G1 (uno por cada rol existente)
+    const punterosG1 = Object.fromEntries(ROLES_GRUPO1.map(r => [r, 0])) as Record<RolGrupo1, number>
     // Quién hizo cada rol G1 en el servicio anterior (Jue → Dom M → Dom T → Jue)
-    const prevG1: Record<RolGrupo1, string | null> = { realiza: null, apoyo: null, vigilancia: null }
+    const prevG1 = Object.fromEntries(ROLES_GRUPO1.map(r => [r, null])) as Record<RolGrupo1, string | null>
 
     // Puntero de rotación G2 (todos comparten uno)
     let punteroG2 = 0
@@ -398,9 +426,11 @@ export function generarPlan(
         const usadosHoy = new Set<string>()
 
         // ── Grupo 1 ────────────────────────────────────────────────────────
+        // Los puestos fijos ganan al override manual y a la rotación aleatoria.
+        const getG1Override = (rol: RolGrupo1) => fijos[`${srv.diaTipo}:${rol}`] ?? overrides[key(rol)]
         if (regenerarGrupo !== 2) {
             const g1Turno = miembrosElegiblesParaTurno(g1, srv.diaTipo)
-            asignarGrupo1(srv.fecha, srv.diaTipo, g1Turno, rol => overrides[key(rol)], punterosG1, prevG1, usadosHoy, asignaciones)
+            asignarGrupo1(srv.fecha, srv.diaTipo, g1Turno, getG1Override, punterosG1, prevG1, usadosHoy, asignaciones)
         }
 
         // ── Grupo 2 ────────────────────────────────────────────────────────

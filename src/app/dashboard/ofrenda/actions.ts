@@ -23,6 +23,10 @@ import {
     propagateSecuenciasFromIndex,
     type SecuenciaApplyScope,
 } from '@/app/dashboard/ofrenda/secuenciaPropagation'
+import {
+    remapPlanoAsignaciones,
+    type PlanoAsigSnapshot,
+} from '@/app/dashboard/ofrenda/plano/planoRescue'
 function clampPunteroSaco(n: number, secuenciaMax: number): number {
     const max = Math.max(1, Math.min(99, secuenciaMax))
     return Math.max(1, Math.min(max, n))
@@ -41,6 +45,9 @@ export interface OfrMiembro {
     puede_jueves: boolean
     puede_domingo_manana: boolean
     puede_domingo_tarde: boolean
+    /** Puesto fijo opcional (coordinador/apoyo por día). Ambos null = sin fijar. */
+    fijo_dia_tipo: DiaTipo | null
+    fijo_rol: 'realiza' | 'apoyo' | null
     profile_id: string | null
     created_at: string
 }
@@ -58,6 +65,8 @@ function mapRowToOfrMiembro(row: Record<string, unknown>): OfrMiembro {
         orden: row.orden as number,
         activo: row.activo as boolean,
         ...disp,
+        fijo_dia_tipo: (row.fijo_dia_tipo as DiaTipo | null) ?? null,
+        fijo_rol: (row.fijo_rol as 'realiza' | 'apoyo' | null) ?? null,
         profile_id: (row.profile_id as string | null) ?? null,
         created_at: row.created_at as string,
     }
@@ -290,7 +299,47 @@ async function fetchMiembrosActivos(supabase: SupabaseClient): Promise<OfrendaMi
         .eq('activo', true)
         .order('grupo')
         .order('orden')
-    return (data ?? []).map(m => mapRowToOfrMiembro(m as Record<string, unknown>))
+    return (data ?? []).map(m => {
+        const row = m as Record<string, unknown>
+        const base = mapRowToOfrMiembro(row)
+        return {
+            ...base,
+            fijoDiaTipo: base.fijo_dia_tipo,
+            fijoRol: base.fijo_rol,
+        } as OfrendaMiembro
+    })
+}
+
+/** Marca/limpia el puesto fijo (coordinador/apoyo por día) de un miembro de Grupo 1. */
+export async function setMiembroFijo(
+    miembroId: string,
+    fijoDiaTipo: DiaTipo | null,
+    fijoRol: 'realiza' | 'apoyo' | null,
+): Promise<{ error?: string }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    // Ambos o ninguno: no se permite un fijo a medias.
+    const dia = fijoDiaTipo && fijoRol ? fijoDiaTipo : null
+    const rol = fijoDiaTipo && fijoRol ? fijoRol : null
+
+    // Un mismo (día, rol) solo puede tener un titular: liberar al anterior.
+    if (dia && rol) {
+        await supabase
+            .from('ofrenda_miembros')
+            .update({ fijo_dia_tipo: null, fijo_rol: null })
+            .eq('fijo_dia_tipo', dia)
+            .eq('fijo_rol', rol)
+    }
+
+    const { error } = await supabase
+        .from('ofrenda_miembros')
+        .update({ fijo_dia_tipo: dia, fijo_rol: rol })
+        .eq('id', miembroId)
+
+    if (error) return { error: error.message }
+    revalidatePath('/dashboard/ofrenda')
+    return {}
 }
 
 async function resolvePunteroInicio(
@@ -339,12 +388,44 @@ async function loadOverrides(
     return map
 }
 
+async function snapshotPlanoAsignaciones(
+    supabase: SupabaseClient,
+    planId: string,
+): Promise<PlanoAsigSnapshot[]> {
+    const { data: srvs } = await supabase
+        .from('ofrenda_servicios')
+        .select('id, fecha, dia_tipo')
+        .eq('plan_id', planId)
+    if (!srvs?.length) return []
+
+    const byId = new Map(srvs.map(s => [s.id, `${s.fecha}:${s.dia_tipo}`]))
+    const { data: asigs } = await supabase
+        .from('ofrenda_plano_asignaciones')
+        .select('servicio_id, bloque, rol, persona_id, nombre_snapshot')
+        .in('servicio_id', srvs.map(s => s.id))
+
+    return (asigs ?? []).flatMap(a => {
+        const key = byId.get(a.servicio_id as string)
+        if (!key) return []
+        return [{
+            key,
+            bloque: a.bloque as number,
+            rol: a.rol as string,
+            persona_id: (a.persona_id as string | null) ?? null,
+            nombre_snapshot: (a.nombre_snapshot as string | null) ?? null,
+        }]
+    })
+}
+
 async function persistirServicios(
     supabase: SupabaseClient,
     planId: string,
     planCalc: import('@/lib/utils/ofrendaEngine').PlanCalculado,
     overridesMap: Record<string, string>
 ): Promise<{ error?: string }> {
+    // Rescatar asignaciones del plano ANTES de borrar los servicios (CASCADE).
+    const planoSnapshot = await snapshotPlanoAsignaciones(supabase, planId)
+
     await supabase.from('ofrenda_servicios').delete().eq('plan_id', planId)
 
     const { data: inserted, error: srvErr } = await supabase
@@ -362,6 +443,15 @@ async function persistirServicios(
     const srvMap = Object.fromEntries(
         (inserted ?? []).map(s => [`${s.fecha}:${s.dia_tipo}`, s.id])
     )
+
+    // Reinsertar las asignaciones del plano apuntando al nuevo servicio_id.
+    const planoRestore = remapPlanoAsignaciones(planoSnapshot, srvMap)
+    if (planoRestore.length > 0) {
+        const { error: planoErr } = await supabase
+            .from('ofrenda_plano_asignaciones')
+            .insert(planoRestore)
+        if (planoErr) return { error: planoErr.message }
+    }
 
     const asigInsert = planCalc.asignaciones.map(a => ({
         servicio_id: srvMap[`${a.servicioFecha}:${a.servicioTipo}`],

@@ -539,3 +539,78 @@ describe('disponibilidad por turno', () => {
         expect(juevesIds.has(b.id)).toBe(true)
     })
 })
+
+// ─── Puestos fijos (coordinador/apoyo siempre la misma persona ese día) ─────────
+
+describe('generarPlan — puestos fijos', () => {
+    const fijoCoord: OfrendaMiembro = {
+        ...makeMiembros(1, 1)[0],
+        id: 'fijo-coord',
+        nombre: 'Coord Fijo',
+        fijoDiaTipo: 'jueves',
+        fijoRol: 'realiza',
+    }
+    const fijoApoyo: OfrendaMiembro = {
+        ...makeMiembros(1, 1)[0],
+        id: 'fijo-apoyo',
+        nombre: 'Apoyo Fijo',
+        fijoDiaTipo: 'jueves',
+        fijoRol: 'apoyo',
+    }
+    const otros = makeMiembros(5, 1).map((m, i) => ({ ...m, id: `otro-${i}`, orden: i + 10 }))
+    const miembros = [fijoCoord, fijoApoyo, ...otros]
+
+    it('asigna SIEMPRE el miembro fijo en su día_tipo y rol', () => {
+        const plan = generarPlan(2026, 1, 1, miembros)
+        const jueRealiza = plan.asignaciones.filter(a => a.servicioTipo === 'jueves' && a.rol === 'realiza')
+        const jueApoyo = plan.asignaciones.filter(a => a.servicioTipo === 'jueves' && a.rol === 'apoyo')
+        expect(jueRealiza.length).toBeGreaterThan(0)
+        expect(jueRealiza.every(a => a.miembroId === 'fijo-coord')).toBe(true)
+        expect(jueApoyo.every(a => a.miembroId === 'fijo-apoyo')).toBe(true)
+    })
+
+    it('el fijo gana incluso sobre un override manual de esa fecha', () => {
+        // 2026-01-01 es jueves
+        const overrides = { '2026-01-01:jueves:realiza': 'otro-0' }
+        const plan = generarPlan(2026, 1, 1, miembros, overrides)
+        const realiza0101 = plan.asignaciones.find(
+            a => a.servicioFecha === '2026-01-01' && a.rol === 'realiza',
+        )
+        expect(realiza0101?.miembroId).toBe('fijo-coord')
+    })
+
+    it('la vigilancia (no fija) sigue siendo aleatoria/rotativa', () => {
+        const plan = generarPlan(2026, 1, 1, miembros)
+        const jueVigilancia = plan.asignaciones.filter(a => a.servicioTipo === 'jueves' && a.rol === 'vigilancia')
+        expect(jueVigilancia.length).toBeGreaterThan(0)
+        // nunca el coordinador fijo (ya usado ese día) en vigilancia del mismo jueves
+        expect(jueVigilancia.every(a => a.miembroId !== 'fijo-coord')).toBe(true)
+    })
+
+    it('el domingo:realiza NO queda forzado al fijo de jueves', () => {
+        const plan = generarPlan(2026, 1, 1, miembros)
+        const domRealiza = plan.asignaciones.filter(a => a.servicioTipo === 'domingo' && a.rol === 'realiza')
+        expect(domRealiza.length).toBeGreaterThan(0)
+        // el fijo de jueves no debe acaparar el domingo (al menos algún domingo es de otro)
+        expect(domRealiza.some(a => a.miembroId !== 'fijo-coord')).toBe(true)
+    })
+})
+
+// ─── Roles nuevos de Grupo 1 (aleatorios) ──────────────────────────────────────
+
+describe('generarPlan — roles nuevos G1 (primera_vez, segunda_tercera_vez, imposicion_manos)', () => {
+    it('se asignan automáticamente como el resto de G1', () => {
+        const plan = generarPlan(2026, 1, 1, allMiembros)
+        for (const rol of ['primera_vez', 'segunda_tercera_vez', 'imposicion_manos'] as const) {
+            const asigs = plan.asignaciones.filter(a => a.rol === rol)
+            expect(asigs.length).toBeGreaterThan(0)
+            expect(asigs.every(a => a.miembroId.startsWith('m1-'))).toBe(true) // miembros de Grupo 1
+        }
+    })
+
+    it('no rompen la detección de Grupo 2 (no empiezan por "colaborador")', () => {
+        const plan = generarPlan(2026, 1, 1, allMiembros)
+        const g2 = plan.asignaciones.filter(a => a.rol.startsWith('colaborador'))
+        expect(g2.every(a => a.miembroId.startsWith('m2-'))).toBe(true)
+    })
+})

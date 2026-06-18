@@ -58,6 +58,9 @@ export interface OfrendaExportLabels {
     colaborador1: string
     colaborador2: string
     colaborador3: string
+    primeraVez: string
+    segundaTerceraVez: string
+    imposicionManos: string
     jueves: string
     domingo: string
     manana: string
@@ -85,6 +88,9 @@ export function getExportLabels(language: Language): OfrendaExportLabels {
         colaborador1: `${t('ofrenda.roles.colaborador')} 1`,
         colaborador2: `${t('ofrenda.roles.colaborador')} 2`,
         colaborador3: `${t('ofrenda.roles.colaborador')} 3`,
+        primeraVez: t('ofrenda.roles.colaborador1vez'),
+        segundaTerceraVez: t('ofrenda.roles.colaborador23vez'),
+        imposicionManos: t('ofrenda.roles.imposicionManos'),
         jueves: t('ofrenda.days.jueves'),
         domingo: t('ofrenda.days.domingo'),
         manana: t('ofrenda.days.manana'),
