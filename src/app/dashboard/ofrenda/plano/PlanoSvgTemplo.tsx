@@ -68,8 +68,9 @@ export const PlanoSvgTemplo = memo(function PlanoSvgTemplo({ layout, modo, bloqu
                 <rect x={a.doorX} y={a.doorY} width={a.doorW} height={a.doorH} fill="#c4b8a8" stroke="#8a8270" strokeWidth={3} rx={4} />
                 <line x1={a.doorX} y1={a.doorY} x2={a.doorX} y2={a.doorY + a.doorH} stroke="#6b5d4a" strokeWidth={2} />
                 <text x={a.labelCx} y={a.labelCy} textAnchor="middle" fontFamily="Inter,Arial" fontWeight={800} fill="#7a7262">
-                    <tspan x={a.labelCx} dy={0} fontSize={a.labelFs}>alfolí/</tspan>
-                    <tspan x={a.labelCx} dy={Math.round(a.labelFs * 1.15)} fontSize={Math.max(10, a.labelFs - 1)}>diezmo</tspan>
+                    {/* etiqueta del plano del templo: terminología bíblica pendiente de validación del responsable */}
+                    <tspan x={a.labelCx} dy={0} fontSize={a.labelFs}>alfolí/</tspan>{/* i18n-ignore */}
+                    <tspan x={a.labelCx} dy={Math.round(a.labelFs * 1.15)} fontSize={Math.max(10, a.labelFs - 1)}>diezmo</tspan>{/* i18n-ignore */}
                 </text>
             </g>
 

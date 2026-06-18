@@ -45,7 +45,7 @@ const ASSIGNMENTS = [
 ]
 
 export default function AvailabilityManager({ value = {}, onChange }: AvailabilityManagerProps) {
-    const { language } = useI18n()
+    const { t, language } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
 
     const [mode, setMode] = useState<'calendar' | 'template'>('calendar')
@@ -199,7 +199,7 @@ export default function AvailabilityManager({ value = {}, onChange }: Availabili
                             <div className="flex items-start gap-3 p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20">
                                 <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                                 <p className="text-xs text-muted-foreground leading-relaxed">
-                                    <span className="font-bold text-amber-600 block mb-1">Define tu Rutina</span>
+                                    <span className="font-bold text-amber-600 block mb-1">{t('availability.defineRoutine')}</span>
                                     Configura los días que <strong>normalmente</strong> estás disponible. Esto servirá de base para el calendario.
                                 </p>
                             </div>
@@ -302,7 +302,7 @@ export default function AvailabilityManager({ value = {}, onChange }: Availabili
                                         <div key={dateStr} className="rounded-2xl border border-border/50 bg-muted/20 opacity-50 p-4 flex items-center justify-between min-h-18">
                                             <div className="flex items-center gap-3">
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{dayName.substring(0, 3)} {dayNum}</span>
-                                                <span className="text-[10px] uppercase font-bold text-muted-foreground/50">Sin Actividad</span>
+                                                <span className="text-[10px] uppercase font-bold text-muted-foreground/50">{t('availability.noActivity')}</span>
                                             </div>
                                         </div>
                                     )

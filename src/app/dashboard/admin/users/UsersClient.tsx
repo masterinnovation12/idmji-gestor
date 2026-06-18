@@ -357,7 +357,7 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                                     {avatarPreview ? (
                                         <NextImage
                                             src={avatarPreview}
-                                            alt="Preview"
+                                            alt={t('common.preview')}
                                             fill
                                             className="object-cover"
                                         />
@@ -491,7 +491,7 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                                                 type="email"
                                                 value={formData.email_contacto}
                                                 onChange={(e) => setFormData({ ...formData, email_contacto: e.target.value })}
-                                                placeholder="email@ejemplo.com"
+                                                placeholder={t('login.emailPlaceholder')}
                                                 className="bg-white border-zinc-300 text-zinc-900 rounded-xl focus:ring-blue-500 focus:border-blue-500 placeholder:text-zinc-400"
                                             />
                                         </div>

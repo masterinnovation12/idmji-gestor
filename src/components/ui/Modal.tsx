@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 
 interface ModalProps {
     isOpen: boolean
@@ -19,6 +20,7 @@ function getSnapshot() { return true }
 function getServerSnapshot() { return false }
 
 export function Modal({ isOpen, onClose, title, children, size = 'md', keyPrefix = 'modal' }: ModalProps) {
+    const { t } = useI18n()
     const isClient = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
     const previousOverflow = useRef<string>('')
 
@@ -71,7 +73,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', keyPrefix
                                 type="button"
                                 onClick={onClose}
                                 className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-muted rounded-xl transition-colors touch-manipulation"
-                                aria-label="Cerrar"
+                                aria-label={t('common.close')}
                             >
                                 <X className="w-5 h-5" />
                             </button>

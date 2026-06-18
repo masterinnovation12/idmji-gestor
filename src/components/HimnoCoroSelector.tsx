@@ -19,6 +19,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Search, Plus, Trash2, Music, Clock, ChevronUp, ChevronDown } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useDebounce } from '@/hooks/use-debounce'
 import { searchHimnos, searchCoros, addHimnoCoro, removeHimnoCoro, getHimnosCorosByCulto, updateHimnosCorosOrder, replaceCultoPlanAfterSequenceConfirm, updateSequencePointer } from '@/app/dashboard/himnos/actions'
 import { Himno, Coro, PlanHimnoCoro, Profile } from '@/types/database'
@@ -74,6 +75,7 @@ function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLas
     isFirst: boolean
     isLast: boolean
 }) {
+    const { t } = useI18n()
     const {
         setNodeRef,
         transform,
@@ -140,7 +142,7 @@ function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLas
                             onMoveUp(item.id)
                         }}
                         disabled={isFirst}
-                        title="Mover arriba"
+                        title={t('common.moveUp')}
                         className={`p-1.5 md:p-2 rounded-xl transition-all ${isFirst
                             ? 'opacity-10 cursor-not-allowed'
                             : 'text-gray-400 hover:text-blue-600 hover:bg-blue-500/10 active:scale-90'
@@ -155,7 +157,7 @@ function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLas
                             onMoveDown(item.id)
                         }}
                         disabled={isLast}
-                        title="Mover abajo"
+                        title={t('common.moveDown')}
                         className={`p-1.5 md:p-2 rounded-xl transition-all ${isLast
                             ? 'opacity-10 cursor-not-allowed'
                             : 'text-gray-400 hover:text-blue-600 hover:bg-blue-500/10 active:scale-90'
@@ -170,7 +172,7 @@ function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLas
                         e.stopPropagation()
                         onRemove(item.id)
                     }}
-                    title="Eliminar"
+                    title={t('common.delete')}
                     className="p-2 md:p-2.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all hover:scale-110 active:scale-90"
                 >
                     <Trash2 className="w-5 h-5" />
@@ -181,6 +183,7 @@ function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLas
 }
 
 export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
+    const { t } = useI18n()
     const {
         cultoId,
         cultoDate,
@@ -651,7 +654,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                         : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700'
                         }`}
                 >
-                    Himnos ({himnosSelected.length}/{maxHimnos})
+                    {t('himnoCoro.hymns')} ({himnosSelected.length}/{maxHimnos})
                 </button>
                 <button
                     onClick={() => setTipo('coro')}
@@ -660,22 +663,22 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                         : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700'
                         }`}
                 >
-                    Coros ({corosSelected.length}/{maxCoros})
+                    {t('himnoCoro.choruses')} ({corosSelected.length}/{maxCoros})
                 </button>
             </div>
 
             {/* Total Time Badge - Stacked for sidebar */}
             <div className="grid grid-cols-3 gap-2 text-[8px] font-black uppercase tracking-wider">
                 <div className="flex flex-col items-center justify-center gap-1 bg-blue-500/10 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 py-2.5 px-1 rounded-2xl border border-blue-500/20 dark:border-blue-400/20">
-                    <span className="opacity-60">Himnos</span>
+                    <span className="opacity-60">{t('himnoCoro.hymns')}</span>
                     <span className="text-sm">{formatDuration(durationHimnos)}</span>
                 </div>
                 <div className="flex flex-col items-center justify-center gap-1 bg-purple-500/10 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 py-2.5 px-1 rounded-2xl border border-purple-500/20 dark:border-purple-400/20">
-                    <span className="opacity-60">Coros</span>
+                    <span className="opacity-60">{t('himnoCoro.choruses')}</span>
                     <span className="text-sm">{formatDuration(durationCoros)}</span>
                 </div>
                 <div className="flex flex-col items-center justify-center gap-1 bg-emerald-500/10 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 py-2.5 px-1 rounded-2xl border border-emerald-500/20 dark:border-emerald-400/20">
-                    <span className="opacity-60">Total</span>
+                    <span className="opacity-60">{t('common.total')}</span>
                     <span className="text-sm font-black">{formatDuration(totalDuration)}</span>
                 </div>
             </div>
@@ -796,7 +799,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                             className="p-8 border-2 border-dashed border-border/50 rounded-2xl text-center text-muted-foreground bg-muted/5"
                         >
                             <Music className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                            <p className="text-xs font-medium">No hay canciones seleccionadas</p>
+                            <p className="text-xs font-medium">{t('himnoCoro.empty')}</p>
                         </motion.div>
                     )}
 
@@ -846,15 +849,15 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                             exit={{ scale: 0.9, opacity: 0 }}
                             className="relative w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl bg-white dark:bg-[#18181b] border border-gray-200 dark:border-zinc-700"
                         >
-                            <h2 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white mb-2 uppercase italic text-center">Guardar Lista</h2>
-                            <p className="text-[10px] font-black text-gray-500 dark:text-zinc-400 text-center mb-8 uppercase tracking-[0.2em]">Elige un nombre para tu selección</p>
+                            <h2 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white mb-2 uppercase italic text-center">{t('himnoCoro.saveList')}</h2>
+                            <p className="text-[10px] font-black text-gray-500 dark:text-zinc-400 text-center mb-8 uppercase tracking-[0.2em]">{t('himnoCoro.chooseName')}</p>
 
                             <div className="relative mb-8">
                                 <input
                                     type="text"
                                     value={listName}
                                     onChange={(e) => setListName(e.target.value)}
-                                    placeholder="Nombre de la lista..."
+                                    placeholder={t('himnoCoro.listNamePlaceholder')}
                                     className="w-full h-14 bg-gray-100 dark:bg-zinc-800 rounded-2xl px-6 font-black uppercase text-xs tracking-widest border border-gray-200 dark:border-zinc-600 focus:border-blue-500 outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                                     autoFocus
                                 />
@@ -903,7 +906,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                                 <Clock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                             </div>
                             
-                            <h2 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white mb-4 uppercase italic">Actualizar Secuencia</h2>
+                            <h2 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white mb-4 uppercase italic">{t('himnoCoro.updateSequence')}</h2>
                             <p className="text-sm font-bold text-gray-500 dark:text-zinc-400 mb-8 leading-relaxed">
                                 ¿Deseas que los futuros cultos de {sequenceTargetName} sigan la secuencia automática a partir de este {sequenceItemName}?
                                 {cultoId ? (

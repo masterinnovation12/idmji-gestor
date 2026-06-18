@@ -239,10 +239,10 @@ export default function StatsClient({
                                 <thead>
                                     <tr className="border-b border-border/50 bg-muted/20">
                                         <th className="text-left p-4 font-medium text-muted-foreground min-w-[150px] cursor-pointer hover:bg-muted/30 transition-colors sticky left-0 bg-background/80 backdrop-blur-sm" onClick={() => handleSort('nombre')}>
-                                            <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">Hermano <ArrowUpDown className="w-3 h-3" /></div>
+                                            <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">{t('admin.stats.colBrother')} <ArrowUpDown className="w-3 h-3" /></div>
                                         </th>
                                         <th className="text-center p-4 font-medium text-muted-foreground cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleSort('total')}>
-                                            <div className="flex items-center justify-center gap-1 text-xs md:text-sm">Total <ArrowUpDown className="w-3 h-3" /></div>
+                                            <div className="flex items-center justify-center gap-1 text-xs md:text-sm">{t('common.total')} <ArrowUpDown className="w-3 h-3" /></div>
                                         </th>
                                         <th className="text-center p-4 font-medium text-green-600/80 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleSort('introduccion')}>
                                             <div className="flex items-center justify-center gap-1 text-xs md:text-sm">{t('admin.stats.intro')} <ArrowUpDown className="w-3 h-3" /></div>

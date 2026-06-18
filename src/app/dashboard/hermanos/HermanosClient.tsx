@@ -473,7 +473,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                             </p>
                                         </div>
                                         <div className="glass border border-white/5 rounded-2xl p-4 text-center">
-                                            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Email Acceso</p>
+                                            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">{t('hermanos.emailAccess')}</p>
                                             <p className="font-bold text-[10px] truncate opacity-60">
                                                 {selectedHermano.email}
                                             </p>

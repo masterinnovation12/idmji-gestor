@@ -14,11 +14,17 @@ describe('normalizePlanoPersonaNombre', () => {
 })
 
 describe('validatePlanoPersonaNombre', () => {
-    it('rechaza nombres muy cortos', () => {
-        expect(validatePlanoPersonaNombre('A')).toBeTruthy()
+    it('rechaza nombres muy cortos con código too_short', () => {
+        expect(validatePlanoPersonaNombre('A')).toBe('too_short')
+        expect(validatePlanoPersonaNombre(' x ')).toBe('too_short')
+    })
+
+    it('rechaza nombres muy largos con código too_long', () => {
+        expect(validatePlanoPersonaNombre('a'.repeat(81))).toBe('too_long')
     })
 
     it('acepta nombres válidos', () => {
         expect(validatePlanoPersonaNombre('María García')).toBeNull()
+        expect(validatePlanoPersonaNombre('Jo')).toBeNull()
     })
 })

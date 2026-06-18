@@ -9,6 +9,7 @@ import {
     validatePlanoPersonaNombre,
 } from './planoPersonaNormalize'
 import type {
+    PlanoCapacidad,
     PlanoLayoutComun,
     PlanoModo,
     PlanoPosicion,
@@ -22,6 +23,29 @@ import type {
 export interface PlanoPersona {
     id: string
     nombre: string
+    capacidad: PlanoCapacidad
+}
+
+/** Máximo de resultados del buscador del combobox (con ~61 personas, holgado). */
+const PLANO_PERSONA_SEARCH_LIMIT = 30
+
+export type PlanoCreatePersonaError = 'too_short' | 'too_long' | 'no_permission' | 'unknown'
+
+export interface PlanoCreatePersonaResult {
+    data?: PlanoPersona
+    /** true si ya existía: no se crea duplicado, se reutiliza la persona existente. */
+    alreadyExisted?: boolean
+    errorCode?: PlanoCreatePersonaError
+}
+
+/** Lee la capacidad de una fila; 'ambos' si la columna aún no existe (migración no aplicada) → función inactiva. */
+function readCapacidad(row: Record<string, unknown>): PlanoCapacidad {
+    const c = row.capacidad
+    return c === 'ofrendario' || c === 'apoyo' || c === 'ambos' ? c : 'ambos'
+}
+
+function toPlanoPersona(row: Record<string, unknown>): PlanoPersona {
+    return { id: row.id as string, nombre: row.nombre as string, capacidad: readCapacidad(row) }
 }
 
 export interface PlanoAsignacion {
@@ -38,10 +62,13 @@ export interface PlanoDataResult {
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
 
+/** Códigos de error que el cliente traduce (i18n), nunca texto hardcodeado. */
+export type PlanoAuthError = 'no_auth' | 'no_permission'
+
 async function requireEditor() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'No autenticado', supabase: null, userId: null }
+    if (!user) return { error: 'no_auth' as PlanoAuthError, supabase: null, userId: null }
 
     const { data: profile } = await supabase
         .from('profiles')
@@ -50,7 +77,7 @@ async function requireEditor() {
         .single()
 
     if (!profile || !['ADMIN', 'EDITOR'].includes(profile.rol)) {
-        return { error: 'Sin permisos', supabase: null, userId: null }
+        return { error: 'no_permission' as PlanoAuthError, supabase: null, userId: null }
     }
     return { error: null, supabase, userId: user.id }
 }
@@ -181,40 +208,74 @@ export async function searchPlanoPersonas(
 
     const { data, error } = await supabase
         .from('ofrenda_plano_personas')
-        .select('id, nombre')
+        .select('*')
         .eq('activo', true)
         .ilike('nombre_normalizado', `%${q}%`)
         .order('nombre')
-        .limit(8)
+        .limit(PLANO_PERSONA_SEARCH_LIMIT)
 
     if (error) return { error: error.message }
-    return { data: (data ?? []) as PlanoPersona[] }
+    return { data: (data ?? []).map(toPlanoPersona) }
 }
 
-export async function createPlanoPersona(
-    nombre: string,
-): Promise<{ data?: PlanoPersona; error?: string }> {
+export async function createPlanoPersona(nombre: string): Promise<PlanoCreatePersonaResult> {
     const { error: authError, supabase, userId } = await requireEditor()
-    if (authError || !supabase) return { error: authError ?? 'Error' }
+    if (authError || !supabase) return { errorCode: 'no_permission' }
 
     const validation = validatePlanoPersonaNombre(nombre)
-    if (validation) return { error: validation }
+    if (validation) return { errorCode: validation }
 
     const trimmed = nombre.trim().replace(/\s+/g, ' ')
     const nombre_normalizado = normalizePlanoPersonaNombre(trimmed)
 
+    // Sin duplicados: si ya existe, se reutiliza la persona existente.
+    const existing = await supabase
+        .from('ofrenda_plano_personas')
+        .select('*')
+        .eq('nombre_normalizado', nombre_normalizado)
+        .maybeSingle()
+    if (existing.data) {
+        return { data: toPlanoPersona(existing.data), alreadyExisted: true }
+    }
+
     const { data, error } = await supabase
         .from('ofrenda_plano_personas')
         .insert({ nombre: trimmed, nombre_normalizado, created_by: userId })
-        .select('id, nombre')
+        .select('*')
         .single()
 
     if (error) {
-        if (error.code === '23505') return { error: 'Esa persona ya existe en la lista' }
-        return { error: error.message }
+        // Carrera: otro lo insertó entre el check y el insert → reutilizar.
+        if (error.code === '23505') {
+            const again = await supabase
+                .from('ofrenda_plano_personas')
+                .select('*')
+                .eq('nombre_normalizado', nombre_normalizado)
+                .maybeSingle()
+            if (again.data) return { data: toPlanoPersona(again.data), alreadyExisted: true }
+        }
+        return { errorCode: 'unknown' }
     }
 
-    return { data: data as PlanoPersona }
+    return { data: toPlanoPersona(data), alreadyExisted: false }
+}
+
+/** Cambia la capacidad de una persona (p. ej. a 'ambos' cuando se asigna fuera de su rol de forma permanente). */
+export async function setPlanoPersonaCapacidad(
+    personaId: string,
+    capacidad: PlanoCapacidad,
+): Promise<{ error?: string }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    const { error } = await supabase
+        .from('ofrenda_plano_personas')
+        .update({ capacidad })
+        .eq('id', personaId)
+
+    if (error) return { error: error.message }
+    revalidatePath('/dashboard/ofrenda')
+    return {}
 }
 
 export async function savePlanoAsignacion(
@@ -309,4 +370,94 @@ export async function resetPlanoLayout(
 ): Promise<{ error?: string }> {
     const elementos = buildLayoutElementos(vista, modo)
     return savePlanoLayout(vista, modo, elementos)
+}
+
+// ─── Gestión del directorio de personas del plano ─────────────────────────────
+
+export interface PlanoPersonaFull extends PlanoPersona {
+    activo: boolean
+    /** Nº de asignaciones que referencian a esta persona (para avisar al borrar). */
+    asignaciones: number
+}
+
+export type PlanoRenameError = 'too_short' | 'too_long' | 'duplicate'
+
+/** Lista completa del directorio (para la pantalla de gestión). Lectura: autenticado. */
+export async function listPlanoPersonas(): Promise<{ data?: PlanoPersonaFull[]; error?: string }> {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from('ofrenda_plano_personas')
+        .select('*')
+        .order('nombre')
+    if (error) return { error: error.message }
+
+    const { data: asig } = await supabase
+        .from('ofrenda_plano_asignaciones')
+        .select('persona_id')
+
+    const counts = new Map<string, number>()
+    for (const a of asig ?? []) {
+        const id = (a as { persona_id: string | null }).persona_id
+        if (id) counts.set(id, (counts.get(id) ?? 0) + 1)
+    }
+
+    return {
+        data: (data ?? []).map(r => ({
+            ...toPlanoPersona(r),
+            activo: (r.activo as boolean) ?? true,
+            asignaciones: counts.get(r.id as string) ?? 0,
+        })),
+    }
+}
+
+/** Renombra una persona y sincroniza el nombre mostrado en sus asignaciones. */
+export async function renamePlanoPersona(
+    personaId: string,
+    nombre: string,
+): Promise<{ error?: string; errorCode?: PlanoRenameError }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { error: authError ?? 'no_auth' }
+
+    const code = validatePlanoPersonaNombre(nombre)
+    if (code) return { errorCode: code }
+
+    const trimmed = nombre.trim().replace(/\s+/g, ' ')
+    const nombre_normalizado = normalizePlanoPersonaNombre(trimmed)
+
+    const { data: clash } = await supabase
+        .from('ofrenda_plano_personas')
+        .select('id')
+        .eq('nombre_normalizado', nombre_normalizado)
+        .neq('id', personaId)
+        .maybeSingle()
+    if (clash) return { errorCode: 'duplicate' }
+
+    const { error } = await supabase
+        .from('ofrenda_plano_personas')
+        .update({ nombre: trimmed, nombre_normalizado })
+        .eq('id', personaId)
+    if (error) return { error: error.message }
+
+    // Mantener coherente el snapshot guardado en las asignaciones.
+    await supabase
+        .from('ofrenda_plano_asignaciones')
+        .update({ nombre_snapshot: trimmed })
+        .eq('persona_id', personaId)
+
+    revalidatePath('/dashboard/ofrenda')
+    return {}
+}
+
+/** Borra una persona y vacía los huecos que la tuvieran asignada. */
+export async function deletePlanoPersona(personaId: string): Promise<{ error?: string }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { error: authError ?? 'no_auth' }
+
+    await supabase.from('ofrenda_plano_asignaciones').delete().eq('persona_id', personaId)
+    const { error } = await supabase.from('ofrenda_plano_personas').delete().eq('id', personaId)
+    if (error) return { error: error.message }
+
+    revalidatePath('/dashboard/ofrenda')
+    return {}
 }

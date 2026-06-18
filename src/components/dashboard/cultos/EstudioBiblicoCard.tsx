@@ -176,9 +176,13 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                         )
                     })()}
 
-                    <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-6 md:mb-8 items-start">
+                    {/* @container: el reparto en 2 columnas depende del ancho REAL de la tarjeta, no del
+                        viewport (en portátiles de 14" la sidebar reduce la tarjeta y el himnario quedaba
+                        comprimido). Con @2xl se mantienen 2 columnas; por debajo se apila a ancho completo. */}
+                    <div className="@container mb-6 md:mb-8">
+                    <div className="flex flex-col @xl:flex-row gap-4 @xl:gap-6 items-start">
                         {culto.tipo_culto?.tiene_lectura_introduccion && (
-                            <div className="w-full md:w-1/2 lg:w-[58%] shrink-0">
+                            <div className="w-full @xl:w-[58%] shrink-0">
                                 <AssignmentPill
                                     label={t('cultos.intro')}
                                     usuario={culto.usuario_intro}
@@ -224,6 +228,7 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                                 />
                             )}
                         </div>
+                    </div>
                     </div>
 
                     <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">

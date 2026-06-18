@@ -809,14 +809,14 @@ export default function LecturasPageClient({
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 onFocus={() => libroSuggestions.length > 0 && setShowSuggestions(true)}
-                                aria-label="Buscar lecturas"
+                                aria-label={t('lecturas.searchAria')}
                                 suppressHydrationWarning
                             />
                             {searchTerm && (
                                 <button
                                     onClick={() => setSearchTerm('')}
                                     className="p-2 mr-1 sm:mr-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                                    aria-label="Limpiar búsqueda"
+                                    aria-label={t('common.clearSearch')}
                                 >
                                     <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
@@ -896,7 +896,7 @@ export default function LecturasPageClient({
                                             size="sm"
                                             onClick={() => setShowFilters(false)}
                                             className="h-8 w-8 p-0 rounded-full hover:bg-muted"
-                                            aria-label="Cerrar filtros"
+                                            aria-label={t('lecturas.closeFilters')}
                                         >
                                             <X className="w-4 h-4" />
                                         </Button>
@@ -915,14 +915,14 @@ export default function LecturasPageClient({
                                                         value={startDate}
                                                         onChange={(e) => setStartDate(e.target.value)}
                                                         className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
-                                                        aria-label="Fecha inicio"
+                                                        aria-label={t('lecturas.filtersStartDate')}
                                                     />
                                                     <input
                                                         type="date"
                                                         value={endDate}
                                                         onChange={(e) => setEndDate(e.target.value)}
                                                         className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
-                                                        aria-label="Fecha fin"
+                                                        aria-label={t('lecturas.filtersEndDate')}
                                                     />
                                                 </div>
                                             </div>
@@ -937,9 +937,9 @@ export default function LecturasPageClient({
                                                     value={tipoCulto}
                                                     onChange={(e) => setTipoCulto(e.target.value)}
                                                     className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
-                                                    aria-label="Tipo de culto"
+                                                    aria-label={t('lecturas.filtersTipoCulto')}
                                                 >
-                                                    <option value="">Todos</option>
+                                                    <option value="" suppressHydrationWarning>{t('lecturas.filterAll')}</option>
                                                     {cultoTypes.map(type => (
                                                         <option key={type.id} value={type.id}>{type.nombre}</option>
                                                     ))}
@@ -956,9 +956,9 @@ export default function LecturasPageClient({
                                                     value={lectorId}
                                                     onChange={(e) => setLectorId(e.target.value)}
                                                     className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
-                                                    aria-label="Lector"
+                                                    aria-label={t('lecturas.filtersLector')}
                                                 >
-                                                    <option value="">Todos</option>
+                                                    <option value="" suppressHydrationWarning>{t('lecturas.filterAll')}</option>
                                                     {lectores.map(lector => (
                                                         <option key={lector.id} value={lector.id}>
                                                             {lector.nombre} {lector.apellidos}
@@ -977,7 +977,7 @@ export default function LecturasPageClient({
                                                     value={testamento}
                                                     onChange={(e) => setTestamento(e.target.value as 'AT' | 'NT' | '')}
                                                     className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
-                                                    aria-label="Testamento"
+                                                    aria-label={t('lecturas.filtersTestamento')}
                                                 >
                                                     <option value="" suppressHydrationWarning>{t('lecturas.filtersTestamentoAll')}</option>
                                                     <option value="AT" suppressHydrationWarning>{t('lecturas.filtersTestamentoAT')}</option>
@@ -995,7 +995,7 @@ export default function LecturasPageClient({
                                                     value={tipoLectura}
                                                     onChange={(e) => setTipoLectura(e.target.value)}
                                                     className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
-                                                    aria-label="Tipo de lectura"
+                                                    aria-label={t('lecturas.filtersTipoLectura')}
                                                 >
                                                     <option value="" suppressHydrationWarning>{t('lecturas.filtersTipoLecturaAll')}</option>
                                                     <option value="introduccion" suppressHydrationWarning>{t('cultos.intro')}</option>
@@ -1014,9 +1014,9 @@ export default function LecturasPageClient({
                                                     min="1"
                                                     value={capitulo}
                                                     onChange={(e) => setCapitulo(e.target.value)}
-                                                    placeholder="Ej: 1"
+                                                    placeholder={t('lecturas.chapterPlaceholder')}
                                                     className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
-                                                    aria-label="Capítulo"
+                                                    aria-label={t('lecturas.filtersCapitulo')}
                                                 />
                                             </div>
 
@@ -1030,7 +1030,7 @@ export default function LecturasPageClient({
                                                     value={groupBy}
                                                     onChange={(e) => setGroupBy(e.target.value as GroupBy)}
                                                     className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
-                                                    aria-label="Agrupar por"
+                                                    aria-label={t('lecturas.groupBy')}
                                                 >
                                                     <option value="none" suppressHydrationWarning>{t('lecturas.groupByNone')}</option>
                                                     <option value="month" suppressHydrationWarning>{t('lecturas.groupByMonth')}</option>
@@ -1281,7 +1281,7 @@ export default function LecturasPageClient({
                                                                 <div className="w-full h-full flex items-center justify-center absolute inset-0">
                                                                     <div className="flex flex-col items-center gap-3">
                                                                         <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-                                                                        <p className="text-sm font-medium text-muted-foreground">Cargando gráfico...</p>
+                                                                        <p suppressHydrationWarning className="text-sm font-medium text-muted-foreground">{t('lecturas.loadingChart')}</p>
                                                                     </div>
                                                                 </div>
                                                             )}
@@ -1437,7 +1437,7 @@ export default function LecturasPageClient({
                                                                     setShowDetailsModal(true)
                                                                 }}
                                                                 className="p-2 sm:p-2.5 rounded-lg hover:bg-muted transition-colors text-blue-600 dark:text-blue-400"
-                                                                aria-label="Ver detalles"
+                                                                aria-label={t('common.viewDetails')}
                                                             >
                                                                 <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
                                                             </button>
@@ -1445,7 +1445,7 @@ export default function LecturasPageClient({
                                                                 onClick={() => handleDelete(lectura)}
                                                                 disabled={isLoading}
                                                                 className="p-2 sm:p-2.5 rounded-lg hover:bg-red-500/10 hover:text-red-500 transition-colors disabled:opacity-50 text-muted-foreground"
-                                                                aria-label="Eliminar lectura"
+                                                                aria-label={t('lecturas.deleteTitle')}
                                                             >
                                                                 <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                                                             </button>
@@ -1474,21 +1474,21 @@ export default function LecturasPageClient({
                                         className="rounded-xl font-bold px-4 sm:px-6 h-10 sm:h-12 text-xs sm:text-sm border-border/50 hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95"
                                         disabled={currentPage <= 1}
                                         onClick={() => changePage(currentPage - 1)}
-                                        aria-label="Página anterior"
+                                        aria-label={t('common.previousPage')}
                                     >
                                         <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
                                         <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.previous')}</span>
-                                        <span className="sm:hidden">Ant</span>
+                                        <span suppressHydrationWarning className="sm:hidden">{t('common.prevShort')}</span>
                                     </Button>
                                     <Button
                                         variant="outline"
                                         className="rounded-xl font-bold px-4 sm:px-6 h-10 sm:h-12 text-xs sm:text-sm border-border/50 hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95"
                                         disabled={currentPage >= totalPages}
                                         onClick={() => changePage(currentPage + 1)}
-                                        aria-label="Página siguiente"
+                                        aria-label={t('common.nextPage')}
                                     >
                                         <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.next')}</span>
-                                        <span className="sm:hidden">Sig</span>
+                                        <span suppressHydrationWarning className="sm:hidden">{t('common.nextShort')}</span>
                                         <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1" />
                                     </Button>
                                 </div>
@@ -1620,7 +1620,7 @@ export default function LecturasPageClient({
             >
                 <div className="space-y-6 py-2">
                     <div className="p-4 bg-muted/30 rounded-2xl border border-border/50">
-                        <p className="text-[10px] text-muted-foreground font-bold mb-1 uppercase tracking-widest">Elemento a eliminar:</p>
+                        <p suppressHydrationWarning className="text-[10px] text-muted-foreground font-bold mb-1 uppercase tracking-widest">{t('lecturas.itemToDelete')}</p>
                         {lecturaToDelete && (
                             <p className="text-lg font-bold text-foreground">{formatCita(lecturaToDelete)}</p>
                         )}
@@ -1679,7 +1679,7 @@ export default function LecturasPageClient({
                         </div>
                         <div className="flex flex-col">
                             <span suppressHydrationWarning className="font-bold text-lg text-foreground leading-tight">{t('lecturas.exportExcel')}</span>
-                            <span className="text-sm text-muted-foreground mt-0.5">Documento Excel (.xlsx)</span>
+                            <span suppressHydrationWarning className="text-sm text-muted-foreground mt-0.5">{t('lecturas.xlsxDesc')}</span>
                         </div>
                     </button>
 
@@ -1696,7 +1696,7 @@ export default function LecturasPageClient({
                         </div>
                         <div className="flex flex-col">
                             <span suppressHydrationWarning className="font-bold text-lg text-foreground leading-tight">{t('lecturas.exportCSV')}</span>
-                            <span className="text-sm text-muted-foreground mt-0.5">Valores separados por coma (.csv)</span>
+                            <span suppressHydrationWarning className="text-sm text-muted-foreground mt-0.5">{t('lecturas.csvDesc')}</span>
                         </div>
                     </button>
 

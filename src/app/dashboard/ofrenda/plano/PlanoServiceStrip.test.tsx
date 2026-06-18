@@ -6,7 +6,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { PlanoServiceStrip } from './PlanoServiceStrip'
 import type { OfrServicio } from '../actions'
 
-let mobileMock = false
+let mobileMock: () => boolean = () => false
 
 vi.mock('../ofrendaViewport', () => ({
     OFRENDA_MOBILE_TABLET_MQ: '(max-width: 1023px)',

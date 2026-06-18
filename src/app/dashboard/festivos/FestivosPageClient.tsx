@@ -142,7 +142,7 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
                 </div>
                 <div className="glass p-6 rounded-3xl border border-white/20 shadow-xl flex items-center justify-between group hover:scale-[1.02] transition-transform bg-white/60 dark:bg-black/40">
                     <div className="relative z-10">
-                        <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/70 mb-1">Próximo Festivo</p>
+                        <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/70 mb-1">{t('festivos.nextHoliday')}</p>
                         <p className="text-xl font-bold truncate max-w-[150px]">
                             {filteredFestivos.length > 0
                                 ? format(new Date(filteredFestivos[0].fecha), 'd MMM', { locale })
@@ -162,7 +162,7 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-all active:scale-95 border-b-4 border-blue-800 relative z-10 py-6"
                         >
                             <Plus className="w-5 h-5" />
-                            <span className="text-xs">Añadir Festivo</span>
+                            <span className="text-xs">{t('festivos.add')}</span>
                         </Button>
                         <button
                             onClick={handleRandom}
@@ -212,7 +212,7 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
                     <Info className="w-6 h-6 text-amber-600" />
                 </div>
                 <div className="relative z-10">
-                    <h3 className="font-black text-lg mb-1 tracking-tight text-amber-700 dark:text-amber-400">Regla de Horario Automática</h3>
+                    <h3 className="font-black text-lg mb-1 tracking-tight text-amber-700 dark:text-amber-400">{t('festivos.autoScheduleRule')}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed font-medium">
                         {t('festivos.note')}
                     </p>
@@ -227,7 +227,7 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
                             <Calendar className="w-10 h-10 text-muted-foreground/40" />
                         </div>
                         <div className="space-y-1">
-                            <h3 className="text-xl font-black text-muted-foreground">Sin Festivos Registrados</h3>
+                            <h3 className="text-xl font-black text-muted-foreground">{t('festivos.emptyTitle')}</h3>
                             <p className="text-sm text-muted-foreground/60 max-w-xs mx-auto">
                                 {t('festivos.noEvents')}
                             </p>
@@ -352,7 +352,7 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
                             type="text"
                             name="descripcion"
                             label={t('festivos.modal.desc')}
-                            placeholder="Ej: Día de Navidad"
+                            placeholder={t('festivos.namePlaceholder')}
                             className="h-16 rounded-2xl font-bold text-lg bg-muted/30 border-transparent focus:bg-background transition-colors"
                         />
                     </div>

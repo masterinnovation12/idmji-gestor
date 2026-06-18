@@ -245,7 +245,7 @@ function AssignmentSection({
                                     <PlayCircle className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/80">Enseñanza</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/80">{t('cultos.ensenanza')}</p>
                                     <p className="text-sm font-bold text-foreground">{videoLabel || 'Video de la Hna. María Luisa Piraquive'}</p>
                                     {videoTitle?.trim() && (
                                         <p className="text-xs text-muted-foreground mt-1">{videoTitle}</p>
@@ -1114,7 +1114,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 <div className="grid grid-cols-1 gap-2">
                                     <input
                                         type="text"
-                                        placeholder="Titulo del video (opcional)"
+                                        placeholder={t('culto.detail.videoTitlePlaceholder')}
                                         value={draftEnsenanzaVideoTitulo}
                                         readOnly={readOnlyAssignments}
                                         onChange={(e) => {

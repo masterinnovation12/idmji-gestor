@@ -320,7 +320,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                 </span>
                                 <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                    <span className="text-[10px]">Real-time DB Sync</span>
+                                    <span className="text-[10px]">{t('himnario.realtimeSync')}</span>
                                 </div>
                             </div>
                         )}
@@ -402,6 +402,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 const DRAG_THRESHOLD_PX = 8 // Si el dedo se mueve más de esto = gesto de arrastre, no toque
 
 function CalculatorModal({ children, onClose }: { children: React.ReactNode, onClose: () => void }) {
+    const { t } = useI18n()
     const controls = useDragControls()
     const contentScrollRef = useRef<HTMLDivElement>(null)
     const didDragRef = useRef(false)
@@ -464,13 +465,13 @@ function CalculatorModal({ children, onClose }: { children: React.ReactNode, onC
             {/* Header fijo */}
             <div className="px-6 pb-4 flex items-center justify-between shrink-0">
                 <div className="flex flex-col">
-                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 dark:text-white leading-none">Calculadora</h2>
-                    <span className="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] mt-1">Planificación de Tiempo</span>
+                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 dark:text-white leading-none">{t('himnario.calculator')}</h2>
+                    <span className="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] mt-1">{t('himnario.timePlanning')}</span>
                 </div>
                 <button
                     onClick={onClose}
                     className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-zinc-800 rounded-full active:scale-90 transition-transform touch-manipulation"
-                    aria-label="Cerrar"
+                    aria-label={t('common.close')}
                 >
                     <Plus className="w-6 h-6 rotate-45 text-gray-500" />
                 </button>

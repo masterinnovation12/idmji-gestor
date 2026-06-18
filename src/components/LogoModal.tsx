@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import NextImage from 'next/image'
 import { useEffect } from 'react'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 
 interface LogoModalProps {
     isOpen: boolean
@@ -27,6 +28,7 @@ interface LogoModalProps {
 }
 
 export function LogoModal({ isOpen, onClose }: LogoModalProps) {
+    const { t } = useI18n()
     // Bloquear scroll cuando el modal está abierto
     useEffect(() => {
         if (isOpen) {
@@ -89,7 +91,7 @@ export function LogoModal({ isOpen, onClose }: LogoModalProps) {
                                 className="absolute -top-4 -right-4 z-10 w-12 h-12 rounded-full bg-white dark:bg-zinc-900 shadow-2xl flex items-center justify-center text-gray-700 dark:text-white hover:bg-red-500 hover:text-white transition-all duration-300 border-2 border-white/20"
                                 whileHover={{ scale: 1.1, rotate: 90 }}
                                 whileTap={{ scale: 0.9 }}
-                                aria-label="Cerrar"
+                                aria-label={t('common.close')}
                             >
                                 <X size={24} strokeWidth={3} />
                             </motion.button>

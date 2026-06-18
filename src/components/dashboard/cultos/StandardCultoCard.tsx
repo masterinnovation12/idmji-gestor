@@ -73,7 +73,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                             </h2>
                             <div className="flex items-center gap-2 text-slate-500 font-bold mt-1.5">
                                 <Clock className="w-5 h-5 text-blue-500" />
-                                <span className="text-xs uppercase tracking-widest">Fecha</span>
+                                <span className="text-xs uppercase tracking-widest">{t('common.date')}</span>
                                 <span className="text-xs">{new Date(culto.fecha).toLocaleDateString()}</span>
                             </div>
                         </div>
@@ -105,10 +105,18 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                             )
                         })()}
 
-                        {/* Distribución de Responsables */}
-                        <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-6 md:mb-8 items-start">
+                        {/* Distribución de Responsables.
+                            @container: el reparto en 2 columnas depende del ancho REAL de la tarjeta, no del
+                            viewport. En portátiles de 14" la sidebar reduce la tarjeta y, al partir por viewport,
+                            la columna de introducción (que contiene el himnario) quedaba comprimida y los títulos
+                            de himnos/coros se solapaban. Con @2xl (ancho de tarjeta ≥ 42rem) se mantienen las dos
+                            columnas; por debajo se apila y el himnario ocupa todo el ancho disponible.
+                            Umbral @xl (36rem): la tarjeta del dashboard está limitada a max-w-7xl, así que su
+                            ancho real ronda ~481px en 14" (se apila) y ~667px en 18" (dos columnas). */}
+                        <div className="@container mb-6 md:mb-8">
+                        <div className="flex flex-col @xl:flex-row gap-4 @xl:gap-6 items-start">
                             {culto.tipo_culto?.tiene_lectura_introduccion && (
-                                <div className="w-full md:w-1/2 lg:w-[58%] shrink-0">
+                                <div className="w-full @xl:w-[58%] shrink-0">
                                     <AssignmentPill
                                         label={t('cultos.intro')}
                                         usuario={culto.usuario_intro}
@@ -180,6 +188,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                     />
                                 )}
                             </div>
+                        </div>
                         </div>
 
                         {/* Botón de Acción: siempre Ver detalles */}

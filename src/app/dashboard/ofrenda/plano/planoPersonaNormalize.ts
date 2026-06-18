@@ -13,9 +13,12 @@ export function normalizePlanoPersonaNombre(nombre: string): string {
         .replace(/\s+/g, ' ')
 }
 
-export function validatePlanoPersonaNombre(nombre: string): string | null {
+/** Código de error de validación (se traduce en el cliente, no se hardcodea texto). */
+export type PlanoNombreError = 'too_short' | 'too_long'
+
+export function validatePlanoPersonaNombre(nombre: string): PlanoNombreError | null {
     const trimmed = nombre.trim().replace(/\s+/g, ' ')
-    if (trimmed.length < 2) return 'Nombre demasiado corto'
-    if (trimmed.length > 80) return 'Nombre demasiado largo'
+    if (trimmed.length < 2) return 'too_short'
+    if (trimmed.length > 80) return 'too_long'
     return null
 }

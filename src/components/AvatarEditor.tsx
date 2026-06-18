@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog'
 import { ZoomIn, ZoomOut, RotateCw, Check, X } from 'lucide-react'
 import { getCroppedImg } from '@/lib/utils/canvasUtils'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 
 interface AvatarEditorProps {
     imageSrc: string
@@ -16,6 +17,7 @@ interface AvatarEditorProps {
 }
 
 export default function AvatarEditor({ imageSrc, isOpen, onClose, onSave }: AvatarEditorProps) {
+    const { t } = useI18n()
     const [crop, setCrop] = useState({ x: 0, y: 0 })
     const [zoom, setZoom] = useState(1)
     const [rotation, setRotation] = useState(0)
@@ -42,7 +44,7 @@ export default function AvatarEditor({ imageSrc, isOpen, onClose, onSave }: Avat
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-xl bg-zinc-950 border-zinc-800 text-white">
                 <DialogHeader>
-                    <DialogTitle>Editar Foto de Perfil</DialogTitle>
+                    <DialogTitle>{t('profile.editPhoto')}</DialogTitle>
                 </DialogHeader>
 
                 <div className="relative w-full h-[400px] bg-black rounded-xl overflow-hidden mt-4">
@@ -81,7 +83,7 @@ export default function AvatarEditor({ imageSrc, isOpen, onClose, onSave }: Avat
                     {/* Controles de Rotación */}
                     <div className="space-y-2">
                         <div className="flex justify-between text-xs text-zinc-400">
-                            <span className="flex items-center gap-1"><RotateCw size={14} /> Rotación</span>
+                            <span className="flex items-center gap-1"><RotateCw size={14} /> {t('profile.rotation')}</span>
                             <span>{rotation}°</span>
                         </div>
                         <Slider

@@ -5,8 +5,10 @@ import { resetPassword } from './actions'
 import { motion } from 'framer-motion'
 import { Loader2, Mail, ArrowLeft, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 
 export default function ForgotPasswordPage() {
+    const { t } = useI18n()
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
@@ -40,9 +42,9 @@ export default function ForgotPasswordPage() {
                 </Link>
 
                 <div className="text-center mb-8 mt-8">
-                    <h1 className="text-2xl font-bold">Recuperar Contraseña</h1>
+                    <h1 className="text-2xl font-bold">{t('forgot.title')}</h1>
                     <p className="text-muted-foreground mt-2">
-                        Ingresa tu email para recibir instrucciones
+                        {t('forgot.subtitle')}
                     </p>
                 </div>
 
@@ -53,19 +55,19 @@ export default function ForgotPasswordPage() {
                         </div>
                         <p className="text-lg font-medium">{success}</p>
                         <p className="text-sm text-muted-foreground">
-                            Revisa tu bandeja de entrada y sigue el enlace.
+                            {t('forgot.checkInbox')}
                         </p>
                         <Link
                             href="/login"
                             className="block w-full bg-secondary text-white font-semibold py-3 rounded-xl mt-6"
                         >
-                            Volver al Login
+                            {t('forgot.backToLogin')}
                         </Link>
                     </div>
                 ) : (
                     <form action={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium ml-1">Email</label>
+                            <label className="text-sm font-medium ml-1">{t('login.email')}</label>
                             <div className="relative">
                                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <input
@@ -73,7 +75,7 @@ export default function ForgotPasswordPage() {
                                     type="email"
                                     required
                                     className="w-full bg-white/50 dark:bg-black/20 border border-white/20 rounded-xl px-10 py-3 outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                                    placeholder="nombre@ejemplo.com"
+                                    placeholder={t('login.emailPlaceholder')}
                                 />
                             </div>
                         </div>
@@ -92,7 +94,7 @@ export default function ForgotPasswordPage() {
                             {isLoading ? (
                                 <Loader2 className="w-5 h-5 animate-spin" />
                             ) : (
-                                'Enviar Instrucciones'
+                                t('forgot.submit')
                             )}
                         </button>
                     </form>

@@ -43,11 +43,11 @@ describe('BibleSelector chapter history', () => {
 
         await waitFor(() => expect(getBibliaLibrosMock).toHaveBeenCalled())
 
-        const libroInput = screen.getByPlaceholderText(/Buscar libro/i)
+        const libroInput = screen.getByPlaceholderText('bible.searchBook')
         fireEvent.change(libroInput, { target: { value: 'Juan' } })
         fireEvent.click(screen.getByText('Juan'))
 
-        const capInput = screen.getByPlaceholderText('Ej: 1')
+        const capInput = screen.getByPlaceholderText('lecturas.chapterPlaceholder')
         fireEvent.change(capInput, { target: { value: '3' } })
         fireEvent.blur(capInput)
 
@@ -59,7 +59,7 @@ describe('BibleSelector chapter history', () => {
         })
 
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-        expect(screen.getByPlaceholderText('Inicio')).not.toBeDisabled()
+        expect(screen.getByPlaceholderText('bible.start')).not.toBeDisabled()
     })
 
     it('muestra aviso bloqueante y deshabilita versículos hasta confirmar', async () => {
@@ -83,22 +83,22 @@ describe('BibleSelector chapter history', () => {
 
         await waitFor(() => expect(getBibliaLibrosMock).toHaveBeenCalled())
 
-        fireEvent.change(screen.getByPlaceholderText(/Buscar libro/i), { target: { value: 'Juan' } })
+        fireEvent.change(screen.getByPlaceholderText('bible.searchBook'), { target: { value: 'Juan' } })
         fireEvent.click(screen.getByText('Juan'))
 
-        const capInput = screen.getByPlaceholderText('Ej: 1')
+        const capInput = screen.getByPlaceholderText('lecturas.chapterPlaceholder')
         fireEvent.change(capInput, { target: { value: '3' } })
         fireEvent.blur(capInput)
 
         await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
 
-        expect(screen.getByPlaceholderText('Inicio')).toBeDisabled()
+        expect(screen.getByPlaceholderText('bible.start')).toBeDisabled()
         expect(screen.getByText('lecturas.chapterHistoryContinue')).toBeInTheDocument()
 
         fireEvent.click(screen.getByText('lecturas.chapterHistoryContinue'))
 
         await waitFor(() => {
-            expect(screen.getByPlaceholderText('Inicio')).not.toBeDisabled()
+            expect(screen.getByPlaceholderText('bible.start')).not.toBeDisabled()
         })
     })
 
@@ -123,11 +123,11 @@ describe('BibleSelector chapter history', () => {
 
         await waitFor(() => expect(getBibliaLibrosMock).toHaveBeenCalled())
 
-        const libroInput = screen.getByPlaceholderText(/Buscar libro/i)
+        const libroInput = screen.getByPlaceholderText('bible.searchBook')
         fireEvent.change(libroInput, { target: { value: 'Juan' } })
         fireEvent.click(screen.getByText('Juan'))
 
-        const capInput = screen.getByPlaceholderText('Ej: 1')
+        const capInput = screen.getByPlaceholderText('lecturas.chapterPlaceholder')
         fireEvent.change(capInput, { target: { value: '3' } })
         fireEvent.blur(capInput)
 

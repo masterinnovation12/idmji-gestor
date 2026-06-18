@@ -63,9 +63,10 @@ type ArchivosClientProps = {
 }
 
 function ForcingLabel({ forceLoading, forceAttempt }: Readonly<{ forceLoading: boolean; forceAttempt: number }>) {
-  if (!forceLoading) return <>actualizando…</>
-  if (forceAttempt > 1) return <>{`Forzando… (${forceAttempt})`}</>
-  return <>Forzando…</>
+  const { t } = useI18n()
+  if (!forceLoading) return <>{t('archivos.updating')}</>
+  if (forceAttempt > 1) return <>{t('archivos.forcingAttempt').replace('{n}', String(forceAttempt))}</>
+  return <>{t('archivos.forcing')}</>
 }
 
 export default function ArchivosClient({ initialData = {}, initialMeta, initialErrors }: ArchivosClientProps) {
@@ -322,7 +323,7 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
           <button
             onClick={() => forceRefresh(activeTab)}
             disabled={forceLoading || refreshing}
-            title="Limpia la caché local y descarga los datos más recientes desde Google"
+            title={t('archivos.refreshTitle')}
             className={`
               hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
               transition-all touch-manipulation shadow-sm
@@ -333,9 +334,9 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
             `}
           >
             {forceLoading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" />Intentando… {forceAttempt > 1 ? `(${forceAttempt})` : ''}</>
+              <><Loader2 className="w-4 h-4 animate-spin" />{t('archivos.trying')} {forceAttempt > 1 ? `(${forceAttempt})` : ''}</>
             ) : (
-              <><Zap className="w-4 h-4" />Obtener datos nuevos</>
+              <><Zap className="w-4 h-4" />{t('archivos.getNewData')}</>
             )}
           </button>
         )}
@@ -384,7 +385,7 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
               <button
                 onClick={() => forceRefresh(activeTab)}
                 disabled={forceLoading || refreshing}
-                title="Borra la caché local y reintenta contra Google directamente"
+                title={t('archivos.retryTitle')}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600/25 hover:bg-amber-600/40 border border-amber-600/40 text-xs font-bold transition-all disabled:opacity-60"
               >
                 {forceLoading ? (

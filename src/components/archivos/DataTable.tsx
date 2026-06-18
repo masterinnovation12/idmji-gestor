@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react'
 import { ChevronsUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 import { prettyKey, detectColType } from '@/app/dashboard/archivos/archivos-data'
 import type { SortConfig } from '@/app/dashboard/archivos/archivos-data'
 import { HighlightText } from './HighlightText'
@@ -63,6 +64,7 @@ export function DataTable({
   tRecord,
   tClear,
 }: DataTableProps) {
+  const { t } = useI18n()
 
   /** Ciclo al hacer clic en cabecera: sin orden → ASC → DESC → sin orden */
   const handleColSort = useCallback((col: string) => {
@@ -119,7 +121,7 @@ export function DataTable({
                   key={rowKey}
                   tabIndex={0}
                   data-testid="archivo-table-row"
-                  aria-label="Ver detalle del registro"
+                  aria-label={t('archivos.viewRecordDetail')}
                   onClick={() => onRowClick(row)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onRowClick(row) }}
                   className="border-b border-border/30 hover:bg-muted/20 transition-colors cursor-pointer group"

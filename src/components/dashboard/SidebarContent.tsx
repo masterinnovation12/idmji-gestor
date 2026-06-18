@@ -197,7 +197,7 @@ export function SidebarContent({
                                 />
 
                                 {!isSidebarCollapsed && (
-                                    <span className={`flex-1 font-extrabold ${isMobile ? 'text-sm tracking-wide normal-case leading-5' : 'text-xs tracking-widest uppercase'} relative z-10 ${isActive ? 'text-black' : 'text-white/70 group-hover:text-white'} transition-colors`}>
+                                    <span className={`flex-1 font-extrabold ${isMobile ? 'text-sm tracking-wide normal-case leading-5' : 'text-xs tracking-wide normal-case'} relative z-10 ${isActive ? 'text-black' : 'text-white/70 group-hover:text-white'} transition-colors`}>
                                         {item.label}
                                     </span>
                                 )}

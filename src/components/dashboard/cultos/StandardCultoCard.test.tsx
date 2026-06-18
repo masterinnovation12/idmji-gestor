@@ -102,4 +102,36 @@ describe('StandardCultoCard', () => {
     expect(noObsChip).toBeInTheDocument()
     expect(noObsChip.className).toContain('italic')
   })
+
+  // Regresión responsive (portátiles de 14"): el reparto de responsables decide las columnas
+  // por el ancho REAL de la tarjeta (@container), no por el viewport. Así, cuando la sidebar
+  // estrecha la tarjeta, se apila y el himnario ocupa todo el ancho en vez de comprimirse.
+  describe('layout responsive del reparto (himnario en 14")', () => {
+    const hasClass = (container: HTMLElement, fragment: string) =>
+      [...container.querySelectorAll('div')].find((el) => el.className.includes(fragment))
+
+    it('envuelve el reparto en un @container y apila por defecto (@xl:flex-row para dos columnas)', () => {
+      const { container } = render(
+        <StandardCultoCard culto={mockCultoAlabanza({})} esHoy={false} currentUserId="user-1" />
+      )
+      expect(hasClass(container, '@container')).toBeTruthy()
+
+      const distribucion = hasClass(container, '@xl:flex-row')
+      expect(distribucion).toBeTruthy()
+      // Mobile-first: apila salvo que la tarjeta sea ancha (@xl)
+      expect(distribucion!.className).toContain('flex-col')
+      expect(distribucion!.className).not.toContain('md:flex-row')
+    })
+
+    it('la columna de introducción es full-width al apilar y 58% en dos columnas', () => {
+      const { container } = render(
+        <StandardCultoCard culto={mockCultoAlabanza({})} esHoy={false} currentUserId="user-1" />
+      )
+      const introCol = hasClass(container, '@xl:w-[58%]')
+      expect(introCol).toBeTruthy()
+      expect(introCol!.className).toContain('w-full')
+      // No debe volver al reparto por viewport (causa raíz del bug en 14")
+      expect(introCol!.className).not.toContain('lg:w-[58%]')
+    })
+  })
 })
