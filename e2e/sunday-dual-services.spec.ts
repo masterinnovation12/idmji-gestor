@@ -41,11 +41,12 @@ test.describe('Sunday Dual Services (10:00 and 17:00)', () => {
         }
 
         // En Junio de 2026, los domingos (ej: 7 de Junio) deben tener ambos cultos
-        const morningCulto = page.locator('text=Enseñanza (10h)').or(page.locator('text=10:00')).first()
-        const eveningCulto = page.locator('text=Enseñanza (17h)').or(page.locator('text=17:00')).first()
+        const morningCulto = page.locator('text=Enseñanza (10h)').or(page.locator('text=10:00'))
+        const eveningCulto = page.locator('text=Enseñanza (17h)').or(page.locator('text=17:00'))
 
         // Al menos uno de los dos marcadores debe ser visible en el mes de Junio
-        await expect(morningCulto.or(eveningCulto)).toBeVisible({ timeout: 15000 })
+        const cultoMarkers = morningCulto.or(eveningCulto)
+        await expect(cultoMarkers.first()).toBeVisible({ timeout: 15000 })
     })
 
     test('El Dashboard muestra las pestañas de selección de horario al seleccionar un domingo con doble culto', async ({ page }) => {

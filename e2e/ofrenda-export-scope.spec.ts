@@ -10,7 +10,7 @@ test.describe('Labor Ofrenda — exportación alcance', () => {
         test.skip(!hasE2ECredentials(), 'Faltan credenciales E2E')
         const nav = await gotoOfrendaWithPlan(page)
         test.skip(nav !== 'ok', 'Sin plan o login')
-        await page.getByRole('tab', { name: /exportar/i }).click()
+        await page.getByTestId('ofrenda-tab-general-exportar').click()
         await page.getByTestId('ofrenda-export-scope').waitFor({ timeout: 20000 })
     })
 
@@ -42,12 +42,16 @@ test.describe('Labor Ofrenda — exportación alcance', () => {
 
     test('solo colaboradores: captura sin G1 ni secuencia de sacos', async ({ page }) => {
         await page.getByTestId('ofrenda-export-people-g2').click()
-        await page.waitForTimeout(300)
+        await expect(page.getByTestId('ofrenda-export-people-g2')).toHaveAttribute('aria-selected', 'true')
         const root = page.locator('#ofrenda-export-capture-root')
+        await expect
+            .poll(async () => (await root.innerText()) ?? '')
+            .toMatch(/Colaborador 1|Col·laborador 1/i)
         const text = (await root.innerText()) ?? ''
-        expect(text).toMatch(/Col\. 1|Col·laborador 1/i)
-        expect(text).not.toMatch(/Realiza labor|Realitza/i)
+        expect(text).not.toMatch(/Coordinador|Coordina/i)
+        expect(text).not.toMatch(/Apoyo|Suport/i)
         expect(text).not.toMatch(/sacos\/semana|sacs\/setmana/i)
+        expect(text).not.toMatch(/Sacos|Sacs/)
     })
 
     test('modo semanal: subtítulo y leyenda no solapados en captura', async ({ page }) => {

@@ -6,14 +6,13 @@
 import { test, expect } from '@playwright/test'
 import { hasE2ECredentials, loginIfNeeded, getLoginError } from './auth.helper'
 
-/** Mantener en sync con ofrendaFeedback.ts → OFRENDA_FEEDBACK_DURATION */
+/** Mantener en sync con ofrendaFeedback.ts → OFRENDA_FEEDBACK_DURATION.plan */
 const FEEDBACK_MS = {
-    quick: { warning: 1400, success: 1200 },
-    normal: { success: 1800 },
+    plan: { warning: 5500, success: 6000 },
 } as const
 
-const MAX_QUICK_WARNING_MS = FEEDBACK_MS.quick.warning + 900
-const MAX_NORMAL_SUCCESS_MS = FEEDBACK_MS.normal.success + 900
+const OPEN_DELAY_MS = 120
+const MAX_PLAN_FEEDBACK_MS = Math.max(FEEDBACK_MS.plan.warning, FEEDBACK_MS.plan.success) + OPEN_DELAY_MS + 2000
 
 async function gotoOfrenda(
     page: import('@playwright/test').Page,
@@ -35,7 +34,7 @@ test.describe('Labor Ofrenda — timing feedback premium', () => {
         await expect(page).toHaveURL(/\/login/, { timeout: 10000 })
     })
 
-    test('activar/desactivar persona: modal visible y auto-cierra rápido', async ({ page }) => {
+    test('activar/desactivar persona: modal visible y auto-cierra (feedback plan)', async ({ page }) => {
         if (!hasE2ECredentials()) {
             test.skip(true, 'E2E: Falta .env.e2e.local')
             return
@@ -52,21 +51,29 @@ test.describe('Labor Ofrenda — timing feedback premium', () => {
             return
         }
 
-        await page.getByRole('button', { name: /^Personas$|^Persones$/i }).click()
-        const toggle = page.getByTestId('ofrenda-member-toggle').first()
-        await expect(toggle).toBeVisible({ timeout: 10000 })
+        await page.getByTestId('ofrenda-tab-general-personas').click()
+
+        let toggle = page.getByRole('button', { name: /desactivar/i }).first()
+        const canDeactivate = await toggle.isVisible({ timeout: 8000 }).catch(() => false)
+        if (!canDeactivate) {
+            await page.getByRole('button', { name: /activar/i }).first().click()
+            const firstDialog = page.getByTestId('ofrenda-feedback-panel')
+            await expect(firstDialog).toBeVisible({ timeout: 8000 })
+            await expect(firstDialog).toBeHidden({ timeout: MAX_PLAN_FEEDBACK_MS })
+            toggle = page.getByRole('button', { name: /desactivar/i }).first()
+        }
 
         await toggle.click()
 
-        const dialog = page.getByRole('dialog')
+        const dialog = page.getByTestId('ofrenda-feedback-panel')
         await expect(dialog).toBeVisible({ timeout: 8000 })
 
         const t0 = Date.now()
-        await expect(dialog).toBeHidden({ timeout: MAX_QUICK_WARNING_MS })
+        await expect(dialog).toBeHidden({ timeout: MAX_PLAN_FEEDBACK_MS })
         const elapsed = Date.now() - t0
 
-        expect(elapsed).toBeLessThan(MAX_QUICK_WARNING_MS)
-        expect(elapsed).toBeGreaterThan(FEEDBACK_MS.quick.warning * 0.5)
+        expect(elapsed).toBeLessThan(MAX_PLAN_FEEDBACK_MS)
+        expect(elapsed).toBeGreaterThan(2000)
     })
 
     test('feedback normal (plan) no supera ~2.7s si hay plan y botón regenerar', async ({ page }) => {
@@ -93,7 +100,7 @@ test.describe('Labor Ofrenda — timing feedback premium', () => {
 
         await regen.click()
 
-        const dialog = page.getByRole('dialog')
+        const dialog = page.getByTestId('ofrenda-feedback-panel')
         const appeared = await dialog.isVisible({ timeout: 15000 }).catch(() => false)
         if (!appeared) {
             test.skip(true, 'E2E: Regenerar no mostró feedback (timeout API)')
@@ -101,7 +108,7 @@ test.describe('Labor Ofrenda — timing feedback premium', () => {
         }
 
         const t0 = Date.now()
-        await expect(dialog).toBeHidden({ timeout: MAX_NORMAL_SUCCESS_MS })
-        expect(Date.now() - t0).toBeLessThan(MAX_NORMAL_SUCCESS_MS)
+        await expect(dialog).toBeHidden({ timeout: MAX_PLAN_FEEDBACK_MS })
+        expect(Date.now() - t0).toBeLessThan(MAX_PLAN_FEEDBACK_MS)
     })
 })

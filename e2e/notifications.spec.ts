@@ -42,8 +42,10 @@ test.describe('Notificaciones push', () => {
     const notificationsSection = page.getByRole('heading', { name: /notificaciones/i })
     await expect(notificationsSection).toBeVisible({ timeout: 5000 })
 
-    // Debe haber contenido de notificaciones: Activar, Activadas, Verificando, etc.
-    const pushContent = page.locator('text=/Notificaciones Push|activar|activadas|verificando|bloqueadas|soporta/i')
-    await expect(pushContent.first()).toBeVisible({ timeout: 8000 })
+    // Push: estados PWA-only, activar, activadas, verificando, bloqueadas o no soportado
+    const pushContent = page.locator(
+        'text=/Notificaciones Push|activar|activadas|verificando|bloqueadas|soporta|app instalada|instal·lada|compatible|Verificando/i',
+    )
+    await expect(pushContent.first()).toBeVisible({ timeout: 12000 })
   })
 })

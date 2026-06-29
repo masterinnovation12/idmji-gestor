@@ -11,7 +11,7 @@ const AUDIT_URL = '/dashboard/admin/audit'
 
 test.describe('Auditoría', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(AUDIT_URL)
+    await page.goto(AUDIT_URL, { waitUntil: 'domcontentloaded' })
     if (page.url().includes('/login')) {
       if (hasE2ECredentials()) {
         await loginIfNeeded(page)

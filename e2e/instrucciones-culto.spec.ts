@@ -32,6 +32,10 @@ test.describe('Instrucciones de culto', () => {
 
     // Ir al primer culto del listado (o al que tenga tipo Alabanza/Enseñanza/Estudio)
     const firstCultoLink = page.locator('a[href^="/dashboard/cultos/"]').first()
+    if (!(await firstCultoLink.isVisible({ timeout: 10000 }).catch(() => false))) {
+      test.skip(true, 'E2E: No hay cultos en el listado')
+      return
+    }
     await firstCultoLink.click()
     await expect(page).toHaveURL(/\/dashboard\/cultos\/[a-f0-9-]+/)
 

@@ -38,6 +38,7 @@ export function PlanMonthNavigator({
             <h2
                 className="flex-1 min-w-0 text-center text-lg sm:text-xl font-black tracking-tight px-1"
                 data-testid="ofrenda-month-title"
+                suppressHydrationWarning
             >
                 {isLoading ? (
                     <span
@@ -45,7 +46,7 @@ export function PlanMonthNavigator({
                         data-testid="ofrenda-month-title-skeleton"
                     />
                 ) : (
-                    <span className="block truncate">{title}</span>
+                    <span className="block truncate" suppressHydrationWarning>{title}</span>
                 )}
             </h2>
 

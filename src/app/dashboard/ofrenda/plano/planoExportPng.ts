@@ -4,6 +4,11 @@
 
 import { computePlanoSvgGeometry, serializePlanoSvg } from './planoLayout'
 import type { PlanoBloque, PlanoLayout2d, PlanoVistaResuelta } from './planoTypes'
+import {
+    drawLaborOfrendaExportHeader,
+    LABOR_OFRENDA_HEADER_H,
+    type LaborOfrendaHeaderLabels,
+} from './drawLaborOfrendaExportHeader'
 
 function loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
@@ -103,6 +108,7 @@ export async function exportPlanoPng(
     data: PlanoVistaResuelta,
     labels: PlanoExportLabels,
     filename: string,
+    header?: LaborOfrendaHeaderLabels,
 ): Promise<void> {
     const bg = await loadBackground(data)
     const scale = 2
@@ -115,15 +121,22 @@ export async function exportPlanoPng(
     const figS = data.layout.figuraScale
     const W = data.lienzo.w
     const H = data.lienzo.h
+    const headerH = header ? LABOR_OFRENDA_HEADER_H : 0
+    const totalH = H + headerH
 
     const canvas = document.createElement('canvas')
     canvas.width = W * scale
-    canvas.height = H * scale
+    canvas.height = totalH * scale
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error('Canvas no disponible')
 
     ctx.scale(scale, scale)
-    ctx.drawImage(bg, 0, 0, W, H)
+
+    if (header) {
+        await drawLaborOfrendaExportHeader(ctx, W, header)
+    }
+
+    ctx.drawImage(bg, 0, headerH, W, H)
 
     const colorOf = (bloque: number) =>
         data.bloques.find(b => b.n === bloque)?.color ?? '#64748b'
@@ -131,7 +144,7 @@ export async function exportPlanoPng(
     for (const p of data.posiciones) {
         const c = colorOf(p.bloque)
         ctx.save()
-        ctx.translate(p.figura.x, p.figura.y)
+        ctx.translate(p.figura.x, p.figura.y + headerH)
         ctx.scale(figS, figS)
         ctx.fillStyle = c
         ctx.strokeStyle = '#fff'
@@ -152,7 +165,7 @@ export async function exportPlanoPng(
         const nameAreaH = Math.max(26, nameLines.length * nameLineH + namePad)
         const ch = roleH + nameAreaH + 4
         const x = p.card.x - cw / 2
-        const y = p.card.y - ch / 2
+        const y = p.card.y + headerH - ch / 2
         ctx.fillStyle = 'rgba(255,255,255,.97)'
         ctx.strokeStyle = c
         ctx.lineWidth = 4
@@ -185,7 +198,7 @@ export async function exportPlanoPng(
         ctx.strokeStyle = '#fff'
         ctx.lineWidth = 4
         ctx.beginPath()
-        ctx.arc(b.labelPos.x, b.labelPos.y, discR, 0, Math.PI * 2)
+        ctx.arc(b.labelPos.x, b.labelPos.y + headerH, discR, 0, Math.PI * 2)
         ctx.fill()
         ctx.stroke()
         ctx.fillStyle = '#fff'
@@ -194,7 +207,7 @@ export async function exportPlanoPng(
         ctx.font = `950 ${discFs}px Inter, Arial, sans-serif`
         const labelLines = String(b.labelText || '').split(/\r?\n/)
         const labelLh = Math.round(discFs * 1.05)
-        const labelY0 = b.labelPos.y - ((labelLines.length - 1) * labelLh) / 2
+        const labelY0 = b.labelPos.y + headerH - ((labelLines.length - 1) * labelLh) / 2
         drawCenteredLines(ctx, labelLines, b.labelPos.x, labelY0, labelLh)
         ctx.restore()
     }

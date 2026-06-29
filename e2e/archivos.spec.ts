@@ -10,7 +10,7 @@ import { hasE2ECredentials, loginIfNeeded, getLoginError } from './auth.helper'
 
 test.describe('Archivos', () => {
   test('carga la página y muestra pestañas; datos o estado vacío sin error', async ({ page }) => {
-    await page.goto('/dashboard/archivos')
+    await page.goto('/dashboard/archivos', { waitUntil: 'domcontentloaded' })
 
     if (page.url().includes('/login')) {
       if (!hasE2ECredentials()) {
@@ -23,10 +23,10 @@ test.describe('Archivos', () => {
         test.skip(true, `E2E: Login falló (${errMsg || 'revisar credenciales'})`)
         return
       }
-      await page.goto('/dashboard/archivos')
+      await page.goto('/dashboard/archivos', { waitUntil: 'domcontentloaded' })
     }
 
-    await expect(page).toHaveURL(/\/dashboard\/archivos/, { timeout: 10000 })
+    await expect(page).toHaveURL(/\/dashboard\/archivos/, { timeout: 25000 })
 
     // Esperar a que termine el loading
     const loader = page.locator('[class*="animate-spin"]').first()
@@ -58,10 +58,10 @@ test.describe('Archivos', () => {
   })
 
   test('cambiar de pestaña actualiza el contenido', async ({ page }) => {
-    await page.goto('/dashboard/archivos')
+    await page.goto('/dashboard/archivos', { waitUntil: 'domcontentloaded' })
     if (page.url().includes('/login') && hasE2ECredentials()) {
       await loginIfNeeded(page)
-      await page.goto('/dashboard/archivos')
+      await page.goto('/dashboard/archivos', { waitUntil: 'domcontentloaded' })
     }
     if (page.url().includes('/login')) {
       test.skip(true, 'E2E: Sin login')

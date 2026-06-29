@@ -3,11 +3,13 @@
 import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Gift, Users, Download, Map, RefreshCw, Plus, Trash2 } from 'lucide-react'
+import { Gift, Users, Download, Map, RefreshCw, Plus, Trash2, Sparkles } from 'lucide-react'
 import BackButton from '@/components/BackButton'
 import { OfrendaFeedbackProvider, useOfrendaToast } from './ofrendaFeedback'
 import { MiembrosManager } from './MiembrosManager'
 import { PlanoPersonasManager } from './plano/PlanoPersonasManager'
+import { PlanoGeneratePanel } from './plano/PlanoGeneratePanel'
+import { PlanoExportPanel } from './plano/PlanoExportPanel'
 import { PlanTable } from './PlanTable'
 import { ExportPanel } from './ExportPanel'
 import { getPlan, generarORegenerarPlan, updateSacosConfig, eliminarPlan } from './actions'
@@ -22,13 +24,21 @@ import { SacosConfigPanel } from './SacosConfigPanel'
 import { PlanMonthNavigator } from './PlanMonthNavigator'
 import { formatOfrendaActionError, isOfrendaDbConstraintError } from './ofrendaDbErrors'
 
-type Tab = 'plan' | 'personas' | 'exportar' | 'plano'
+type Section = 'general' | 'laborOfrenda'
+type GeneralTab = 'plan' | 'personas' | 'exportar'
+type LaborTab = 'personas' | 'generar' | 'plano' | 'exportar'
 
-const TAB_DEFS: { id: Tab; labelKey: TranslationKey; icon: React.ElementType }[] = [
-    { id: 'plan', labelKey: 'ofrenda.tabs.plan', icon: Gift },
-    { id: 'personas', labelKey: 'ofrenda.tabs.people', icon: Users },
-    { id: 'exportar', labelKey: 'ofrenda.tabs.export', icon: Download },
-    { id: 'plano', labelKey: 'ofrenda.tabs.plano', icon: Map },
+const GENERAL_TAB_DEFS: { id: GeneralTab; labelKey: TranslationKey; icon: React.ElementType }[] = [
+    { id: 'plan', labelKey: 'ofrenda.tabs.planGeneral', icon: Gift },
+    { id: 'personas', labelKey: 'ofrenda.tabs.peopleGeneral', icon: Users },
+    { id: 'exportar', labelKey: 'ofrenda.tabs.exportGeneral', icon: Download },
+]
+
+const LABOR_TAB_DEFS: { id: LaborTab; labelKey: TranslationKey; icon: React.ElementType }[] = [
+    { id: 'personas', labelKey: 'ofrenda.tabs.planoPeople', icon: Users },
+    { id: 'generar', labelKey: 'ofrenda.tabs.generatePlano', icon: Sparkles },
+    { id: 'plano', labelKey: 'ofrenda.tabs.planoMap', icon: Map },
+    { id: 'exportar', labelKey: 'ofrenda.tabs.exportPlano', icon: Download },
 ]
 
 // Esqueleto de carga del plano (componente para poder usar i18n en el aria-label).
@@ -79,8 +89,9 @@ function OfrendaPageClientInner({
 }: Readonly<Props>) {
     const { t, language } = useI18n()
     const feedback = useOfrendaToast()
-    const [activeTab, setActiveTab] = useState<Tab>('plan')
-    const [personasView, setPersonasView] = useState<'miembros' | 'plano'>('miembros')
+    const [section, setSection] = useState<Section>('general')
+    const [generalTab, setGeneralTab] = useState<GeneralTab>('plan')
+    const [laborTab, setLaborTab] = useState<LaborTab>('plano')
     const [anio, setAnio]           = useState(initialAnio)
     const [mes,  setMes]            = useState(initialMes)
     const [plan, setPlan]           = useState<PlanCompleto | null>(initialPlan)
@@ -161,10 +172,25 @@ function OfrendaPageClientInner({
     // ── Título del mes ───────────────────────────────────────────────────────
     const tituloMes = getTituloMes(language, mes, anio)
 
-    const handleTabChange = useCallback((tab: Tab) => {
+    const handleSectionChange = useCallback((next: Section) => {
         feedback.dismiss()
-        setActiveTab(tab)
+        setSection(next)
     }, [feedback])
+
+    const handleGeneralTabChange = useCallback((tab: GeneralTab) => {
+        feedback.dismiss()
+        setGeneralTab(tab)
+    }, [feedback])
+
+    const handleLaborTabChange = useCallback((tab: LaborTab) => {
+        feedback.dismiss()
+        setLaborTab(tab)
+    }, [feedback])
+
+    const activeTabDefs = section === 'general' ? GENERAL_TAB_DEFS : LABOR_TAB_DEFS
+    const wideContent =
+        (section === 'general' && generalTab === 'plan') ||
+        (section === 'laborOfrenda' && laborTab === 'plano')
 
     const handleEliminarPlan = useCallback(async () => {
         setIsLoading(true)
@@ -189,36 +215,97 @@ function OfrendaPageClientInner({
                             <Gift className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <div className="min-w-0">
-                            <h1 className="font-black text-base sm:text-lg leading-tight truncate">
+                            <h1
+                                className="font-black text-base sm:text-lg leading-tight truncate"
+                                suppressHydrationWarning
+                            >
                                 {t('ofrenda.title')}
                             </h1>
-                            <p className="text-xs text-muted-foreground hidden sm:block">
+                            <p
+                                className="text-xs text-muted-foreground hidden sm:block"
+                                suppressHydrationWarning
+                            >
                                 {t('ofrenda.subtitle')}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {/* ── Tabs ─────────────────────────────────────────────── */}
+                {/* ── Secciones + mes global ───────────────────────────── */}
+                <div className="max-w-5xl mx-auto px-4 pb-2 space-y-3">
+                    <div
+                        className="inline-flex w-full rounded-xl border border-border bg-muted/40 p-0.5"
+                        role="tablist"
+                        aria-label={t('ofrenda.title')}
+                    >
+                        {(['general', 'laborOfrenda'] as const).map(sec => {
+                            const active = section === sec
+                            return (
+                                <button
+                                    key={sec}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={active}
+                                    data-testid={`ofrenda-section-${sec}`}
+                                    onClick={() => handleSectionChange(sec)}
+                                    className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-[10px] text-xs font-bold transition-colors touch-manipulation ${
+                                        active
+                                            ? sec === 'general'
+                                                ? 'bg-emerald-600 text-white shadow'
+                                                : 'bg-amber-600 text-white shadow'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    <span suppressHydrationWarning>
+                                        {t(sec === 'general' ? 'ofrenda.sections.general' : 'ofrenda.sections.laborOfrenda')}
+                                    </span>
+                                </button>
+                            )
+                        })}
+                    </div>
+
+                    <PlanMonthNavigator
+                        title={tituloMes}
+                        isLoading={isLoading}
+                        onPrev={() => navigate(-1)}
+                        onNext={() => navigate(1)}
+                        prevAriaLabel={t('ofrenda.month.prev')}
+                        nextAriaLabel={t('ofrenda.month.next')}
+                    />
+                </div>
+
+                {/* ── Sub-tabs ─────────────────────────────────────────── */}
                 <div className="max-w-5xl mx-auto px-4">
                     <div className="flex gap-1 pb-0.5 overflow-x-auto no-scrollbar">
-                        {TAB_DEFS.map(tab => {
+                        {activeTabDefs.map(tab => {
                             const Icon = tab.icon
-                            const active = activeTab === tab.id
+                            const active =
+                                section === 'general'
+                                    ? generalTab === tab.id
+                                    : laborTab === tab.id
+                            const accent =
+                                section === 'general'
+                                    ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500 bg-emerald-500/5'
+                                    : 'text-amber-600 dark:text-amber-400 border-amber-500 bg-amber-500/5'
                             return (
                                 <button
                                     key={tab.id}
-                                    onClick={() => handleTabChange(tab.id)}
+                                    onClick={() =>
+                                        section === 'general'
+                                            ? handleGeneralTabChange(tab.id as GeneralTab)
+                                            : handleLaborTabChange(tab.id as LaborTab)
+                                    }
                                     className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-t-lg whitespace-nowrap transition-all border-b-2 ${
                                         active
-                                            ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500 bg-emerald-500/5'
+                                            ? accent
                                             : 'text-muted-foreground border-transparent hover:text-foreground hover:border-border'
                                     }`}
                                     aria-selected={active}
                                     role="tab"
+                                    data-testid={`ofrenda-tab-${section}-${tab.id}`}
                                 >
                                     <Icon className="w-3.5 h-3.5" />
-                                    <span>{t(tab.labelKey)}</span>
+                                    <span suppressHydrationWarning>{t(tab.labelKey)}</span>
                                 </button>
                             )
                         })}
@@ -227,29 +314,19 @@ function OfrendaPageClientInner({
             </div>
 
             {/* ── Contenido ───────────────────────────────────────────────── */}
-            <div className={`mx-auto px-4 py-5 ${activeTab === 'plan' || activeTab === 'plano' ? 'max-w-[100%] xl:max-w-7xl' : 'max-w-5xl'}`}>
+            <div className={`mx-auto px-4 py-5 ${wideContent ? 'max-w-[100%] xl:max-w-7xl' : 'max-w-5xl'}`}>
                 <AnimatePresence mode="wait">
-                    {/* ── TAB: PLAN ─────────────────────────────────────── */}
-                    {activeTab === 'plan' && (
+                    {/* ── LABORES GENERALES ───────────────────────────── */}
+                    {section === 'general' && generalTab === 'plan' && (
                         <motion.div
-                            key="plan"
+                            key="general-plan"
                             initial={false}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.18 }}
                             className="min-w-0"
                         >
-                            {/* Selector de mes + acciones */}
                             <div className="mb-5 space-y-3" data-testid="ofrenda-plan-toolbar">
-                                <PlanMonthNavigator
-                                    title={tituloMes}
-                                    isLoading={isLoading}
-                                    onPrev={() => navigate(-1)}
-                                    onNext={() => navigate(1)}
-                                    prevAriaLabel={t('ofrenda.month.prev')}
-                                    nextAriaLabel={t('ofrenda.month.next')}
-                                />
-
                                 {canEdit && (
                                     <div
                                         className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end"
@@ -351,79 +428,25 @@ function OfrendaPageClientInner({
                         </motion.div>
                     )}
 
-                    {/* ── TAB: PERSONAS ─────────────────────────────────── */}
-                    {activeTab === 'personas' && (
+                    {section === 'general' && generalTab === 'personas' && (
                         <motion.div
-                            key="personas"
+                            key="general-personas"
                             initial={false}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.18 }}
-                            className="space-y-4"
                         >
-                            <div
-                                className="inline-flex w-full sm:w-auto rounded-xl border border-border bg-muted/40 p-0.5"
-                                role="group"
-                                aria-label={t('ofrenda.tabs.people')}
-                            >
-                                {(['miembros', 'plano'] as const).map(view => {
-                                    const active = personasView === view
-                                    return (
-                                        <button
-                                            key={view}
-                                            type="button"
-                                            onClick={() => setPersonasView(view)}
-                                            aria-pressed={active}
-                                            data-testid={`personas-view-${view}`}
-                                            className={`flex-1 sm:flex-none px-4 py-2 min-h-[40px] rounded-[10px] text-xs font-bold transition-colors touch-manipulation ${
-                                                active
-                                                    ? 'bg-emerald-600 text-white shadow'
-                                                    : 'text-muted-foreground hover:text-foreground'
-                                            }`}
-                                        >
-                                            {view === 'miembros'
-                                                ? t('ofrenda.personas.viewMiembros')
-                                                : t('ofrenda.personas.viewPlano')}
-                                        </button>
-                                    )
-                                })}
-                            </div>
-
-                            {personasView === 'miembros' ? (
-                                <MiembrosManager
-                                    initialMiembros={miembros}
-                                    canEdit={canEdit}
-                                    onChange={handleMiembrosChange}
-                                />
-                            ) : (
-                                <PlanoPersonasManager canEdit={canEdit} />
-                            )}
-                        </motion.div>
-                    )}
-
-                    {/* ── TAB: PLANO ────────────────────────────────────── */}
-                    {activeTab === 'plano' && (
-                        <motion.div
-                            key="plano"
-                            initial={false}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -8 }}
-                            transition={{ duration: 0.18 }}
-                            className="min-w-0"
-                        >
-                            <PlanoTab
-                                plan={plan}
-                                tituloMes={tituloMes}
+                            <MiembrosManager
+                                initialMiembros={miembros}
                                 canEdit={canEdit}
-                                onGoToPlan={() => handleTabChange('plan')}
+                                onChange={handleMiembrosChange}
                             />
                         </motion.div>
                     )}
 
-                    {/* ── TAB: EXPORTAR ─────────────────────────────────── */}
-                    {activeTab === 'exportar' && (
+                    {section === 'general' && generalTab === 'exportar' && (
                         <motion.div
-                            key="exportar"
+                            key="general-exportar"
                             className="relative z-10 bg-background"
                             initial={false}
                             animate={{ opacity: 1, y: 0 }}
@@ -436,6 +459,74 @@ function OfrendaPageClientInner({
                                 tituloMes={tituloMes}
                                 anio={anio}
                                 mes={mes}
+                            />
+                        </motion.div>
+                    )}
+
+                    {/* ── LABOR OFRENDA ───────────────────────────────── */}
+                    {section === 'laborOfrenda' && laborTab === 'personas' && (
+                        <motion.div
+                            key="labor-personas"
+                            initial={false}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.18 }}
+                        >
+                            <PlanoPersonasManager canEdit={canEdit} />
+                        </motion.div>
+                    )}
+
+                    {section === 'laborOfrenda' && laborTab === 'generar' && (
+                        <motion.div
+                            key="labor-generar"
+                            initial={false}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.18 }}
+                        >
+                            <PlanoGeneratePanel
+                                plan={plan}
+                                anio={anio}
+                                mes={mes}
+                                canEdit={canEdit}
+                                onGenerated={handleAsignacionChange}
+                            />
+                        </motion.div>
+                    )}
+
+                    {section === 'laborOfrenda' && laborTab === 'plano' && (
+                        <motion.div
+                            key="labor-plano"
+                            initial={false}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.18 }}
+                            className="min-w-0"
+                        >
+                            <PlanoTab
+                                plan={plan}
+                                tituloMes={tituloMes}
+                                canEdit={canEdit}
+                                onGoToPlan={() => {
+                                    setSection('general')
+                                    setGeneralTab('plan')
+                                }}
+                            />
+                        </motion.div>
+                    )}
+
+                    {section === 'laborOfrenda' && laborTab === 'exportar' && (
+                        <motion.div
+                            key="labor-exportar"
+                            className="relative z-10 bg-background"
+                            initial={false}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.18 }}
+                        >
+                            <PlanoExportPanel
+                                plan={plan}
+                                tituloMes={tituloMes}
                             />
                         </motion.div>
                     )}
@@ -550,12 +641,14 @@ function RegenerateMenu({
                             className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 z-20 bg-background border border-border rounded-2xl shadow-xl overflow-hidden sm:min-w-[190px]"
                         >
                             {[
-                                { label: t('ofrenda.regenerate.all'), grupo: undefined },
-                                { label: t('ofrenda.regenerate.g1'), grupo: 1 as const },
-                                { label: t('ofrenda.regenerate.g2'), grupo: 2 as const },
+                                { label: t('ofrenda.regenerate.all'), grupo: undefined, testId: 'ofrenda-regenerate-all' },
+                                { label: t('ofrenda.regenerate.g1'), grupo: 1 as const, testId: 'ofrenda-regenerate-g1' },
+                                { label: t('ofrenda.regenerate.g2'), grupo: 2 as const, testId: 'ofrenda-regenerate-g2' },
                             ].map(item => (
                                 <button
                                     key={item.label}
+                                    type="button"
+                                    data-testid={item.testId}
                                     onClick={() => { onRegenerate(item.grupo); setOpen(false) }}
                                     className="w-full text-left px-4 py-3 text-sm hover:bg-muted transition-colors font-medium"
                                 >
