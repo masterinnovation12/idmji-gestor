@@ -42,6 +42,12 @@ npx playwright test e2e/labor-ofrenda-plano.spec.ts --project=chromium
 
 Archivo a crear en implementación: `e2e/labor-ofrenda-plano.spec.ts`
 
+**QA completo (10 casos de uso):** `e2e/labor-ofrenda-qa-completo.spec.ts`
+
+```bash
+npx playwright test e2e/labor-ofrenda-qa-completo.spec.ts --workers=1
+```
+
 ## Viewports recomendados
 
 - Desktop: 1280×720

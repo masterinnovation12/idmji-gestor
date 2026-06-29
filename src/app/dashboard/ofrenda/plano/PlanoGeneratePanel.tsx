@@ -92,6 +92,7 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
                         <button
                             key={s}
                             type="button"
+                            data-testid={`ofrenda-plano-generate-scope-${s}`}
                             onClick={() => setScope(s)}
                             className={`flex-1 sm:flex-none px-4 py-2 min-h-[44px] rounded-[10px] text-xs font-bold touch-manipulation ${
                                 scope === s ? 'bg-amber-600 text-white shadow' : 'text-muted-foreground'
@@ -127,6 +128,7 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
                         <button
                             key={btn.m}
                             type="button"
+                            data-testid={`ofrenda-plano-generate-${btn.m}`}
                             disabled={busy}
                             onClick={() => { setModo(btn.m); void run() }}
                             className="flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold disabled:opacity-50 touch-manipulation"

@@ -167,7 +167,13 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
         if (res.error) {
             planError(errLabel(res.error))
             void load()
+            return
         }
+        quickSuccess(
+            next
+                ? t('ofrenda.plano.personas.starOn')
+                : t('ofrenda.plano.personas.starOff'),
+        )
     }
 
     const toggleActivo = async (p: PlanoPersonaFull) => {

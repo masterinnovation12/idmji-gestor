@@ -641,12 +641,14 @@ function RegenerateMenu({
                             className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 z-20 bg-background border border-border rounded-2xl shadow-xl overflow-hidden sm:min-w-[190px]"
                         >
                             {[
-                                { label: t('ofrenda.regenerate.all'), grupo: undefined },
-                                { label: t('ofrenda.regenerate.g1'), grupo: 1 as const },
-                                { label: t('ofrenda.regenerate.g2'), grupo: 2 as const },
+                                { label: t('ofrenda.regenerate.all'), grupo: undefined, testId: 'ofrenda-regenerate-all' },
+                                { label: t('ofrenda.regenerate.g1'), grupo: 1 as const, testId: 'ofrenda-regenerate-g1' },
+                                { label: t('ofrenda.regenerate.g2'), grupo: 2 as const, testId: 'ofrenda-regenerate-g2' },
                             ].map(item => (
                                 <button
                                     key={item.label}
+                                    type="button"
+                                    data-testid={item.testId}
                                     onClick={() => { onRegenerate(item.grupo); setOpen(false) }}
                                     className="w-full text-left px-4 py-3 text-sm hover:bg-muted transition-colors font-medium"
                                 >
