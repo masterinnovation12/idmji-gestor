@@ -37,12 +37,11 @@ test.describe('Labor Ofrenda — semanas plan', () => {
             return
         }
 
-        const labelBefore = await page.locator('.max-\\[1023px\\]\\:block .text-sm.font-bold').first().textContent()
+        const weekLabel = page.getByTestId('ofrenda-mobile-week-pager').locator('.text-sm.font-bold')
+        const labelBefore = await weekLabel.textContent()
 
         await page.getByRole('button', { name: /siguiente|següent|next/i }).click()
-        await expect(page.locator('.max-\\[1023px\\]\\:block .text-sm.font-bold').first()).not.toHaveText(
-            labelBefore ?? '',
-        )
+        await expect(weekLabel).not.toHaveText(labelBefore ?? '')
 
         await page.getByRole('button', { name: /anterior|previous|anterior/i }).click()
         await expect(page.getByTestId('ofrenda-week-swipe-area')).toBeVisible()

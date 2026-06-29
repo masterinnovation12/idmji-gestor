@@ -17,6 +17,14 @@ import type {
     PlanoVista,
     PlanoVistaResuelta,
 } from './planoTypes'
+import { requireEditor, type PlanoAuthError } from './planoAuth'
+import {
+    readPlanoPersonaRow,
+    type PlanoPersonaFull,
+    type PlanoPersonaTurnosPatch,
+} from './planoPersonaDb'
+
+export type { PlanoPersonaFull, PlanoPersonaTurnosPatch }
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -38,14 +46,9 @@ export interface PlanoCreatePersonaResult {
     errorCode?: PlanoCreatePersonaError
 }
 
-/** Lee la capacidad de una fila; 'ambos' si la columna aún no existe (migración no aplicada) → función inactiva. */
-function readCapacidad(row: Record<string, unknown>): PlanoCapacidad {
-    const c = row.capacidad
-    return c === 'ofrendario' || c === 'apoyo' || c === 'ambos' ? c : 'ambos'
-}
-
 function toPlanoPersona(row: Record<string, unknown>): PlanoPersona {
-    return { id: row.id as string, nombre: row.nombre as string, capacidad: readCapacidad(row) }
+    const p = readPlanoPersonaRow(row)
+    return { id: p.id, nombre: p.nombre, capacidad: p.capacidad }
 }
 
 export interface PlanoAsignacion {
@@ -60,27 +63,7 @@ export interface PlanoDataResult {
     asignaciones: PlanoAsignacion[]
 }
 
-// ─── Auth ───────────────────────────────────────────────────────────────────
-
-/** Códigos de error que el cliente traduce (i18n), nunca texto hardcodeado. */
-export type PlanoAuthError = 'no_auth' | 'no_permission'
-
-async function requireEditor() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'no_auth' as PlanoAuthError, supabase: null, userId: null }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('rol')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile || !['ADMIN', 'EDITOR'].includes(profile.rol)) {
-        return { error: 'no_permission' as PlanoAuthError, supabase: null, userId: null }
-    }
-    return { error: null, supabase, userId: user.id }
-}
+export type { PlanoAuthError }
 
 // ─── Seed layouts si la migración aún no los tiene ───────────────────────────
 
@@ -297,6 +280,19 @@ export async function savePlanoAsignacion(
             .eq('rol', rol)
         if (error) return { error: error.message }
     } else {
+        if (personaId) {
+            const { data: dup } = await supabase
+                .from('ofrenda_plano_asignaciones')
+                .select('bloque, rol')
+                .eq('servicio_id', servicioId)
+                .eq('persona_id', personaId)
+
+            const conflicto = (dup ?? []).some(
+                row => !(row.bloque === bloque && row.rol === rol),
+            )
+            if (conflicto) return { error: 'PERSONA_DUPLICADA_SERVICIO' }
+        }
+
         const { error } = await supabase
             .from('ofrenda_plano_asignaciones')
             .upsert(
@@ -374,12 +370,6 @@ export async function resetPlanoLayout(
 
 // ─── Gestión del directorio de personas del plano ─────────────────────────────
 
-export interface PlanoPersonaFull extends PlanoPersona {
-    activo: boolean
-    /** Nº de asignaciones que referencian a esta persona (para avisar al borrar). */
-    asignaciones: number
-}
-
 export type PlanoRenameError = 'too_short' | 'too_long' | 'duplicate'
 
 /** Lista completa del directorio (para la pantalla de gestión). Lectura: autenticado. */
@@ -396,19 +386,132 @@ export async function listPlanoPersonas(): Promise<{ data?: PlanoPersonaFull[]; 
         .from('ofrenda_plano_asignaciones')
         .select('persona_id')
 
+    const { data: parejas } = await supabase
+        .from('ofrenda_plano_parejas')
+        .select('mujer_persona_id, hombre_persona_id')
+
     const counts = new Map<string, number>()
     for (const a of asig ?? []) {
         const id = (a as { persona_id: string | null }).persona_id
         if (id) counts.set(id, (counts.get(id) ?? 0) + 1)
     }
 
-    return {
-        data: (data ?? []).map(r => ({
-            ...toPlanoPersona(r),
-            activo: (r.activo as boolean) ?? true,
-            asignaciones: counts.get(r.id as string) ?? 0,
-        })),
+    const parejaByPerson = new Map<string, { id: string; nombre: string }>()
+    const idToNombre = new Map((data ?? []).map(r => [r.id as string, r.nombre as string]))
+    for (const par of parejas ?? []) {
+        const m = par.mujer_persona_id as string
+        const h = par.hombre_persona_id as string
+        parejaByPerson.set(m, { id: h, nombre: idToNombre.get(h) ?? '' })
+        parejaByPerson.set(h, { id: m, nombre: idToNombre.get(m) ?? '' })
     }
+
+    return {
+        data: (data ?? []).map(r => {
+            const base = readPlanoPersonaRow(r)
+            const par = parejaByPerson.get(base.id)
+            return {
+                ...base,
+                parejaId: par?.id ?? null,
+                parejaNombre: par?.nombre ?? null,
+                asignaciones: counts.get(base.id) ?? 0,
+            }
+        }),
+    }
+}
+
+export async function setPlanoPersonaTurnos(
+    personaId: string,
+    turnos: PlanoPersonaTurnosPatch,
+): Promise<{ error?: string }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    const { error } = await supabase
+        .from('ofrenda_plano_personas')
+        .update({
+            puede_jueves: turnos.puede_jueves,
+            puede_domingo_manana: turnos.puede_domingo_manana,
+            puede_domingo_tarde: turnos.puede_domingo_tarde,
+        })
+        .eq('id', personaId)
+
+    if (error) return { error: error.message }
+    revalidatePath('/dashboard/ofrenda')
+    return {}
+}
+
+export async function setPlanoPersonaPrioridad(
+    personaId: string,
+    prioridad_ofrendario: boolean,
+): Promise<{ error?: string }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    const { error } = await supabase
+        .from('ofrenda_plano_personas')
+        .update({ prioridad_ofrendario })
+        .eq('id', personaId)
+
+    if (error) return { error: error.message }
+    revalidatePath('/dashboard/ofrenda')
+    return {}
+}
+
+async function removeParejaForPersona(supabase: NonNullable<Awaited<ReturnType<typeof requireEditor>>['supabase']>, personaId: string) {
+    await supabase
+        .from('ofrenda_plano_parejas')
+        .delete()
+        .or(`mujer_persona_id.eq.${personaId},hombre_persona_id.eq.${personaId}`)
+}
+
+export async function setPlanoPersonaActivo(
+    personaId: string,
+    activo: boolean,
+): Promise<{ error?: string }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    if (!activo) {
+        await removeParejaForPersona(supabase, personaId)
+    }
+
+    const { error } = await supabase
+        .from('ofrenda_plano_personas')
+        .update({ activo })
+        .eq('id', personaId)
+
+    if (error) return { error: error.message }
+    revalidatePath('/dashboard/ofrenda')
+    return {}
+}
+
+export async function setPlanoPareja(
+    mujerId: string,
+    hombreId: string,
+): Promise<{ error?: string }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    await removeParejaForPersona(supabase, mujerId)
+    await removeParejaForPersona(supabase, hombreId)
+
+    const { error } = await supabase.from('ofrenda_plano_parejas').insert({
+        mujer_persona_id: mujerId,
+        hombre_persona_id: hombreId,
+    })
+
+    if (error) return { error: error.message }
+    revalidatePath('/dashboard/ofrenda')
+    return {}
+}
+
+export async function removePlanoPareja(personaId: string): Promise<{ error?: string }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    await removeParejaForPersona(supabase, personaId)
+    revalidatePath('/dashboard/ofrenda')
+    return {}
 }
 
 /** Renombra una persona y sincroniza el nombre mostrado en sus asignaciones. */

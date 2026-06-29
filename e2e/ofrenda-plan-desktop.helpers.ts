@@ -62,10 +62,10 @@ export async function waitForScrollLeft(
     const scroll = page.getByTestId('ofrenda-plan-desktop-scroll')
     await expect
         .poll(async () => {
-            const left = await scroll.evaluate((el) => {
-                const target = Math.min(expected, el.scrollWidth - el.clientWidth)
+            const left = await scroll.evaluate((el, exp) => {
+                const target = Math.min(exp, el.scrollWidth - el.clientWidth)
                 return Math.abs(el.scrollLeft - target)
-            })
+            }, expected)
             return left
         }, { timeout: timeoutMs })
         .toBeLessThanOrEqual(tolerancePx)

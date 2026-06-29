@@ -25,6 +25,11 @@ vi.mock('./planoActions', () => ({
     renamePlanoPersona: vi.fn(),
     deletePlanoPersona: vi.fn(),
     setPlanoPersonaCapacidad: vi.fn(),
+    setPlanoPersonaTurnos: vi.fn(),
+    setPlanoPersonaPrioridad: vi.fn(),
+    setPlanoPersonaActivo: vi.fn(),
+    setPlanoPareja: vi.fn(),
+    removePlanoPareja: vi.fn(),
 }))
 
 import {
@@ -41,9 +46,19 @@ const rename = vi.mocked(renamePlanoPersona)
 const del = vi.mocked(deletePlanoPersona)
 const setCap = vi.mocked(setPlanoPersonaCapacidad)
 
+const PERSONAS_BASE = {
+    puede_jueves: true,
+    puede_domingo_manana: false,
+    puede_domingo_tarde: false,
+    genero: 'hombre' as const,
+    prioridad_ofrendario: false,
+    parejaId: null,
+    parejaNombre: null,
+}
+
 const PERSONAS = [
-    { id: 'p1', nombre: 'Maria Edilma Aricapa', capacidad: 'ambos' as const, activo: true, asignaciones: 2 },
-    { id: 'p2', nombre: 'Carlos Galvis', capacidad: 'ofrendario' as const, activo: true, asignaciones: 0 },
+    { id: 'p1', nombre: 'Maria Edilma Aricapa', capacidad: 'ambos' as const, activo: true, asignaciones: 2, ...PERSONAS_BASE, genero: 'mujer' as const },
+    { id: 'p2', nombre: 'Carlos Galvis', capacidad: 'ofrendario' as const, activo: true, asignaciones: 0, ...PERSONAS_BASE },
 ]
 
 function renderManager(canEdit = true) {

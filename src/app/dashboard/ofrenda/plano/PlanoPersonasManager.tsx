@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Plus, Pencil, Trash2, Loader2, Users, X } from 'lucide-react'
+import { Search, Plus, Pencil, Trash2, Loader2, Users, X, Star, Heart, UserX } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { interpolate } from '../ofrendaLocale'
 import { useOfrendaToast } from '../ofrendaFeedback'
@@ -20,11 +20,27 @@ import {
     renamePlanoPersona,
     deletePlanoPersona,
     setPlanoPersonaCapacidad,
+    setPlanoPersonaTurnos,
+    setPlanoPersonaPrioridad,
+    setPlanoPersonaActivo,
+    setPlanoPareja,
+    removePlanoPareja,
     type PlanoPersonaFull,
 } from './planoActions'
+import { MemberTurnAvailability } from '../MemberTurnAvailability'
+import { clasificarSeccionTurno, type PlanoTurnoSection } from './planoPersonaTurnos'
 import type { PlanoCapacidad } from './planoTypes'
 
 const CAPS: PlanoCapacidad[] = ['ofrendario', 'apoyo', 'ambos']
+
+const SECTION_ORDER: PlanoTurnoSection[] = ['jueves', 'domingo_manana', 'domingo_tarde', 'sin_turno']
+
+const SECTION_LABEL: Record<PlanoTurnoSection, 'ofrenda.plano.personas.sectionJueves' | 'ofrenda.plano.personas.sectionDomManana' | 'ofrenda.plano.personas.sectionDomTarde' | 'ofrenda.plano.personas.sectionSinTurno'> = {
+    jueves: 'ofrenda.plano.personas.sectionJueves',
+    domingo_manana: 'ofrenda.plano.personas.sectionDomManana',
+    domingo_tarde: 'ofrenda.plano.personas.sectionDomTarde',
+    sin_turno: 'ofrenda.plano.personas.sectionSinTurno',
+}
 
 export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>) {
     const { t } = useI18n()
@@ -37,6 +53,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
     const [busy, setBusy] = useState(false)
     const [editing, setEditing] = useState<PlanoPersonaFull | null>(null)
     const [deleting, setDeleting] = useState<PlanoPersonaFull | null>(null)
+    const [pairing, setPairing] = useState<PlanoPersonaFull | null>(null)
 
     const errLabel = useCallback(
         (e?: string) => {
@@ -72,6 +89,16 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
         return personas.filter(p => normalizePlanoPersonaNombre(p.nombre).includes(q))
     }, [personas, query])
 
+    const grouped = useMemo(() => {
+        const map = new Map<PlanoTurnoSection, PlanoPersonaFull[]>()
+        for (const sec of SECTION_ORDER) map.set(sec, [])
+        for (const p of filtered) {
+            const sec = clasificarSeccionTurno(p)
+            map.get(sec)?.push(p)
+        }
+        return SECTION_ORDER.map(sec => ({ sec, items: map.get(sec) ?? [] })).filter(g => g.items.length > 0)
+    }, [filtered])
+
     const handleAdd = async () => {
         const nombre = adding.trim()
         if (!nombre || busy) return
@@ -105,6 +132,53 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
             return
         }
         quickSuccess(t('ofrenda.plano.capacidad.updated'))
+    }
+
+    const changeTurnos = async (p: PlanoPersonaFull, turnos: typeof p) => {
+        setPersonas(prev =>
+            prev.map(x =>
+                x.id === p.id
+                    ? {
+                          ...x,
+                          puede_jueves: turnos.puede_jueves,
+                          puede_domingo_manana: turnos.puede_domingo_manana,
+                          puede_domingo_tarde: turnos.puede_domingo_tarde,
+                      }
+                    : x,
+            ),
+        )
+        const res = await invokePlanoAction(() =>
+            setPlanoPersonaTurnos(p.id, {
+                puede_jueves: turnos.puede_jueves,
+                puede_domingo_manana: turnos.puede_domingo_manana,
+                puede_domingo_tarde: turnos.puede_domingo_tarde,
+            }),
+        )
+        if (res.error) {
+            planError(errLabel(res.error))
+            void load()
+        }
+    }
+
+    const toggleStar = async (p: PlanoPersonaFull) => {
+        const next = !p.prioridad_ofrendario
+        setPersonas(prev => prev.map(x => (x.id === p.id ? { ...x, prioridad_ofrendario: next } : x)))
+        const res = await invokePlanoAction(() => setPlanoPersonaPrioridad(p.id, next))
+        if (res.error) {
+            planError(errLabel(res.error))
+            void load()
+        }
+    }
+
+    const toggleActivo = async (p: PlanoPersonaFull) => {
+        const next = !p.activo
+        const res = await invokePlanoAction(() => setPlanoPersonaActivo(p.id, next))
+        if (res.error) {
+            planError(errLabel(res.error))
+            return
+        }
+        quickSuccess(next ? t('ofrenda.plano.personas.activated') : t('ofrenda.plano.personas.deactivated'))
+        void load()
     }
 
     const confirmDelete = async () => {
@@ -177,72 +251,38 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
             ) : filtered.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">{t('ofrenda.plano.personas.noResults')}</p>
             ) : (
-                <ul className="space-y-2" data-testid="plano-personas-list">
-                    {filtered.map(p => (
-                        <li
-                            key={p.id}
-                            className="rounded-2xl border border-border/60 bg-background/80 p-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                            <div className="min-w-0">
-                                <p className="font-semibold truncate">{p.nombre}</p>
-                                <p className="text-[11px] text-muted-foreground">
-                                    {p.asignaciones > 0
-                                        ? interpolate(t('ofrenda.plano.personas.assigned'), { n: String(p.asignaciones) })
-                                        : t('ofrenda.plano.personas.notAssigned')}
-                                </p>
-                            </div>
-
-                            <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                                <div
-                                    className="inline-flex rounded-xl border border-border bg-muted/40 p-0.5"
-                                    role="group"
-                                    aria-label={t('ofrenda.plano.cap.label')}
-                                >
-                                    {CAPS.map(cap => {
-                                        const active = p.capacidad === cap
-                                        return (
-                                            <button
-                                                key={cap}
-                                                type="button"
-                                                disabled={!canEdit}
-                                                aria-pressed={active}
-                                                onClick={() => void changeCapacidad(p, cap)}
-                                                className={`px-2.5 py-1.5 min-h-[36px] rounded-[10px] text-xs font-bold transition-colors touch-manipulation ${
-                                                    active
-                                                        ? 'bg-emerald-600 text-white shadow'
-                                                        : 'text-muted-foreground hover:text-foreground disabled:hover:text-muted-foreground'
-                                                } ${!canEdit ? 'cursor-default' : ''}`}
-                                            >
-                                                {t(`ofrenda.plano.cap.${cap}` as const)}
-                                            </button>
-                                        )
-                                    })}
-                                </div>
-
-                                {canEdit && (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={() => setEditing(p)}
-                                            aria-label={t('common.edit')}
-                                            className="p-2 min-h-[40px] min-w-[40px] rounded-xl border border-border hover:bg-muted touch-manipulation"
-                                        >
-                                            <Pencil className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setDeleting(p)}
-                                            aria-label={t('common.delete')}
-                                            className="p-2 min-h-[40px] min-w-[40px] rounded-xl border border-red-500/30 text-red-600 hover:bg-red-500/10 touch-manipulation"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        </li>
+                <div className="space-y-6">
+                    {grouped.map(({ sec, items }) => (
+                        <section key={sec} data-testid={`plano-personas-section-${sec}`}>
+                            <h4 className="text-xs font-black uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-2">
+                                {t(SECTION_LABEL[sec])}
+                            </h4>
+                            <ul className="space-y-2" data-testid="plano-personas-list">
+                                {items.map(p => (
+                                    <PersonaRow
+                                        key={p.id}
+                                        persona={p}
+                                        canEdit={canEdit}
+                                        t={t}
+                                        errLabel={errLabel}
+                                        onCapacidad={changeCapacidad}
+                                        onTurnos={changeTurnos}
+                                        onStar={() => void toggleStar(p)}
+                                        onActivo={() => void toggleActivo(p)}
+                                        onEdit={() => setEditing(p)}
+                                        onDelete={() => setDeleting(p)}
+                                        onPair={() => setPairing(p)}
+                                        onUnpair={async () => {
+                                            const res = await invokePlanoAction(() => removePlanoPareja(p.id))
+                                            if (res.error) planError(errLabel(res.error))
+                                            else void load()
+                                        }}
+                                    />
+                                ))}
+                            </ul>
+                        </section>
                     ))}
-                </ul>
+                </div>
             )}
 
             {editing && (
@@ -252,6 +292,26 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                     onSaved={updated => {
                         setPersonas(prev => prev.map(x => (x.id === updated.id ? { ...x, nombre: updated.nombre } : x)))
                         setEditing(null)
+                    }}
+                />
+            )}
+
+            {pairing && (
+                <ParejaDialog
+                    persona={pairing}
+                    candidatos={personas.filter(
+                        x =>
+                            x.id !== pairing.id &&
+                            x.activo &&
+                            x.genero &&
+                            pairing.genero &&
+                            x.genero !== pairing.genero &&
+                            !x.parejaId,
+                    )}
+                    onClose={() => setPairing(null)}
+                    onSaved={() => {
+                        setPairing(null)
+                        void load()
                     }}
                 />
             )}
@@ -298,6 +358,206 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                 </OfrendaLiquidShell>
             )}
         </div>
+    )
+}
+
+function PersonaRow({
+    persona: p,
+    canEdit,
+    t,
+    onCapacidad,
+    onTurnos,
+    onStar,
+    onActivo,
+    onEdit,
+    onDelete,
+    onPair,
+    onUnpair,
+}: Readonly<{
+    persona: PlanoPersonaFull
+    canEdit: boolean
+    t: (k: import('@/lib/i18n/types').TranslationKey) => string
+    errLabel: (e?: string) => string
+    onCapacidad: (p: PlanoPersonaFull, cap: PlanoCapacidad) => void
+    onTurnos: (p: PlanoPersonaFull, turnos: PlanoPersonaFull) => void
+    onStar: () => void
+    onActivo: () => void
+    onEdit: () => void
+    onDelete: () => void
+    onPair: () => void
+    onUnpair: () => void
+}>) {
+    return (
+        <li
+            className={`rounded-2xl border p-3 flex flex-col gap-3 ${
+                p.activo ? 'border-border/60 bg-background/80' : 'border-border/40 bg-muted/30 opacity-75'
+            }`}
+        >
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                    <p className="font-semibold truncate">{p.nombre}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                        {p.parejaNombre
+                            ? `${t('ofrenda.plano.personas.pareja')}: ${p.parejaNombre}`
+                            : t('ofrenda.plano.personas.sinPareja')}
+                    </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                    {canEdit && (
+                        <button
+                            type="button"
+                            onClick={onStar}
+                            aria-pressed={p.prioridad_ofrendario}
+                            aria-label={t('ofrenda.plano.personas.starOfrendario')}
+                            title={t('ofrenda.plano.personas.starOfrendarioHelp')}
+                            className={`p-2 min-h-[40px] min-w-[40px] rounded-xl border touch-manipulation ${
+                                p.prioridad_ofrendario
+                                    ? 'border-amber-500 bg-amber-500/15 text-amber-600'
+                                    : 'border-border text-muted-foreground'
+                            }`}
+                        >
+                            <Star className={`w-4 h-4 ${p.prioridad_ofrendario ? 'fill-current' : ''}`} />
+                        </button>
+                    )}
+                    {canEdit && (
+                        <button
+                            type="button"
+                            onClick={onActivo}
+                            aria-label={p.activo ? t('ofrenda.plano.personas.deactivated') : t('ofrenda.plano.personas.activated')}
+                            className="p-2 min-h-[40px] min-w-[40px] rounded-xl border border-border hover:bg-muted touch-manipulation"
+                        >
+                            <UserX className={`w-4 h-4 ${p.activo ? 'text-muted-foreground' : 'text-red-500'}`} />
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <MemberTurnAvailability
+                value={p}
+                onChange={next => onTurnos(p, { ...p, ...next })}
+                disabled={!canEdit}
+                color="emerald"
+                labels={{
+                    jueves: t('ofrenda.plano.personas.sectionJueves'),
+                    domManana: t('ofrenda.plano.personas.sectionDomManana'),
+                    domTarde: t('ofrenda.plano.personas.sectionDomTarde'),
+                }}
+                testIdPrefix={`plano-turns-${p.id}`}
+            />
+
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <div className="inline-flex rounded-xl border border-border bg-muted/40 p-0.5" role="group" aria-label={t('ofrenda.plano.cap.label')}>
+                    {CAPS.map(cap => (
+                        <button
+                            key={cap}
+                            type="button"
+                            disabled={!canEdit}
+                            aria-pressed={p.capacidad === cap}
+                            onClick={() => onCapacidad(p, cap)}
+                            className={`px-2.5 py-1.5 min-h-[36px] rounded-[10px] text-xs font-bold touch-manipulation ${
+                                p.capacidad === cap
+                                    ? 'bg-amber-600 text-white shadow'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            {t(`ofrenda.plano.cap.${cap}` as const)}
+                        </button>
+                    ))}
+                </div>
+
+                {canEdit && p.genero && (
+                    p.parejaId ? (
+                        <button type="button" onClick={onUnpair} className="inline-flex items-center gap-1 px-3 py-2 min-h-[36px] rounded-xl border border-border text-xs font-bold touch-manipulation">
+                            <Heart className="w-3.5 h-3.5 text-red-500" />
+                            {t('ofrenda.plano.personas.quitarPareja')}
+                        </button>
+                    ) : (
+                        <button type="button" onClick={onPair} className="inline-flex items-center gap-1 px-3 py-2 min-h-[36px] rounded-xl border border-amber-500/40 text-xs font-bold text-amber-700 touch-manipulation">
+                            <Heart className="w-3.5 h-3.5" />
+                            {t('ofrenda.plano.personas.asignarPareja')}
+                        </button>
+                    )
+                )}
+
+                {canEdit && (
+                    <>
+                        <button type="button" onClick={onEdit} aria-label={t('common.edit')} className="p-2 min-h-[40px] min-w-[40px] rounded-xl border border-border hover:bg-muted touch-manipulation">
+                            <Pencil className="w-4 h-4" />
+                        </button>
+                        <button type="button" onClick={onDelete} aria-label={t('common.delete')} className="p-2 min-h-[40px] min-w-[40px] rounded-xl border border-red-500/30 text-red-600 hover:bg-red-500/10 touch-manipulation">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    </>
+                )}
+            </div>
+        </li>
+    )
+}
+
+function ParejaDialog({
+    persona,
+    candidatos,
+    onClose,
+    onSaved,
+}: Readonly<{
+    persona: PlanoPersonaFull
+    candidatos: PlanoPersonaFull[]
+    onClose: () => void
+    onSaved: () => void
+}>) {
+    const { t } = useI18n()
+    const { quickSuccess, planError } = useOfrendaToast()
+    const [selected, setSelected] = useState('')
+    const [busy, setBusy] = useState(false)
+
+    const save = async () => {
+        if (!selected || busy) return
+        setBusy(true)
+        const mujerId = persona.genero === 'mujer' ? persona.id : selected
+        const hombreId = persona.genero === 'hombre' ? persona.id : selected
+        const res = await invokePlanoAction(() => setPlanoPareja(mujerId, hombreId))
+        setBusy(false)
+        if (res.error) {
+            planError(res.error)
+            return
+        }
+        quickSuccess(t('ofrenda.plano.personas.pareja'))
+        onSaved()
+    }
+
+    return (
+        <OfrendaLiquidShell
+            open
+            onClose={onClose}
+            ariaLabel={t('ofrenda.plano.personas.asignarPareja')}
+            title={t('ofrenda.plano.personas.pareja')}
+            headline={t('ofrenda.plano.personas.asignarPareja')}
+            accent="gold"
+            testIdPrefix="plano-personas-pareja"
+            unstyledBody
+        >
+            <div className="px-4 pb-4 space-y-3">
+                <p className="text-sm text-muted-foreground">{persona.nombre}</p>
+                <select
+                    value={selected}
+                    onChange={e => setSelected(e.target.value)}
+                    className="w-full px-4 py-3 min-h-[48px] rounded-xl border border-border bg-background text-sm"
+                >
+                    <option value="">{t('ofrenda.plano.personas.asignarPareja')}</option>
+                    {candidatos.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                </select>
+                <div className="flex gap-2">
+                    <button type="button" onClick={onClose} className="flex-1 py-3 min-h-[48px] rounded-xl border border-border font-semibold touch-manipulation">
+                        {t('common.cancel')}
+                    </button>
+                    <button type="button" disabled={busy || !selected} onClick={() => void save()} className="flex-1 py-3 min-h-[48px] rounded-xl bg-amber-600 text-white font-bold disabled:opacity-50 touch-manipulation">
+                        {t('common.save')}
+                    </button>
+                </div>
+            </div>
+        </OfrendaLiquidShell>
     )
 }
 

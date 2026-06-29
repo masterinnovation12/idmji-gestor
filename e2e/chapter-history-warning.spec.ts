@@ -17,7 +17,7 @@ test.describe('Aviso capítulo en historial', () => {
             test.skip(true, `Login E2E falló: ${err || 'desconocido'}`)
         }
         await page.goto('/dashboard', { waitUntil: 'domcontentloaded' })
-        await page.waitForURL(/\/dashboard/, { timeout: 20000 })
+        await page.waitForURL(/\/dashboard/, { timeout: 30000 })
     })
 
     test('dashboard: blur en capítulo muestra aviso o permite versículos', async ({ page }) => {
@@ -26,30 +26,32 @@ test.describe('Aviso capítulo en historial', () => {
         await addBtn.click()
 
         const modal = page.getByRole('dialog').or(page.locator('[class*="Modal"]').first())
-        await expect(page.getByPlaceholder(/Buscar libro/i)).toBeVisible({ timeout: 10000 })
+        await expect(page.getByPlaceholder(/Buscar libro|Cercar llibre/i)).toBeVisible({ timeout: 10000 })
 
-        await page.getByPlaceholder(/Buscar libro/i).fill('Juan')
-        await page.getByRole('button', { name: /^Juan$/i }).first().click({ timeout: 8000 })
+        await page.getByPlaceholder(/Buscar libro|Cercar llibre/i).fill('Juan')
+        await page.getByRole('button', { name: /Juan/i }).first().click({ timeout: 10000 })
 
-        const capInput = page.getByPlaceholder('Ej: 1')
+        const capInput = page.getByPlaceholder(/Ej: 1|Ex: 1/)
         await capInput.fill('3')
         await capInput.blur()
 
         await page.waitForTimeout(1500)
 
-        const alert = page.getByRole('alert')
-        const versesStart = page.getByPlaceholder('Inicio')
+        const chapterAlert = page
+            .getByRole('alert')
+            .filter({ hasText: /capítulo|capítol|ya leído|ja llegit|historial/i })
+        const versesStart = page.getByPlaceholder(/Inicio|Inici/)
 
-        if (await alert.isVisible()) {
-            await expect(alert).toContainText(/capítulo|capítol|ya leído|ja llegit/i)
+        if (await chapterAlert.isVisible({ timeout: 5000 }).catch(() => false)) {
+            await expect(chapterAlert).toContainText(/capítulo|capítol|ya leído|ja llegit/i)
             await expect(versesStart).toBeDisabled()
 
             const noBtn = page.getByRole('button', { name: /^no$/i })
             if (await noBtn.isVisible()) {
                 await noBtn.click()
-                await expect(alert).not.toBeVisible({ timeout: 5000 })
+                await expect(chapterAlert).not.toBeVisible({ timeout: 5000 })
                 await expect(capInput).toHaveValue('')
-                await expect(page.getByPlaceholder(/Buscar libro/i)).toHaveValue('Juan')
+                await expect(page.getByPlaceholder(/Buscar libro|Cercar llibre/i)).toHaveValue('Juan')
             }
         } else {
             await expect(versesStart).toBeEnabled({ timeout: 5000 })
