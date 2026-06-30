@@ -34,6 +34,8 @@ import {
 import {
     buildPersonasExportRows,
     buildPersonasFilterSubtitle,
+    countPersonasPorDia,
+    formatPersonasDayCountsLine,
 } from './planoPersonasExportFormat'
 import { exportPlanoPersonasPng } from './planoPersonasExportPng'
 import {
@@ -136,6 +138,8 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
 
     const visible = useMemo(() => filterPlanoPersonas(filtered, filter), [filtered, filter])
 
+    const dayCounts = useMemo(() => countPersonasPorDia(visible), [visible])
+
     const activeFilterCount = countActivePlanoFilters(filter)
     const filtersActive = hasActivePlanoFilters(filter)
 
@@ -176,6 +180,11 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                 pareja: t('ofrenda.plano.personas.export.pairTag'),
                 todas: t('ofrenda.plano.personas.export.all'),
             })
+            const dayCountsLine = formatPersonasDayCountsLine(dayCounts, {
+                jueves: t('ofrenda.plano.personas.sectionJueves'),
+                domManana: t('ofrenda.plano.personas.sectionDomManana'),
+                domTarde: t('ofrenda.plano.personas.sectionDomTarde'),
+            })
             const legend = t('ofrenda.plano.personas.export.legend')
                 .replace('{j}', t('ofrenda.plano.personas.export.dayJ'))
                 .replace('{m}', t('ofrenda.plano.personas.export.dayM'))
@@ -186,6 +195,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                     churchName: t('ofrenda.subtitle'),
                     title: t('ofrenda.plano.personas.export.headerTitle'),
                     subtitle,
+                    dayCountsLine,
                     colName: t('ofrenda.plano.personas.export.colName'),
                     colDays: t('ofrenda.plano.personas.export.colDays'),
                     colCapacity: t('ofrenda.plano.personas.export.colCapacity'),
@@ -327,9 +337,19 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                 </p>
             </div>
 
-            <div className="flex flex-wrap gap-3" data-testid="plano-personas-turn-legend">
+            <div
+                className="flex flex-wrap gap-3"
+                data-testid="plano-personas-turn-legend"
+                aria-label={t('ofrenda.plano.personas.dayCounts.aria')}
+            >
                 {TURN_LEGEND.map(sec => {
                     const style = SECTION_STYLE[sec]
+                    const count =
+                        sec === 'jueves'
+                            ? dayCounts.jueves
+                            : sec === 'domingo_manana'
+                              ? dayCounts.domingo_manana
+                              : dayCounts.domingo_tarde
                     return (
                         <div
                             key={sec}
@@ -337,6 +357,12 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                         >
                             <span className={`h-2 w-2 rounded-full shrink-0 ${style.dot}`} aria-hidden />
                             <span className={style.header}>{t(SECTION_LABEL[sec])}</span>
+                            <span
+                                className="inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded-md bg-muted/70 text-foreground font-black tabular-nums"
+                                data-testid={`plano-personas-day-count-${sec}`}
+                            >
+                                {count}
+                            </span>
                         </div>
                     )
                 })}

@@ -8,7 +8,8 @@ import { SQUARE_HEADER_HEIGHT } from './laborOfrendaHeaderSquareLayout'
 
 export const PERSONAS_EXPORT_WIDTH = 1080
 export const PERSONAS_EXPORT_SCALE = 2
-export const PERSONAS_EXPORT_HEADER_H = SQUARE_HEADER_HEIGHT
+/** +24px respecto al cuadrado base: cabecera con subtítulo + recuentos por día. */
+export const PERSONAS_EXPORT_HEADER_H = SQUARE_HEADER_HEIGHT + 24
 export const PERSONAS_EXPORT_INSET_X = 16
 export const PERSONAS_EXPORT_TABLE_HEADER_H = 48
 export const PERSONAS_EXPORT_ROW_H = 46

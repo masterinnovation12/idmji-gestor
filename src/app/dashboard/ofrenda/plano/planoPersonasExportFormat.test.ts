@@ -5,6 +5,8 @@ import { describe, it, expect } from 'vitest'
 import {
     buildPersonasExportRows,
     buildPersonasFilterSubtitle,
+    countPersonasPorDia,
+    formatPersonasDayCountsLine,
     formatDiasCell,
     type PlanoPersonaExportInput,
     type PlanoFilterSubtitleLabels,
@@ -57,6 +59,31 @@ describe('buildPersonasExportRows', () => {
         expect(row.dias).toEqual({ jueves: true, domingo_manana: false, domingo_tarde: true })
         expect(row.estrella).toBe(true)
         expect(row.conPareja).toBe(true)
+    })
+})
+
+describe('countPersonasPorDia', () => {
+    it('cuenta por flag de turno (una persona puede sumar en varios días)', () => {
+        const counts = countPersonasPorDia([
+            input({ puede_jueves: true, puede_domingo_manana: false, puede_domingo_tarde: false }),
+            input({ puede_jueves: true, puede_domingo_manana: true, puede_domingo_tarde: true }),
+            input({ puede_jueves: false, puede_domingo_manana: true, puede_domingo_tarde: false }),
+        ])
+        expect(counts).toEqual({ jueves: 2, domingo_manana: 2, domingo_tarde: 1 })
+    })
+
+    it('lista vacía → ceros', () => {
+        expect(countPersonasPorDia([])).toEqual({ jueves: 0, domingo_manana: 0, domingo_tarde: 0 })
+    })
+})
+
+describe('formatPersonasDayCountsLine', () => {
+    it('formatea recuentos con etiquetas de turno', () => {
+        const line = formatPersonasDayCountsLine(
+            { jueves: 12, domingo_manana: 15, domingo_tarde: 9 },
+            { jueves: 'Jueves', domManana: 'Dom. mañana', domTarde: 'Dom. tarde' },
+        )
+        expect(line).toBe('Jueves: 12 · Dom. mañana: 15 · Dom. tarde: 9')
     })
 })
 

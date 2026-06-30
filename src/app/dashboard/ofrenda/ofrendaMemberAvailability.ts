@@ -1,4 +1,4 @@
-import type { DiaTipo } from '@/lib/utils/ofrendaEngine'
+import { colaboradoresG2Requeridos, type DiaTipo } from '@/lib/utils/ofrendaEngine'
 
 /** Campos de disponibilidad por turno (alineados con dia_tipo del plan). */
 export interface MiembroDisponibilidadTurnos {
@@ -103,7 +103,8 @@ export interface ValidacionGeneracionPlan {
 type MiembroGen = MiembroDisponibilidadTurnos & { grupo: 1 | 2; activo: boolean }
 
 /**
- * Comprueba que cada turno del mes tenga al menos un miembro elegible por grupo.
+ * Comprueba que cada turno del mes tenga miembros elegibles suficientes por grupo.
+ * G1: al menos 1. G2: según {@link colaboradoresG2Requeridos} (2 jueves/tarde, 3 dom mañana).
  * Ignora inactivos y quienes no tienen ningún turno marcado.
  */
 export function validarDisponibilidadParaGenerar(
@@ -118,14 +119,15 @@ export function validarDisponibilidadParaGenerar(
     for (const diaTipo of turnosUnicos.keys()) {
         for (const grupo of [1, 2] as const) {
             if (regenerarGrupo !== null && regenerarGrupo !== grupo) continue
+            const minimo = grupo === 2 ? colaboradoresG2Requeridos(diaTipo) : 1
             const elegibles = miembros.filter(
                 m =>
                     miembroParticipaEnGeneracion(m) &&
                     m.grupo === grupo &&
                     puedeMiembroEnTurno(m, diaTipo),
             ).length
-            if (elegibles === 0) {
-                problemas.push({ diaTipo, grupo, elegibles: 0 })
+            if (elegibles < minimo) {
+                problemas.push({ diaTipo, grupo, elegibles })
             }
         }
     }

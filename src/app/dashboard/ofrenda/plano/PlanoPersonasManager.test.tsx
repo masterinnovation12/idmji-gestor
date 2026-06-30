@@ -96,11 +96,14 @@ describe('PlanoPersonasManager', () => {
         expect(screen.getByText('Carlos Galvis')).toBeTruthy()
     })
 
-    it('muestra caja de ayuda y leyenda de turnos', async () => {
+    it('muestra caja de ayuda y leyenda de turnos con recuentos', async () => {
         renderManager()
         await screen.findByText('Maria Edilma Aricapa')
         expect(screen.getByText('ofrenda.plano.personas.hint')).toBeTruthy()
         expect(screen.getByTestId('plano-personas-turn-legend')).toBeTruthy()
+        expect(screen.getByTestId('plano-personas-day-count-jueves')).toHaveTextContent('2')
+        expect(screen.getByTestId('plano-personas-day-count-domingo_manana')).toHaveTextContent('0')
+        expect(screen.getByTestId('plano-personas-day-count-domingo_tarde')).toHaveTextContent('0')
     })
 
     it('fila colapsada: puntos de turno visibles, chips de capacidad ocultos', async () => {
@@ -213,7 +216,7 @@ describe('PlanoPersonasManager', () => {
         expect(await screen.findByText('Maria Edilma Aricapa')).toBeTruthy()
     })
 
-    it('exportar PNG usa el conjunto filtrado', async () => {
+    it('exportar PNG usa el conjunto filtrado y recuentos en cabecera', async () => {
         renderManager()
         await screen.findByText('Maria Edilma Aricapa')
         fireEvent.click(screen.getByTestId('plano-personas-filters-toggle'))
@@ -221,7 +224,18 @@ describe('PlanoPersonasManager', () => {
         fireEvent.click(screen.getByTestId('plano-personas-export-btn'))
         await waitFor(() => expect(exportPng).toHaveBeenCalledTimes(1))
         const rows = exportPng.mock.calls[0][0] as Array<{ nombre: string }>
+        const labels = exportPng.mock.calls[0][1] as { dayCountsLine: string; subtitle: string }
         expect(rows).toHaveLength(1)
         expect(rows[0].nombre).toBe('Maria Edilma Aricapa')
+        expect(labels.dayCountsLine).toContain('ofrenda.plano.personas.sectionJueves: 1')
+        expect(labels.dayCountsLine).toContain('ofrenda.plano.personas.sectionDomManana: 0')
+    })
+
+    it('filtrar por día actualiza recuentos visibles', async () => {
+        renderManager()
+        await screen.findByText('Maria Edilma Aricapa')
+        fireEvent.click(screen.getByTestId('plano-personas-filters-toggle'))
+        fireEvent.click(screen.getByTestId('plano-personas-filter-dia-jueves'))
+        expect(screen.getByTestId('plano-personas-day-count-jueves')).toHaveTextContent('0')
     })
 })

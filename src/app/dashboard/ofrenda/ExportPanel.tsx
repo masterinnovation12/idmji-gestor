@@ -37,6 +37,7 @@ import { buildExportLegend, formatExportPeriodLabel } from './exportHeaderShared
 import { drawExportPdfHeader } from './drawExportPdfHeader'
 import { getDateFnsLocale, getExportLabels, getMonthLabel, interpolate } from './ofrendaLocale'
 import type { PlanCompleto, OfrMiembro, OfrServicio } from './actions'
+import { rolGrupo2AplicaEnTurno } from '@/lib/utils/ofrendaEngine'
 
 // ─── Tipos y constantes ────────────────────────────────────────────────────────
 
@@ -505,8 +506,11 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
 
                 servicios.forEach((srv, idx) => {
                     const isWeekStart = idx % 3 === 0 && idx > 0
-                    const asig = asignaciones.find(a => a.servicio_id === srv.id && a.rol === rol.key)
-                    const nombre = asig?.miembro?.nombre ?? '—'
+                    const aplica = rolGrupo2AplicaEnTurno(rol.key, srv.dia_tipo)
+                    const asig = aplica
+                        ? asignaciones.find(a => a.servicio_id === srv.id && a.rol === rol.key)
+                        : null
+                    const nombre = aplica ? (asig?.miembro?.nombre ?? '—') : '—'
                     const cellBg = rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd
                     drawCell(nombre, tableX + firstColW + idx * colW, rowY, colW, rowH, cellBg, IDMJI_BRAND.text, 'bold', 7.2, 'center', isWeekStart)
                 })

@@ -13,6 +13,7 @@ import {
     exportIncludesSacosRows,
     isCollaboratorsOnlyExport,
 } from './exportPeopleScope'
+import { rolGrupo2AplicaEnTurno } from '@/lib/utils/ofrendaEngine'
 
 const ROLES_G1_KEYS = ['realiza', 'apoyo', 'vigilancia'] as const
 const ROLES_G2_KEYS = ['colaborador_1', 'colaborador_2', 'colaborador_3'] as const
@@ -325,7 +326,9 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                                         ...weekLeftBorder(idx),
                                                     }}
                                                 >
-                                                    {getMiembroNombre(miembros, asignaciones, srv.id, key)}
+                                                    {rolGrupo2AplicaEnTurno(key, srv.dia_tipo)
+                                                        ? getMiembroNombre(miembros, asignaciones, srv.id, key)
+                                                        : '—'}
                                                 </td>
                                             ))}
                                         </tr>

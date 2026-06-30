@@ -17,7 +17,7 @@ import type { OfrMiembro, OfrPlan, PlanCompleto } from './actions'
 import { generarFechasDelPlan } from '@/lib/utils/ofrendaEngine'
 import { validarDisponibilidadParaGenerar } from './ofrendaMemberAvailability'
 import { formatDisponibilidadProblemas } from './ofrendaGeneracionValidation'
-import { useI18n } from '@/lib/i18n/I18nProvider'
+import { getStaticI18n, useI18n } from '@/lib/i18n/I18nProvider'
 import type { TranslationKey } from '@/lib/i18n/types'
 import { getTituloMes, interpolate } from './ofrendaLocale'
 import { SacosConfigPanel } from './SacosConfigPanel'
@@ -41,14 +41,13 @@ const LABOR_TAB_DEFS: { id: LaborTab; labelKey: TranslationKey; icon: React.Elem
     { id: 'exportar', labelKey: 'ofrenda.tabs.exportPlano', icon: Download },
 ]
 
-// Esqueleto de carga del plano (componente para poder usar i18n en el aria-label).
+// Esqueleto de carga del plano (sin useI18n: el fallback de dynamic() puede SSR sin contexto).
 function PlanoLoadingSkeleton() {
-    const { t } = useI18n()
     return (
         <div
             className="min-h-[52dvh] h-[calc(100dvh-18rem)] max-h-[72dvh] bg-muted rounded-2xl animate-pulse"
             aria-busy="true"
-            aria-label={t('ofrenda.plano.loading')}
+            aria-label={getStaticI18n().t('ofrenda.plano.loading')}
         />
     )
 }

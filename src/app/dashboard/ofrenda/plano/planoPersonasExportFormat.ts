@@ -44,6 +44,44 @@ export interface PlanoFilterSubtitleLabels {
     todas: string
 }
 
+export interface PlanoPersonasDayCounts {
+    jueves: number
+    domingo_manana: number
+    domingo_tarde: number
+}
+
+export interface PlanoDayCountsLineLabels {
+    jueves: string
+    domManana: string
+    domTarde: string
+}
+
+type PersonaConTurnos = Pick<
+    PlanoPersonaExportInput,
+    'puede_jueves' | 'puede_domingo_manana' | 'puede_domingo_tarde'
+>
+
+/** Personas con cada turno marcado (puede repetir persona en varios días). */
+export function countPersonasPorDia(personas: readonly PersonaConTurnos[]): PlanoPersonasDayCounts {
+    let jueves = 0
+    let domingo_manana = 0
+    let domingo_tarde = 0
+    for (const p of personas) {
+        if (p.puede_jueves) jueves++
+        if (p.puede_domingo_manana) domingo_manana++
+        if (p.puede_domingo_tarde) domingo_tarde++
+    }
+    return { jueves, domingo_manana, domingo_tarde }
+}
+
+/** Línea legible para cabecera PNG: «Jueves: 12 · Dom. mañana: 15 · …». */
+export function formatPersonasDayCountsLine(
+    counts: PlanoPersonasDayCounts,
+    labels: PlanoDayCountsLineLabels,
+): string {
+    return `${labels.jueves}: ${counts.jueves} · ${labels.domManana}: ${counts.domingo_manana} · ${labels.domTarde}: ${counts.domingo_tarde}`
+}
+
 /** Ordena alfabéticamente (es, sin distinguir tildes/mayúsculas) y mapea a filas. */
 export function buildPersonasExportRows(
     personas: readonly PlanoPersonaExportInput[],

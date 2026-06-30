@@ -52,6 +52,60 @@ export const ROLES_GRUPO1: RolGrupo1[] = [
 ]
 export const ROLES_GRUPO2: RolGrupo2[] = ['colaborador_1', 'colaborador_2', 'colaborador_3']
 
+/** Colaboradores G2 por turno (regla fija Labores generales). */
+export const COLABORADORES_G2_POR_TURNO: Readonly<Record<DiaTipo, number>> = {
+    jueves: 2,
+    domingo: 3,
+    domingo_tarde: 2,
+}
+
+/** Roles G2 que aplican en un turno (p. ej. jueves → solo colaborador_1 y _2). */
+export function rolesGrupo2ParaTurno(diaTipo: DiaTipo): readonly RolGrupo2[] {
+    const n = COLABORADORES_G2_POR_TURNO[diaTipo]
+    return ROLES_GRUPO2.slice(0, n)
+}
+
+export function colaboradoresG2Requeridos(diaTipo: DiaTipo): number {
+    return COLABORADORES_G2_POR_TURNO[diaTipo]
+}
+
+export function rolGrupo2AplicaEnTurno(rol: RolGrupo2, diaTipo: DiaTipo): boolean {
+    return rolesGrupo2ParaTurno(diaTipo).includes(rol)
+}
+
+/** Estado de anti-repetición G2: mismo turno (jueves↔jueves) + servicio inmediato anterior. */
+export interface G2AntiRepeticionState {
+    mismoTurno: Set<string>
+    inmediato: Set<string>
+}
+
+export function crearG2AntiRepeticionVacio(): Record<DiaTipo, Set<string>> {
+    return {
+        jueves: new Set(),
+        domingo: new Set(),
+        domingo_tarde: new Set(),
+    }
+}
+
+/**
+ * Predicado G2 por capas (de más estricto a más laxo):
+ * 1. No repetir mismo turno anterior ni servicio inmediato ni duplicar hoy.
+ * 2. Solo servicio inmediato + hoy.
+ * 3. Solo no duplicar hoy.
+ */
+export function g2CandidatoValido(
+    miembroId: string,
+    g2Hoy: readonly string[],
+    prev: G2AntiRepeticionState,
+    capa: 1 | 2 | 3,
+): boolean {
+    if (g2Hoy.includes(miembroId)) return false
+    if (capa >= 3) return true
+    if (prev.inmediato.has(miembroId)) return false
+    if (capa >= 2) return true
+    return !prev.mismoTurno.has(miembroId)
+}
+
 /** Roles G1 fijos (puesto fijo por miembro). El resto de G1 se sortea. */
 export const ROLES_GRUPO1_FIJABLES: RolGrupo1[] = ['realiza', 'apoyo']
 
@@ -288,13 +342,13 @@ function asignarGrupo2(
     g2: OfrendaMiembro[],
     getOverride: (rol: RolGrupo2) => string | undefined,
     punteroG2: number,
-    prevG2: Set<string>,
+    prev: G2AntiRepeticionState,
     out: AsignacionCalculada[]
-): { punteroG2: number; prevG2: Set<string> } {
+): { punteroG2: number; asignadosHoy: Set<string> } {
     const g2Hoy: string[] = []
     let ptr = punteroG2
 
-    for (const rol of ROLES_GRUPO2) {
+    for (const rol of rolesGrupo2ParaTurno(tipo)) {
         const overrideId = getOverride(rol)
         if (overrideId) {
             out.push({ servicioFecha: fecha, servicioTipo: tipo, rol, miembroId: overrideId })
@@ -302,28 +356,22 @@ function asignarGrupo2(
             continue
         }
 
-        // Intento principal: sin repetir del servicio anterior ni duplicar hoy
-        const principal = findNextCyclical(g2, ptr, (m) =>
-            !prevG2.has(m.id) && !g2Hoy.includes(m.id)
-        )
-
-        if (principal) {
-            ptr = principal.nextIdx
-            g2Hoy.push(principal.item.id)
-            out.push({ servicioFecha: fecha, servicioTipo: tipo, rol, miembroId: principal.item.id })
-            continue
+        let elegido: { item: OfrendaMiembro; nextIdx: number } | null = null
+        for (const capa of [1, 2, 3] as const) {
+            elegido = findNextCyclical(g2, ptr, (m) =>
+                g2CandidatoValido(m.id, g2Hoy, prev, capa),
+            )
+            if (elegido) break
         }
 
-        // Fallback: relajar restricción de repetición
-        const fallback = findNextCyclical(g2, ptr, (m) => !g2Hoy.includes(m.id))
-        if (fallback) {
-            ptr = fallback.nextIdx
-            g2Hoy.push(fallback.item.id)
-            out.push({ servicioFecha: fecha, servicioTipo: tipo, rol, miembroId: fallback.item.id })
+        if (elegido) {
+            ptr = elegido.nextIdx
+            g2Hoy.push(elegido.item.id)
+            out.push({ servicioFecha: fecha, servicioTipo: tipo, rol, miembroId: elegido.item.id })
         }
     }
 
-    return { punteroG2: ptr, prevG2: new Set(g2Hoy) }
+    return { punteroG2: ptr, asignadosHoy: new Set(g2Hoy) }
 }
 
 // ─── Generación completa del plan ─────────────────────────────────────────────
@@ -414,8 +462,8 @@ export function generarPlan(
 
     // Puntero de rotación G2 (todos comparten uno)
     let punteroG2 = 0
-    // Set de miembros G2 que participaron en el servicio anterior
-    let prevG2: Set<string> = new Set()
+    const prevG2MismoTurno = crearG2AntiRepeticionVacio()
+    let prevG2Inmediato: Set<string> = new Set()
 
     for (const srv of servicios) {
         // La clave del override incluye fecha + tipo para distinguir Dom M vs Dom T
@@ -436,9 +484,21 @@ export function generarPlan(
         // ── Grupo 2 ────────────────────────────────────────────────────────
         if (regenerarGrupo !== 1 && g2.length > 0) {
             const g2Turno = miembrosElegiblesParaTurno(g2, srv.diaTipo)
-            const result = asignarGrupo2(srv.fecha, srv.diaTipo, g2Turno, rol => overrides[key(rol)], punteroG2, prevG2, asignaciones)
+            const result = asignarGrupo2(
+                srv.fecha,
+                srv.diaTipo,
+                g2Turno,
+                rol => overrides[key(rol)],
+                punteroG2,
+                {
+                    mismoTurno: prevG2MismoTurno[srv.diaTipo],
+                    inmediato: prevG2Inmediato,
+                },
+                asignaciones,
+            )
             punteroG2 = result.punteroG2
-            prevG2 = result.prevG2
+            prevG2MismoTurno[srv.diaTipo] = result.asignadosHoy
+            prevG2Inmediato = result.asignadosHoy
         }
     }
 

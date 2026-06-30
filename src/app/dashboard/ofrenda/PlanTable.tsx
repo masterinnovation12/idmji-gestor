@@ -21,6 +21,7 @@ import {
     countFollowingServicios,
     type SecuenciaApplyScope,
 } from './secuenciaPropagation'
+import { rolGrupo2AplicaEnTurno } from '@/lib/utils/ofrendaEngine'
 import { MobileWeekPager } from './MobileWeekPager'
 import { DesktopWeekNavigator } from './DesktopWeekNavigator'
 import { useOfrendaClientMounted, useOfrendaMobileOrTablet } from './ofrendaViewport'
@@ -480,24 +481,29 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                                     {servicios.map((srv, idx) => {
                                         const asig = getAsig(asignaciones, srv.id, key)
                                         const isWeekStart = idx % 3 === 0 && idx > 0
+                                        const aplica = rolGrupo2AplicaEnTurno(key, srv.dia_tipo)
                                         return (
                                             <td
                                                 key={`${srv.id}-${key}`}
                                                 className={`px-1 py-1.5 text-center border-b border-border/50 align-middle ${isWeekStart ? 'border-l-2 border-l-border' : ''}`}
                                                 style={PLAN_SERVICE_COL_STYLE}
                                             >
-                                                <AsignacionCell
-                                                    servicio={srv}
-                                                    rol={key}
-                                                    rolLabel={label}
-                                                    turnoLabel={srv.dia_tipo === 'domingo' ? t('ofrenda.days.manana') : srv.dia_tipo === 'domingo_tarde' ? t('ofrenda.days.tarde') : null}
-                                                    headerColorClass={TIPO_COLORS[srv.dia_tipo].label}
-                                                    miembroId={asig?.miembro_id ?? null}
-                                                    isOverride={asig?.es_override ?? false}
-                                                    miembros={g2m}
-                                                    canEdit={canEdit}
-                                                    onChanged={onAsignacionChange}
-                                                />
+                                                {aplica ? (
+                                                    <AsignacionCell
+                                                        servicio={srv}
+                                                        rol={key}
+                                                        rolLabel={label}
+                                                        turnoLabel={srv.dia_tipo === 'domingo' ? t('ofrenda.days.manana') : srv.dia_tipo === 'domingo_tarde' ? t('ofrenda.days.tarde') : null}
+                                                        headerColorClass={TIPO_COLORS[srv.dia_tipo].label}
+                                                        miembroId={asig?.miembro_id ?? null}
+                                                        isOverride={asig?.es_override ?? false}
+                                                        miembros={g2m}
+                                                        canEdit={canEdit}
+                                                        onChanged={onAsignacionChange}
+                                                    />
+                                                ) : (
+                                                    <span className="text-muted-foreground/50 text-sm">—</span>
+                                                )}
                                             </td>
                                         )
                                     })}
@@ -601,7 +607,9 @@ function ServicioCard({
 
             {/* Colaboradores G2 */}
             <div className="divide-y divide-[rgba(184,150,74,0.15)] bg-[#1f2e85]/[0.03]">
-                {roleRows.g2.map(({ key, label }) => {
+                {roleRows.g2
+                    .filter(({ key }) => rolGrupo2AplicaEnTurno(key, servicio.dia_tipo))
+                    .map(({ key, label }) => {
                     const asig = getAsig(asignaciones, servicio.id, key)
                     return (
                         <div key={key} className="flex items-center justify-between px-4 py-2 gap-2">

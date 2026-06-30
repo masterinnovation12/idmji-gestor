@@ -19,6 +19,8 @@ export interface PlanoPersonasExportLabels {
     churchName: string
     title: string
     subtitle: string
+    /** Recuentos por turno (segunda línea de cabecera). */
+    dayCountsLine: string
     colName: string
     colDays: string
     colCapacity: string
@@ -130,6 +132,7 @@ export async function exportPlanoPersonasPng(
         churchName: labels.churchName,
         title: labels.title,
         subtitle: labels.subtitle,
+        detail: labels.dayCountsLine,
     })
 
     const tableX = layout.insetX
