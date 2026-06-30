@@ -252,7 +252,7 @@ function OfrendaPageClientInner({
                                         active
                                             ? sec === 'general'
                                                 ? 'bg-emerald-600 text-white shadow'
-                                                : 'bg-amber-600 text-white shadow'
+                                                : 'bg-blue-600 text-white shadow'
                                             : 'text-muted-foreground hover:text-foreground'
                                     }`}
                                 >
@@ -286,7 +286,7 @@ function OfrendaPageClientInner({
                             const accent =
                                 section === 'general'
                                     ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500 bg-emerald-500/5'
-                                    : 'text-amber-600 dark:text-amber-400 border-amber-500 bg-amber-500/5'
+                                    : 'text-blue-600 dark:text-blue-400 border-blue-500 bg-blue-500/5'
                             return (
                                 <button
                                     key={tab.id}

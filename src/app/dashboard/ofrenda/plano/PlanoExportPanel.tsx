@@ -177,7 +177,7 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
         <div className="space-y-4" data-testid="ofrenda-plano-export-panel">
             <div>
                 <h3 className="text-base font-bold flex items-center gap-2">
-                    <Download className="w-4 h-4 text-amber-600" />
+                    <Download className="w-4 h-4 text-blue-600" />
                     {t('ofrenda.planoExport.title')}
                 </h3>
             </div>
@@ -189,7 +189,7 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
                         type="button"
                         onClick={() => setFormato(f)}
                         className={`flex-1 sm:flex-none px-4 py-2 min-h-[44px] rounded-[10px] text-xs font-bold touch-manipulation ${
-                            formato === f ? 'bg-amber-600 text-white shadow' : 'text-muted-foreground'
+                            formato === f ? 'bg-blue-600 text-white shadow' : 'text-muted-foreground'
                         }`}
                     >
                         {t(f === 'plano' ? 'ofrenda.planoExport.format.plano' : 'ofrenda.planoExport.format.lista')}
@@ -205,7 +205,7 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
                             type="button"
                             onClick={() => setVista(v)}
                             className={`px-4 py-2 min-h-[44px] rounded-[10px] text-xs font-bold touch-manipulation ${
-                                vista === v ? 'bg-amber-600 text-white' : 'text-muted-foreground'
+                                vista === v ? 'bg-blue-600 text-white' : 'text-muted-foreground'
                             }`}
                         >
                             {t(v === '2d' ? 'ofrenda.plano.vista2d' : 'ofrenda.plano.vista3d')}
@@ -226,7 +226,7 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
                 type="button"
                 disabled={exporting || !servicio}
                 onClick={() => void runExport()}
-                className="flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-3 min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold disabled:opacity-50 touch-manipulation"
+                className="flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-3 min-h-[44px] rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-50 touch-manipulation"
                 data-testid="ofrenda-plano-export-btn"
             >
                 {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}

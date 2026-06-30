@@ -30,6 +30,27 @@ import { normalizeMiembroDisponibilidad, type MiembroDisponibilidadTurnos } from
 
 // ─── Helpers de estilo inline ────────────────────────────────────────────────
 
+const GROUP_ACCENT = {
+    emerald: {
+        sectionTitle: 'text-emerald-600 dark:text-emerald-400',
+        posNum: 'text-emerald-600 dark:text-emerald-400',
+        addBtn: 'bg-emerald-600 hover:bg-emerald-700',
+        legendBg: 'bg-emerald-500/5 border-emerald-500/20',
+        legendTitle: 'text-emerald-700 dark:text-emerald-300',
+        legendCount: 'text-emerald-600 dark:text-emerald-400',
+    },
+    blue: {
+        sectionTitle: 'text-blue-600 dark:text-blue-400',
+        posNum: 'text-blue-600 dark:text-blue-400',
+        addBtn: 'bg-blue-600 hover:bg-blue-700',
+        legendBg: 'bg-blue-500/5 border-blue-500/20',
+        legendTitle: 'text-blue-700 dark:text-blue-300',
+        legendCount: 'text-blue-600 dark:text-blue-400',
+    },
+} as const
+
+type GroupColor = keyof typeof GROUP_ACCENT
+
 function getRowClass(isPendingDelete: boolean, activo: boolean): string {
     if (isPendingDelete) return 'border-red-500/50 bg-red-500/5'
     if (activo) return 'border-border'
@@ -227,12 +248,14 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
 
             {/* ── Grupos ───────────────────────────────────────────── */}
             {([
-                { grupo: 1 as const, lista: g1, color: 'emerald', label: t('ofrenda.people.g1.section') },
-                { grupo: 2 as const, lista: g2, color: 'blue',    label: t('ofrenda.people.g2.section') },
-            ] as const).map(({ grupo, lista, color, label }) => (
+                { grupo: 1 as const, lista: g1, color: 'emerald' as const, label: t('ofrenda.people.g1.section') },
+                { grupo: 2 as const, lista: g2, color: 'blue' as const,    label: t('ofrenda.people.g2.section') },
+            ] as const).map(({ grupo, lista, color, label }) => {
+                const accent = GROUP_ACCENT[color]
+                return (
                 <section key={grupo} aria-label={label}>
                     <div className="flex items-center justify-between mb-3">
-                        <h2 className={`font-black text-sm uppercase tracking-wider text-${color}-600 dark:text-${color}-400`}>
+                        <h2 className={`font-black text-sm uppercase tracking-wider ${accent.sectionTitle}`}>
                             {label}
                         </h2>
                         {canEdit && (
@@ -250,7 +273,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
 
                                 <button
                                     onClick={() => handleAddClick(grupo)}
-                                    className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-${color}-600 hover:bg-${color}-700 text-white rounded-xl transition-colors touch-manipulation`}
+                                    className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold ${accent.addBtn} text-white rounded-xl transition-colors touch-manipulation`}
                                 >
                                     <Plus className="w-3.5 h-3.5" />
                                     {t('ofrenda.people.add')}
@@ -326,7 +349,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                         </div>
                     )}
                 </section>
-            ))}
+            )})}
 
             {/* ── Modales ───────────────────────────────────────────── */}
             <AddPersonaModal
@@ -389,7 +412,9 @@ function MiembroRow({
     t,
 }: Readonly<MiembroRowProps>) {
     const Row = isDraggable ? Reorder.Item : motion.div
-    const accent = color === 'emerald' ? 'emerald' : 'blue'
+    const accentKey: GroupColor = color === 'emerald' ? 'emerald' : 'blue'
+    const accent = GROUP_ACCENT[accentKey]
+    const turnColor = accentKey
     const disp = normalizeMiembroDisponibilidad(miembro)
     const showTurnSummary = !isPendingDelete && miembro.activo
     const canExpandTurns = canEdit && showTurnSummary
@@ -413,7 +438,7 @@ function MiembroRow({
                     </div>
                 )}
 
-                <span className={`text-[10px] font-black w-3.5 text-center tabular-nums shrink-0 text-${color}-600 dark:text-${color}-400`}>
+                <span className={`text-[10px] font-black w-3.5 text-center tabular-nums shrink-0 ${accent.posNum}`}>
                     {posicion}
                 </span>
 
@@ -473,7 +498,7 @@ function MiembroRow({
                             {showTurnSummary && (
                                 <TurnAvailabilityDots
                                     value={disp}
-                                    color={accent}
+                                    color={turnColor}
                                     compact
                                     testIdPrefix={`ofrenda-member-turns-${miembro.id}`}
                                 />
@@ -523,7 +548,7 @@ function MiembroRow({
                             value={disp}
                             onChange={next => onDisponibilidadChange(miembro, next)}
                             disabled={!canEdit}
-                            color={accent}
+                            color={turnColor}
                             labels={turnLabels}
                             testIdPrefix={`ofrenda-member-turns-${miembro.id}`}
                         />
@@ -1005,23 +1030,24 @@ function LegendCard({
     grupo: 1 | 2
     label: string
     description: string
-    color: string
+    color: GroupColor
     count: number
     active: number
     t: OfrendaT
 }>) {
+    const accent = GROUP_ACCENT[color]
     const inactive = count - active
     return (
-        <div className={`flex-1 min-w-[220px] p-4 bg-${color}-500/5 border border-${color}-500/20 rounded-2xl space-y-2`}>
+        <div className={`flex-1 min-w-[220px] p-4 border rounded-2xl space-y-2 ${accent.legendBg}`}>
             <div className="flex items-center justify-between">
-                <p className={`font-black text-sm text-${color}-700 dark:text-${color}-300`}>{label}</p>
-                <span className={`text-xs font-black text-${color}-600 dark:text-${color}-400`}>
+                <p className={`font-black text-sm ${accent.legendTitle}`}>{label}</p>
+                <span className={`text-xs font-black ${accent.legendCount}`}>
                     G{grupo}
                 </span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
             <div className="flex gap-3 text-xs font-semibold pt-1">
-                <span className={`text-${color}-600 dark:text-${color}-400`}>
+                <span className={accent.legendCount}>
                     {interpolate(t('ofrenda.people.legend.active'), { count: String(active) })}
                 </span>
                 {inactive > 0 && (
