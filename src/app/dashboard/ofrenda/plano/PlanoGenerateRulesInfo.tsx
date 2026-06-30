@@ -35,7 +35,7 @@ export function PlanoGenerateRulesInfo() {
                 <ul className="space-y-3 text-sm leading-relaxed pb-4">
                     {PLANO_GENERATE_RULE_IDS.map(id => (
                         <li key={id} className="flex gap-2">
-                            <span className="text-amber-600 dark:text-amber-400 shrink-0">•</span>
+                            <span className="text-blue-600 dark:text-blue-400 shrink-0">•</span>
                             <span suppressHydrationWarning>{t(`ofrenda.planoGenerate.rules.${id}`)}</span>
                         </li>
                     ))}

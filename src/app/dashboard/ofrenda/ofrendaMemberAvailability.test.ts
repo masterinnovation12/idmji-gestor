@@ -93,11 +93,11 @@ describe('ofrendaMemberAvailability — validarDisponibilidadParaGenerar', () =>
             activo: true,
             ...disponibilidadFromPreset('all'),
         },
-        {
+        ...Array.from({ length: 3 }, () => ({
             grupo: 2 as const,
             activo: true,
             ...disponibilidadFromPreset('all'),
-        },
+        })),
     ]
 
     it('ok cuando cada grupo tiene elegible en cada turno del mes', () => {
@@ -126,11 +126,11 @@ describe('ofrendaMemberAvailability — validarDisponibilidadParaGenerar', () =>
                 activo: true,
                 ...disponibilidadFromPreset('jueves'),
             },
-            {
+            ...Array.from({ length: 3 }, () => ({
                 grupo: 2 as const,
                 activo: true,
                 ...disponibilidadFromPreset('all'),
-            },
+            })),
         ]
         expect(validarDisponibilidadParaGenerar(fechas, miembros, 2).ok).toBe(true)
         expect(validarDisponibilidadParaGenerar(fechas, miembros, 1).ok).toBe(false)
@@ -145,11 +145,11 @@ describe('ofrendaMemberAvailability — validarDisponibilidadParaGenerar', () =>
                 puede_domingo_manana: false,
                 puede_domingo_tarde: false,
             },
-            {
+            ...Array.from({ length: 3 }, () => ({
                 grupo: 2 as const,
                 activo: true,
                 ...disponibilidadFromPreset('all'),
-            },
+            })),
         ]
         expect(miembroParticipaEnGeneracion(miembros[0])).toBe(false)
         const r = validarDisponibilidadParaGenerar(fechas, miembros, null)
@@ -164,14 +164,44 @@ describe('ofrendaMemberAvailability — validarDisponibilidadParaGenerar', () =>
                 activo: false,
                 ...disponibilidadFromPreset('all'),
             },
+            ...Array.from({ length: 3 }, () => ({
+                grupo: 2 as const,
+                activo: true,
+                ...disponibilidadFromPreset('all'),
+            })),
+        ]
+        const r = validarDisponibilidadParaGenerar(fechas, miembros, null)
+        expect(r.ok).toBe(false)
+        expect(r.problemas.every(p => p.grupo === 1)).toBe(true)
+    })
+
+    it('G2 requiere al menos 2 elegibles en jueves y dom tarde, 3 en dom mañana', () => {
+        const soloUnoG2 = [
+            ...base.filter(m => m.grupo === 1),
             {
                 grupo: 2 as const,
                 activo: true,
                 ...disponibilidadFromPreset('all'),
             },
         ]
-        const r = validarDisponibilidadParaGenerar(fechas, miembros, null)
+        const r = validarDisponibilidadParaGenerar(fechas, soloUnoG2, null)
         expect(r.ok).toBe(false)
-        expect(r.problemas.every(p => p.grupo === 1)).toBe(true)
+        expect(r.problemas.some(p => p.grupo === 2 && p.diaTipo === 'jueves')).toBe(true)
+        expect(r.problemas.some(p => p.grupo === 2 && p.diaTipo === 'domingo_tarde')).toBe(true)
+        expect(r.problemas.some(p => p.grupo === 2 && p.diaTipo === 'domingo')).toBe(true)
+    })
+
+    it('G2 ok con 2 elegibles en jueves/tarde y 3 en dom mañana', () => {
+        const g2Minimo = [
+            ...base.filter(m => m.grupo === 1),
+            ...Array.from({ length: 3 }, (_, i) => ({
+                grupo: 2 as const,
+                activo: true,
+                puede_jueves: i < 2,
+                puede_domingo_manana: true,
+                puede_domingo_tarde: i < 2,
+            })),
+        ]
+        expect(validarDisponibilidadParaGenerar(fechas, g2Minimo, null).ok).toBe(true)
     })
 })

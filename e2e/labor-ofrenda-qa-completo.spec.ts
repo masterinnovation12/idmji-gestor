@@ -154,7 +154,11 @@ test.describe('QA completo — 10 casos de uso Ofrenda', () => {
             .poll(async () => star.getAttribute('aria-pressed'))
             .toBe(starBefore)
 
-        const capApoyo = page.getByRole('button', { name: /^Apoyo$|^Suport$/i }).first()
+        const capApoyo = page.getByRole('button', { name: /^Apoyo$|^Suport$|^Solo apoyo$|^Només suport$/i }).first()
+        const firstExpand = page.getByTestId(/plano-persona-expand-/).first()
+        if (await firstExpand.isVisible({ timeout: 3000 }).catch(() => false)) {
+            await firstExpand.click()
+        }
         if (await capApoyo.isVisible({ timeout: 3000 }).catch(() => false)) {
             const capBefore = await capApoyo.getAttribute('aria-pressed')
             await capApoyo.click()

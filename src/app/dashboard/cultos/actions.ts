@@ -41,7 +41,7 @@ export async function generateCultosForMonth(date: Date) {
 
     // 2. Obtener configuraciones base agrupadas por día de la semana
     const { data: schedules } = await supabase.from('culto_schedules').select('*')
-    const schedulesByDay = new Map<number, any[]>()
+    const schedulesByDay = new Map<number, Array<NonNullable<typeof schedules>[number]>>()
     
     if (schedules) {
         for (const s of schedules) {

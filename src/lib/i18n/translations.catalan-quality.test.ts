@@ -106,6 +106,8 @@ describe('qualitat català — guarda de cadenes sense traduir', () => {
         'ofrenda.people.legend.total', 'ofrenda.plano.blockEdit.save', 'ofrenda.plano.confirm',
         'ofrenda.roles.realiza', // "Coordinador" — vàlid idèntic en ambdues llengües
         'ofrenda.plano.exportPng', 'ofrenda.plano.tabla.rol', 'ofrenda.plano.vista2d', 'ofrenda.plano.vista3d',
+        'ofrenda.plano.personas.filters.results', 'ofrenda.plano.personas.export.btn',
+        'ofrenda.plano.personas.export.colName',
         'ofrenda.regenerate', 'ofrenda.tabs.export', 'ofrenda.week.short',
         'profile.draftBar.discard', 'profile.language',
         'pwa.iosStep2', 'pwa.share',

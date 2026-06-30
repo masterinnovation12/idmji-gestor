@@ -1,14 +1,20 @@
 /**
- * Export PNG del plano (2×) — porte de capturePng de calibracion.html.
+ * Export PNG del plano (2×) — WYSIWYG respecto a PlanoCanvas.
  */
 
 import { computePlanoSvgGeometry, serializePlanoSvg } from './planoLayout'
+import {
+    computePlanoCardChrome,
+    figureSvgSize,
+} from './planoCardLayout'
 import type { PlanoBloque, PlanoLayout2d, PlanoVistaResuelta } from './planoTypes'
 import {
     drawLaborOfrendaExportHeader,
     LABOR_OFRENDA_HEADER_H,
     type LaborOfrendaHeaderLabels,
 } from './drawLaborOfrendaExportHeader'
+
+const figureImageCache = new Map<string, Promise<HTMLImageElement>>()
 
 function loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
@@ -18,6 +24,22 @@ function loadImage(src: string): Promise<HTMLImageElement> {
         img.onerror = () => reject(new Error('No se pudo cargar el fondo'))
         img.src = src
     })
+}
+
+function figureSvgMarkup(color: string): string {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 62" width="46" height="62">
+  <circle cx="23" cy="13" r="10" fill="${color}" stroke="#fff" stroke-width="3"/>
+  <path d="M9 58 v-16 a14 14 0 0 1 28 0 v16 a3 3 0 0 1 -3 3 h-22 a3 3 0 0 1 -3 -3 z" transform="translate(0,-4)" fill="${color}" stroke="#fff" stroke-width="3"/>
+</svg>`
+}
+
+function loadFigureImage(color: string): Promise<HTMLImageElement> {
+    const cached = figureImageCache.get(color)
+    if (cached) return cached
+    const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(figureSvgMarkup(color))}`
+    const promise = loadImage(url)
+    figureImageCache.set(color, promise)
+    return promise
 }
 
 async function loadBackground(data: PlanoVistaResuelta): Promise<HTMLImageElement> {
@@ -47,35 +69,6 @@ function roundRect(
     ctx.arcTo(x, y + h, x, y, r)
     ctx.arcTo(x, y, x + w, y, r)
     ctx.closePath()
-}
-
-function textLinesForCanvas(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
-    const raw = String(text ?? '')
-    const paragraphs = raw.split(/\r?\n/)
-    const lines: string[] = []
-    for (const para of paragraphs) {
-        if (!para) {
-            lines.push('')
-            continue
-        }
-        const words = para.split(/\s+/).filter(Boolean)
-        if (!words.length) {
-            lines.push('')
-            continue
-        }
-        let line = words[0]
-        for (let i = 1; i < words.length; i++) {
-            const next = `${line} ${words[i]}`
-            if (maxWidth && ctx.measureText(next).width > maxWidth) {
-                lines.push(line)
-                line = words[i]
-            } else {
-                line = next
-            }
-        }
-        lines.push(line)
-    }
-    return lines.length ? lines : ['']
 }
 
 function drawCenteredLines(
@@ -111,18 +104,24 @@ export async function exportPlanoPng(
     header?: LaborOfrendaHeaderLabels,
 ): Promise<void> {
     const bg = await loadBackground(data)
-    const scale = 2
-    const t = data.layout.tarjetas
-    const cw = Math.round((t.minW + t.maxW) / 2)
-    const roleFs = t.roleFont + 2
-    const nameFs = t.nameFont + 2
-    const roleH = Math.round(roleFs + 9)
-    const nameLineH = Math.round(nameFs + 5)
+    const tarjetas = data.layout.tarjetas
     const figS = data.layout.figuraScale
     const W = data.lienzo.w
     const H = data.lienzo.h
     const headerH = header ? LABOR_OFRENDA_HEADER_H : 0
     const totalH = H + headerH
+    const scale = 2
+
+    const colorOf = (bloque: number) =>
+        data.bloques.find(b => b.n === bloque)?.color ?? '#64748b'
+
+    const figureColors = [...new Set(data.posiciones.map(p => colorOf(p.bloque)))]
+    const figureImages = new Map(
+        await Promise.all(
+            figureColors.map(async c => [c, await loadFigureImage(c)] as const),
+        ),
+    )
+    const figSize = figureSvgSize(figS)
 
     const canvas = document.createElement('canvas')
     canvas.width = W * scale
@@ -138,52 +137,59 @@ export async function exportPlanoPng(
 
     ctx.drawImage(bg, 0, headerH, W, H)
 
-    const colorOf = (bloque: number) =>
-        data.bloques.find(b => b.n === bloque)?.color ?? '#64748b'
+    // Capas como PlanoCanvas (z7→z8→z9): todas las figuras, luego tarjetas, luego discos.
 
     for (const p of data.posiciones) {
         const c = colorOf(p.bloque)
-        ctx.save()
-        ctx.translate(p.figura.x, p.figura.y + headerH)
-        ctx.scale(figS, figS)
-        ctx.fillStyle = c
-        ctx.strokeStyle = '#fff'
-        ctx.lineWidth = 3
-        ctx.beginPath()
-        ctx.arc(0, -16, 10, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.stroke()
-        roundRect(ctx, -14, -6, 28, 34, 8)
-        ctx.fill()
-        ctx.stroke()
-        ctx.restore()
+        const img = figureImages.get(c)
+        if (!img) continue
+        ctx.drawImage(
+            img,
+            p.figura.x - figSize.w / 2,
+            p.figura.y + headerH - figSize.h / 2,
+            figSize.w,
+            figSize.h,
+        )
+    }
 
-        const nombreTxt = p.nombre?.trim() || labels.nombrePlaceholder
-        ctx.font = `bold ${nameFs}px Inter, Arial, sans-serif`
-        const nameLines = textLinesForCanvas(ctx, nombreTxt, cw - 14)
-        const namePad = 8
-        const nameAreaH = Math.max(26, nameLines.length * nameLineH + namePad)
-        const ch = roleH + nameAreaH + 4
+    for (const p of data.posiciones) {
+        const c = colorOf(p.bloque)
+        ctx.font = `800 ${tarjetas.nameFont}px Inter, Montserrat, Arial, sans-serif`
+        const measureName = (t: string) => ctx.measureText(t).width
+        const chrome = computePlanoCardChrome(
+            tarjetas,
+            p.nombre ?? '',
+            labels.nombrePlaceholder,
+            measureName,
+        )
+        const { width: cw, roleH, nameBodyH, totalH: ch, nameLineH, nameLines } = chrome
+
         const x = p.card.x - cw / 2
         const y = p.card.y + headerH - ch / 2
+
         ctx.fillStyle = 'rgba(255,255,255,.97)'
         ctx.strokeStyle = c
-        ctx.lineWidth = 4
+        ctx.lineWidth = 2
         roundRect(ctx, x, y, cw, ch, 10)
         ctx.fill()
         ctx.stroke()
+
         ctx.fillStyle = c
-        roundRect(ctx, x + 2, y + 2, cw - 4, roleH, 8)
+        roundRect(ctx, x + 2, y + 2, cw - 4, roleH - 2, 8)
         ctx.fill()
+
         ctx.fillStyle = '#fff'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.font = `900 ${roleFs}px Inter, Arial, sans-serif`
+        ctx.font = `900 ${tarjetas.roleFont}px Inter, Montserrat, Arial, sans-serif`
         const rolTxt = p.rol === 'ofrendario' ? labels.ofrendario : labels.apoyo
-        ctx.fillText(`${p.bloque}- ${rolTxt}`, p.card.x, y + roleH / 2 + 2)
-        ctx.fillStyle = p.nombre?.trim() ? '#111827' : '#94a3b8'
-        ctx.font = `bold ${nameFs}px Inter, Arial, sans-serif`
-        const nameY0 = y + roleH + nameLineH / 2 + 2
+        ctx.fillText(`${p.bloque}- ${rolTxt}`, p.card.x, y + roleH / 2)
+
+        ctx.fillStyle = p.nombre?.trim() ? '#0f172a' : '#94a3b8'
+        ctx.font = `800 ${tarjetas.nameFont}px Inter, Montserrat, Arial, sans-serif`
+        const nameAreaTop = y + roleH
+        const nameY0 =
+            nameAreaTop + nameBodyH / 2 - ((nameLines.length - 1) * nameLineH) / 2
         drawCenteredLines(ctx, nameLines, p.card.x, nameY0, nameLineH)
     }
 
@@ -195,8 +201,8 @@ export async function exportPlanoPng(
         const discFs = labelDiscFont(b, discFontDefault)
         ctx.save()
         ctx.fillStyle = b.color
-        ctx.strokeStyle = '#fff'
-        ctx.lineWidth = 4
+        ctx.strokeStyle = 'rgba(255,255,255,.92)'
+        ctx.lineWidth = 3
         ctx.beginPath()
         ctx.arc(b.labelPos.x, b.labelPos.y + headerH, discR, 0, Math.PI * 2)
         ctx.fill()
@@ -204,7 +210,7 @@ export async function exportPlanoPng(
         ctx.fillStyle = '#fff'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.font = `950 ${discFs}px Inter, Arial, sans-serif`
+        ctx.font = `950 ${discFs}px Inter, Montserrat, Arial, sans-serif`
         const labelLines = String(b.labelText || '').split(/\r?\n/)
         const labelLh = Math.round(discFs * 1.05)
         const labelY0 = b.labelPos.y + headerH - ((labelLines.length - 1) * labelLh) / 2
@@ -230,4 +236,9 @@ export async function exportPlanoPng(
             resolve()
         }, 'image/png')
     })
+}
+
+/** Limpia caché de muñecos (tests). */
+export function clearPlanoFigureImageCache(): void {
+    figureImageCache.clear()
 }

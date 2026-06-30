@@ -21,6 +21,12 @@ import {
     SACOS_JUEVES,
     SACOS_DOMINGO,
     SACOS_DOMINGO_TARDE,
+    COLABORADORES_G2_POR_TURNO,
+    rolesGrupo2ParaTurno,
+    colaboradoresG2Requeridos,
+    rolGrupo2AplicaEnTurno,
+    g2CandidatoValido,
+    ROLES_GRUPO2,
     type OfrendaMiembro,
     type DiaTipo,
 } from './ofrendaEngine'
@@ -300,39 +306,183 @@ describe('generarPlan — Grupo 1 anti-repetición', () => {
     })
 })
 
+// ─── Grupo 2 — cantidad por turno ────────────────────────────────────────────
+
+describe('colaboradores G2 por turno', () => {
+    it('regla fija 2 / 3 / 2', () => {
+        expect(COLABORADORES_G2_POR_TURNO).toEqual({
+            jueves: 2,
+            domingo: 3,
+            domingo_tarde: 2,
+        })
+        expect(colaboradoresG2Requeridos('jueves')).toBe(2)
+        expect(colaboradoresG2Requeridos('domingo')).toBe(3)
+        expect(colaboradoresG2Requeridos('domingo_tarde')).toBe(2)
+    })
+
+    it('rolesGrupo2ParaTurno devuelve el prefijo correcto de ROLES_GRUPO2', () => {
+        expect(rolesGrupo2ParaTurno('jueves')).toEqual(['colaborador_1', 'colaborador_2'])
+        expect(rolesGrupo2ParaTurno('domingo_tarde')).toEqual(['colaborador_1', 'colaborador_2'])
+        expect(rolesGrupo2ParaTurno('domingo')).toEqual(ROLES_GRUPO2)
+    })
+
+    it('rolGrupo2AplicaEnTurno: colaborador_3 solo en domingo mañana', () => {
+        expect(rolGrupo2AplicaEnTurno('colaborador_1', 'jueves')).toBe(true)
+        expect(rolGrupo2AplicaEnTurno('colaborador_2', 'domingo_tarde')).toBe(true)
+        expect(rolGrupo2AplicaEnTurno('colaborador_3', 'domingo')).toBe(true)
+        expect(rolGrupo2AplicaEnTurno('colaborador_3', 'jueves')).toBe(false)
+        expect(rolGrupo2AplicaEnTurno('colaborador_3', 'domingo_tarde')).toBe(false)
+    })
+})
+
 // ─── generarPlan — asignaciones Grupo 2 ──────────────────────────────────────
 
-describe('generarPlan — Grupo 2 anti-repetición', () => {
-    it('los 3 colaboradores son distintos en cada servicio', () => {
+describe('generarPlan — Grupo 2 cantidad por turno', () => {
+    function colsEnServicio(
+        asignaciones: ReturnType<typeof generarPlan>['asignaciones'],
+        fecha: string,
+        diaTipo: DiaTipo,
+    ) {
+        return asignaciones.filter(
+            a =>
+                a.servicioFecha === fecha &&
+                a.servicioTipo === diaTipo &&
+                a.rol.startsWith('colaborador'),
+        )
+    }
+
+    it('asigna 2 colaboradores en jueves y dom tarde, 3 en dom mañana', () => {
         const { servicios, asignaciones } = generarPlan(2026, 5, 1, allMiembros)
         for (const srv of servicios) {
-            const cols = asignaciones
-                .filter(a => a.servicioFecha === srv.fecha && a.servicioTipo === srv.diaTipo
-                    && a.rol.startsWith('colaborador'))
-                .map(a => a.miembroId)
+            const cols = colsEnServicio(asignaciones, srv.fecha, srv.diaTipo)
+            const esperado = srv.diaTipo === 'domingo' ? 3 : 2
+            expect(cols).toHaveLength(esperado)
+        }
+    })
+
+    it('nunca asigna colaborador_3 en jueves ni domingo tarde', () => {
+        const { servicios, asignaciones } = generarPlan(2026, 5, 1, allMiembros)
+        for (const srv of servicios) {
+            if (srv.diaTipo === 'domingo') continue
+            const col3 = asignaciones.find(
+                a =>
+                    a.servicioFecha === srv.fecha &&
+                    a.servicioTipo === srv.diaTipo &&
+                    a.rol === 'colaborador_3',
+            )
+            expect(col3).toBeUndefined()
+        }
+    })
+
+    it('domingo mañana incluye los tres roles G2', () => {
+        const { servicios, asignaciones } = generarPlan(2026, 5, 1, allMiembros)
+        const domManana = servicios.filter(s => s.diaTipo === 'domingo')
+        expect(domManana.length).toBeGreaterThan(0)
+        for (const srv of domManana) {
+            const roles = colsEnServicio(asignaciones, srv.fecha, srv.diaTipo).map(a => a.rol)
+            expect(roles).toEqual(['colaborador_1', 'colaborador_2', 'colaborador_3'])
+        }
+    })
+})
+
+describe('generarPlan — Grupo 2 anti-repetición', () => {
+    function idsG2EnServicio(
+        asignaciones: ReturnType<typeof generarPlan>['asignaciones'],
+        fecha: string,
+        diaTipo: DiaTipo,
+    ): string[] {
+        return asignaciones
+            .filter(
+                a =>
+                    a.servicioFecha === fecha &&
+                    a.servicioTipo === diaTipo &&
+                    a.rol.startsWith('colaborador'),
+            )
+            .map(a => a.miembroId)
+    }
+
+    it('los colaboradores asignados son distintos en cada servicio', () => {
+        const { servicios, asignaciones } = generarPlan(2026, 5, 1, allMiembros)
+        for (const srv of servicios) {
+            const cols = idsG2EnServicio(asignaciones, srv.fecha, srv.diaTipo)
             expect(new Set(cols).size).toBe(cols.length)
         }
     })
 
-    it('nadie repite de un servicio al siguiente en G2 (Jue→DomM→DomT→Jue)', () => {
+    it('nadie repite del servicio inmediato anterior (Jue→DomM→DomT→Jue)', () => {
         const { servicios, asignaciones } = generarPlan(2026, 5, 1, allMiembros)
         for (let i = 1; i < servicios.length; i++) {
             const prev = servicios[i - 1]
             const curr = servicios[i]
-            const idsPrev = new Set(
-                asignaciones
-                    .filter(a => a.servicioFecha === prev.fecha && a.servicioTipo === prev.diaTipo
-                        && a.rol.startsWith('colaborador'))
-                    .map(a => a.miembroId)
-            )
-            const idsCurr = asignaciones
-                .filter(a => a.servicioFecha === curr.fecha && a.servicioTipo === curr.diaTipo
-                    && a.rol.startsWith('colaborador'))
-                .map(a => a.miembroId)
+            const idsPrev = new Set(idsG2EnServicio(asignaciones, prev.fecha, prev.diaTipo))
+            const idsCurr = idsG2EnServicio(asignaciones, curr.fecha, curr.diaTipo)
             for (const id of idsCurr) {
                 expect(idsPrev.has(id)).toBe(false)
             }
         }
+    })
+
+    it('jueves consecutivos no repiten colaboradores cuando el pool lo permite', () => {
+        const g2Amplio = makeMiembros(8, 2)
+        const { servicios, asignaciones } = generarPlan(2026, 7, 1, [...g1, ...g2Amplio])
+        const jueves = servicios.filter(s => s.diaTipo === 'jueves')
+        expect(jueves.length).toBeGreaterThanOrEqual(2)
+
+        for (let i = 1; i < jueves.length; i++) {
+            const prev = idsG2EnServicio(asignaciones, jueves[i - 1].fecha, 'jueves')
+            const curr = idsG2EnServicio(asignaciones, jueves[i].fecha, 'jueves')
+            const solap = curr.filter(id => prev.includes(id))
+            expect(solap).toEqual([])
+        }
+    })
+
+    it('domingo mañana consecutivos no repiten cuando el pool lo permite', () => {
+        const g2Amplio = makeMiembros(8, 2)
+        const { servicios, asignaciones } = generarPlan(2026, 7, 1, [...g1, ...g2Amplio])
+        const domManana = servicios.filter(s => s.diaTipo === 'domingo')
+        for (let i = 1; i < domManana.length; i++) {
+            const prev = idsG2EnServicio(asignaciones, domManana[i - 1].fecha, 'domingo')
+            const curr = idsG2EnServicio(asignaciones, domManana[i].fecha, 'domingo')
+            const solap = curr.filter(id => prev.includes(id))
+            expect(solap).toEqual([])
+        }
+    })
+
+    it('julio 2026: jueves 2 y 9 no comparten colaboradores G2 (pool 6+)', () => {
+        const { servicios, asignaciones } = generarPlan(2026, 7, 1, allMiembros)
+        const jue2 = servicios.find(s => s.fecha === '2026-07-02')
+        const jue9 = servicios.find(s => s.fecha === '2026-07-09')
+        expect(jue2).toBeDefined()
+        expect(jue9).toBeDefined()
+        const ids2 = idsG2EnServicio(asignaciones, jue2!.fecha, 'jueves')
+        const ids9 = idsG2EnServicio(asignaciones, jue9!.fecha, 'jueves')
+        expect(ids2.length).toBe(2)
+        expect(ids9.length).toBe(2)
+        expect(ids2.some(id => ids9.includes(id))).toBe(false)
+    })
+})
+
+describe('g2CandidatoValido — capas de exclusión', () => {
+    const prev = {
+        mismoTurno: new Set(['a', 'b']),
+        inmediato: new Set(['c']),
+    }
+
+    it('capa 1 exige no estar en mismo turno, inmediato ni hoy', () => {
+        expect(g2CandidatoValido('a', [], prev, 1)).toBe(false)
+        expect(g2CandidatoValido('c', [], prev, 1)).toBe(false)
+        expect(g2CandidatoValido('d', ['e'], prev, 1)).toBe(true)
+        expect(g2CandidatoValido('d', ['d'], prev, 1)).toBe(false)
+    })
+
+    it('capa 2 permite repetir mismo turno pero no inmediato', () => {
+        expect(g2CandidatoValido('a', [], prev, 2)).toBe(true)
+        expect(g2CandidatoValido('c', [], prev, 2)).toBe(false)
+    })
+
+    it('capa 3 solo evita duplicar en el mismo servicio', () => {
+        expect(g2CandidatoValido('a', [], prev, 3)).toBe(true)
+        expect(g2CandidatoValido('c', [], prev, 3)).toBe(true)
     })
 })
 

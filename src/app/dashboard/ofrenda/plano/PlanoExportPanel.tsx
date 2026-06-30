@@ -13,7 +13,9 @@ import { getPlanoData } from './planoActions'
 import { getPlanoVista } from './planoData'
 import { exportPlanoPng } from './planoExportPng'
 import { exportPlanoListaPng } from './planoExportListaPng'
+import { listaLayoutReferenceRowCount } from './planoExportListaLayout'
 import { invokePlanoAction } from './planoInvoke'
+import { formatLaborOfrendaExportSubtitle } from './planoExportFormat'
 import { resolverModo, sacosParaDia, type PlanoVista } from './planoTypes'
 
 const ACCENT = {
@@ -77,21 +79,18 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
     const headerSubtitle = useMemo(() => {
         if (!servicio) return tituloMes
         const d = new Date(`${servicio.fecha}T00:00:00`)
-        const fecha = format(d, 'EEEE d MMM yyyy', { locale: dateLocale })
-        const turno =
-            servicio.dia_tipo === 'jueves'
-                ? t('ofrenda.days.jueves')
-                : servicio.dia_tipo === 'domingo'
-                  ? t('ofrenda.days.manana')
-                  : t('ofrenda.days.tarde')
-        return `${fecha} · ${turno}`
+        return formatLaborOfrendaExportSubtitle(d, servicio.dia_tipo, {
+            manana: t('ofrenda.days.manana'),
+            tarde: t('ofrenda.days.tarde'),
+        }, dateLocale)
     }, [servicio, tituloMes, t, dateLocale])
 
     const runExport = async () => {
         if (!plan || !servicio || exporting) return
         setExporting(true)
         try {
-            const modo = resolverModo(sacosParaDia(plan.plan, servicio.dia_tipo))
+            const sacos = sacosParaDia(plan.plan, servicio.dia_tipo)
+            const modo = resolverModo(sacos)
             if (!modo) throw new Error(t('ofrenda.plano.sinDisposicion').replace('{sacos}', '0'))
             const res = await invokePlanoAction(() => getPlanoData(servicio.id, vista, modo))
             const embedded = getPlanoVista(vista, modo)
@@ -144,8 +143,18 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
                         colPuesto: t('ofrenda.planoExport.colPuesto'),
                         colResponsable: t('ofrenda.planoExport.colResponsable'),
                         colApoyo: t('ofrenda.planoExport.colApoyo'),
+                        footer: t('ofrenda.planoExport.listaFooter'),
                     },
                     filename,
+                    {
+                        diaTipo:
+                            servicio.dia_tipo === 'domingo_tarde'
+                                ? 'domingo_tarde'
+                                : servicio.dia_tipo === 'jueves'
+                                  ? 'jueves'
+                                  : 'domingo',
+                        layoutReferenceRows: listaLayoutReferenceRowCount(sacos),
+                    },
                 )
             }
             quickSuccess(t('ofrenda.plano.toast.exported'))
@@ -158,29 +167,29 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
 
     if (!plan) {
         return (
-            <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-2xl border-2 border-dashed border-[rgba(184,150,74,0.3)] p-8 text-center text-sm text-muted-foreground">
                 {t('ofrenda.planoGenerate.noPlan')}
             </div>
         )
     }
 
     return (
-        <div className="space-y-4" data-testid="ofrenda-plano-export-panel">
+        <div className="ofrenda-liquid-card space-y-4 p-4 sm:p-5" data-testid="ofrenda-plano-export-panel">
             <div>
                 <h3 className="text-base font-bold flex items-center gap-2">
-                    <Download className="w-4 h-4 text-amber-600" />
+                    <Download className="w-4 h-4 text-blue-600" />
                     {t('ofrenda.planoExport.title')}
                 </h3>
             </div>
 
-            <div className="inline-flex w-full sm:w-auto rounded-xl border border-border bg-muted/40 p-0.5" role="group">
+            <div className="inline-flex w-full sm:w-auto rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-1" role="group">
                 {(['plano', 'lista'] as const).map(f => (
                     <button
                         key={f}
                         type="button"
                         onClick={() => setFormato(f)}
-                        className={`flex-1 sm:flex-none px-4 py-2 min-h-[44px] rounded-[10px] text-xs font-bold touch-manipulation ${
-                            formato === f ? 'bg-amber-600 text-white shadow' : 'text-muted-foreground'
+                        className={`flex-1 sm:flex-none px-4 py-2 min-h-[44px] rounded-[0.6rem] text-xs font-bold touch-manipulation transition-all ${
+                            formato === f ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]' : 'text-slate-500 hover:text-[#1f2e85]'
                         }`}
                     >
                         {t(f === 'plano' ? 'ofrenda.planoExport.format.plano' : 'ofrenda.planoExport.format.lista')}
@@ -189,14 +198,14 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
             </div>
 
             {formato === 'plano' && (
-                <div className="inline-flex rounded-xl border border-border bg-muted/40 p-0.5" role="group">
+                <div className="inline-flex rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-1" role="group">
                     {(['2d', '3d'] as const).map(v => (
                         <button
                             key={v}
                             type="button"
                             onClick={() => setVista(v)}
-                            className={`px-4 py-2 min-h-[44px] rounded-[10px] text-xs font-bold touch-manipulation ${
-                                vista === v ? 'bg-amber-600 text-white' : 'text-muted-foreground'
+                            className={`px-4 py-2 min-h-[44px] rounded-[0.6rem] text-xs font-bold touch-manipulation transition-all ${
+                                vista === v ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]' : 'text-slate-500 hover:text-[#1f2e85]'
                             }`}
                         >
                             {t(v === '2d' ? 'ofrenda.plano.vista2d' : 'ofrenda.plano.vista3d')}
@@ -217,7 +226,7 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
                 type="button"
                 disabled={exporting || !servicio}
                 onClick={() => void runExport()}
-                className="flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-3 min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold disabled:opacity-50 touch-manipulation"
+                className="flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-3 min-h-[44px] rounded-xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white text-sm font-bold shadow-[0_4px_16px_rgba(31,46,133,0.32)] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)] transition-shadow disabled:opacity-50 touch-manipulation"
                 data-testid="ofrenda-plano-export-btn"
             >
                 {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}

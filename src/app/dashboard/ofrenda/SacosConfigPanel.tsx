@@ -86,13 +86,13 @@ export function SacosConfigPanel({
 
     return (
         <div
-            className="mb-4 overflow-hidden rounded-2xl border border-[rgba(184,150,74,0.35)] shadow-sm"
+            className="ofrenda-liquid-card mb-4 overflow-hidden"
             data-testid="ofrenda-sacos-config"
         >
             <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
-                className="flex w-full items-center justify-between gap-3 bg-gradient-to-r from-[#1f2e85] to-[#2a3d9e] px-4 py-3.5 text-left transition-colors hover:from-[#253680] hover:to-[#1f3a8f] touch-manipulation min-h-[52px]"
+                className="ofrenda-liquid-headbar flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left touch-manipulation min-h-[52px]"
                 aria-expanded={open}
                 data-testid="ofrenda-sacos-config-toggle"
             >
@@ -181,7 +181,7 @@ export function SacosConfigPanel({
                                     type="button"
                                     onClick={handleApply}
                                     disabled={isLoading}
-                                    className="flex min-h-[44px] items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50 touch-manipulation"
+                                    className="flex min-h-[44px] items-center gap-1.5 rounded-xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] px-4 py-2.5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(31,46,133,0.32)] transition-shadow hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)] disabled:opacity-50 touch-manipulation"
                                     data-testid="ofrenda-sacos-apply"
                                 >
                                     {isLoading ? (
@@ -302,9 +302,6 @@ function SacosInput({
                 }}
                 className={`w-full rounded-lg border border-border/60 bg-background px-2 py-2.5 text-center text-lg font-black font-mono text-foreground outline-none focus:ring-2 min-h-[48px] ${SACOS_INPUT_SPINNER_HIDE} ${styles.ring}`}
                 aria-label={label}
-                aria-valuemin={min}
-                aria-valuemax={max}
-                aria-valuenow={value}
             />
         </label>
     )
