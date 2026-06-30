@@ -5,6 +5,12 @@
 
 import { memo } from 'react'
 import { usePlanoDrag } from './usePlanoDrag'
+import {
+    computePlanoCardChrome,
+    layoutPlanoNameLines,
+    planoCardWidth,
+    planoNameBodyMinHeight,
+} from './planoCardLayout'
 import type { PlanoLienzo, PlanoPunto, PlanoTarjetasLayout } from './planoTypes'
 
 interface Props {
@@ -26,8 +32,7 @@ interface Props {
 }
 
 function nameBodyMinHeight(lineCount: number, nameFont: number): number {
-    const lines = Math.max(1, Math.min(lineCount, 2))
-    return Math.max(26, lines * (nameFont + 3) + 10)
+    return planoNameBodyMinHeight(lineCount, nameFont)
 }
 
 export const PlanoCard = memo(function PlanoCard({
@@ -47,9 +52,10 @@ export const PlanoCard = memo(function PlanoCard({
     onMove,
     onEditNombre,
 }: Props) {
-    const width = Math.round((tarjetas.minW + tarjetas.maxW) / 2)
+    const width = planoCardWidth(tarjetas)
     const displayNombre = nombre?.trim() || nombrePlaceholder
-    const lineCount = nombre?.includes('\n') ? nombre.split('\n').length : 1
+    const nameLines = layoutPlanoNameLines(displayNombre, tarjetas)
+    const lineCount = nameLines.length
 
     const { dragging, dragHandlers } = usePlanoDrag(
         lienzoRef,

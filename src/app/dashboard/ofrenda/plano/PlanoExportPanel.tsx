@@ -13,7 +13,9 @@ import { getPlanoData } from './planoActions'
 import { getPlanoVista } from './planoData'
 import { exportPlanoPng } from './planoExportPng'
 import { exportPlanoListaPng } from './planoExportListaPng'
+import { listaLayoutReferenceRowCount } from './planoExportListaLayout'
 import { invokePlanoAction } from './planoInvoke'
+import { formatLaborOfrendaExportSubtitle } from './planoExportFormat'
 import { resolverModo, sacosParaDia, type PlanoVista } from './planoTypes'
 
 const ACCENT = {
@@ -77,21 +79,18 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
     const headerSubtitle = useMemo(() => {
         if (!servicio) return tituloMes
         const d = new Date(`${servicio.fecha}T00:00:00`)
-        const fecha = format(d, 'EEEE d MMM yyyy', { locale: dateLocale })
-        const turno =
-            servicio.dia_tipo === 'jueves'
-                ? t('ofrenda.days.jueves')
-                : servicio.dia_tipo === 'domingo'
-                  ? t('ofrenda.days.manana')
-                  : t('ofrenda.days.tarde')
-        return `${fecha} · ${turno}`
+        return formatLaborOfrendaExportSubtitle(d, servicio.dia_tipo, {
+            manana: t('ofrenda.days.manana'),
+            tarde: t('ofrenda.days.tarde'),
+        }, dateLocale)
     }, [servicio, tituloMes, t, dateLocale])
 
     const runExport = async () => {
         if (!plan || !servicio || exporting) return
         setExporting(true)
         try {
-            const modo = resolverModo(sacosParaDia(plan.plan, servicio.dia_tipo))
+            const sacos = sacosParaDia(plan.plan, servicio.dia_tipo)
+            const modo = resolverModo(sacos)
             if (!modo) throw new Error(t('ofrenda.plano.sinDisposicion').replace('{sacos}', '0'))
             const res = await invokePlanoAction(() => getPlanoData(servicio.id, vista, modo))
             const embedded = getPlanoVista(vista, modo)
@@ -144,8 +143,18 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
                         colPuesto: t('ofrenda.planoExport.colPuesto'),
                         colResponsable: t('ofrenda.planoExport.colResponsable'),
                         colApoyo: t('ofrenda.planoExport.colApoyo'),
+                        footer: t('ofrenda.planoExport.listaFooter'),
                     },
                     filename,
+                    {
+                        diaTipo:
+                            servicio.dia_tipo === 'domingo_tarde'
+                                ? 'domingo_tarde'
+                                : servicio.dia_tipo === 'jueves'
+                                  ? 'jueves'
+                                  : 'domingo',
+                        layoutReferenceRows: listaLayoutReferenceRowCount(sacos),
+                    },
                 )
             }
             quickSuccess(t('ofrenda.plano.toast.exported'))

@@ -1,96 +1,174 @@
-import { IDMJI_BRAND } from '../exportBrand'
-
-export interface LaborOfrendaHeaderLabels {
-    churchName: string
-    title: string
-    subtitle: string
-}
-
-const LOGO_OUTER = 112
-const LOGO_INNER = 96
-
-function loadImage(src: string): Promise<HTMLImageElement> {
-    return new Promise((resolve, reject) => {
-        const img = new Image()
-        img.crossOrigin = 'anonymous'
-        img.onload = () => resolve(img)
-        img.onerror = () => reject(new Error('logo'))
-        img.src = src
-    })
-}
-
-function roundRect(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    r: number,
-) {
-    ctx.beginPath()
-    ctx.moveTo(x + r, y)
-    ctx.arcTo(x + w, y, x + w, y + h, r)
-    ctx.arcTo(x + w, y + h, x, y + h, r)
-    ctx.arcTo(x, y + h, x, y, r)
-    ctx.arcTo(x, y, x + w, y, r)
-    ctx.closePath()
-}
-
-/** Altura fija de cabecera premium (logo 112px). */
-export const LABOR_OFRENDA_HEADER_H = 148
-
-export async function drawLaborOfrendaExportHeader(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    labels: LaborOfrendaHeaderLabels,
-): Promise<void> {
-    const h = LABOR_OFRENDA_HEADER_H
-    const grad = ctx.createLinearGradient(0, 0, width, h)
-    grad.addColorStop(0, IDMJI_BRAND.navy)
-    grad.addColorStop(1, IDMJI_BRAND.navyDark)
-    ctx.fillStyle = grad
-    ctx.fillRect(0, 0, width, h)
-
-    let logo: HTMLImageElement | null = null
-    try {
-        logo = await loadImage('/logo.jpg')
-    } catch {
-        logo = null
-    }
-
-    const clusterW = Math.min(width - 48, 560)
-    const startX = (width - clusterW) / 2
-    const logoX = startX
-    const logoY = (h - LOGO_OUTER) / 2
-
-    if (logo) {
-        const gold = ctx.createLinearGradient(logoX, logoY, logoX + LOGO_OUTER, logoY + LOGO_OUTER)
-        gold.addColorStop(0, '#d4b86a')
-        gold.addColorStop(1, '#b8964a')
-        ctx.fillStyle = gold
-        roundRect(ctx, logoX, logoY, LOGO_OUTER, LOGO_OUTER, 14)
-        ctx.fill()
-        ctx.fillStyle = '#fff'
-        roundRect(ctx, logoX + 3, logoY + 3, LOGO_OUTER - 6, LOGO_OUTER - 6, 11)
-        ctx.fill()
-        const pad = (LOGO_OUTER - LOGO_INNER) / 2
-        ctx.drawImage(logo, logoX + pad, logoY + pad, LOGO_INNER, LOGO_INNER)
-    }
-
-    const textX = logoX + LOGO_OUTER + 24
-    const textW = clusterW - LOGO_OUTER - 24
-    const centerY = h / 2
-
-    ctx.textAlign = 'left'
-    ctx.fillStyle = 'rgba(232, 217, 168, 0.92)'
-    ctx.font = '600 10px Inter, Arial, sans-serif'
-    ctx.fillText(labels.churchName.toUpperCase(), textX, centerY - 34, textW)
-
-    ctx.fillStyle = '#ffffff'
-    ctx.font = '800 28px Inter, Arial, sans-serif'
-    ctx.fillText(labels.title, textX, centerY - 4, textW)
-
-    ctx.fillStyle = IDMJI_BRAND.goldLight
-    ctx.font = '600 18px Inter, Arial, sans-serif'
-    ctx.fillText(labels.subtitle, textX, centerY + 26, textW)
-}
+import { IDMJI_BRAND } from '../exportBrand'
+import {
+    computePlanoHeaderBlockLayout,
+    PLANO_HEADER_HEIGHT,
+    PLANO_HEADER_LOGO_INNER,
+} from './laborOfrendaHeaderPlanoLayout'
+import {
+    computeSquareHeaderBlockLayout,
+    SQUARE_HEADER_LOGO,
+} from './laborOfrendaHeaderSquareLayout'
+
+export interface LaborOfrendaHeaderLabels {
+    churchName: string
+    title: string
+    subtitle: string
+}
+
+/** Altura fija de cabecera premium plano (logo 112px). */
+export const LABOR_OFRENDA_HEADER_H = PLANO_HEADER_HEIGHT
+
+/** Logo en cabecera apilada (lista cuadrada móvil). */
+export const LABOR_OFRENDA_HEADER_SQUARE_LOGO = SQUARE_HEADER_LOGO
+
+export {
+    SQUARE_HEADER_HEIGHT as LISTA_HEADER_SQUARE_H,
+    computeSquareHeaderBlockLayout,
+} from './laborOfrendaHeaderSquareLayout'
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => resolve(img)
+        img.onerror = () => reject(new Error('logo'))
+        img.src = src
+    })
+}
+
+function roundRect(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    r: number,
+) {
+    ctx.beginPath()
+    ctx.moveTo(x + r, y)
+    ctx.arcTo(x + w, y, x + w, y + h, r)
+    ctx.arcTo(x + w, y + h, x, y + h, r)
+    ctx.arcTo(x, y + h, x, y, r)
+    ctx.arcTo(x, y, x + w, y, r)
+    ctx.closePath()
+}
+
+function drawLogoBadge(
+    ctx: CanvasRenderingContext2D,
+    logo: HTMLImageElement,
+    x: number,
+    y: number,
+    outer: number,
+    inner: number,
+) {
+    const gold = ctx.createLinearGradient(x, y, x + outer, y + outer)
+    gold.addColorStop(0, '#d4b86a')
+    gold.addColorStop(1, '#b8964a')
+    ctx.fillStyle = gold
+    roundRect(ctx, x, y, outer, outer, 14)
+    ctx.fill()
+    ctx.fillStyle = '#fff'
+    roundRect(ctx, x + 3, y + 3, outer - 6, outer - 6, 11)
+    ctx.fill()
+    const pad = (outer - inner) / 2
+    ctx.drawImage(logo, x + pad, y + pad, inner, inner)
+}
+
+export async function drawLaborOfrendaExportHeaderSquare(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    labels: LaborOfrendaHeaderLabels,
+): Promise<void> {
+    const grad = ctx.createLinearGradient(0, 0, width, height)
+    grad.addColorStop(0, IDMJI_BRAND.navy)
+    grad.addColorStop(1, IDMJI_BRAND.navyDark)
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, width, height)
+
+    const layout = computeSquareHeaderBlockLayout(width, height)
+
+    let logo: HTMLImageElement | null = null
+    try {
+        logo = await loadImage('/logo.jpg')
+    } catch {
+        logo = null
+    }
+
+    const logoOuter = layout.logoOuter
+    const logoInner = logoOuter - 12
+    const logoX = (width - logoOuter) / 2
+
+    if (logo) {
+        drawLogoBadge(ctx, logo, logoX, layout.logoY, logoOuter, logoInner)
+    }
+
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)'
+    ctx.font = `600 ${layout.churchFontPx}px Montserrat, Inter, Arial, sans-serif`
+    ctx.fillText(labels.churchName.toUpperCase(), width / 2, layout.churchY, layout.textMax)
+
+    ctx.fillStyle = '#ffffff'
+    ctx.font = `800 ${layout.titleFontPx}px Montserrat, Inter, Arial, sans-serif`
+    ctx.fillText(labels.title, width / 2, layout.titleY, layout.textMax)
+
+    ctx.fillStyle = IDMJI_BRAND.goldLight
+    ctx.font = `700 ${layout.subtitleFontPx}px Montserrat, Inter, Arial, sans-serif`
+    ctx.fillText(labels.subtitle, width / 2, layout.subtitleY, layout.textMax)
+}
+
+/** Cabecera landscape — export PNG plano (jueves / domingo mañana / tarde). */
+export async function drawLaborOfrendaExportHeader(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    labels: LaborOfrendaHeaderLabels,
+): Promise<void> {
+    const h = LABOR_OFRENDA_HEADER_H
+    const layout = computePlanoHeaderBlockLayout(width)
+
+    const grad = ctx.createLinearGradient(0, 0, width, h)
+    grad.addColorStop(0, IDMJI_BRAND.navy)
+    grad.addColorStop(0.55, '#243590')
+    grad.addColorStop(1, IDMJI_BRAND.navyDark)
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, width, h)
+
+    let logo: HTMLImageElement | null = null
+    try {
+        logo = await loadImage('/logo.jpg')
+    } catch {
+        logo = null
+    }
+
+    if (logo) {
+        drawLogoBadge(
+            ctx,
+            logo,
+            layout.logoX,
+            layout.logoY,
+            layout.logoOuter,
+            PLANO_HEADER_LOGO_INNER,
+        )
+    }
+
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)'
+    ctx.font = `600 ${layout.churchFontPx}px Montserrat, Inter, Arial, sans-serif`
+    ctx.fillText(labels.churchName.toUpperCase(), layout.textX, layout.churchY, layout.textW)
+
+    ctx.fillStyle = '#ffffff'
+    ctx.font = `800 ${layout.titleFontPx}px Montserrat, Inter, Arial, sans-serif`
+    ctx.fillText(labels.title, layout.textX, layout.titleY, layout.textW)
+
+    ctx.fillStyle = IDMJI_BRAND.goldLight
+    ctx.font = `700 ${layout.subtitleFontPx}px Montserrat, Inter, Arial, sans-serif`
+    ctx.fillText(labels.subtitle, layout.textX, layout.subtitleY, layout.textW)
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.14)'
+    ctx.fillRect(0, h - 2, width, 2)
+}
+
