@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { format } from 'date-fns'
 import type { Locale } from 'date-fns'
-import { Check, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
 import { useOfrendaToast } from './ofrendaFeedback'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { updateAsignacion, updateSecuenciaServicio } from './actions'
@@ -28,7 +28,6 @@ import {
     PLAN_ROLE_COL_STYLE,
     PLAN_SERVICE_COL_STYLE,
     planTableMinWidthPx,
-    PLAN_SERVICE_COL_WIDTH_PX,
 } from './planTableLayout'
 import {
     scrollLeftForWeekIndex,
@@ -40,8 +39,6 @@ const STICKY_ROLE_HEADER_CLASS =
     'ofrenda-plan-sticky-role px-3 py-3 text-left text-sm font-black text-[#1f2e85] dark:text-[#e8d9a8] border-b border-border/50 whitespace-nowrap'
 const STICKY_ROLE_CELL_CLASS =
     'ofrenda-plan-sticky-role ofrenda-plan-sticky-role--body px-3 py-2.5 text-sm font-semibold border-b border-border/50 whitespace-nowrap'
-
-const COL_WIDTH_PX = PLAN_SERVICE_COL_WIDTH_PX
 
 // ─── Esquema de colores por tipo de día ────────────────────────────────────────
 
@@ -78,9 +75,9 @@ const TIPO_COLORS = {
 // ─── Helpers de estilo ────────────────────────────────────────────────────────
 
 function getCellClass(localId: string | null, isOverride: boolean): string {
-    if (!localId) return 'bg-muted/30 border-dashed border-border text-muted-foreground'
-    if (isOverride) return 'bg-amber-500/10 border-amber-500/40 text-amber-800 dark:text-amber-200'
-    return 'bg-muted/50 border-border hover:border-primary/40 text-foreground'
+    if (!localId) return 'bg-white/40 border-dashed border-[rgba(184,150,74,0.4)] text-slate-400'
+    if (isOverride) return 'bg-amber-500/10 border-amber-500/50 text-amber-800'
+    return 'bg-white border-[rgba(184,150,74,0.3)] hover:border-[#b8964a] text-[#0f172a]'
 }
 
 type DiaTipoLocal = 'jueves' | 'domingo' | 'domingo_tarde'
@@ -97,16 +94,7 @@ function getSeqBg(tipo: DiaTipoLocal): string {
     return 'bg-violet-500/5'
 }
 
-function getRowBg(tipo: DiaTipoLocal, even: boolean): string {
-    if (tipo === 'jueves') return even ? 'bg-emerald-500/2' : ''
-    if (tipo === 'domingo') return even ? 'bg-blue-500/2' : ''
-    return even ? 'bg-violet-500/2' : ''
-}
-
 // ─── Tipos de rol y labels ─────────────────────────────────────────────────────
-
-const ROLES_G1_KEYS = ['realiza', 'apoyo', 'vigilancia'] as const
-const ROLES_G2_KEYS = ['colaborador_1', 'colaborador_2', 'colaborador_3'] as const
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -327,7 +315,7 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                 </MobileWeekPager>
             ) : (
             <div
-                className="ofrenda-plan-desktop-shell relative rounded-2xl overflow-hidden"
+                className="ofrenda-plan-desktop-shell ofrenda-liquid-card relative overflow-hidden"
                 data-testid="ofrenda-plan-desktop"
             >
                 <DesktopWeekNavigator
@@ -557,7 +545,7 @@ function ServicioCard({
     else if (servicio.dia_tipo === 'domingo_tarde') turnoLabel = t('ofrenda.days.tarde')
 
     return (
-        <div className={`rounded-2xl border overflow-hidden ${col.border}`}>
+        <div className="ofrenda-liquid-card overflow-hidden">
             {/* Header */}
             <div className={`px-4 py-3 ${col.header}`}>
                 <div className="flex items-start justify-between">
@@ -583,7 +571,7 @@ function ServicioCard({
             </div>
 
             {/* Roles G1 */}
-            <div className="divide-y divide-border/50 bg-background">
+            <div className="divide-y divide-[rgba(184,150,74,0.15)] bg-white/70">
                 {roleRows.g1.map(({ key, label }) => {
                     const asig = getAsig(asignaciones, servicio.id, key)
                     return (
@@ -612,7 +600,7 @@ function ServicioCard({
             <div className="h-px bg-border/40" />
 
             {/* Colaboradores G2 */}
-            <div className="divide-y divide-border/50 bg-muted/20">
+            <div className="divide-y divide-[rgba(184,150,74,0.15)] bg-[#1f2e85]/[0.03]">
                 {roleRows.g2.map(({ key, label }) => {
                     const asig = getAsig(asignaciones, servicio.id, key)
                     return (

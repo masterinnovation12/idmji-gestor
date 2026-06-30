@@ -3,7 +3,6 @@ import { IDMJI_BRAND } from './exportBrand'
 import type { ExportLegendItem } from './exportHeaderShared'
 import {
     computePdfHeaderMeasurements,
-    EXPORT_HEADER_LOGO_GAP_MM,
     EXPORT_HEADER_LOGO_MM,
     EXPORT_HEADER_TITLE_SEPARATOR_MM,
 } from './exportHeaderLayout'

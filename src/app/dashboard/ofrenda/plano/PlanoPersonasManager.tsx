@@ -351,13 +351,13 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                         onKeyDown={e => { if (e.key === 'Enter') void handleAdd() }}
                         placeholder={t('ofrenda.plano.personas.addPlaceholder')}
                         autoCapitalize="words"
-                        className="flex-1 min-w-0 px-4 py-2.5 min-h-[44px] rounded-xl border border-border bg-background text-sm"
+                        className="ofrenda-liquid-search flex-1 min-w-0 px-4 py-2.5 min-h-[44px] rounded-xl text-sm"
                     />
                     <button
                         type="button"
                         onClick={() => void handleAdd()}
                         disabled={busy || adding.trim().length < 2}
-                        className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-50 touch-manipulation shrink-0"
+                        className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white text-sm font-bold shadow-[0_3px_12px_rgba(31,46,133,0.3)] hover:shadow-[0_5px_18px_rgba(31,46,133,0.42)] transition-shadow disabled:opacity-50 touch-manipulation shrink-0"
                     >
                         <Plus className="w-4 h-4" />
                         <span className="hidden sm:inline">{t('common.add')}</span>
@@ -372,7 +372,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                     placeholder={t('common.search')}
-                    className="w-full pl-10 pr-4 py-2.5 min-h-[44px] rounded-xl border border-border bg-background text-sm"
+                    className="ofrenda-liquid-search w-full pl-10 pr-4 py-2.5 min-h-[44px] rounded-xl text-sm"
                 />
             </div>
 
@@ -383,8 +383,8 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                     aria-expanded={filtersOpen}
                     className={`inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-xl border text-xs font-bold touch-manipulation transition-colors ${
                         filtersActive
-                            ? 'border-blue-600 bg-blue-600/10 text-blue-700 dark:text-blue-300'
-                            : 'border-border text-muted-foreground hover:bg-muted/50'
+                            ? 'border-[#b8964a] bg-[#1f2e85]/10 text-[#1f2e85]'
+                            : 'border-[rgba(184,150,74,0.32)] text-slate-500 hover:bg-[#f8f3e8] hover:text-[#1f2e85]'
                     }`}
                     data-testid="plano-personas-filters-toggle"
                 >
@@ -402,7 +402,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                     type="button"
                     onClick={() => void handleExport()}
                     disabled={exporting || visible.length === 0}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold disabled:opacity-50 touch-manipulation"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white text-xs font-bold shadow-[0_3px_12px_rgba(31,46,133,0.3)] hover:shadow-[0_5px_18px_rgba(31,46,133,0.42)] transition-shadow disabled:opacity-50 touch-manipulation"
                     data-testid="plano-personas-export-btn"
                 >
                     {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
@@ -422,7 +422,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
 
             {filtersOpen && (
                 <div
-                    className="rounded-2xl border border-border bg-muted/20 p-3 space-y-3"
+                    className="ofrenda-liquid-card p-3 space-y-3"
                     data-testid="plano-personas-filters"
                 >
                     <FilterRow label={t('ofrenda.plano.personas.filters.day')}>
@@ -615,7 +615,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                             <button
                                 type="button"
                                 onClick={() => setDeleting(null)}
-                                className="flex-1 py-3 min-h-[48px] rounded-xl border border-border font-semibold touch-manipulation"
+                                className="flex-1 py-3 min-h-[48px] rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] text-[#1f2e85] font-semibold hover:bg-[#f8f3e8] touch-manipulation"
                             >
                                 {t('common.cancel')}
                             </button>
@@ -662,8 +662,8 @@ function FilterChip({
             data-testid={testId}
             className={`inline-flex items-center gap-1 px-3 py-1.5 min-h-[36px] rounded-full text-xs font-bold border touch-manipulation transition-colors ${
                 active
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-background border-border text-muted-foreground hover:bg-muted/50'
+                    ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border-[#b8964a]'
+                    : 'bg-white border-[rgba(184,150,74,0.3)] text-slate-500 hover:bg-[#f8f3e8]'
             }`}
         >
             {children}
@@ -709,7 +709,7 @@ function PersonaRow({
         <li
             data-testid={`plano-persona-row-${p.id}`}
             className={`rounded-xl border px-2 py-2 sm:px-2.5 flex flex-col transition-all ${
-                p.activo ? 'border-border bg-background' : 'border-dashed border-border/50 bg-muted/30 opacity-70'
+                p.activo ? 'border-[rgba(184,150,74,0.3)] bg-white shadow-[0_1px_4px_rgba(31,46,133,0.05)]' : 'border-dashed border-[rgba(184,150,74,0.25)] bg-[#f8f3e8]/40 opacity-70'
             }`}
         >
             <div className="flex items-center gap-1 min-w-0">
@@ -796,6 +796,7 @@ function PersonaRow({
                         <button
                             type="button"
                             onClick={onActivo}
+                            data-testid={`plano-persona-toggle-${p.id}`}
                             aria-label={p.activo ? t('ofrenda.plano.personas.deactivated') : t('ofrenda.plano.personas.activated')}
                             title={p.activo ? t('ofrenda.plano.personas.deactivated') : t('ofrenda.plano.personas.activated')}
                             className={`p-1 rounded-md touch-manipulation min-w-[30px] min-h-[30px] flex items-center justify-center transition-colors ${
@@ -839,7 +840,7 @@ function PersonaRow({
 
                         <div className="flex items-center gap-2 flex-wrap">
                             <div
-                                className="inline-flex rounded-xl border border-border bg-muted/40 p-0.5"
+                                className="inline-flex rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-0.5"
                                 role="group"
                                 aria-label={t('ofrenda.plano.cap.label')}
                             >
@@ -855,8 +856,8 @@ function PersonaRow({
                                             onClick={() => onCapacidad(p, cap)}
                                             className={`inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[36px] rounded-[10px] text-xs font-bold touch-manipulation transition-colors ${
                                                 active
-                                                    ? 'bg-blue-600 text-white shadow'
-                                                    : 'text-muted-foreground hover:text-foreground'
+                                                    ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow'
+                                                    : 'text-slate-500 hover:text-[#1f2e85]'
                                             }`}
                                         >
                                             <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />
@@ -871,7 +872,7 @@ function PersonaRow({
                                     <button
                                         type="button"
                                         onClick={onUnpair}
-                                        className="inline-flex items-center gap-1 px-3 py-2 min-h-[36px] rounded-xl border border-border text-xs font-bold touch-manipulation"
+                                        className="inline-flex items-center gap-1 px-3 py-2 min-h-[36px] rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] text-[#1f2e85] hover:bg-[#f8f3e8] text-xs font-bold touch-manipulation"
                                     >
                                         <Heart className="w-3.5 h-3.5 text-red-500" />
                                         {t('ofrenda.plano.personas.quitarPareja')}
@@ -893,7 +894,8 @@ function PersonaRow({
                                     type="button"
                                     onClick={onEdit}
                                     aria-label={t('common.edit')}
-                                    className="inline-flex items-center gap-1 px-3 py-2 min-h-[36px] rounded-xl border border-border hover:bg-muted text-xs font-bold touch-manipulation"
+                                    data-testid={`plano-persona-edit-${p.id}`}
+                                    className="inline-flex items-center gap-1 px-3 py-2 min-h-[36px] rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] text-[#1f2e85] hover:bg-[#f8f3e8] hover:border-[#b8964a] text-xs font-bold touch-manipulation"
                                 >
                                     <Pencil className="w-3.5 h-3.5" />
                                     {t('common.edit')}
@@ -966,7 +968,7 @@ function ParejaDialog({
                 <select
                     value={selected}
                     onChange={e => setSelected(e.target.value)}
-                    className="w-full px-4 py-3 min-h-[48px] rounded-xl border border-border bg-background text-sm"
+                    className="ofrenda-liquid-search w-full px-4 py-3 min-h-[48px] rounded-xl text-sm"
                 >
                     <option value="">{t('ofrenda.plano.personas.asignarPareja')}</option>
                     {candidatos.map(c => (
@@ -974,10 +976,10 @@ function ParejaDialog({
                     ))}
                 </select>
                 <div className="flex gap-2">
-                    <button type="button" onClick={onClose} className="flex-1 py-3 min-h-[48px] rounded-xl border border-border font-semibold touch-manipulation">
+                    <button type="button" onClick={onClose} className="flex-1 py-3 min-h-[48px] rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] text-[#1f2e85] font-semibold hover:bg-[#f8f3e8] touch-manipulation">
                         {t('common.cancel')}
                     </button>
-                    <button type="button" disabled={busy || !selected} onClick={() => void save()} className="flex-1 py-3 min-h-[48px] rounded-xl bg-blue-600 text-white font-bold disabled:opacity-50 touch-manipulation">
+                    <button type="button" disabled={busy || !selected} onClick={() => void save()} className="flex-1 py-3 min-h-[48px] rounded-xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white font-bold shadow-[0_3px_12px_rgba(31,46,133,0.3)] disabled:opacity-50 touch-manipulation">
                         {t('common.save')}
                     </button>
                 </div>
@@ -1046,7 +1048,7 @@ function RenameDialog({
                         autoCapitalize="words"
                         onChange={e => setValue(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') void save() }}
-                        className="w-full px-4 py-3 min-h-[48px] rounded-xl border border-border bg-background text-base"
+                        className="ofrenda-liquid-search w-full px-4 py-3 min-h-[48px] rounded-xl text-base"
                     />
                     {value && (
                         <button
@@ -1064,7 +1066,7 @@ function RenameDialog({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 py-3 min-h-[48px] rounded-xl border border-border font-semibold touch-manipulation"
+                        className="flex-1 py-3 min-h-[48px] rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] text-[#1f2e85] font-semibold hover:bg-[#f8f3e8] touch-manipulation"
                     >
                         {t('common.cancel')}
                     </button>
@@ -1073,7 +1075,7 @@ function RenameDialog({
                         type="button"
                         onClick={() => void save()}
                         disabled={busy || value.trim().length < 2}
-                        className="flex-1 py-3 min-h-[48px] rounded-xl bg-blue-600 text-white font-bold disabled:opacity-50 touch-manipulation"
+                        className="flex-1 py-3 min-h-[48px] rounded-xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white font-bold shadow-[0_3px_12px_rgba(31,46,133,0.3)] disabled:opacity-50 touch-manipulation"
                     >
                         {t('common.save')}
                     </motion.button>

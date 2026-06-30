@@ -175,7 +175,7 @@ export function AddToCalendarSheet({
     } finally {
       setBusy(null)
     }
-  }, [events, busy, singleEvent, icsContent, icsFilename, title, close, t])
+  }, [events, busy, singleEvent, icsContent, icsFilename, close, t])
 
   type ActionDef = {
     id: CalendarActionId

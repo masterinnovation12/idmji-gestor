@@ -25,7 +25,6 @@ test.describe('Aviso capítulo en historial', () => {
         await addBtn.waitFor({ state: 'visible', timeout: 15000 })
         await addBtn.click()
 
-        const modal = page.getByRole('dialog').or(page.locator('[class*="Modal"]').first())
         await expect(page.getByPlaceholder(/Buscar libro|Cercar llibre/i)).toBeVisible({ timeout: 10000 })
 
         await page.getByPlaceholder(/Buscar libro|Cercar llibre/i).fill('Juan')

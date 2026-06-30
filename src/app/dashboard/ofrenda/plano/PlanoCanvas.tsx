@@ -35,7 +35,7 @@ function CanvasToolbar() {
     const { t } = useI18n()
     const { zoomIn, zoomOut, resetTransform } = useControls()
     const btn =
-        'flex items-center justify-center w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl bg-background/90 backdrop-blur border border-border shadow-md hover:bg-muted transition-colors touch-manipulation'
+        'flex items-center justify-center w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl bg-white/90 text-[#1f2e85] backdrop-blur border-[1.5px] border-[rgba(184,150,74,0.32)] shadow-md hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors touch-manipulation'
     return (
         <div className="absolute right-3 top-3 z-20 flex flex-col gap-1.5 safe-top">
             <button type="button" className={btn} onClick={() => zoomIn()} aria-label={t('ofrenda.plano.zoomIn')}>
@@ -95,7 +95,7 @@ export function PlanoCanvas({
     return (
         <div
             ref={containerRef}
-            className="relative w-full min-h-[52dvh] h-[calc(100dvh-18rem)] max-h-[72dvh] sm:h-[calc(100dvh-16rem)] sm:max-h-[68dvh] md:max-h-[70dvh] xl:h-[calc(100dvh-14rem)] xl:max-h-[min(72dvh,820px)] overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 touch-none select-none overscroll-none"
+            className="relative w-full min-h-[52dvh] h-[calc(100dvh-18rem)] max-h-[72dvh] sm:h-[calc(100dvh-16rem)] sm:max-h-[68dvh] md:max-h-[70dvh] xl:h-[calc(100dvh-14rem)] xl:max-h-[min(72dvh,820px)] overflow-hidden rounded-2xl border-[1.5px] border-[rgba(184,150,74,0.35)] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 touch-none select-none overscroll-none"
             style={{ touchAction: 'none' }}
             role="application"
             aria-label={t('ofrenda.plano.canvasLabel')}

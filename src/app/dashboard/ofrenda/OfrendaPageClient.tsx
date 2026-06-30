@@ -205,7 +205,7 @@ function OfrendaPageClientInner({
     }, [anio, mes, t, feedback])
 
     return (
-        <div className="min-h-dvh bg-background">
+        <div className="ofrenda-liquid-scope min-h-dvh bg-background">
             {/* ── Header ──────────────────────────────────────────────────── */}
             <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50">
                 <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -234,7 +234,7 @@ function OfrendaPageClientInner({
                 {/* ── Secciones + mes global ───────────────────────────── */}
                 <div className="max-w-5xl mx-auto px-4 pb-2 space-y-3">
                     <div
-                        className="inline-flex w-full rounded-xl border border-border bg-muted/40 p-0.5"
+                        className="ofrenda-liquid-segment w-full"
                         role="tablist"
                         aria-label={t('ofrenda.title')}
                     >
@@ -248,12 +248,12 @@ function OfrendaPageClientInner({
                                     aria-selected={active}
                                     data-testid={`ofrenda-section-${sec}`}
                                     onClick={() => handleSectionChange(sec)}
-                                    className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-[10px] text-xs font-bold transition-colors touch-manipulation ${
+                                    className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-[0.7rem] text-xs font-bold transition-all touch-manipulation ${
                                         active
                                             ? sec === 'general'
-                                                ? 'bg-emerald-600 text-white shadow'
-                                                : 'bg-blue-600 text-white shadow'
-                                            : 'text-muted-foreground hover:text-foreground'
+                                                ? 'bg-emerald-600 text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(5,150,105,0.32)]'
+                                                : 'bg-blue-600 text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(37,99,235,0.32)]'
+                                            : 'text-slate-500 hover:text-[#1f2e85] hover:bg-white/60'
                                     }`}
                                 >
                                     <span suppressHydrationWarning>
@@ -285,8 +285,8 @@ function OfrendaPageClientInner({
                                     : laborTab === tab.id
                             const accent =
                                 section === 'general'
-                                    ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500 bg-emerald-500/5'
-                                    : 'text-blue-600 dark:text-blue-400 border-blue-500 bg-blue-500/5'
+                                    ? 'text-emerald-700 dark:text-emerald-300 border-emerald-500'
+                                    : 'text-blue-700 dark:text-blue-300 border-blue-600'
                             return (
                                 <button
                                     key={tab.id}
@@ -295,10 +295,10 @@ function OfrendaPageClientInner({
                                             ? handleGeneralTabChange(tab.id as GeneralTab)
                                             : handleLaborTabChange(tab.id as LaborTab)
                                     }
-                                    className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-t-lg whitespace-nowrap transition-all border-b-2 ${
+                                    className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-bold rounded-t-xl whitespace-nowrap transition-all border-b-[2.5px] ${
                                         active
-                                            ? accent
-                                            : 'text-muted-foreground border-transparent hover:text-foreground hover:border-border'
+                                            ? `${accent} bg-[#f8f3e8]`
+                                            : 'text-muted-foreground border-transparent hover:text-foreground hover:border-[rgba(184,150,74,0.32)]'
                                     }`}
                                     aria-selected={active}
                                     role="tab"
@@ -351,7 +351,7 @@ function OfrendaPageClientInner({
                                                 type="button"
                                                 onClick={() => handleGenerar()}
                                                 disabled={isLoading}
-                                                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 touch-manipulation"
+                                                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)] text-white text-sm font-bold rounded-xl shadow-[0_4px_16px_rgba(31,46,133,0.32)] transition-shadow disabled:opacity-50 touch-manipulation"
                                             >
                                                 {isLoading ? (
                                                     <RefreshCw className="w-4 h-4 animate-spin" />
@@ -618,7 +618,7 @@ function RegenerateMenu({
                 type="button"
                 onClick={() => setOpen(v => !v)}
                 disabled={isLoading}
-                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] border border-border bg-background hover:bg-muted text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 touch-manipulation"
+                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white hover:bg-[#f8f3e8] hover:border-[#b8964a] text-[#1f2e85] text-sm font-bold rounded-xl transition-colors disabled:opacity-50 touch-manipulation"
                 data-testid="ofrenda-regenerate-btn"
             >
                 <RefreshCw className={`w-4 h-4 shrink-0 ${isLoading ? 'animate-spin' : ''}`} />
@@ -638,7 +638,7 @@ function RegenerateMenu({
                             initial={{ opacity: 0, scale: 0.95, y: -4 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                            className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 z-20 bg-background border border-border rounded-2xl shadow-xl overflow-hidden sm:min-w-[190px]"
+                            className="ofrenda-liquid-card absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 z-20 overflow-hidden sm:min-w-[190px]"
                         >
                             {[
                                 { label: t('ofrenda.regenerate.all'), grupo: undefined, testId: 'ofrenda-regenerate-all' },
@@ -650,7 +650,7 @@ function RegenerateMenu({
                                     type="button"
                                     data-testid={item.testId}
                                     onClick={() => { onRegenerate(item.grupo); setOpen(false) }}
-                                    className="w-full text-left px-4 py-3 text-sm hover:bg-muted transition-colors font-medium"
+                                    className="w-full text-left px-4 py-3 text-sm text-[#1f2e85] hover:bg-[#f8f3e8] transition-colors font-semibold"
                                 >
                                     {item.label}
                                 </button>
@@ -691,7 +691,7 @@ function EmptyPlanState({
                     whileTap={{ scale: 0.97 }}
                     onClick={onGenerar}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-colors disabled:opacity-50 touch-manipulation min-h-[48px]"
+                    className="flex items-center gap-2 px-6 py-3 border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)] text-white font-bold rounded-2xl shadow-[0_4px_16px_rgba(31,46,133,0.32)] transition-shadow disabled:opacity-50 touch-manipulation min-h-[48px]"
                 >
                     {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                     {t('ofrenda.generate')}

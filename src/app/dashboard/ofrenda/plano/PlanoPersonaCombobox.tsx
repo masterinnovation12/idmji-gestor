@@ -243,8 +243,6 @@ export function PlanoPersonaCombobox({
                         autoComplete="off"
                         autoCapitalize="words"
                         autoFocus
-                        role="combobox"
-                        aria-expanded
                         className="w-full pl-10 pr-4 py-2.5 min-h-[44px] rounded-xl border border-border bg-background"
                         placeholder={t('ofrenda.plano.combobox.search')}
                     />

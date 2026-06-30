@@ -91,7 +91,6 @@ export function squareHeaderBlockFits(layout: SquareHeaderBlockLayout): boolean 
 export function squareHeaderIsVerticallyCentered(
     layout: SquareHeaderBlockLayout,
 ): boolean {
-    const blockH = squareHeaderContentHeight(layout.logoOuter)
     const top = layout.logoY
     const bottom = layout.height - (layout.subtitleY + SQUARE_HEADER_LINE.subtitle)
     return Math.abs(top - bottom) <= 4

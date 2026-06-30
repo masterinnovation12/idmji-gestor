@@ -22,7 +22,7 @@ export function PlanMonthNavigator({
 }: Readonly<PlanMonthNavigatorProps>) {
     return (
         <div
-            className="flex w-full items-center gap-1 bg-muted/30 rounded-2xl px-2 py-2 border border-border/50 shadow-sm sm:gap-2 sm:px-3"
+            className="ofrenda-liquid-nav flex w-full items-center gap-1 px-2 py-2 sm:gap-2 sm:px-3"
             data-testid="ofrenda-month-nav"
         >
             <button
@@ -30,13 +30,13 @@ export function PlanMonthNavigator({
                 onClick={onPrev}
                 disabled={isLoading}
                 aria-label={prevAriaLabel}
-                className="shrink-0 p-2.5 rounded-xl hover:bg-muted transition-colors disabled:opacity-50 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="ofrenda-liquid-nav-arrow shrink-0 p-2.5 transition-colors disabled:opacity-50 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
                 <ChevronLeft className="w-5 h-5" />
             </button>
 
             <h2
-                className="flex-1 min-w-0 text-center text-lg sm:text-xl font-black tracking-tight px-1"
+                className="flex-1 min-w-0 text-center text-lg sm:text-xl font-black tracking-tight px-1 text-[#1f2e85]"
                 data-testid="ofrenda-month-title"
                 suppressHydrationWarning
             >

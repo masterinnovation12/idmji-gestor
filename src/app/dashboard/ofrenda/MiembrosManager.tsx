@@ -53,8 +53,8 @@ type GroupColor = keyof typeof GROUP_ACCENT
 
 function getRowClass(isPendingDelete: boolean, activo: boolean): string {
     if (isPendingDelete) return 'border-red-500/50 bg-red-500/5'
-    if (activo) return 'border-border'
-    return 'border-dashed border-border/50 opacity-60'
+    if (activo) return 'border-[rgba(184,150,74,0.3)]'
+    return 'border-dashed border-[rgba(184,150,74,0.25)] opacity-60'
 }
 
 function getCheckboxClass(yaEsta: boolean, isSel: boolean): string {
@@ -263,7 +263,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                                 {/* Botón de importar desde directorio */}
                                 <button
                                     onClick={() => { setSyncModalOpen(true); setAddGrupo(grupo) }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-xl hover:bg-muted transition-colors touch-manipulation"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border-[1.5px] border-[rgba(184,150,74,0.32)] text-[#1f2e85] rounded-xl hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors touch-manipulation"
                                     title={t('ofrenda.people.import')}
                                 >
                                     <Users className="w-3.5 h-3.5" />
@@ -273,7 +273,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
 
                                 <button
                                     onClick={() => handleAddClick(grupo)}
-                                    className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold ${accent.addBtn} text-white rounded-xl transition-colors touch-manipulation`}
+                                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white rounded-xl shadow-[0_3px_12px_rgba(31,46,133,0.3)] transition-shadow hover:shadow-[0_5px_18px_rgba(31,46,133,0.42)] touch-manipulation"
                                 >
                                     <Plus className="w-3.5 h-3.5" />
                                     {t('ofrenda.people.add')}
@@ -283,7 +283,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                     </div>
 
                     {lista.length === 0 && (
-                        <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center text-sm text-muted-foreground">
+                        <div className="border-2 border-dashed border-[rgba(184,150,74,0.3)] rounded-2xl p-8 text-center text-sm text-muted-foreground">
                             {canEdit
                                 ? t('ofrenda.people.emptyEdit')
                                 : interpolate(t('ofrenda.people.emptyReadonly'), { section: label })}
@@ -427,7 +427,7 @@ function MiembroRow({
         <Row
             value={isDraggable ? miembro : undefined}
             layout
-            className={`group flex flex-col px-2 py-2 sm:px-2.5 bg-background border rounded-xl transition-all ${getRowClass(isPendingDelete, miembro.activo)}`}
+            className={`group flex flex-col px-2 py-2 sm:px-2.5 bg-white border rounded-xl shadow-[0_1px_4px_rgba(31,46,133,0.05)] transition-all ${getRowClass(isPendingDelete, miembro.activo)}`}
             whileDrag={isDraggable ? { scale: 1.01, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' } : undefined}
             data-testid={`ofrenda-miembro-row-${miembro.id}`}
         >
@@ -611,7 +611,7 @@ function FijoEditor({
     const chipBase =
         'flex items-center justify-center gap-1 min-h-[36px] rounded-lg border px-1.5 py-1 text-[10px] font-bold transition-colors touch-manipulation'
     const chipOn = 'bg-amber-600 text-white border-amber-600 shadow-sm'
-    const chipOff = 'bg-background border-border/70 text-muted-foreground hover:bg-muted/40'
+    const chipOff = 'bg-white border-[rgba(184,150,74,0.3)] text-slate-500 hover:bg-[#f8f3e8] hover:border-[#b8964a]'
 
     return (
         <div className="mt-2 pt-2 border-t border-border/30" data-testid={`ofrenda-miembro-fijo-${miembro.id}`}>
@@ -869,7 +869,8 @@ function ImportDirectorioModal({
         if (yaEnOfrenda.has(id)) return // no seleccionar duplicados
         setSelected(prev => {
             const next = new Set(prev)
-            next.has(id) ? next.delete(id) : next.add(id)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
             return next
         })
     }

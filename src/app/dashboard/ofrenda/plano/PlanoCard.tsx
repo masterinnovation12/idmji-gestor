@@ -6,7 +6,6 @@
 import { memo } from 'react'
 import { usePlanoDrag } from './usePlanoDrag'
 import {
-    computePlanoCardChrome,
     layoutPlanoNameLines,
     planoCardWidth,
     planoNameBodyMinHeight,

@@ -196,7 +196,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
         return () => {
             cancelled = true
         }
-    }, [servicioIdResolved, modo, vista, t])
+    }, [servicioIdResolved, modo, vista, t, planoErr])
 
     const reloadPlano = useCallback(async () => {
         if (!servicio || !modo) return
@@ -218,7 +218,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
         } finally {
             setLoading(false)
         }
-    }, [servicio, modo, vista])
+    }, [servicio, modo, vista, planoErr])
 
     const patchPlanoData = useCallback((fn: (d: PlanoVistaResuelta) => PlanoVistaResuelta) => {
         setPlanoData(prev => (prev ? fn(prev) : prev))
@@ -252,7 +252,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                 quickSuccessRef.current(t('ofrenda.plano.toast.layoutSaved'))
             }
         },
-        [canEdit, modo, vista, t],
+        [canEdit, modo, vista, t, planoErr],
     )
 
     const saveLayoutAfterEdit = useCallback(() => {
@@ -281,7 +281,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
             quickSuccessRef.current(t('ofrenda.plano.toast.saved'))
             void reloadPlano()
         },
-        [servicio, reloadPlano, t],
+        [servicio, reloadPlano, t, planoErr],
     )
 
     const handleAsignacion = async (
@@ -430,7 +430,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
 
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                     <span
-                        className="px-3 py-1.5 rounded-full bg-muted text-xs font-bold text-muted-foreground"
+                        className="ofrenda-liquid-pill px-3 py-1.5 rounded-full text-xs font-bold"
                         data-testid="plano-modo-badge"
                     >
                         {modo
@@ -451,14 +451,14 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                             className={`inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl border text-xs font-bold transition-colors touch-manipulation ${
                                 layoutEditMode
                                     ? 'bg-amber-500 text-amber-950 border-amber-600 shadow-md'
-                                    : 'bg-background border-border text-muted-foreground hover:text-foreground hover:border-amber-500/50'
+                                    : 'bg-white border-[rgba(184,150,74,0.32)] text-slate-500 hover:text-[#1f2e85] hover:border-[#b8964a]'
                             }`}
                         >
                             <Move className="w-3.5 h-3.5 shrink-0" />
                             <span>{t('ofrenda.plano.layoutEdit')}</span>
                         </button>
                     )}
-                    <div className="inline-flex rounded-xl border border-border bg-muted/50 p-0.5" role="group" aria-label={t('ofrenda.plano.vistaToggle')}>
+                    <div className="inline-flex rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-1" role="group" aria-label={t('ofrenda.plano.vistaToggle')}>
                         {(['2d', '3d'] as const).map(v => {
                             const active = vista === v
                             const activeClass =
@@ -475,7 +475,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                                 className={`px-4 py-2 min-h-[44px] rounded-[10px] text-xs font-black uppercase transition-colors touch-manipulation ${
                                     active
                                         ? activeClass
-                                        : 'text-muted-foreground hover:text-foreground border border-transparent'
+                                        : 'text-slate-500 hover:text-[#1f2e85] border border-transparent'
                                 }`}
                             >
                                 {v === '2d' ? t('ofrenda.plano.vista2d') : t('ofrenda.plano.vista3d')}
@@ -645,7 +645,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                             <button
                                 type="button"
                                 onClick={() => setPendingAssign(null)}
-                                className="w-full py-3 min-h-[48px] rounded-xl border border-border font-semibold touch-manipulation"
+                                className="w-full py-3 min-h-[48px] rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] text-[#1f2e85] hover:bg-[#f8f3e8] font-semibold touch-manipulation"
                             >
                                 {t('ofrenda.plano.rolWarn.no')}
                             </button>
@@ -699,7 +699,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                             <button
                                 type="button"
                                 onClick={() => setConfirmAction(null)}
-                                className="flex-1 py-3 min-h-[48px] rounded-xl border border-border font-semibold touch-manipulation"
+                                className="flex-1 py-3 min-h-[48px] rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] text-[#1f2e85] hover:bg-[#f8f3e8] font-semibold touch-manipulation"
                             >
                                 {t('common.cancel')}
                             </button>

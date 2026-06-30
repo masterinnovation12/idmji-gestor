@@ -3,7 +3,6 @@ import type { PlanoRol } from '@/app/dashboard/ofrenda/plano/planoTypes'
 import {
     puedeRolCapacidad,
     planoPersonaParticipaEnGeneracion,
-    type PlanoGenero,
     type PlanoPersonaTurnos,
 } from '@/app/dashboard/ofrenda/plano/planoPersonaTurnos'
 

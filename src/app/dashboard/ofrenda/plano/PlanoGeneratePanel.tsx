@@ -22,11 +22,11 @@ interface Props {
 
 const ACTION_STYLES: Record<PlanoGenerateMode, string> = {
     generar:
-        'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/25',
+        'border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white shadow-[0_4px_16px_rgba(31,46,133,0.32)] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)]',
     regenerar:
-        'border-2 border-blue-600 bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-950/60',
+        'border-[1.5px] border-[rgba(184,150,74,0.5)] bg-[#f8f3e8] text-[#1f2e85] hover:bg-[#f3ead4]',
     rellenar:
-        'border border-blue-500/40 bg-background text-blue-700 hover:bg-blue-500/5 dark:text-blue-300',
+        'border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-[#1f2e85] hover:bg-[#f8f3e8]',
 }
 
 export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Readonly<Props>) {
@@ -73,7 +73,7 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
 
     if (!plan) {
         return (
-            <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-2xl border-2 border-dashed border-[rgba(184,150,74,0.3)] p-8 text-center text-sm text-muted-foreground">
                 {t('ofrenda.planoGenerate.noPlan')}
             </div>
         )
@@ -86,7 +86,7 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
     ]
 
     return (
-        <div className="space-y-4" data-testid="ofrenda-plano-generate-panel">
+        <div className="ofrenda-liquid-card space-y-4 p-4 sm:p-5" data-testid="ofrenda-plano-generate-panel">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -101,15 +101,15 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <div className="inline-flex w-full sm:w-auto rounded-xl border border-border bg-muted/40 p-0.5" role="group">
+                <div className="inline-flex w-full sm:w-auto rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-1" role="group">
                     {(['week', 'month'] as const).map(s => (
                         <button
                             key={s}
                             type="button"
                             data-testid={`ofrenda-plano-generate-scope-${s}`}
                             onClick={() => setScope(s)}
-                            className={`flex-1 sm:flex-none px-4 py-2 min-h-[44px] rounded-[10px] text-xs font-bold touch-manipulation ${
-                                scope === s ? 'bg-blue-600 text-white shadow' : 'text-muted-foreground'
+                            className={`flex-1 sm:flex-none px-4 py-2 min-h-[44px] rounded-[0.6rem] text-xs font-bold touch-manipulation transition-all ${
+                                scope === s ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]' : 'text-slate-500 hover:text-[#1f2e85]'
                             }`}
                         >
                             {t(s === 'week' ? 'ofrenda.planoGenerate.scope.week' : 'ofrenda.planoGenerate.scope.month')}
@@ -121,7 +121,7 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
                     <select
                         value={selectedSemana}
                         onChange={e => setSemanaIso(Number(e.target.value))}
-                        className="w-full sm:w-auto px-3 py-2 min-h-[44px] rounded-xl border border-border bg-background text-sm"
+                        className="ofrenda-liquid-search w-full sm:w-auto px-3 py-2 min-h-[44px] rounded-xl text-sm"
                     >
                         {weekOptions.map(w => (
                             <option key={w.semanaIso} value={w.semanaIso}>

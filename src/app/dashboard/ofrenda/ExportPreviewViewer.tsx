@@ -78,6 +78,7 @@ function useCanScrollHorizontal(ref: React.RefObject<HTMLDivElement | null>, dep
         const ro = new ResizeObserver(measure)
         ro.observe(el)
         return () => ro.disconnect()
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `deps` se difunde a propósito (API del hook reutilizable)
     }, [measure, ref, ...deps])
 
     return { canScroll, remeasure: measure }

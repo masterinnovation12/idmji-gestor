@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { deltaToNatural, type PlanoDragStart } from './planoDrag'
 import type { PlanoLienzo, PlanoPunto } from './planoTypes'
 
@@ -29,8 +29,13 @@ export function usePlanoDrag(
     const startRef = useRef<PlanoDragStart | null>(null)
     const activeRef = useRef(false)
     const panLockedRef = useRef(false)
+    // Mantener el último `position` accesible desde los handlers de puntero
+    // (se leen tras el render, p. ej. en onPointerDown), sin escribir el ref
+    // durante el render (anti-patrón react-hooks/refs).
     const posRef = useRef(position)
-    posRef.current = position
+    useEffect(() => {
+        posRef.current = position
+    }, [position])
 
     const onPointerDown = useCallback(
         (e: React.PointerEvent) => {

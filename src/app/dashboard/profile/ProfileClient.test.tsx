@@ -97,7 +97,6 @@ vi.mock('@/components/AvatarEditor', () => ({
 
 vi.mock('next/image', () => ({
     default: function MockImage(props: { src: string; alt: string }) {
-        // eslint-disable-next-line @next/next/no-img-element
         return <img src={props.src} alt={props.alt} data-testid="next-image" />
     },
 }))

@@ -25,7 +25,6 @@ import {
     type TemaAlabanzaStats,
     type HermanosConTemas
 } from './actions'
-import type { TranslationKey } from '@/lib/i18n/types'
 import { formatTemaAlabanzaLabel } from '@/lib/constants/temasAlabanza'
 
 function formatCita(lectura: LecturaIntro): string {

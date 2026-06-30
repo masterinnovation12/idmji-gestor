@@ -270,7 +270,7 @@ export async function getSequentialItemsFromAnchor(
  */
 export async function autoFillAlabanzaSequence(
     targetDate?: Date,
-    respectTargetAsAnchor: boolean = false
+    _respectTargetAsAnchor: boolean = false
 ): Promise<ActionResponse<{ count: number }>> {
     // Deprecated/Disabled: El autofill automático de secuencia ya no se utiliza
     return { data: { count: 0 } }
@@ -284,7 +284,7 @@ export async function autoFillAlabanzaSequence(
 export async function autoFillEnsenanzaSequence(
     targetDate?: Date,
     onlyCategory?: 'himno' | 'coro',
-    respectTargetAsAnchor: boolean = false
+    _respectTargetAsAnchor: boolean = false
 ): Promise<ActionResponse<{ count: number }>> {
     // Deprecated/Disabled: El autofill automático de secuencia ya no se utiliza
     return { data: { count: 0 } }

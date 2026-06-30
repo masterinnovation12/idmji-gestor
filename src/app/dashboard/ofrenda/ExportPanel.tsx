@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     Download, Image as ImageIcon, FileText, Gift,
     AlertCircle, Share2, CheckCircle2, Loader2,
-    ChevronDown, Info, X
+    ChevronDown, Info
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -636,9 +636,9 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
     return (
         <div className="relative z-10 space-y-5 bg-background">
             {/* ── Banner informativo ───────────────────────────────────── */}
-            <div className="flex gap-3 p-3.5 bg-emerald-500/8 border border-emerald-500/20 rounded-2xl">
-                <Gift className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
-                <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium leading-relaxed">
+            <div className="flex gap-3 p-3.5 bg-gradient-to-br from-[#f8f3e8] to-white border border-[rgba(184,150,74,0.35)] rounded-2xl">
+                <Gift className="w-4 h-4 text-[#b68f2f] mt-0.5 shrink-0" />
+                <p className="text-xs text-[#1f2e85] font-medium leading-relaxed">
                     {t('ofrenda.export.banner')}
                 </p>
             </div>
@@ -693,13 +693,13 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                                     onClick={() => toggleExtraRole(key)}
                                     className={`inline-flex items-center gap-1.5 min-h-[40px] rounded-xl border px-3 py-2 text-xs font-bold transition-colors touch-manipulation disabled:opacity-50 ${
                                         on
-                                            ? 'bg-[#1f2e85] text-white border-[#1f2e85] shadow-sm'
-                                            : 'bg-background border-border/70 text-muted-foreground hover:bg-muted/40'
+                                            ? 'bg-[#1f2e85] text-white border-[#b8964a] shadow-sm'
+                                            : 'bg-white border-[rgba(184,150,74,0.3)] text-slate-500 hover:bg-[#f8f3e8] hover:border-[#b8964a]'
                                     }`}
                                 >
                                     <span
                                         className={`flex h-4 w-4 items-center justify-center rounded-[5px] border ${
-                                            on ? 'border-white bg-white/20' : 'border-border'
+                                            on ? 'border-white bg-white/20' : 'border-[rgba(184,150,74,0.4)]'
                                         }`}
                                     >
                                         {on && <CheckCircle2 className="h-3 w-3" />}
@@ -777,10 +777,10 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             </div>
 
             {/* ── Vista previa ─────────────────────────────────────────── */}
-            <div className="rounded-2xl border border-border/50 overflow-hidden">
+            <div className="ofrenda-liquid-card overflow-hidden">
                 <button
                     onClick={() => setPreviewOpen(v => !v)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+                    className="w-full flex items-center justify-between px-4 py-3 bg-[#f8f3e8]/60 hover:bg-[#f8f3e8] transition-colors text-left"
                     aria-expanded={previewOpen}
                 >
                     <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
@@ -804,7 +804,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                             transition={{ duration: 0.22 }}
                             className="overflow-hidden"
                         >
-                            <div className="p-3 bg-muted/20 space-y-2">
+                            <div className="p-3 bg-white/50 space-y-2">
                                 {previewLoading && (
                                     <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
                                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -876,35 +876,35 @@ const CARD_COLORS: Record<CardColor, {
     bg: string; border: string; badgeBg: string; badgeText: string; btnBg: string; progressBg: string
 }> = {
     blue: {
-        bg:         'bg-card hover:bg-muted/50',
+        bg:         'hover:bg-[#f8f3e8]/40',
         border:     'border-blue-500/15',
         badgeBg:    'bg-blue-500/10 dark:bg-blue-500/20',
         badgeText:  'text-blue-700 dark:text-blue-300',
-        btnBg:      'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500/30',
+        btnBg:      'bg-gradient-to-br from-[#1f2e85] to-[#283593] border-2 border-[#b8964a] hover:shadow-[0_5px_18px_rgba(31,46,133,0.42)] focus:ring-[#b8964a]/30',
         progressBg: 'bg-blue-500',
     },
     red: {
-        bg:         'bg-card hover:bg-muted/50',
+        bg:         'hover:bg-[#f8f3e8]/40',
         border:     'border-red-500/15',
         badgeBg:    'bg-red-500/10 dark:bg-red-500/20',
         badgeText:  'text-red-700 dark:text-red-300',
-        btnBg:      'bg-red-600 hover:bg-red-700 focus:ring-red-500/30',
+        btnBg:      'bg-gradient-to-br from-[#1f2e85] to-[#283593] border-2 border-[#b8964a] hover:shadow-[0_5px_18px_rgba(31,46,133,0.42)] focus:ring-[#b8964a]/30',
         progressBg: 'bg-red-500',
     },
     green: {
-        bg:         'bg-card hover:bg-muted/50',
+        bg:         'hover:bg-[#f8f3e8]/40',
         border:     'border-emerald-500/15',
         badgeBg:    'bg-emerald-500/10 dark:bg-emerald-500/20',
         badgeText:  'text-emerald-700 dark:text-emerald-300',
-        btnBg:      'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500/30',
+        btnBg:      'bg-gradient-to-br from-[#1f2e85] to-[#283593] border-2 border-[#b8964a] hover:shadow-[0_5px_18px_rgba(31,46,133,0.42)] focus:ring-[#b8964a]/30',
         progressBg: 'bg-emerald-500',
     },
 }
 
 function getBtnClass(isDone: boolean, isDisabled: boolean, btnBg: string): string {
-    if (isDone) return 'bg-emerald-600 opacity-90'
-    if (isDisabled) return 'bg-muted text-muted-foreground cursor-not-allowed'
-    return `${btnBg} text-white hover:shadow-sm`
+    if (isDone) return 'bg-emerald-600 border-2 border-emerald-600 opacity-90'
+    if (isDisabled) return 'bg-slate-200 text-slate-400 border-2 border-slate-200 cursor-not-allowed'
+    return `${btnBg} text-white`
 }
 
 const STEP_PROGRESS: Record<ExportStep, number> = {
@@ -953,10 +953,10 @@ function ExportOptionRow({
     const progress = STEP_PROGRESS[step]
 
     return (
-        <div className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-background border ${c.border} rounded-2xl gap-4 transition-all ${c.bg}`}>
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 ofrenda-liquid-card gap-4 transition-all ${c.bg}`}>
             {/* Info */}
             <div className="flex gap-3 items-start sm:items-center flex-1 min-w-0">
-                <div className="p-2.5 bg-background border border-border/50 rounded-xl shrink-0 shadow-sm">
+                <div className="p-2.5 bg-[#f8f3e8] border border-[rgba(184,150,74,0.3)] rounded-xl shrink-0 shadow-sm">
                     {icon}
                 </div>
                 <div className="flex-1 min-w-0 space-y-0.5">

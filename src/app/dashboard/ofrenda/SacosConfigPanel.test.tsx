@@ -71,7 +71,8 @@ describe('SacosConfigPanel', () => {
     it('cabecera navy legible (texto blanco, no muted)', () => {
         renderPanel()
         const toggle = screen.getByTestId('ofrenda-sacos-config-toggle')
-        expect(toggle).toHaveClass('from-[#1f2e85]')
+        // Cabecera marino + franja dorada vía clase liquid (gradiente en CSS).
+        expect(toggle).toHaveClass('ofrenda-liquid-headbar')
         expect(screen.getByText('Configuración de sacos por servicio')).toHaveClass('text-white')
     })
 

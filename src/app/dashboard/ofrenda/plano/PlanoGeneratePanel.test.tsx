@@ -73,21 +73,23 @@ describe('PlanoGeneratePanel — acciones diferenciadas', () => {
         const regenerar = screen.getByTestId('ofrenda-plano-generate-regenerar')
         const rellenar = screen.getByTestId('ofrenda-plano-generate-rellenar')
 
-        expect(generar.className).toContain('bg-blue-600')
-        expect(regenerar.className).toContain('border-2')
-        expect(regenerar.className).toContain('border-blue-600')
-        expect(rellenar.className).toContain('border-blue-500/40')
-        expect(rellenar.className).not.toContain('bg-blue-600')
+        // Diseño "liquid": primario navy+dorado, regenerar crema, rellenar blanco — los tres distintos.
+        expect(generar.className).toContain('from-[#1f2e85]')
+        expect(generar.className).toContain('border-[#b8964a]')
+        expect(regenerar.className).toContain('bg-[#f8f3e8]')
+        expect(regenerar.className).not.toContain('from-[#1f2e85]')
+        expect(rellenar.className).toContain('bg-white')
+        expect(rellenar.className).not.toContain('from-[#1f2e85]')
 
         expect(screen.getByTestId('ofrenda-plano-generate-info-generar')).toBeTruthy()
         expect(screen.getByTestId('ofrenda-plano-generate-info-regenerar')).toBeTruthy()
         expect(screen.getByTestId('ofrenda-plano-generate-info-rellenar')).toBeTruthy()
     })
 
-    it('selector de alcance usa azul corporativo, no naranja', () => {
+    it('selector de alcance usa navy corporativo (liquid), no naranja', () => {
         renderPanel()
         const month = screen.getByTestId('ofrenda-plano-generate-scope-month')
-        expect(month.className).toContain('bg-blue-600')
+        expect(month.className).toContain('from-[#1f2e85]')
         expect(month.className).not.toContain('amber')
     })
 })
