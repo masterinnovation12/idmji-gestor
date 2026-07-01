@@ -391,10 +391,10 @@ export default function DashboardLayout({
             >
                 {/* Mobile Floating Header (Glassmorphism) */}
                 <header className="sticky top-4 z-90 md:hidden px-4">
-                    <div className="glass rounded-[2.5rem] border border-white/20 p-2 flex items-center justify-between shadow-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
+                    <div className="glass rounded-[2.5rem] border-[1.5px] border-[rgba(184,150,74,0.35)] p-2 flex items-center justify-between shadow-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
                         <button
                             onClick={() => setIsMobileMenuOpen(true)}
-                            className="w-12 h-12 flex items-center justify-center bg-primary/10 rounded-2xl text-primary shrink-0 transition-transform active:scale-90"
+                            className="w-12 h-12 flex items-center justify-center bg-[#1f2e85]/10 border border-[rgba(184,150,74,0.35)] rounded-2xl text-[#1f2e85] dark:text-[#e8d9a8] shrink-0 transition-transform active:scale-90"
                         >
                             <Menu size={22} />
                         </button>
@@ -403,7 +403,7 @@ export default function DashboardLayout({
                             onClick={() => setIsLogoModalOpen(true)}
                             className="flex items-center gap-3 flex-1 justify-center pr-2 transition-transform active:scale-95 cursor-pointer"
                         >
-                            <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-2xl border border-white/20 shrink-0 hover:scale-110 transition-transform">
+                            <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-2xl border-2 border-[rgba(184,150,74,0.5)] shrink-0 hover:scale-110 transition-transform">
                                 <NextImage
                                     src="/logo.jpg"
                                     alt="IDMJI Logo"
@@ -413,7 +413,7 @@ export default function DashboardLayout({
                                 />
                             </div>
                             <div className="flex flex-col">
-                                <span className="font-black italic text-sm tracking-tighter text-[#063b7a] dark:text-blue-400 leading-none">
+                                <span className="font-black italic text-sm tracking-tighter text-[#1f2e85] dark:text-[#e8d9a8] leading-none">
                                     {t('common.appName')}
                                 </span>
                                 <span className="text-[8px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] mt-1">
