@@ -125,7 +125,7 @@ function ComingSoonCard({ rolInfo, style }: ComingSoonCardProps) {
   const meta = ROL_META[rolInfo.rol] ?? ROL_META.introduccion
   const { icon: RolIcon } = meta
   return (
-    <div className={`rounded-2xl border ${style.border} border-dashed overflow-hidden`}>
+    <div className="rounded-2xl border-2 border-dashed border-[rgba(184,150,74,0.3)] overflow-hidden">
       <div className={`w-full flex items-center gap-3 px-5 py-4 ${style.comingSoonBg}`}>
         <div className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${style.accentBg} ${style.border} border opacity-50`}>
           <RolIcon className={`w-4 h-4 ${meta.color} opacity-60`} />
@@ -161,14 +161,14 @@ function InstruccionCard({ rolInfo, style, defaultOpen = false }: InstruccionCar
   const sections = useMemo(() => parseContent(rolInfo.contenido), [rolInfo.contenido])
 
   return (
-    <div className={`rounded-2xl border ${style.border} overflow-hidden transition-shadow duration-300 ${open ? 'shadow-md ring-1 ring-black/5 dark:ring-white/5' : 'shadow-sm hover:shadow-md'}`}>
+    <div className={`ofrenda-liquid-card overflow-hidden transition-shadow duration-300 ${open ? 'shadow-md ring-1 ring-[rgba(184,150,74,0.25)]' : 'shadow-sm hover:shadow-md'}`}>
       <button
         type="button"
         aria-expanded={open}
         aria-controls={`instruccion-content-${rolInfo.rol}`}
         onClick={() => setOpen((o) => !o)}
         className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors touch-manipulation
-          ${open ? style.accentBg : 'bg-background hover:bg-muted/30'}`}
+          ${open ? style.accentBg : 'bg-white hover:bg-[#f8f3e8]/60'}`}
       >
         <div className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${style.accentBg} ${style.border} border`}>
           <RolIcon className={`w-4 h-4 ${meta.color}`} />
@@ -248,7 +248,7 @@ export default function InstruccionesPageClient({ cultos }: Props) {
   }
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="ofrenda-liquid-scope space-y-6 pb-8">
 
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
@@ -306,8 +306,8 @@ export default function InstruccionesPageClient({ cultos }: Props) {
                 transition-all duration-200 touch-manipulation
                 flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-2
                 ${isActive
-                  ? `${style.tabActive} text-white shadow-lg`
-                  : `${style.accentBg} ${style.accentText} hover:brightness-95`
+                  ? `${style.tabActive} text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.28)]`
+                  : `${style.accentBg} ${style.accentText} border border-[rgba(184,150,74,0.25)] hover:brightness-95`
                 }
               `}
             >
@@ -339,7 +339,7 @@ export default function InstruccionesPageClient({ cultos }: Props) {
               className="space-y-4"
             >
               {/* Banner del culto */}
-              <div className={`rounded-2xl bg-linear-to-r ${style.gradient} p-5 sm:p-6 text-white overflow-hidden relative`}>
+              <div className={`rounded-2xl border-2 border-[#b8964a] bg-linear-to-r ${style.gradient} p-5 sm:p-6 text-white overflow-hidden relative shadow-[0_8px_28px_rgba(31,46,133,0.18)]`}>
                 <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10" />
                 <div className="absolute -right-2 -bottom-8 w-24 h-24 rounded-full bg-white/5" />
                 <div className="relative flex items-center gap-4">

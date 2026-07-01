@@ -19,6 +19,8 @@ export interface PlanoPersonaExportInput {
     prioridad_ofrendario: boolean
     parejaId: string | null
     activo: boolean
+    asignacionesOfrendario: number
+    asignacionesApoyo: number
 }
 
 export interface PlanoPersonaExportRow {
@@ -28,6 +30,8 @@ export interface PlanoPersonaExportRow {
     estrella: boolean
     conPareja: boolean
     activo: boolean
+    ofrendarioCount: number
+    apoyoCount: number
 }
 
 export interface PlanoFilterSubtitleLabels {
@@ -99,7 +103,23 @@ export function buildPersonasExportRows(
             estrella: p.prioridad_ofrendario,
             conPareja: Boolean(p.parejaId),
             activo: p.activo,
+            ofrendarioCount: p.asignacionesOfrendario,
+            apoyoCount: p.asignacionesApoyo,
         }))
+}
+
+/**
+ * Rellena una plantilla con los recuentos por rol. La plantilla i18n usa los
+ * marcadores {o} (veces ofrendario) y {a} (veces apoyo) — p. ej. «{o}O · {a}A».
+ */
+export function formatRoleCountsCell(
+    ofrendarioCount: number,
+    apoyoCount: number,
+    template: string,
+): string {
+    return template
+        .replace('{o}', String(ofrendarioCount))
+        .replace('{a}', String(apoyoCount))
 }
 
 function groupIsActive(count: number, total: number): boolean {
@@ -143,10 +163,11 @@ export function formatDiasCell(
     dias: PlanoPersonaExportRow['dias'],
     letters: { j: string; m: string; t: string },
     emptyMark = '—',
+    separator = '·',
 ): string {
     const out: string[] = []
     if (dias.jueves) out.push(letters.j)
     if (dias.domingo_manana) out.push(letters.m)
     if (dias.domingo_tarde) out.push(letters.t)
-    return out.length === 0 ? emptyMark : out.join('·')
+    return out.length === 0 ? emptyMark : out.join(separator)
 }

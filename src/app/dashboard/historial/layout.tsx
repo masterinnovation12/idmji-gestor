@@ -13,15 +13,15 @@ export default function HistorialLayout({ children }: { children: React.ReactNod
     const isTemasAlabanza = pathname.includes('/historial/temas-alabanza')
 
     return (
-        <div className="space-y-4 sm:space-y-6">
-            {/* Tabs premium */}
-            <div className="flex p-1.5 bg-white dark:bg-zinc-800 rounded-2xl w-fit shadow-lg border border-gray-200 dark:border-zinc-700">
+        <div className="ofrenda-liquid-scope space-y-4 sm:space-y-6">
+            {/* Tabs liquid premium */}
+            <div className="flex gap-1 p-1.5 rounded-2xl w-fit border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] shadow-sm">
                 <Link
                     href="/dashboard/historial/lecturas"
                     className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
                         isLecturas
-                            ? 'bg-blue-600 text-white shadow-lg'
-                            : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
+                            ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]'
+                            : 'text-slate-500 hover:text-[#1f2e85] hover:bg-white/60'
                     }`}
                 >
                     <BookOpen className="w-4 h-4" />
@@ -31,8 +31,8 @@ export default function HistorialLayout({ children }: { children: React.ReactNod
                     href="/dashboard/historial/temas-alabanza"
                     className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
                         isTemasAlabanza
-                            ? 'bg-blue-600 text-white shadow-lg'
-                            : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
+                            ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]'
+                            : 'text-slate-500 hover:text-[#1f2e85] hover:bg-white/60'
                     }`}
                 >
                     <Sparkles className="w-4 h-4" />

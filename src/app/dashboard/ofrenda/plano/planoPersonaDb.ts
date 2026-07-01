@@ -17,7 +17,12 @@ export interface PlanoPersonaFull {
     prioridad_ofrendario: boolean
     parejaNombre: string | null
     parejaId: string | null
+    /** Total de asignaciones (todo el histórico) — usado para avisar al borrar. */
     asignaciones: number
+    /** Veces como ofrendario desde el arranque del histórico (PLANO_HISTORIAL_DESDE). */
+    asignacionesOfrendario: number
+    /** Veces como apoyo desde el arranque del histórico (PLANO_HISTORIAL_DESDE). */
+    asignacionesApoyo: number
 }
 
 function readCapacidad(row: Record<string, unknown>): PlanoCapacidad {
@@ -30,7 +35,9 @@ function readGenero(row: Record<string, unknown>): PlanoGenero | null {
     return g === 'mujer' || g === 'hombre' ? g : null
 }
 
-export function readPlanoPersonaRow(row: Record<string, unknown>): Omit<PlanoPersonaFull, 'asignaciones' | 'parejaNombre' | 'parejaId'> {
+export function readPlanoPersonaRow(
+    row: Record<string, unknown>,
+): Omit<PlanoPersonaFull, 'asignaciones' | 'asignacionesOfrendario' | 'asignacionesApoyo' | 'parejaNombre' | 'parejaId'> {
     const turnos = normalizeMiembroDisponibilidad({
         puede_jueves: row.puede_jueves as boolean | undefined,
         puede_domingo_manana: row.puede_domingo_manana as boolean | undefined,

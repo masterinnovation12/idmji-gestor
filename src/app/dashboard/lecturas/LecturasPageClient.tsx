@@ -723,7 +723,7 @@ export default function LecturasPageClient({
                                 size="sm"
                                 onClick={() => setShowFilters(!showFilters)}
                                 className={`filter-toggle-button text-xs sm:text-sm px-3 sm:px-4 transition-all ${showFilters
-                                        ? 'bg-primary text-primary-foreground shadow-md'
+                                        ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-md'
                                         : ''
                                     }`}
                                 data-filter-button="true"
@@ -742,7 +742,7 @@ export default function LecturasPageClient({
                                         e.stopPropagation()
                                         setShowExportDropdown(!showExportDropdown)
                                     }}
-                                    className={`text-xs sm:text-sm px-3 sm:px-4 transition-all ${showExportDropdown ? 'bg-muted border-primary/50' : ''}`}
+                                    className={`text-xs sm:text-sm px-3 sm:px-4 transition-all ${showExportDropdown ? 'bg-[#f8f3e8] border-[#b8964a]' : ''}`}
                                 >
                                     <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                                     <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.export')}</span>
@@ -799,13 +799,13 @@ export default function LecturasPageClient({
 
                     {/* Búsqueda dentro del sticky: evita solapamiento con resultados al hacer scroll en móvil */}
                     <div className="relative group" data-testid="lecturas-search-wrap">
-                        <div className="absolute inset-0 bg-blue-500/10 blur-lg rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                        <div className="relative flex items-center bg-card border border-border/50 shadow-lg rounded-xl sm:rounded-2xl h-11 sm:h-12 md:h-14 focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary/50 transition-all overflow-hidden">
-                            <SearchIcon className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground ml-3 sm:ml-4 shrink-0 group-focus-within:text-primary transition-colors" />
+                        <div className="absolute inset-0 bg-[#b8964a]/12 blur-lg rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="relative flex items-center bg-white border-[1.5px] border-[rgba(184,150,74,0.32)] shadow-lg rounded-xl sm:rounded-2xl h-11 sm:h-12 md:h-14 focus-within:ring-2 focus-within:ring-[#b8964a]/30 focus-within:border-[#b8964a] transition-all overflow-hidden">
+                            <SearchIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#b68f2f] ml-3 sm:ml-4 shrink-0 transition-colors" />
                             <input
                                 type="text"
                                 placeholder={t('lecturas.searchPlaceholder')}
-                                className="w-full bg-transparent border-none outline-none px-3 sm:px-4 text-sm sm:text-base font-medium placeholder:text-muted-foreground/60 h-full text-foreground"
+                                className="w-full bg-transparent border-none outline-none px-3 sm:px-4 text-sm sm:text-base font-medium placeholder:text-slate-400 h-full text-[#0f172a]"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 onFocus={() => libroSuggestions.length > 0 && setShowSuggestions(true)}
@@ -865,7 +865,7 @@ export default function LecturasPageClient({
                             }}
                             className={`relative overflow-hidden h-10 sm:h-12 px-3 sm:px-4 md:px-6 rounded-xl border font-bold text-xs sm:text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 ${soloRepetidas
                                     ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20'
-                                    : 'bg-card hover:bg-accent/50 border-border text-muted-foreground hover:text-foreground hover:border-primary/50'
+                                    : 'bg-white hover:bg-[#f8f3e8] border-[rgba(184,150,74,0.32)] text-slate-500 hover:text-[#1f2e85] hover:border-[#b8964a]'
                                 }`}
                         >
                             <AlertCircle className={`w-3 h-3 sm:w-4 sm:h-4 ${soloRepetidas ? 'text-white' : 'text-muted-foreground'}`} />
@@ -885,8 +885,8 @@ export default function LecturasPageClient({
                                 exit={{ height: 0, opacity: 0 }}
                                 className="overflow-hidden"
                             >
-                                <Card className="border-border/50">
-                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-border/50">
+                                <Card className="ofrenda-liquid-card">
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-[rgba(184,150,74,0.2)]">
                                         <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
                                             <Filter className="w-4 h-4 sm:w-5 sm:h-5" />
                                             <span suppressHydrationWarning>{t('lecturas.filters')}</span>
@@ -914,14 +914,14 @@ export default function LecturasPageClient({
                                                         type="date"
                                                         value={startDate}
                                                         onChange={(e) => setStartDate(e.target.value)}
-                                                        className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
+                                                        className="w-full h-10 sm:h-11 px-3 sm:px-4 ofrenda-liquid-search rounded-xl text-sm sm:text-base"
                                                         aria-label={t('lecturas.filtersStartDate')}
                                                     />
                                                     <input
                                                         type="date"
                                                         value={endDate}
                                                         onChange={(e) => setEndDate(e.target.value)}
-                                                        className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
+                                                        className="w-full h-10 sm:h-11 px-3 sm:px-4 ofrenda-liquid-search rounded-xl text-sm sm:text-base"
                                                         aria-label={t('lecturas.filtersEndDate')}
                                                     />
                                                 </div>
@@ -936,7 +936,7 @@ export default function LecturasPageClient({
                                                 <select
                                                     value={tipoCulto}
                                                     onChange={(e) => setTipoCulto(e.target.value)}
-                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
+                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 ofrenda-liquid-search rounded-xl text-sm sm:text-base"
                                                     aria-label={t('lecturas.filtersTipoCulto')}
                                                 >
                                                     <option value="" suppressHydrationWarning>{t('lecturas.filterAll')}</option>
@@ -955,7 +955,7 @@ export default function LecturasPageClient({
                                                 <select
                                                     value={lectorId}
                                                     onChange={(e) => setLectorId(e.target.value)}
-                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
+                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 ofrenda-liquid-search rounded-xl text-sm sm:text-base"
                                                     aria-label={t('lecturas.filtersLector')}
                                                 >
                                                     <option value="" suppressHydrationWarning>{t('lecturas.filterAll')}</option>
@@ -976,7 +976,7 @@ export default function LecturasPageClient({
                                                 <select
                                                     value={testamento}
                                                     onChange={(e) => setTestamento(e.target.value as 'AT' | 'NT' | '')}
-                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
+                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 ofrenda-liquid-search rounded-xl text-sm sm:text-base"
                                                     aria-label={t('lecturas.filtersTestamento')}
                                                 >
                                                     <option value="" suppressHydrationWarning>{t('lecturas.filtersTestamentoAll')}</option>
@@ -994,7 +994,7 @@ export default function LecturasPageClient({
                                                 <select
                                                     value={tipoLectura}
                                                     onChange={(e) => setTipoLectura(e.target.value)}
-                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
+                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 ofrenda-liquid-search rounded-xl text-sm sm:text-base"
                                                     aria-label={t('lecturas.filtersTipoLectura')}
                                                 >
                                                     <option value="" suppressHydrationWarning>{t('lecturas.filtersTipoLecturaAll')}</option>
@@ -1015,7 +1015,7 @@ export default function LecturasPageClient({
                                                     value={capitulo}
                                                     onChange={(e) => setCapitulo(e.target.value)}
                                                     placeholder={t('lecturas.chapterPlaceholder')}
-                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
+                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 ofrenda-liquid-search rounded-xl text-sm sm:text-base"
                                                     aria-label={t('lecturas.filtersCapitulo')}
                                                 />
                                             </div>
@@ -1029,7 +1029,7 @@ export default function LecturasPageClient({
                                                 <select
                                                     value={groupBy}
                                                     onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm sm:text-base"
+                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 ofrenda-liquid-search rounded-xl text-sm sm:text-base"
                                                     aria-label={t('lecturas.groupBy')}
                                                 >
                                                     <option value="none" suppressHydrationWarning>{t('lecturas.groupByNone')}</option>
@@ -1053,7 +1053,7 @@ export default function LecturasPageClient({
                                             </Button>
                                             <Button
                                                 onClick={applyFilters}
-                                                className="w-full sm:w-auto text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white font-black shadow-lg shadow-blue-600/20 border-none"
+                                                className="w-full sm:w-auto text-xs sm:text-sm border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white font-black shadow-lg shadow-blue-600/20 border-none"
                                             >
                                                 <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4" />
                                                 <span suppressHydrationWarning>{t('lecturas.applyFilters')}</span>
@@ -1309,15 +1309,15 @@ export default function LecturasPageClient({
                 </div>
 
                 {/* Listado Principal - Responsive */}
-                <Card className="overflow-hidden border border-border/50 shadow-2xl bg-card/40 backdrop-blur-xl relative z-0">
-                    <CardHeader className="border-b border-border/50 bg-card/50 py-4 sm:py-6 px-4 sm:px-6 md:px-8 relative z-0">
-                        <CardTitle className="text-lg sm:text-xl md:text-2xl flex items-center gap-2 sm:gap-3 flex-wrap">
-                            <div className="p-2 sm:p-2.5 rounded-xl bg-primary/10 text-primary">
+                <Card className="ofrenda-liquid-card overflow-hidden shadow-2xl relative z-0">
+                    <CardHeader className="ofrenda-liquid-headbar py-4 sm:py-6 px-4 sm:px-6 md:px-8 relative z-0">
+                        <CardTitle className="text-lg sm:text-xl md:text-2xl flex items-center gap-2 sm:gap-3 flex-wrap text-white">
+                            <div className="p-2 sm:p-2.5 rounded-xl bg-white/15 text-white">
                                 <History className="w-4 h-4 sm:w-5 sm:h-6" />
                             </div>
                             <span suppressHydrationWarning>{t('lecturas.history')}</span>
                             {searchTerm && (
-                                <span className="text-xs sm:text-sm font-medium text-muted-foreground px-2 sm:px-3 py-1 rounded-full bg-muted/50 border border-border/50">
+                                <span className="text-xs sm:text-sm font-medium text-white/80 px-2 sm:px-3 py-1 rounded-full bg-white/10 border border-white/20">
                                     &quot;{searchTerm}&quot;
                                 </span>
                             )}
@@ -1375,7 +1375,7 @@ export default function LecturasPageClient({
                                                     <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
                                                         <div className={`mt-1 p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-sm shrink-0 ${lectura.es_repetida
                                                                 ? 'bg-red-100 text-red-600 dark:bg-red-900/30'
-                                                                : 'bg-primary/10 text-primary'
+                                                                : 'bg-[#1f2e85]/10 text-[#1f2e85]'
                                                             }`}>
                                                             {lectura.es_repetida ? (
                                                                 <AlertCircle size={20} className="sm:w-6 sm:h-6" />
@@ -1416,7 +1416,7 @@ export default function LecturasPageClient({
                                                     </div>
 
                                                     <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                                                        <span className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-widest shadow-sm ${'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                                        <span className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-widest shadow-sm ${'bg-[#f8f3e8] text-[#1f2e85] border border-[rgba(184,150,74,0.4)]'
                                                             }`}>
                                                             <span suppressHydrationWarning>
                                                                 {lectura.culto.tipo_culto.nombre}
@@ -1471,7 +1471,7 @@ export default function LecturasPageClient({
                                 <div className="flex items-center gap-2 sm:gap-3">
                                     <Button
                                         variant="outline"
-                                        className="rounded-xl font-bold px-4 sm:px-6 h-10 sm:h-12 text-xs sm:text-sm border-border/50 hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95"
+                                        className="rounded-xl font-bold px-4 sm:px-6 h-10 sm:h-12 text-xs sm:text-sm border-[rgba(184,150,74,0.4)] hover:bg-[#1f2e85] hover:text-white hover:border-[#b8964a] transition-all active:scale-95"
                                         disabled={currentPage <= 1}
                                         onClick={() => changePage(currentPage - 1)}
                                         aria-label={t('common.previousPage')}
@@ -1482,7 +1482,7 @@ export default function LecturasPageClient({
                                     </Button>
                                     <Button
                                         variant="outline"
-                                        className="rounded-xl font-bold px-4 sm:px-6 h-10 sm:h-12 text-xs sm:text-sm border-border/50 hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95"
+                                        className="rounded-xl font-bold px-4 sm:px-6 h-10 sm:h-12 text-xs sm:text-sm border-[rgba(184,150,74,0.4)] hover:bg-[#1f2e85] hover:text-white hover:border-[#b8964a] transition-all active:scale-95"
                                         disabled={currentPage >= totalPages}
                                         onClick={() => changePage(currentPage + 1)}
                                         aria-label={t('common.nextPage')}
@@ -1589,7 +1589,7 @@ export default function LecturasPageClient({
                                     setShowDetailsModal(false)
                                     setSelectedLectura(null)
                                 }}
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 transition-all"
+                                className="border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 transition-all"
                             >
                                 Cerrar
                             </Button>
@@ -1703,7 +1703,7 @@ export default function LecturasPageClient({
                     <div className="pt-4">
                         <Button
                             onClick={() => setShowExportDropdown(false)}
-                            className="w-full py-4 rounded-2xl font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20"
+                            className="w-full py-4 rounded-2xl font-bold border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white shadow-lg shadow-blue-600/20"
                         >
                             Cerrar
                         </Button>

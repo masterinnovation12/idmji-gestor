@@ -152,7 +152,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
     }, [activeTab, himnos, coros])
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 pb-12 px-4">
+        <div className="ofrenda-liquid-scope max-w-6xl mx-auto space-y-8 pb-12 px-4">
             {/* Breadcrumb y Header */}
             <div className="space-y-4">
                 <BackButton fallbackUrl="/dashboard" />
@@ -169,13 +169,13 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                     </div>
 
                     <div className="relative w-full lg:w-96 group">
-                        <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl group-focus-within:bg-primary/30 transition-all opacity-0 group-focus-within:opacity-100" />
-                        <div className="relative bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-2xl flex items-center px-4 h-14 shadow-lg focus-within:border-blue-500 transition-all">
-                            <Search className="w-5 h-5 text-gray-400 dark:text-zinc-500 mr-3" />
+                        <div className="absolute inset-0 bg-[#b8964a]/15 rounded-2xl blur-xl group-focus-within:bg-[#b8964a]/25 transition-all opacity-0 group-focus-within:opacity-100" />
+                        <div className="relative bg-white border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-2xl flex items-center px-4 h-14 shadow-lg focus-within:ring-2 focus-within:ring-[#b8964a]/30 focus-within:border-[#b8964a] transition-all">
+                            <Search className="w-5 h-5 text-[#b68f2f] mr-3" />
                             <input
                                 type="text"
                                 placeholder={t('himnario.searchPlaceholder')}
-                                className="w-full bg-transparent border-none outline-none font-bold placeholder:text-gray-400 dark:placeholder:text-zinc-500 text-gray-900 dark:text-white"
+                                className="w-full bg-transparent border-none outline-none font-bold placeholder:text-slate-400 text-[#0f172a]"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -184,7 +184,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 </div>
             </div>
 
-            <div className="flex p-1.5 bg-white dark:bg-zinc-800 rounded-2xl w-fit mx-auto sm:mx-0 shadow-lg border border-gray-200 dark:border-zinc-700">
+            <div className="flex gap-1 p-1.5 rounded-2xl w-fit mx-auto sm:mx-0 shadow-sm border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8]">
                 {[
                     { id: 'himnos', label: t('himnario.tabsHimnos'), icon: Music, count: counts.himnos },
                     { id: 'coros', label: t('himnario.tabsCoros'), icon: AudioLines, count: counts.coros }
@@ -193,15 +193,15 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as 'himnos' | 'coros')}
                         className={`flex items-center gap-3 px-6 py-3 rounded-xl font-black transition-all ${activeTab === tab.id
-                            ? 'bg-blue-600 text-white shadow-lg'
-                            : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
+                            ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]'
+                            : 'text-slate-500 hover:text-[#1f2e85] hover:bg-white/60'
                             }`}
                     >
                         <tab.icon className="w-5 h-5" />
                         <span suppressHydrationWarning className="uppercase tracking-widest text-xs">{tab.label}</span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${activeTab === tab.id
                             ? 'bg-white/20 text-white'
-                            : 'bg-gray-200 dark:bg-zinc-600 text-gray-600 dark:text-zinc-300'
+                            : 'bg-white text-[#1f2e85] border border-[rgba(184,150,74,0.35)]'
                             }`}>
                             {tab.count}
                         </span>
@@ -214,19 +214,19 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
             <div className="grid lg:grid-cols-12 gap-8">
                 {/* List Table */}
                 <div className="lg:col-span-7">
-                    <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden min-h-[500px] h-full flex flex-col">
+                    <Card className="ofrenda-liquid-card rounded-[2.5rem] shadow-2xl overflow-hidden min-h-[500px] h-full flex flex-col">
                         <CardContent className="p-0 flex flex-col flex-1 overflow-hidden">
                             <div className="overflow-x-hidden overflow-y-auto no-scrollbar max-w-full flex-1">
                                 <table className="w-full table-fixed">
                                     <thead>
-                                        <tr className="bg-muted/30 border-b border-border/50 text-left">
-                                            <th suppressHydrationWarning className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground w-24">
+                                        <tr className="bg-gradient-to-br from-[#1f2e85] to-[#283593] border-b-2 border-[#b8964a] text-left">
+                                            <th suppressHydrationWarning className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-white/85 w-24">
                                                 {t('himnario.tableNumber')}
                                             </th>
-                                            <th suppressHydrationWarning className="px-6 sm:px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground w-full">
+                                            <th suppressHydrationWarning className="px-6 sm:px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-white/85 w-full">
                                                 {t('himnario.tableTitle')}
                                             </th>
-                                            <th suppressHydrationWarning className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-muted-foreground text-right w-32">
+                                            <th suppressHydrationWarning className="hidden sm:table-cell px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-white/85 text-right w-32">
                                                 {t('himnario.tableDuration')}
                                             </th>
                                         </tr>
@@ -275,14 +275,14 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                                         className="group hover:bg-muted/20 transition-all cursor-pointer border-b border-border/10 last:border-0"
                                                     >
                                                         <td className="hidden sm:table-cell px-8 py-6">
-                                                            <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-[#0660c6] to-blue-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20 group-hover:scale-110 group-hover:rotate-6 transition-all">
+                                                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1f2e85] to-[#283593] border border-[#b8964a] flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-[rgba(31,46,133,0.28)] group-hover:scale-110 group-hover:rotate-6 transition-all">
                                                                 {item.numero}
                                                             </div>
                                                         </td>
                                                         <td className="px-6 sm:px-8 py-5 sm:py-6 wrap-break-word">
                                                             <div className="flex flex-col gap-1 max-w-full">
                                                                 <div className="flex items-center gap-2 sm:hidden mb-1">
-                                                                    <span className="text-[10px] font-black tracking-widest text-white bg-blue-500 px-2 py-0.5 rounded-full uppercase">
+                                                                    <span className="text-[10px] font-black tracking-widest text-white bg-gradient-to-br from-[#1f2e85] to-[#283593] border border-[#b8964a] px-2 py-0.5 rounded-full uppercase">
                                                                         #{item.numero}
                                                                     </span>
                                                                     <span className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -330,7 +330,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 {/* Sidebar Calculator (Desktop Only) */}
                 <div className="hidden lg:block lg:col-span-5">
                     <div className="sticky top-6 max-h-[calc(100vh-4rem)] overflow-y-auto no-scrollbar">
-                        <Card className="rounded-[2.5rem] border-none shadow-2xl bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 overflow-hidden">
+                        <Card className="ofrenda-liquid-card rounded-[2.5rem] shadow-2xl overflow-hidden">
                             <CardContent className="p-8 space-y-6">
                                 <div className="space-y-2">
                                     <h3 suppressHydrationWarning className="text-xl font-black tracking-tighter flex items-center gap-3 text-foreground uppercase italic">
@@ -360,7 +360,7 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsCalcModalOpen(true)}
-                className="lg:hidden fixed bottom-6 right-6 w-16 h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-2xl shadow-blue-500/40 flex items-center justify-center z-50 border-2 border-white/30"
+                className="lg:hidden fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white rounded-2xl shadow-2xl shadow-[rgba(31,46,133,0.4)] flex items-center justify-center z-50 border-2 border-[#b8964a]"
                 data-testid="calculator-fab"
             >
                 <div className="relative">
@@ -451,7 +451,7 @@ function CalculatorModal({ children, onClose }: { children: React.ReactNode, onC
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 350, mass: 0.7 }}
             style={{ overscrollBehavior: 'contain' }}
-            className="relative bg-white dark:bg-zinc-900 w-full rounded-t-[3rem] shadow-2xl overflow-hidden border-t border-white/20 z-10 flex flex-col max-h-[90dvh] pb-[env(safe-area-inset-bottom)] touch-manipulation"
+            className="relative bg-white w-full rounded-t-[3rem] shadow-2xl overflow-hidden border-t-2 border-[#b8964a] z-10 flex flex-col max-h-[90dvh] pb-[env(safe-area-inset-bottom)] touch-manipulation"
             data-testid="calculator-modal"
         >
             {/* Handle: siempre arrastrable, estilo TikTok/YouTube */}
@@ -459,21 +459,21 @@ function CalculatorModal({ children, onClose }: { children: React.ReactNode, onC
                 className="pt-4 pb-3 w-full flex justify-center cursor-grab active:cursor-grabbing shrink-0 touch-none"
                 onPointerDown={(e) => controls.start(e)}
             >
-                <div className="w-14 h-1.5 rounded-full bg-gray-300 dark:bg-zinc-600" />
+                <div className="w-14 h-1.5 rounded-full bg-[#d4b86a]" />
             </div>
 
             {/* Header fijo */}
             <div className="px-6 pb-4 flex items-center justify-between shrink-0">
                 <div className="flex flex-col">
-                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 dark:text-white leading-none">{t('himnario.calculator')}</h2>
-                    <span className="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] mt-1">{t('himnario.timePlanning')}</span>
+                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1f2e85] leading-none">{t('himnario.calculator')}</h2>
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">{t('himnario.timePlanning')}</span>
                 </div>
                 <button
                     onClick={onClose}
-                    className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-zinc-800 rounded-full active:scale-90 transition-transform touch-manipulation"
+                    className="w-10 h-10 flex items-center justify-center bg-[#f8f3e8] border border-[rgba(184,150,74,0.35)] rounded-full active:scale-90 transition-transform touch-manipulation"
                     aria-label={t('common.close')}
                 >
-                    <Plus className="w-6 h-6 rotate-45 text-gray-500" />
+                    <Plus className="w-6 h-6 rotate-45 text-[#1f2e85]" />
                 </button>
             </div>
 

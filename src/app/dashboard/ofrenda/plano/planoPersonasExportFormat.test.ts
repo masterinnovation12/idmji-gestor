@@ -8,6 +8,7 @@ import {
     countPersonasPorDia,
     formatPersonasDayCountsLine,
     formatDiasCell,
+    formatRoleCountsCell,
     type PlanoPersonaExportInput,
     type PlanoFilterSubtitleLabels,
 } from './planoPersonasExportFormat'
@@ -38,6 +39,8 @@ function input(overrides: Partial<PlanoPersonaExportInput> = {}): PlanoPersonaEx
         prioridad_ofrendario: false,
         parejaId: null,
         activo: true,
+        asignacionesOfrendario: 0,
+        asignacionesApoyo: 0,
         ...overrides,
     }
 }
@@ -54,11 +57,22 @@ describe('buildPersonasExportRows', () => {
 
     it('mapea flags a la estructura de fila', () => {
         const [row] = buildPersonasExportRows([
-            input({ nombre: 'X', puede_jueves: true, puede_domingo_tarde: true, prioridad_ofrendario: true, parejaId: 'p' }),
+            input({ nombre: 'X', puede_jueves: true, puede_domingo_tarde: true, prioridad_ofrendario: true, parejaId: 'p', asignacionesOfrendario: 3, asignacionesApoyo: 1 }),
         ])
         expect(row.dias).toEqual({ jueves: true, domingo_manana: false, domingo_tarde: true })
         expect(row.estrella).toBe(true)
         expect(row.conPareja).toBe(true)
+        expect(row.ofrendarioCount).toBe(3)
+        expect(row.apoyoCount).toBe(1)
+    })
+})
+
+describe('formatRoleCountsCell', () => {
+    it('rellena la plantilla con recuentos O/A', () => {
+        expect(formatRoleCountsCell(1, 2, '{o}O · {a}A')).toBe('1O · 2A')
+    })
+    it('funciona con la variante catalana (S de suport)', () => {
+        expect(formatRoleCountsCell(0, 4, '{o}O · {a}S')).toBe('0O · 4S')
     })
 })
 
@@ -118,6 +132,12 @@ describe('formatDiasCell', () => {
     it('une iniciales de días disponibles', () => {
         expect(formatDiasCell({ jueves: true, domingo_manana: true, domingo_tarde: false }, letters)).toBe('J·M')
     })
+    it('admite separador y palabras completas', () => {
+        const words = { j: 'Jueves', m: 'Domingo M', t: 'Domingo T' }
+        expect(
+            formatDiasCell({ jueves: true, domingo_manana: false, domingo_tarde: true }, words, '—', ' · '),
+        ).toBe('Jueves · Domingo T')
+    })
     it('sin turnos → marca vacía', () => {
         expect(formatDiasCell({ jueves: false, domingo_manana: false, domingo_tarde: false }, letters)).toBe('—')
     })
@@ -132,13 +152,14 @@ describe('computePersonasExportLayout', () => {
     })
 
     it('las columnas suman el ancho de la tabla', () => {
-        const { tableWidth, colName, colDays, colCap } = computePersonasExportLayout(10)
-        expect(colName + colDays + colCap).toBe(tableWidth)
+        const { tableWidth, colName, colDays, colVeces, colCap } = computePersonasExportLayout(10)
+        expect(colName + colDays + colVeces + colCap).toBe(tableWidth)
     })
 
     it('columnas: nombre es la más ancha', () => {
         const cols = computePersonasExportColumns(1000)
         expect(cols.colName).toBeGreaterThan(cols.colDays)
+        expect(cols.colName).toBeGreaterThan(cols.colVeces)
         expect(cols.colName).toBeGreaterThan(cols.colCap)
     })
 

@@ -12,7 +12,7 @@ import {
     PERSONAS_EXPORT_CARD_RADIUS,
     PERSONAS_EXPORT_TABLE_HEADER_BG,
 } from './planoPersonasExportLayout'
-import { formatDiasCell, type PlanoPersonaExportRow } from './planoPersonasExportFormat'
+import { formatDiasCell, formatRoleCountsCell, type PlanoPersonaExportRow } from './planoPersonasExportFormat'
 import type { PlanoFilterCapacidad } from './planoPersonasFilter'
 
 export interface PlanoPersonasExportLabels {
@@ -23,6 +23,7 @@ export interface PlanoPersonasExportLabels {
     dayCountsLine: string
     colName: string
     colDays: string
+    colVeces: string
     colCapacity: string
     capOfrendario: string
     capApoyo: string
@@ -30,7 +31,10 @@ export interface PlanoPersonasExportLabels {
     dayJ: string
     dayM: string
     dayT: string
-    footer: string
+    /** Plantilla de recuentos por rol, p. ej. «{o}O · {a}A». */
+    roleCountsTemplate: string
+    /** Leyenda del pie: significado de O y A. */
+    roleLegend: string
 }
 
 const STAR = '★'
@@ -103,8 +107,13 @@ function drawTableHeader(
     ctx.textAlign = 'center'
     ctx.fillText(labels.colDays.toUpperCase(), tableX + layout.colName + layout.colDays / 2, midY)
     ctx.fillText(
+        labels.colVeces.toUpperCase(),
+        tableX + layout.colName + layout.colDays + layout.colVeces / 2,
+        midY,
+    )
+    ctx.fillText(
         labels.colCapacity.toUpperCase(),
-        tableX + layout.colName + layout.colDays + layout.colCap / 2,
+        tableX + layout.colName + layout.colDays + layout.colVeces + layout.colCap / 2,
         midY,
     )
 }
@@ -204,20 +213,31 @@ export async function exportPlanoPersonasPng(
             ctx.fillText(HEART, nx + nameW + 6, midY)
         }
 
-        // Columna Días (centrada)
+        // Columna Días (centrada, palabras completas: «Jueves · Domingo M · Domingo T»)
         ctx.fillStyle = IDMJI_BRAND.navy
-        ctx.font = '800 18px Montserrat, Inter, Arial, sans-serif'
+        ctx.font = '700 15px Montserrat, Inter, Arial, sans-serif'
         ctx.textAlign = 'center'
+        const diasMaxW = layout.colDays - 12
         ctx.fillText(
-            formatDiasCell(row.dias, dayLetters),
+            truncateToWidth(ctx, formatDiasCell(row.dias, dayLetters, '—', ' · '), diasMaxW),
             tableX + layout.colName + layout.colDays / 2,
+            midY,
+        )
+
+        // Columna Veces (centrada: «1O · 2A»)
+        ctx.fillStyle = IDMJI_BRAND.navy
+        ctx.font = '800 17px Montserrat, Inter, Arial, sans-serif'
+        const vecesX = tableX + layout.colName + layout.colDays + layout.colVeces / 2
+        ctx.fillText(
+            formatRoleCountsCell(row.ofrendarioCount, row.apoyoCount, labels.roleCountsTemplate),
+            vecesX,
             midY,
         )
 
         // Columna Capacidad (centrada)
         ctx.fillStyle = IDMJI_BRAND.textSecondary
         ctx.font = '700 18px Montserrat, Inter, Arial, sans-serif'
-        const capX = tableX + layout.colName + layout.colDays + layout.colCap / 2
+        const capX = tableX + layout.colName + layout.colDays + layout.colVeces + layout.colCap / 2
         const capMaxW = layout.colCap - 16
         ctx.fillText(truncateToWidth(ctx, capLabel(row.capacidad, labels), capMaxW), capX, midY)
     })
@@ -252,7 +272,7 @@ export async function exportPlanoPersonasPng(
     ctx.font = '700 13px Montserrat, Inter, Arial, sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(labels.footer, tableX + layout.tableWidth / 2, layout.footerBarY + layout.footerBarH / 2)
+    ctx.fillText(labels.roleLegend, tableX + layout.tableWidth / 2, layout.footerBarY + layout.footerBarH / 2)
 
     return new Promise((resolve, reject) => {
         canvas.toBlob(blob => {
