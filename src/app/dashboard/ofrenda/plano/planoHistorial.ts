@@ -5,10 +5,11 @@
  * apoyo) que se muestra en «Personas» y la memoria de rotación (±3 servicios del
  * mismo turno) SOLO consideran servicios con `fecha >= PLANO_HISTORIAL_DESDE`.
  *
- * Motivo: las cargas de junio de 2026 fueron pruebas; el conteo real arranca la
- * primera semana de julio de 2026. Cambiar esta fecha reajusta ambos cómputos.
+ * Motivo: las semanas de junio anteriores a S.26 fueron pruebas; el histórico real
+ * arranca el jueves 25/06/2026 (última semana de junio). Cambiar esta fecha
+ * reajusta ambos cómputos.
  */
-export const PLANO_HISTORIAL_DESDE = '2026-07-01'
+export const PLANO_HISTORIAL_DESDE = '2026-06-25'
 
 export interface PlanoRoleCounts {
     ofrendario: number
