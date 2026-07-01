@@ -13,6 +13,7 @@ import {
     LABOR_OFRENDA_HEADER_H,
     type LaborOfrendaHeaderLabels,
 } from './drawLaborOfrendaExportHeader'
+import { laborExportScaleForDesign } from './laborExportResolution'
 
 const figureImageCache = new Map<string, Promise<HTMLImageElement>>()
 
@@ -110,7 +111,7 @@ export async function exportPlanoPng(
     const H = data.lienzo.h
     const headerH = header ? LABOR_OFRENDA_HEADER_H : 0
     const totalH = H + headerH
-    const scale = 2
+    const scale = laborExportScaleForDesign(Math.max(W, totalH))
 
     const colorOf = (bloque: number) =>
         data.bloques.find(b => b.n === bloque)?.color ?? '#64748b'

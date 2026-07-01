@@ -4,11 +4,15 @@
  */
 
 import { SQUARE_HEADER_HEIGHT as LISTA_HEADER_SQUARE_H } from './laborOfrendaHeaderSquareLayout'
+import {
+    LABOR_EXPORT_MOBILE_DESIGN_PX,
+    LABOR_EXPORT_MOBILE_SCALE,
+} from './laborExportResolution'
 
 export { LISTA_HEADER_SQUARE_H }
 
-export const LISTA_EXPORT_SQUARE_PX = 1080
-export const LISTA_EXPORT_SCALE = 2
+export const LISTA_EXPORT_SQUARE_PX = LABOR_EXPORT_MOBILE_DESIGN_PX
+export const LISTA_EXPORT_SCALE = LABOR_EXPORT_MOBILE_SCALE
 
 export const LISTA_TABLE_HEADER_H = 44
 /** Barra dorada con texto dentro (mockup). */
