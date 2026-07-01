@@ -26,6 +26,7 @@ const SUBTITLE_LABELS: PlanoFilterSubtitleLabels = {
     ambos: 'Ambos',
     estrella: 'Prioridad ★',
     pareja: 'Con pareja',
+    sinAsignar: 'Solo sin turno asignado',
     todas: 'Todas las personas',
 }
 
@@ -113,6 +114,7 @@ describe('buildPersonasFilterSubtitle', () => {
             capacidades: ['ofrendario'],
             soloEstrella: true,
             soloPareja: false,
+            soloSinAsignar: false,
         }
         const sub = buildPersonasFilterSubtitle(f, SUBTITLE_LABELS)
         expect(sub).toBe('Jueves · Mujeres · Ofrendario · Prioridad ★')
@@ -124,6 +126,11 @@ describe('buildPersonasFilterSubtitle', () => {
             dias: ['jueves', 'domingo_tarde'],
         }
         expect(buildPersonasFilterSubtitle(f, SUBTITLE_LABELS)).toBe('Jueves / Domingo tarde')
+    })
+
+    it('incluye «sin turno asignado» en el subtítulo del PNG', () => {
+        const f: PlanoPersonasFilter = { ...defaultPlanoPersonasFilter(), soloSinAsignar: true }
+        expect(buildPersonasFilterSubtitle(f, SUBTITLE_LABELS)).toBe('Solo sin turno asignado')
     })
 })
 

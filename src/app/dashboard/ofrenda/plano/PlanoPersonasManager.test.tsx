@@ -63,7 +63,22 @@ const PERSONAS_BASE = {
 
 const PERSONAS = [
     { id: 'p1', nombre: 'Maria Edilma Aricapa', capacidad: 'ambos' as const, activo: true, asignaciones: 3, asignacionesOfrendario: 1, asignacionesApoyo: 2, ...PERSONAS_BASE, genero: 'mujer' as const },
-    { id: 'p2', nombre: 'Carlos Galvis', capacidad: 'ofrendario' as const, activo: true, asignaciones: 0, asignacionesOfrendario: 0, asignacionesApoyo: 0, ...PERSONAS_BASE },
+    {
+        id: 'p2',
+        nombre: 'Carlos Galvis',
+        capacidad: 'ofrendario' as const,
+        activo: true,
+        asignaciones: 0,
+        asignacionesOfrendario: 0,
+        asignacionesApoyo: 0,
+        puede_jueves: false,
+        puede_domingo_manana: false,
+        puede_domingo_tarde: false,
+        genero: 'hombre' as const,
+        prioridad_ofrendario: false,
+        parejaId: null,
+        parejaNombre: null,
+    },
 ]
 
 function renderManager(canEdit = true) {
@@ -101,7 +116,7 @@ describe('PlanoPersonasManager', () => {
         await screen.findByText('Maria Edilma Aricapa')
         expect(screen.getByText('ofrenda.plano.personas.hint')).toBeTruthy()
         expect(screen.getByTestId('plano-personas-turn-legend')).toBeTruthy()
-        expect(screen.getByTestId('plano-personas-day-count-jueves')).toHaveTextContent('2')
+        expect(screen.getByTestId('plano-personas-day-count-jueves')).toHaveTextContent('1')
         expect(screen.getByTestId('plano-personas-day-count-domingo_manana')).toHaveTextContent('0')
         expect(screen.getByTestId('plano-personas-day-count-domingo_tarde')).toHaveTextContent('0')
     })
@@ -231,6 +246,23 @@ describe('PlanoPersonasManager', () => {
         expect(rows[0].nombre).toBe('Maria Edilma Aricapa')
         expect(labels.dayCountsLine).toContain('ofrenda.plano.personas.sectionJueves: 1')
         expect(labels.dayCountsLine).toContain('ofrenda.plano.personas.sectionDomManana: 0')
+    })
+
+    it('filtro sin turno asignado deja solo la sección sin_turno y exporta el subconjunto', async () => {
+        renderManager()
+        await screen.findByText('Maria Edilma Aricapa')
+        fireEvent.click(screen.getByTestId('plano-personas-filters-toggle'))
+        fireEvent.click(screen.getByTestId('plano-personas-filter-sin-asignar'))
+        expect(screen.queryByText('Maria Edilma Aricapa')).toBeNull()
+        expect(screen.getByText('Carlos Galvis')).toBeTruthy()
+        expect(screen.getByTestId('plano-personas-section-sin_turno')).toBeTruthy()
+        fireEvent.click(screen.getByTestId('plano-personas-export-btn'))
+        await waitFor(() => expect(exportPng).toHaveBeenCalledTimes(1))
+        const rows = exportPng.mock.calls[0][0] as Array<{ nombre: string }>
+        const labels = exportPng.mock.calls[0][1] as { subtitle: string }
+        expect(rows).toHaveLength(1)
+        expect(rows[0].nombre).toBe('Carlos Galvis')
+        expect(labels.subtitle).toBe('ofrenda.plano.personas.filters.onlyUnassigned')
     })
 
     it('filtrar por día actualiza recuentos visibles', async () => {

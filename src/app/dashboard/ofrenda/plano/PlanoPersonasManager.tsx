@@ -178,6 +178,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                 ambos: t('ofrenda.plano.cap.ambos'),
                 estrella: t('ofrenda.plano.personas.export.starTag'),
                 pareja: t('ofrenda.plano.personas.export.pairTag'),
+                sinAsignar: t('ofrenda.plano.personas.filters.onlyUnassigned'),
                 todas: t('ofrenda.plano.personas.export.all'),
             })
             const dayCountsLine = formatPersonasDayCountsLine(dayCounts, {
@@ -510,6 +511,14 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                         >
                             <Heart className={`w-3.5 h-3.5 ${filter.soloPareja ? 'fill-current' : ''}`} />
                             {t('ofrenda.plano.personas.filters.onlyPair')}
+                        </FilterChip>
+                        <FilterChip
+                            active={filter.soloSinAsignar}
+                            onClick={() => setFilter(f => ({ ...f, soloSinAsignar: !f.soloSinAsignar }))}
+                            testId="plano-personas-filter-sin-asignar"
+                        >
+                            <UserX className="w-3.5 h-3.5" />
+                            {t('ofrenda.plano.personas.filters.onlyUnassigned')}
                         </FilterChip>
 
                         {filtersActive && (

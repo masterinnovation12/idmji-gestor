@@ -6,9 +6,12 @@
  *    Si está completo o vacío → no filtra (no-op), para que «todo marcado» muestre a todas.
  *  - Día = DISPONIBILIDAD: la persona pasa si puede en ALGUNO de los días seleccionados.
  *  - Entre grupos: AND. Dentro del grupo: OR.
- *  - Toggles (estrella, pareja): off = no filtra; on = exige la condición.
+ *  - Toggles (estrella, pareja, sin turno): off = no filtra; on = exige la condición.
+ *  - «Sin turno asignado» = misma regla que la sección del listado (sin día o varios días).
  *  - Las personas inactivas NO se excluyen aquí (decisión de producto: se incluyen).
  */
+
+import { clasificarSeccionTurno } from './planoPersonaTurnos'
 
 export type PlanoFilterDia = 'jueves' | 'domingo_manana' | 'domingo_tarde'
 export type PlanoFilterGenero = 'hombre' | 'mujer'
@@ -24,6 +27,7 @@ export interface PlanoPersonasFilter {
     capacidades: PlanoFilterCapacidad[]
     soloEstrella: boolean
     soloPareja: boolean
+    soloSinAsignar: boolean
 }
 
 /** Persona mínima necesaria para filtrar (la implementa PlanoPersonaFull). */
@@ -37,6 +41,13 @@ export interface PlanoFilterablePersona {
     parejaId: string | null
 }
 
+/** Misma condición que la sección «Sin turno asignado» del listado. */
+export function personaSinTurnoAsignado(
+    p: Pick<PlanoFilterablePersona, 'puede_jueves' | 'puede_domingo_manana' | 'puede_domingo_tarde'>,
+): boolean {
+    return clasificarSeccionTurno(p) === 'sin_turno'
+}
+
 export function defaultPlanoPersonasFilter(): PlanoPersonasFilter {
     return {
         dias: [...ALL_DIAS],
@@ -44,6 +55,7 @@ export function defaultPlanoPersonasFilter(): PlanoPersonasFilter {
         capacidades: [...ALL_CAPACIDADES],
         soloEstrella: false,
         soloPareja: false,
+        soloSinAsignar: false,
     }
 }
 
@@ -73,6 +85,7 @@ export function matchesPlanoPersonasFilter(
     }
     if (f.soloEstrella && !p.prioridad_ofrendario) return false
     if (f.soloPareja && !p.parejaId) return false
+    if (f.soloSinAsignar && !personaSinTurnoAsignado(p)) return false
     return true
 }
 
@@ -91,6 +104,7 @@ export function countActivePlanoFilters(f: PlanoPersonasFilter): number {
     if (groupIsActive(f.capacidades.length, ALL_CAPACIDADES.length)) n++
     if (f.soloEstrella) n++
     if (f.soloPareja) n++
+    if (f.soloSinAsignar) n++
     return n
 }
 

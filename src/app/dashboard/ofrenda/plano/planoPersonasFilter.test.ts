@@ -34,6 +34,7 @@ describe('defaultPlanoPersonasFilter', () => {
         expect(f.capacidades).toHaveLength(3)
         expect(f.soloEstrella).toBe(false)
         expect(f.soloPareja).toBe(false)
+        expect(f.soloSinAsignar).toBe(false)
         expect(hasActivePlanoFilters(f)).toBe(false)
     })
 
@@ -109,6 +110,28 @@ describe('toggles estrella y pareja', () => {
         expect(matchesPlanoPersonasFilter(persona({ parejaId: 'x' }), f)).toBe(true)
         expect(matchesPlanoPersonasFilter(persona({ parejaId: null }), f)).toBe(false)
     })
+
+    it('solo sin turno asignado exige la sección sin_turno del listado', () => {
+        const f: PlanoPersonasFilter = { ...defaultPlanoPersonasFilter(), soloSinAsignar: true }
+        expect(
+            matchesPlanoPersonasFilter(
+                persona({ puede_jueves: false, puede_domingo_manana: false, puede_domingo_tarde: false }),
+                f,
+            ),
+        ).toBe(true)
+        expect(
+            matchesPlanoPersonasFilter(
+                persona({ puede_jueves: true, puede_domingo_manana: true, puede_domingo_tarde: false }),
+                f,
+            ),
+        ).toBe(true)
+        expect(
+            matchesPlanoPersonasFilter(
+                persona({ puede_jueves: true, puede_domingo_manana: false, puede_domingo_tarde: false }),
+                f,
+            ),
+        ).toBe(false)
+    })
 })
 
 describe('combinación AND entre grupos', () => {
@@ -119,6 +142,7 @@ describe('combinación AND entre grupos', () => {
             capacidades: ['ofrendario'],
             soloEstrella: false,
             soloPareja: false,
+            soloSinAsignar: false,
         }
         const ok = persona({ puede_jueves: true, genero: 'mujer', capacidad: 'ofrendario' })
         const noCap = persona({ puede_jueves: true, genero: 'mujer', capacidad: 'ambos' })
@@ -135,6 +159,7 @@ describe('countActivePlanoFilters', () => {
             capacidades: ['ofrendario', 'apoyo', 'ambos'],
             soloEstrella: true,
             soloPareja: false,
+            soloSinAsignar: false,
         }
         expect(countActivePlanoFilters(f)).toBe(3)
     })
