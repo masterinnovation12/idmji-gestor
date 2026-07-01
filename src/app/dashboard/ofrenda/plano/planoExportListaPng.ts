@@ -77,7 +77,7 @@ function strokeColumnDividers(
 }
 
 /**
- * Export PNG lista — formato cuadrado móvil (1080×1080 @2x).
+ * Export PNG lista — formato cuadrado móvil (1080×1080 @3x, HD WhatsApp).
  * Tarjeta blanca + cabecera tabla carbón + zebra + divisores + pie dorado (mockup WhatsApp).
  */
 export async function exportPlanoListaPng(

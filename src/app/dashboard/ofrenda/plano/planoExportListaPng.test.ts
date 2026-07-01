@@ -16,8 +16,9 @@ import {
 } from './planoExportListaLayout'
 
 describe('exportPlanoListaPng — contrato mockup WhatsApp', () => {
-    it('PNG 1080×1080 @2x', () => {
-        expect(LISTA_EXPORT_SQUARE_PX * LISTA_EXPORT_SCALE).toBe(2160)
+    it('PNG 1080×1080 @3x cumple umbral HD WhatsApp (≥3024px)', () => {
+        expect(LISTA_EXPORT_SCALE).toBe(3)
+        expect(LISTA_EXPORT_SQUARE_PX * LISTA_EXPORT_SCALE).toBe(3240)
     })
 
     it('cabecera apilada intacta; tarjeta lista justo debajo', () => {
