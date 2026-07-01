@@ -45,7 +45,8 @@ function AppThemeBridge({ children }: Readonly<{ children: ReactNode }>) {
     const isDark = mounted && resolvedTheme === 'dark'
 
     const toggleTheme = useCallback(() => {
-        setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+        const next = document.documentElement.classList.contains('dark') ? 'light' : 'dark'
+        setTheme(next)
     }, [setTheme])
 
     const value = useMemo(() => ({ isDark, toggleTheme }), [isDark, toggleTheme])

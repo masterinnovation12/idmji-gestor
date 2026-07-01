@@ -7,7 +7,7 @@ import type { Language, TranslationKey } from '@/lib/i18n/types'
 import { FlagSpain } from './FlagSpain'
 import { FlagCatalonia } from './FlagCatalonia'
 
-export type LanguageMenuVariant = 'login' | 'sidebar' | 'sidebarCollapsed' | 'profile'
+export type LanguageMenuVariant = 'login' | 'loginLiquid' | 'sidebar' | 'sidebarCollapsed' | 'profile'
 
 export interface LanguageMenuProps {
     language: Language
@@ -130,11 +130,15 @@ export function LanguageMenu({
     const triggerFlagClass =
         variant === 'sidebar' || variant === 'sidebarCollapsed'
             ? 'h-4 w-6 shrink-0 rounded-sm border border-white/30 shadow-sm'
-            : 'h-4 w-6 shrink-0 rounded-sm border border-black/12 shadow-sm dark:border-zinc-600/90'
+            : variant === 'loginLiquid'
+              ? 'h-4 w-6 shrink-0 rounded-sm border border-white/25 shadow-sm'
+              : 'h-4 w-6 shrink-0 rounded-sm border border-black/12 shadow-sm dark:border-zinc-600/90'
 
     // ─── Estilos del trigger ────────────────────────────────────────────────
     let triggerBase: string
-    if (variant === 'login') {
+    if (variant === 'loginLiquid') {
+        triggerBase = 'login-liquid-tool-btn'
+    } else if (variant === 'login') {
         triggerBase = 'glass flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-foreground transition hover:bg-white/80 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
     } else if (variant === 'profile') {
         triggerBase = 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background text-foreground shadow-sm transition hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
@@ -143,7 +147,9 @@ export function LanguageMenu({
     }
 
     let triggerOpen: string
-    if (variant === 'login') {
+    if (variant === 'loginLiquid') {
+        triggerOpen = 'ring-2 ring-[#e3cc92]/55 bg-white/20'
+    } else if (variant === 'login') {
         triggerOpen = 'bg-white/80 dark:bg-white/10 ring-2 ring-primary/25'
     } else if (variant === 'profile') {
         triggerOpen = 'ring-2 ring-primary/25'
@@ -152,12 +158,22 @@ export function LanguageMenu({
     }
 
     // ─── Estilos del panel ──────────────────────────────────────────────────
-    const panelBase = 'min-w-[12rem] w-max max-w-[calc(100vw-1rem)] rounded-2xl border p-1.5 shadow-2xl'
-    const panelVariant = 'bg-white text-slate-900 border-slate-200 dark:bg-zinc-900 dark:text-white dark:border-zinc-700'
+    const panelBase = variant === 'loginLiquid'
+        ? 'login-liquid-lang-panel min-w-[12rem] w-max max-w-[calc(100vw-1rem)]'
+        : 'min-w-[12rem] w-max max-w-[calc(100vw-1rem)] rounded-2xl border p-1.5 shadow-2xl'
+    const panelVariant = variant === 'loginLiquid'
+        ? ''
+        : 'bg-white text-slate-900 border-slate-200 dark:bg-zinc-900 dark:text-white dark:border-zinc-700'
 
-    const itemBase = 'flex w-full min-w-0 items-center gap-3 px-3.5 py-2.5 text-left text-sm transition-all focus-visible:outline-none rounded-xl'
-    const itemInactive = 'hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-200'
-    const itemActive = 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-sky-300 font-semibold'
+    const itemBase = variant === 'loginLiquid'
+        ? 'login-liquid-lang-item'
+        : 'flex w-full min-w-0 items-center gap-3 px-3.5 py-2.5 text-left text-sm transition-all focus-visible:outline-none rounded-xl'
+    const itemInactive = variant === 'loginLiquid'
+        ? ''
+        : 'hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-200'
+    const itemActive = variant === 'loginLiquid'
+        ? 'login-liquid-lang-item--active'
+        : 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-sky-300 font-semibold'
 
     const isSidebarCollapsed = variant === 'sidebarCollapsed'
     const panelAnim = isSidebarCollapsed
