@@ -45,6 +45,7 @@ export interface PlanoFilterSubtitleLabels {
     ambos: string
     estrella: string
     pareja: string
+    sinAsignar: string
     todas: string
 }
 
@@ -154,6 +155,7 @@ export function buildPersonasFilterSubtitle(
     }
     if (f.soloEstrella) parts.push(labels.estrella)
     if (f.soloPareja) parts.push(labels.pareja)
+    if (f.soloSinAsignar) parts.push(labels.sinAsignar)
 
     return parts.length === 0 ? labels.todas : parts.join(' · ')
 }
