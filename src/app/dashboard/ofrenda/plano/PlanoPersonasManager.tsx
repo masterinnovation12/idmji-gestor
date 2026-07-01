@@ -185,10 +185,6 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                 domManana: t('ofrenda.plano.personas.sectionDomManana'),
                 domTarde: t('ofrenda.plano.personas.sectionDomTarde'),
             })
-            const legend = t('ofrenda.plano.personas.export.legend')
-                .replace('{j}', t('ofrenda.plano.personas.export.dayJ'))
-                .replace('{m}', t('ofrenda.plano.personas.export.dayM'))
-                .replace('{t}', t('ofrenda.plano.personas.export.dayT'))
             await exportPlanoPersonasPng(
                 rows,
                 {
@@ -198,6 +194,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                     dayCountsLine,
                     colName: t('ofrenda.plano.personas.export.colName'),
                     colDays: t('ofrenda.plano.personas.export.colDays'),
+                    colVeces: t('ofrenda.plano.personas.export.colVeces'),
                     colCapacity: t('ofrenda.plano.personas.export.colCapacity'),
                     capOfrendario: t('ofrenda.plano.cap.ofrendario'),
                     capApoyo: t('ofrenda.plano.cap.apoyo'),
@@ -205,7 +202,8 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                     dayJ: t('ofrenda.plano.personas.export.dayJ'),
                     dayM: t('ofrenda.plano.personas.export.dayM'),
                     dayT: t('ofrenda.plano.personas.export.dayT'),
-                    footer: legend,
+                    roleCountsTemplate: t('ofrenda.plano.personas.roleCounts'),
+                    roleLegend: t('ofrenda.plano.personas.export.roleLegend'),
                 },
                 `personas-labor-ofrenda-${new Date().toISOString().slice(0, 10)}.png`,
             )
@@ -730,6 +728,7 @@ function PersonaRow({
 }>) {
     const showTurnSummary = p.activo
     const canExpand = canEdit && showTurnSummary
+    const roleTotal = p.asignacionesOfrendario + p.asignacionesApoyo
 
     return (
         <li
@@ -767,13 +766,24 @@ function PersonaRow({
                 )}
 
                 <span
-                    className={`hidden sm:inline text-[10px] font-semibold shrink-0 whitespace-nowrap ${
-                        p.asignaciones > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground/60'
+                    className={`hidden sm:inline text-[10px] font-semibold shrink-0 whitespace-nowrap tabular-nums ${
+                        roleTotal > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground/60'
                     }`}
                     data-testid={`plano-persona-assignments-${p.id}`}
+                    aria-label={
+                        roleTotal > 0
+                            ? interpolate(t('ofrenda.plano.personas.roleCountsAria'), {
+                                  o: String(p.asignacionesOfrendario),
+                                  a: String(p.asignacionesApoyo),
+                              })
+                            : t('ofrenda.plano.personas.notAssigned')
+                    }
                 >
-                    {p.asignaciones > 0
-                        ? interpolate(t('ofrenda.plano.personas.assigned'), { n: String(p.asignaciones) })
+                    {roleTotal > 0
+                        ? interpolate(t('ofrenda.plano.personas.roleCounts'), {
+                              o: String(p.asignacionesOfrendario),
+                              a: String(p.asignacionesApoyo),
+                          })
                         : t('ofrenda.plano.personas.notAssigned')}
                 </span>
 
@@ -935,9 +945,12 @@ function PersonaRow({
                             </p>
                         )}
 
-                        <p className="text-[10px] text-muted-foreground sm:hidden">
-                            {p.asignaciones > 0
-                                ? interpolate(t('ofrenda.plano.personas.assigned'), { n: String(p.asignaciones) })
+                        <p className="text-[10px] text-muted-foreground sm:hidden tabular-nums">
+                            {roleTotal > 0
+                                ? interpolate(t('ofrenda.plano.personas.roleCounts'), {
+                                      o: String(p.asignacionesOfrendario),
+                                      a: String(p.asignacionesApoyo),
+                                  })
                                 : t('ofrenda.plano.personas.notAssigned')}
                         </p>
                     </motion.div>

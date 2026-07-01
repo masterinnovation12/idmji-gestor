@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
     asignarPlanoServicio,
     crearHistorialVacio,
+    sembrarUso,
     poolElegible,
     validarPoolSuficiente,
     type PlanoPersonaEngine,
@@ -77,5 +78,28 @@ describe('planoEngine', () => {
         ]
         const pool = poolElegible(personas, 'jueves', new Set())
         expect(pool.map(p => p.id)).toEqual(['j'])
+    })
+
+    it('sembrarUso penaliza a quien salió en servicios vecinos (rotación ±3)', () => {
+        // Dos parejas del mismo sexo posibles; sin historial gana la primera por orden.
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+            persona('h3', 'H3', { genero: 'hombre' }),
+            persona('h4', 'H4', { genero: 'hombre' }),
+        ]
+
+        const sinHistorial = crearHistorialVacio()
+        const base = asignarPlanoServicio('jueves', 1, personas, [], sinHistorial)
+        expect(base.map(r => r.persona_id).sort()).toEqual(['h1', 'h2'])
+
+        // Sembramos usos previos de h1 y h2 (aparecieron en vecinos) → deben rotar a h3/h4.
+        const conHistorial = crearHistorialVacio()
+        sembrarUso(conHistorial, 'h1')
+        sembrarUso(conHistorial, 'h1')
+        sembrarUso(conHistorial, 'h2')
+        sembrarUso(conHistorial, 'h2')
+        const rotado = asignarPlanoServicio('jueves', 1, personas, [], conHistorial)
+        expect(rotado.map(r => r.persona_id).sort()).toEqual(['h3', 'h4'])
     })
 })

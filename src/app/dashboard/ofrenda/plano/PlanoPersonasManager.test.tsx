@@ -62,8 +62,8 @@ const PERSONAS_BASE = {
 }
 
 const PERSONAS = [
-    { id: 'p1', nombre: 'Maria Edilma Aricapa', capacidad: 'ambos' as const, activo: true, asignaciones: 2, ...PERSONAS_BASE, genero: 'mujer' as const },
-    { id: 'p2', nombre: 'Carlos Galvis', capacidad: 'ofrendario' as const, activo: true, asignaciones: 0, ...PERSONAS_BASE },
+    { id: 'p1', nombre: 'Maria Edilma Aricapa', capacidad: 'ambos' as const, activo: true, asignaciones: 3, asignacionesOfrendario: 1, asignacionesApoyo: 2, ...PERSONAS_BASE, genero: 'mujer' as const },
+    { id: 'p2', nombre: 'Carlos Galvis', capacidad: 'ofrendario' as const, activo: true, asignaciones: 0, asignacionesOfrendario: 0, asignacionesApoyo: 0, ...PERSONAS_BASE },
 ]
 
 function renderManager(canEdit = true) {
@@ -114,11 +114,13 @@ describe('PlanoPersonasManager', () => {
         expect(screen.queryByText('ofrenda.plano.cap.apoyo')).not.toBeInTheDocument()
     })
 
-    it('muestra badge de capacidad y asignaciones en fila compacta', async () => {
+    it('muestra badge de capacidad y recuento O/A en fila compacta', async () => {
         renderManager()
         await screen.findByText('Maria Edilma Aricapa')
         expect(screen.getByTestId('plano-persona-cap-badge-p1')).toHaveTextContent('ofrenda.plano.cap.ambos')
-        expect(screen.getByTestId('plano-persona-assignments-p1')).toHaveTextContent('ofrenda.plano.personas.assigned')
+        // p1 tiene asignaciones (1O/2A) → usa la clave de recuento por rol
+        expect(screen.getByTestId('plano-persona-assignments-p1')).toHaveTextContent('ofrenda.plano.personas.roleCounts')
+        // p2 sin asignaciones → «sin asignar»
         expect(screen.getByTestId('plano-persona-assignments-p2')).toHaveTextContent('ofrenda.plano.personas.notAssigned')
     })
 

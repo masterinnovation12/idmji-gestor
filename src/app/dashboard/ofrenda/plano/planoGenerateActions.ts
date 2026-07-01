@@ -6,6 +6,8 @@ import type { PlanoRol } from './planoTypes'
 import {
     asignarPlanoServicio,
     crearHistorialVacio,
+    sembrarUso,
+    type PlanoHistorialUso,
     type PlanoParejaEngine,
     type PlanoPersonaEngine,
     validarPoolSuficiente,
@@ -13,6 +15,7 @@ import {
 import type { DiaTipo } from '@/lib/utils/ofrendaEngine'
 import { requireEditor } from './planoAuth'
 import { readPlanoPersonaRow } from './planoPersonaDb'
+import { PLANO_HISTORIAL_DESDE } from './planoHistorial'
 
 export type PlanoGenerateScope = 'week' | 'month'
 export type PlanoGenerateMode = 'generar' | 'regenerar' | 'rellenar'
@@ -60,6 +63,54 @@ function sacosForDia(
     return plan.sacos_domingo_tarde
 }
 
+/**
+ * Construye la memoria de rotación de un servicio a partir de hasta 3 servicios
+ * ANTERIORES y 3 POSTERIORES del MISMO turno (dia_tipo) que existan en la BD,
+ * desde el arranque del histórico (PLANO_HISTORIAL_DESDE). Cada aparición de una
+ * persona en esos vecinos suma un uso, de modo que la rotación penaliza a quien
+ * salió recientemente y reparte con más equidad entre semanas.
+ */
+async function historialDesdeVecinos(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    servicio: { fecha: string; dia_tipo: string },
+): Promise<PlanoHistorialUso> {
+    const historial = crearHistorialVacio()
+
+    const [prev, next] = await Promise.all([
+        supabase
+            .from('ofrenda_servicios')
+            .select('id')
+            .eq('dia_tipo', servicio.dia_tipo)
+            .lt('fecha', servicio.fecha)
+            .gte('fecha', PLANO_HISTORIAL_DESDE)
+            .order('fecha', { ascending: false })
+            .limit(3),
+        supabase
+            .from('ofrenda_servicios')
+            .select('id')
+            .eq('dia_tipo', servicio.dia_tipo)
+            .gt('fecha', servicio.fecha)
+            .gte('fecha', PLANO_HISTORIAL_DESDE)
+            .order('fecha', { ascending: true })
+            .limit(3),
+    ])
+
+    const ids = [...(prev.data ?? []), ...(next.data ?? [])].map(s => s.id as string)
+    if (ids.length === 0) return historial
+
+    const { data: asig } = await supabase
+        .from('ofrenda_plano_asignaciones')
+        .select('persona_id')
+        .in('servicio_id', ids)
+
+    for (const a of asig ?? []) {
+        const id = (a as { persona_id: string | null }).persona_id
+        if (id) sembrarUso(historial, id)
+    }
+
+    return historial
+}
+
 export async function generarPlanoLabor(
     opts: PlanoGenerateOptions,
 ): Promise<{ ok: true; asignados: number } | { ok: false; error: string }> {
@@ -90,7 +141,6 @@ export async function generarPlanoLabor(
 
     const personas = await loadPersonasEngine(supabase)
     const parejas = await loadParejasEngine(supabase)
-    const historial = crearHistorialVacio()
 
     for (const s of target) {
         const dia = s.dia_tipo as DiaTipo
@@ -116,6 +166,7 @@ export async function generarPlanoLabor(
             await supabase.from('ofrenda_plano_asignaciones').delete().eq('servicio_id', srv.id)
         }
 
+        const historial = await historialDesdeVecinos(supabase, srv)
         const borradores = asignarPlanoServicio(dia, sacos, personas, parejas, historial)
         if (!borradores.length) continue
 

@@ -23,6 +23,11 @@ import {
     type PlanoPersonaFull,
     type PlanoPersonaTurnosPatch,
 } from './planoPersonaDb'
+import {
+    PLANO_HISTORIAL_DESDE,
+    contarRolesPorPersona,
+    type AsignacionRolRow,
+} from './planoHistorial'
 
 export type { PlanoPersonaFull, PlanoPersonaTurnosPatch }
 
@@ -384,17 +389,29 @@ export async function listPlanoPersonas(): Promise<{ data?: PlanoPersonaFull[]; 
 
     const { data: asig } = await supabase
         .from('ofrenda_plano_asignaciones')
-        .select('persona_id')
+        .select('persona_id, rol, servicio_id')
 
     const { data: parejas } = await supabase
         .from('ofrenda_plano_parejas')
         .select('mujer_persona_id, hombre_persona_id')
 
+    // Servicios dentro del histórico válido (a partir de PLANO_HISTORIAL_DESDE):
+    // el recuento por rol (O/A) solo cuenta estos; el total (para el aviso de
+    // borrado) sí considera todas las asignaciones existentes.
+    const { data: svcRows } = await supabase
+        .from('ofrenda_servicios')
+        .select('id')
+        .gte('fecha', PLANO_HISTORIAL_DESDE)
+    const servicioIdsValidos = new Set((svcRows ?? []).map(s => s.id as string))
+
+    const asigRows = (asig ?? []) as AsignacionRolRow[]
+
     const counts = new Map<string, number>()
-    for (const a of asig ?? []) {
-        const id = (a as { persona_id: string | null }).persona_id
-        if (id) counts.set(id, (counts.get(id) ?? 0) + 1)
+    for (const a of asigRows) {
+        if (a.persona_id) counts.set(a.persona_id, (counts.get(a.persona_id) ?? 0) + 1)
     }
+
+    const roleCounts = contarRolesPorPersona(asigRows, servicioIdsValidos)
 
     const parejaByPerson = new Map<string, { id: string; nombre: string }>()
     const idToNombre = new Map((data ?? []).map(r => [r.id as string, r.nombre as string]))
@@ -414,6 +431,8 @@ export async function listPlanoPersonas(): Promise<{ data?: PlanoPersonaFull[]; 
                 parejaId: par?.id ?? null,
                 parejaNombre: par?.nombre ?? null,
                 asignaciones: counts.get(base.id) ?? 0,
+                asignacionesOfrendario: roleCounts.get(base.id)?.ofrendario ?? 0,
+                asignacionesApoyo: roleCounts.get(base.id)?.apoyo ?? 0,
             }
         }),
     }

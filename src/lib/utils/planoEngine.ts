@@ -32,6 +32,16 @@ export function crearHistorialVacio(): PlanoHistorialUso {
     return { conteo: new Map(), ultimaPorTurno: {} }
 }
 
+/**
+ * Añade `veces` usos previos a una persona para sesgar la rotación (equidad).
+ * Se usa para sembrar el historial con los servicios vecinos (±3 del mismo turno)
+ * cargados desde la base de datos antes de generar.
+ */
+export function sembrarUso(h: PlanoHistorialUso, id: string, veces = 1): void {
+    if (veces <= 0) return
+    h.conteo.set(id, (h.conteo.get(id) ?? 0) + veces)
+}
+
 function uso(h: PlanoHistorialUso, id: string): number {
     return h.conteo.get(id) ?? 0
 }

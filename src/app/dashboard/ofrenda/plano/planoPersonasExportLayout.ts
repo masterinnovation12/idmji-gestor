@@ -22,6 +22,7 @@ export const PERSONAS_EXPORT_TABLE_HEADER_BG = '#1f2937'
 export interface PersonasExportColumns {
     colName: number
     colDays: number
+    colVeces: number
     colCap: number
 }
 
@@ -42,10 +43,11 @@ export interface PersonasExportLayout extends PersonasExportColumns {
 }
 
 export function computePersonasExportColumns(tableWidth: number): PersonasExportColumns {
-    const colDays = Math.round(tableWidth * 0.16)
-    const colCap = Math.round(tableWidth * 0.26)
-    const colName = tableWidth - colDays - colCap
-    return { colName, colDays, colCap }
+    const colDays = Math.round(tableWidth * 0.24)
+    const colVeces = Math.round(tableWidth * 0.13)
+    const colCap = Math.round(tableWidth * 0.2)
+    const colName = tableWidth - colDays - colVeces - colCap
+    return { colName, colDays, colVeces, colCap }
 }
 
 export function computePersonasExportLayout(rowCount: number): PersonasExportLayout {
@@ -82,10 +84,13 @@ export function computePersonasExportLayout(rowCount: number): PersonasExportLay
     }
 }
 
-/** Posiciones X de los dos divisores verticales (entre Nombre|Días|Capacidad). */
+/** Posiciones X de los divisores verticales (entre Nombre|Días|Veces|Capacidad). */
 export function personasColumnDividerXs(
     tableX: number,
     cols: PersonasExportColumns,
-): [number, number] {
-    return [tableX + cols.colName, tableX + cols.colName + cols.colDays]
+): [number, number, number] {
+    const afterName = tableX + cols.colName
+    const afterDays = afterName + cols.colDays
+    const afterVeces = afterDays + cols.colVeces
+    return [afterName, afterDays, afterVeces]
 }
