@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { PWARegister } from "@/components/PWARegister";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { SplashScreen } from "@/components/SplashScreen";
 import { PromptsProvider } from "@/lib/PromptsContext";
 
 const inter = Inter({
@@ -84,6 +85,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        <link rel="preload" as="image" href="/logo.jpg" fetchPriority="high" />
         <link rel="apple-touch-icon" href="/icons/icon-180x180.png" />
         <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
@@ -101,6 +103,7 @@ export default function RootLayout({
               <Toaster position="top-center" closeButton />
               <PWARegister />
               <InstallPrompt />
+              <SplashScreen />
               {children}
             </PromptsProvider>
           </I18nProvider>

@@ -1,60 +1,116 @@
 /**
- * Tests de configuración PWA: manifest, splash, iconos.
- * Verifica que la app instalable muestre fondo blanco y logo grande.
+ * Tests de configuración PWA: manifest, splash (marco dorado), iconos.
+ * Verifica que la app instalable muestre fondo blanco + logo en marco dorado.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
+import sharp from 'sharp'
+import {
+    computeSplashBadgeLayout,
+    SPLASH_IPHONE_HEIGHT,
+    SPLASH_IPHONE_WIDTH,
+} from './splashLayout'
 
 const PUBLIC = join(process.cwd(), 'public')
+const SPLASH = join(PUBLIC, 'splash', 'splash-iphone.png')
+
+async function pixelAt(path: string, x: number, y: number): Promise<[number, number, number]> {
+    const { data } = await sharp(path)
+        .extract({ left: x, top: y, width: 1, height: 1 })
+        .raw()
+        .toBuffer({ resolveWithObject: true })
+    return [data[0], data[1], data[2]]
+}
 
 describe('PWA config', () => {
-  describe('manifest.json', () => {
-    it('debe tener background_color blanco para splash', () => {
-      const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
-      expect(manifest.background_color).toBe('#ffffff')
+    describe('manifest.json', () => {
+        it('debe tener background_color blanco para splash', () => {
+            const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
+            expect(manifest.background_color).toBe('#ffffff')
+        })
+
+        it('debe tener theme_color blanco para splash', () => {
+            const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
+            expect(manifest.theme_color).toBe('#ffffff')
+        })
+
+        it('debe listar icono 512x512 primero para splash más grande', () => {
+            const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
+            const firstIcon = manifest.icons[0]
+            expect(firstIcon.sizes).toBe('512x512')
+            expect(firstIcon.src).toContain('icon-512x512')
+        })
+
+        it('debe tener iconos requeridos para instalación', () => {
+            const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
+            const sizes = manifest.icons.map((i: { sizes: string }) => i.sizes)
+            expect(sizes).toContain('192x192')
+            expect(sizes).toContain('512x512')
+        })
     })
 
-    it('debe tener theme_color blanco para splash', () => {
-      const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
-      expect(manifest.theme_color).toBe('#ffffff')
+    describe('assets PWA', () => {
+        it('debe existir splash-iphone.png', () => {
+            expect(existsSync(SPLASH)).toBe(true)
+        })
+
+        it('splash-iphone debe ser PNG válido', () => {
+            const buf = readFileSync(SPLASH)
+            expect(buf[0]).toBe(0x89)
+            expect(buf[1]).toBe(0x50)
+            expect(buf[2]).toBe(0x4e)
+            expect(buf[3]).toBe(0x47)
+        })
+
+        it('splash-iphone tiene las dimensiones esperadas', async () => {
+            const meta = await sharp(SPLASH).metadata()
+            expect(meta.width).toBe(SPLASH_IPHONE_WIDTH)
+            expect(meta.height).toBe(SPLASH_IPHONE_HEIGHT)
+        })
+
+        it('debe existir logo.jpg', () => {
+            expect(existsSync(join(PUBLIC, 'logo.jpg'))).toBe(true)
+        })
+
+        it('debe existir icono 512x512', () => {
+            expect(existsSync(join(PUBLIC, 'icons', 'icon-512x512.png'))).toBe(true)
+        })
+
+        it('deben existir los apple-touch-icons referenciados en layout', () => {
+            for (const s of [152, 167, 180]) {
+                expect(existsSync(join(PUBLIC, 'icons', `icon-${s}x${s}.png`))).toBe(true)
+            }
+        })
     })
 
-    it('debe listar icono 512x512 primero para splash más grande', () => {
-      const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
-      const firstIcon = manifest.icons[0]
-      expect(firstIcon.sizes).toBe('512x512')
-      expect(firstIcon.src).toContain('icon-512x512')
-    })
+    describe('splash con marco dorado', () => {
+        const layout = computeSplashBadgeLayout(SPLASH_IPHONE_WIDTH, SPLASH_IPHONE_HEIGHT)
 
-    it('debe tener iconos requeridos para instalación', () => {
-      const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
-      const sizes = manifest.icons.map((i: { sizes: string }) => i.sizes)
-      expect(sizes).toContain('192x192')
-      expect(sizes).toContain('512x512')
-    })
-  })
+        it('el marco del badge es dorado', async () => {
+            const x = Math.round(layout.left + layout.size / 2)
+            const y = Math.round(layout.top + layout.rim / 2)
+            const [r, g, b] = await pixelAt(SPLASH, x, y)
+            expect(r).toBeGreaterThan(150)
+            expect(g).toBeGreaterThan(110)
+            expect(r).toBeGreaterThan(b) // tono dorado (rojo > azul)
+            expect(b).toBeLessThan(170)
+        })
 
-  describe('assets PWA', () => {
-    it('debe existir splash-iphone.png', () => {
-      expect(existsSync(join(PUBLIC, 'splash', 'splash-iphone.png'))).toBe(true)
-    })
+        it('la zona interior (aro entre marco y logo) es blanca', async () => {
+            const x = layout.left + layout.rim + 5
+            const y = layout.top + layout.rim + 5
+            const [r, g, b] = await pixelAt(SPLASH, x, y)
+            expect(r).toBeGreaterThan(240)
+            expect(g).toBeGreaterThan(240)
+            expect(b).toBeGreaterThan(240)
+        })
 
-    it('splash-iphone debe ser PNG válido con dimensiones esperadas', () => {
-      const buf = readFileSync(join(PUBLIC, 'splash', 'splash-iphone.png'))
-      // PNG signature
-      expect(buf[0]).toBe(0x89)
-      expect(buf[1]).toBe(0x50)
-      expect(buf[2]).toBe(0x4e)
-      expect(buf[3]).toBe(0x47)
+        it('el fondo alrededor del badge es blanco', async () => {
+            const [r, g, b] = await pixelAt(SPLASH, 40, 40)
+            expect(r).toBeGreaterThan(245)
+            expect(g).toBeGreaterThan(245)
+            expect(b).toBeGreaterThan(245)
+        })
     })
-
-    it('debe existir logo.jpg', () => {
-      expect(existsSync(join(PUBLIC, 'logo.jpg'))).toBe(true)
-    })
-
-    it('debe existir icono 512x512', () => {
-      expect(existsSync(join(PUBLIC, 'icons', 'icon-512x512.png'))).toBe(true)
-    })
-  })
 })

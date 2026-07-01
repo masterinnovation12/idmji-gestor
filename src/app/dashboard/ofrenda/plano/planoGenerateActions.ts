@@ -5,8 +5,7 @@ import { revalidatePath } from 'next/cache'
 import type { PlanoRol } from './planoTypes'
 import {
     asignarPlanoServicio,
-    crearHistorialVacio,
-    sembrarUso,
+    construirHistorialParaServicio,
     type PlanoHistorialUso,
     type PlanoParejaEngine,
     type PlanoPersonaEngine,
@@ -15,7 +14,14 @@ import {
 import type { DiaTipo } from '@/lib/utils/ofrendaEngine'
 import { requireEditor } from './planoAuth'
 import { readPlanoPersonaRow } from './planoPersonaDb'
-import { PLANO_HISTORIAL_DESDE } from './planoHistorial'
+import {
+    PLANO_HISTORIAL_DESDE,
+    aplicarAsignacionesARolesSesion,
+    clonarRolesPorTurno,
+    construirRolesPorTurno,
+    type PlanoRoleCounts,
+    type PlanoTurnoHistorial,
+} from './planoHistorial'
 
 export type PlanoGenerateScope = 'week' | 'month'
 export type PlanoGenerateMode = 'generar' | 'regenerar' | 'rellenar'
@@ -64,18 +70,29 @@ function sacosForDia(
 }
 
 /**
- * Construye la memoria de rotación de un servicio a partir de hasta 3 servicios
- * ANTERIORES y 3 POSTERIORES del MISMO turno (dia_tipo) que existan en la BD,
- * desde el arranque del histórico (PLANO_HISTORIAL_DESDE). Cada aparición de una
- * persona en esos vecinos suma un uso, de modo que la rotación penaliza a quien
- * salió recientemente y reparte con más equidad entre semanas.
+ * Carga histórico O/A por turno (jueves / domingo M / domingo T) desde
+ * PLANO_HISTORIAL_DESDE. La UI Personas sigue usando el total global.
+ */
+async function cargarRolesHistoricoPorTurno(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<Map<PlanoTurnoHistorial, Map<string, PlanoRoleCounts>>> {
+    const [{ data: svcRows }, { data: asig }] = await Promise.all([
+        supabase.from('ofrenda_servicios').select('id, dia_tipo').gte('fecha', PLANO_HISTORIAL_DESDE),
+        supabase.from('ofrenda_plano_asignaciones').select('persona_id, rol, servicio_id'),
+    ])
+    return construirRolesPorTurno(asig ?? [], svcRows ?? [])
+}
+
+/**
+ * Construye la memoria de rotación de un servicio: histórico O/A del **mismo
+ * turno** + hasta 3 servicios vecinos ±3 (mismo dia_tipo). Los vecinos aportan
+ * recencia; los roles O/A equilibran solo dentro del turno.
  */
 async function historialDesdeVecinos(
     supabase: Awaited<ReturnType<typeof createClient>>,
     servicio: { fecha: string; dia_tipo: string },
+    rolesAcumulado: ReadonlyMap<string, PlanoRoleCounts>,
 ): Promise<PlanoHistorialUso> {
-    const historial = crearHistorialVacio()
-
     const [prev, next] = await Promise.all([
         supabase
             .from('ofrenda_servicios')
@@ -96,19 +113,14 @@ async function historialDesdeVecinos(
     ])
 
     const ids = [...(prev.data ?? []), ...(next.data ?? [])].map(s => s.id as string)
-    if (ids.length === 0) return historial
+    if (ids.length === 0) return construirHistorialParaServicio(rolesAcumulado, [])
 
     const { data: asig } = await supabase
         .from('ofrenda_plano_asignaciones')
-        .select('persona_id')
+        .select('persona_id, rol')
         .in('servicio_id', ids)
 
-    for (const a of asig ?? []) {
-        const id = (a as { persona_id: string | null }).persona_id
-        if (id) sembrarUso(historial, id)
-    }
-
-    return historial
+    return construirHistorialParaServicio(rolesAcumulado, asig ?? [])
 }
 
 export async function generarPlanoLabor(
@@ -152,8 +164,11 @@ export async function generarPlanoLabor(
 
     let total = 0
 
+    const rolesSesionPorTurno = clonarRolesPorTurno(await cargarRolesHistoricoPorTurno(supabase))
+
     for (const srv of target) {
         const dia = srv.dia_tipo as DiaTipo
+        const turno = dia as PlanoTurnoHistorial
         const sacos = sacosForDia(planRow, dia)
 
         if (opts.modo === 'rellenar') {
@@ -166,7 +181,8 @@ export async function generarPlanoLabor(
             await supabase.from('ofrenda_plano_asignaciones').delete().eq('servicio_id', srv.id)
         }
 
-        const historial = await historialDesdeVecinos(supabase, srv)
+        const rolesTurno = rolesSesionPorTurno.get(turno) ?? new Map<string, PlanoRoleCounts>()
+        const historial = await historialDesdeVecinos(supabase, srv, rolesTurno)
         const borradores = asignarPlanoServicio(dia, sacos, personas, parejas, historial)
         if (!borradores.length) continue
 
@@ -180,6 +196,8 @@ export async function generarPlanoLabor(
 
         const { error } = await supabase.from('ofrenda_plano_asignaciones').insert(rows)
         if (error) return { ok: false, error: error.message }
+        aplicarAsignacionesARolesSesion(rolesTurno, rows)
+        rolesSesionPorTurno.set(turno, rolesTurno)
         total += rows.length
     }
 
