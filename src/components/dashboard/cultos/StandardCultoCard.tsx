@@ -52,8 +52,8 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
     return (
         <>
             <div className="relative group">
-                <div className="absolute inset-0 bg-blue-600/20 blur-2xl rounded-[2.5rem] transform group-hover:scale-105 transition-transform duration-500 -z-10" />
-                <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl">
+                <div className="absolute inset-0 bg-[#b8964a]/20 blur-2xl rounded-[2.5rem] transform group-hover:scale-105 transition-transform duration-500 -z-10" />
+                <Card className="ofrenda-liquid-card rounded-[2.5rem] shadow-2xl overflow-hidden">
                     <div className="h-2 w-full" style={{ backgroundColor: culto.tipo_culto?.color || '#3b82f6' }} />
 
                     <CardContent className="p-4 sm:p-5 md:p-8">
@@ -136,7 +136,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                     <button
                                         type="button"
                                         onClick={() => setAddLecturaModalOpen(true)}
-                                        className="w-full py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-primary/25 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-primary"
+                                        className="w-full py-2.5 sm:py-3 px-4 sm:px-5 border-[1.5px] border-dashed border-[rgba(184,150,74,0.5)] rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-[#f8f3e8]/50 hover:bg-[#f8f3e8] hover:border-[#b8964a] active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-[#1f2e85]"
                                     >
                                         <Plus className="w-4 h-4 shrink-0" strokeWidth={2.5} />
                                         <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">
@@ -195,7 +195,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                         <Link href={`/dashboard/cultos/${culto.id}`} className="block w-full">
                             <button
                                 aria-label={t('dashboard.viewFullDetails')}
-                                className="w-full py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all shadow-lg"
+                                className="w-full py-4 border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_6px_22px_rgba(31,46,133,0.35)] hover:shadow-[0_8px_28px_rgba(31,46,133,0.45)] active:scale-95 transition-all"
                             >
                                 <span className="sm:hidden">{t('dashboard.viewDetailsShort')}</span>
                                 <span className="hidden sm:inline">{t('dashboard.viewFullDetails')}</span>

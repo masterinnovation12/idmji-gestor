@@ -66,7 +66,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', keyPrefix
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className={cn('glass w-full rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative pointer-events-auto shadow-2xl my-auto', sizes[size])}
+                            className={cn('ofrenda-liquid-card w-full rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative pointer-events-auto shadow-2xl my-auto', sizes[size])}
                         >
                             {/* Close Button — zona táctil 44px en móvil */}
                             <button

@@ -24,10 +24,10 @@ function QuickActionLink({ href, icon, title }: Readonly<{ href: string, icon: R
         <Link href={href}>
             <motion.div
                 whileTap={{ scale: 0.95 }}
-                className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-lg border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center gap-3 text-center hover:shadow-xl transition-all"
+                className="ofrenda-liquid-card rounded-3xl p-6 flex flex-col items-center justify-center gap-3 text-center hover:shadow-xl transition-all"
             >
-                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl">{icon}</div>
-                <span className="font-bold text-sm text-slate-700 dark:text-slate-200">{title}</span>
+                <div className="p-3 bg-[#f8f3e8] border border-[rgba(184,150,74,0.28)] rounded-2xl">{icon}</div>
+                <span className="font-bold text-sm text-[#1f2e85]">{title}</span>
             </motion.div>
         </Link>
     )

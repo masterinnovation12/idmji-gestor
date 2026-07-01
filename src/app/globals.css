@@ -207,7 +207,8 @@ div::-webkit-scrollbar,
  */
 .ofrenda-liquid-surface,
 .ofrenda-liquid-backdrop,
-.ofrenda-liquid-scope {
+.ofrenda-liquid-scope,
+.ofrenda-liquid-card {
   --ofrenda-gold: #b8964a;
   --ofrenda-gold-deep: #b68f2f;
   --ofrenda-gold-light: #d4b86a;

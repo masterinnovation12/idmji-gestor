@@ -169,16 +169,16 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
 
     return (
         <>
-            <Card className="h-full rounded-[2.5rem] border-none shadow-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex flex-col">
+            <Card className="ofrenda-liquid-card h-full rounded-[2.5rem] shadow-xl flex flex-col">
                 <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <CardTitle className="text-sm font-black uppercase tracking-widest text-[#1f2e85] flex items-center gap-2">
                         <UserIcon className="w-4 h-4" />
                         {t('dashboard.myAssignments')}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col">
                     {/* Week Navigation */}
-                    <div className="flex items-center justify-between mb-3 bg-slate-100 dark:bg-slate-800 rounded-full p-1">
+                    <div className="flex items-center justify-between mb-3 bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] border border-[rgba(184,150,74,0.25)] rounded-full p-1">
                         <button type="button" onClick={() => changeWeek('prev')} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-all shadow-sm touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label={t('calendar.prev')}>
                             <ChevronLeft className="w-4 h-4" />
                         </button>
@@ -193,7 +193,7 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                             type="button"
                             onClick={() => void openCalendarForWeek()}
                             disabled={calendarSharing}
-                            className="mb-4 w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20 transition-colors touch-manipulation disabled:opacity-60"
+                            className="mb-4 w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider bg-[#f8f3e8] text-[#1f2e85] hover:bg-[#f3ead4] border-[1.5px] border-[rgba(184,150,74,0.4)] hover:border-[#b8964a] transition-colors touch-manipulation disabled:opacity-60"
                         >
                             {calendarSharing ? (
                                 <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
@@ -221,7 +221,7 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                                 return (
                                     <div key={asg.id} className="flex flex-col gap-1">
                                         <Link href={`/dashboard/cultos/${asg.id}`}>
-                                            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-800 group">
+                                            <div className="p-4 rounded-2xl bg-white hover:bg-[#f8f3e8] transition-colors border border-[rgba(184,150,74,0.2)] hover:border-[#b8964a] group">
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div className="flex flex-col">
                                                         <span className="text-xs font-bold text-slate-400 uppercase">{format(new Date(asg.fecha), 'EEE d', { locale })} {asg.hora_inicio && ` - ${asg.hora_inicio.slice(0, 5)}`}</span>
@@ -231,7 +231,7 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                                                 </div>
                                                 <div className="flex flex-wrap gap-1">
                                                     {roles.map(r => (
-                                                        <span key={r} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                                                        <span key={r} className="px-2 py-0.5 bg-[#1f2e85]/10 text-[#1f2e85] border border-[rgba(184,150,74,0.3)] rounded-md text-[10px] font-bold uppercase tracking-wider">
                                                             {r}
                                                         </span>
                                                     ))}

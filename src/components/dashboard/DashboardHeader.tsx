@@ -29,14 +29,15 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
     return (
         <>
             {/* Desktop Version */}
-            <div className="hidden md:flex relative overflow-hidden glass rounded-4xl p-12 shadow-2xl border-white/20 bg-linear-to-br from-slate-50 to-blue-50/50 dark:from-slate-900 dark:to-slate-800 items-center justify-between">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4" />
+            <div className="hidden md:flex relative overflow-hidden rounded-4xl p-12 shadow-2xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] items-center justify-between">
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#b8964a]/25 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4" />
+                <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-                    <h1 className="text-4xl lg:text-5xl font-black mb-4 text-slate-900 dark:text-white tracking-tighter">
-                        <span>{greeting}</span> <span className="text-blue-600 dark:text-blue-400">{t('dashboard.greeting.brother')} {user.nombre}</span>
+                    <h1 className="text-4xl lg:text-5xl font-black mb-4 text-white tracking-tighter">
+                        <span>{greeting}</span> <span className="text-[#e8d9a8]">{t('dashboard.greeting.brother')} {user.nombre}</span>
                     </h1>
-                    <div className="flex items-center gap-3 text-slate-500 font-bold">
-                        <Calendar className="w-5 h-5 text-blue-500" />
+                    <div className="flex items-center gap-3 text-white/70 font-bold">
+                        <Calendar className="w-5 h-5 text-[#e8d9a8]" />
                         <span className="capitalize">{format(new Date(), 'PPPP', { locale })}</span>
                     </div>
                 </motion.div>
@@ -59,7 +60,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                     <h1 className="text-3xl xs:text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-none mb-1">
                         {greeting}
                     </h1>
-                    <p className="text-xs xs:text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest truncate">
+                    <p className="text-xs xs:text-sm font-bold text-[#b68f2f] uppercase tracking-widest truncate">
                         {t('dashboard.greeting.brother')} {user.nombre}
                     </p>
                 </div>

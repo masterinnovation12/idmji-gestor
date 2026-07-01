@@ -54,12 +54,12 @@ export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, ti
     const nombreCompleto = usuario ? `${usuario.nombre ?? ''} ${(usuario.apellidos ?? '').split(' ')[0] ?? ''}`.trim() : ''
 
     return (
-        <div className={`flex p-3 sm:p-4 bg-white/50 dark:bg-black/20 rounded-3xl border border-black/5 dark:border-white/5 backdrop-blur-sm transition-all shadow-sm relative ${hasExtraContent || hasFooter ? 'flex-col gap-3' : 'flex-row items-center gap-2 sm:gap-3'} ${hasExtraContent ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : ''}`}>
+        <div className={`flex p-3 sm:p-4 bg-white/70 rounded-3xl border border-[rgba(184,150,74,0.18)] transition-all shadow-sm relative ${hasExtraContent || hasFooter ? 'flex-col gap-3' : 'flex-row items-center gap-2 sm:gap-3'} ${hasExtraContent ? 'bg-[#f8f3e8]/40 border-[rgba(184,150,74,0.28)]' : ''}`}>
             {usuario ? (
                 <div className={`flex items-center gap-2 sm:gap-3 w-full min-w-0 ${hasExtraContent ? 'border-b border-black/5 dark:border-white/5 pb-2.5' : ''}`}>
                     <UserAvatar usuario={usuario} size="md" />
                     <div className="flex-1 min-w-0 overflow-hidden">
-                        <p className="text-[10px] text-blue-600 dark:text-blue-300 font-black uppercase tracking-wider mb-0.5">{label}</p>
+                        <p className="text-[10px] text-[#1f2e85] font-black uppercase tracking-wider mb-0.5">{label}</p>
                         <p className="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-2 wrap-break-word leading-tight">
                             {nombreCompleto || usuario.nombre}
                         </p>
@@ -72,7 +72,7 @@ export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, ti
                         <Users className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0 overflow-hidden">
-                        <p className="text-[10px] text-blue-600 dark:text-blue-300 font-black uppercase tracking-wider mb-0.5">{label}</p>
+                        <p className="text-[10px] text-[#1f2e85] font-black uppercase tracking-wider mb-0.5">{label}</p>
                         <p className="font-bold text-sm text-slate-400 italic line-clamp-2 wrap-break-word leading-tight">
                             {t('dashboard.himnario.unassigned')}
                         </p>
@@ -106,7 +106,7 @@ export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, ti
             {lecturasRegistradas.length > 0 && (
                 <div className="flex flex-col gap-2 p-3.5 bg-white/40 dark:bg-white/5 rounded-2xl border border-white/60 dark:border-white/10 shadow-sm relative group w-full min-w-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0 text-white border border-white/20">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#1f2e85] to-[#283593] flex items-center justify-center shadow-lg shadow-[rgba(31,46,133,0.25)] shrink-0 text-white border border-[#b8964a]">
                             <BookOpen className="w-5 h-5" />
                         </div>
                         <div className="min-w-0 flex-1 flex flex-col justify-center">
@@ -210,21 +210,21 @@ export function AssignmentPill({ label, usuario, lectura, lecturas, himnario, ti
                     <div className="flex items-center justify-center mt-2 pt-3 border-t border-indigo-200/50 dark:border-indigo-500/25">
                         <div
                             className="px-3 py-2.5 sm:px-5 sm:py-3.5 w-fit max-w-full rounded-2xl flex items-center justify-center gap-2.5 sm:gap-3 cursor-default
-                            border border-indigo-200/90 dark:border-indigo-400/35
-                            bg-linear-to-br from-indigo-50 via-white to-blue-50/90 dark:from-indigo-950/70 dark:via-zinc-900/85 dark:to-slate-950/90
-                            shadow-md shadow-indigo-500/10 dark:shadow-indigo-950/40
-                            ring-1 ring-indigo-500/20 dark:ring-indigo-400/25"
+                            border-[1.5px] border-[rgba(184,150,74,0.5)]
+                            bg-gradient-to-br from-[#f8f3e8] via-white to-[#f8f3e8]
+                            shadow-md shadow-[rgba(31,46,133,0.1)]
+                            ring-1 ring-[rgba(184,150,74,0.25)]"
                         >
-                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600/15 dark:bg-indigo-400/20 flex items-center justify-center shrink-0 border border-indigo-300/50 dark:border-indigo-500/40 shadow-inner">
-                                <Clock className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-indigo-700 dark:text-indigo-300" />
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#1f2e85]/10 flex items-center justify-center shrink-0 border border-[rgba(184,150,74,0.35)] shadow-inner">
+                                <Clock className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-[#1f2e85]" />
                             </div>
                             <div className="flex flex-col items-center text-center leading-none min-w-0">
-                                <span className="text-[11px] sm:text-sm font-black uppercase tracking-wide mb-1 text-indigo-800/90 dark:text-indigo-200">
+                                <span className="text-[11px] sm:text-sm font-black uppercase tracking-wide mb-1 text-[#1f2e85]">
                                     {t('dashboard.himnario.timeTotal')}
                                 </span>
-                                <span className="text-indigo-950 dark:text-white font-mono text-sm sm:text-base font-black tracking-tighter tabular-nums">
+                                <span className="text-[#1f2e85] font-mono text-sm sm:text-base font-black tracking-tighter tabular-nums">
                                     {formatDuration(totalSeconds)}{' '}
-                                    <span className="text-[9px] font-sans font-bold text-indigo-600/80 dark:text-indigo-300/90">min</span>
+                                    <span className="text-[9px] font-sans font-bold text-[#b68f2f]">min</span>
                                 </span>
                             </div>
                         </div>
