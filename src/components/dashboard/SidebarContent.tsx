@@ -54,10 +54,10 @@ export function SidebarContent({
     onLogoClick
 }: SidebarContentProps) {
     return (
-        <div className="flex flex-col h-full bg-[#063b7a] dark:bg-black/95 backdrop-blur-xl border-r border-white/10">
+        <div className="flex flex-col h-full bg-gradient-to-b from-[#1f2e85] via-[#1b2a72] to-[#151f5c] backdrop-blur-xl border-r-2 border-[rgba(184,150,74,0.35)]">
             {/* Logo Area */}
             <div
-                className={`py-4 flex flex-col overflow-visible ${isSidebarCollapsed ? 'items-center px-4' : (isMobile ? 'px-5' : 'px-6')} border-b border-border/10 gap-3`}
+                className={`py-4 flex flex-col overflow-visible ${isSidebarCollapsed ? 'items-center px-4' : (isMobile ? 'px-5' : 'px-6')} border-b border-[rgba(184,150,74,0.22)] gap-3`}
             >
                 {/* Logo Section */}
                 {!isSidebarCollapsed ? (
@@ -70,20 +70,20 @@ export function SidebarContent({
                         whileTap={{ scale: 0.98 }}
                     >
                         <div className="relative w-12 h-12">
-                            <div className="absolute inset-0 bg-primary/20 blur-lg rounded-2xl animate-pulse" />
+                            <div className="absolute inset-0 bg-[#b8964a]/35 blur-lg rounded-2xl animate-pulse" />
                             <NextImage
                                 src="/logo.jpg"
                                 alt="IDMJI Logo"
                                 width={48}
                                 height={48}
-                                className="relative rounded-2xl shadow-2xl border border-white/20"
+                                className="relative rounded-2xl shadow-2xl border-2 border-[#b8964a]/55"
                             />
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xl font-black tracking-tighter uppercase italic text-white leading-none">
                                 {t('common.appName')}
                             </span>
-                            <span className="text-[10px] font-bold text-white/60 tracking-[0.2em] uppercase mt-1">
+                            <span className="text-[10px] font-bold text-[#e8d9a8]/85 tracking-[0.2em] uppercase mt-1">
                                 {t('common.appSubTitle')}
                             </span>
                         </div>
@@ -115,7 +115,7 @@ export function SidebarContent({
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={toggleTheme}
-                            className="flex items-center justify-center w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-white shadow-sm"
+                            className="flex items-center justify-center w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20 border border-[rgba(184,150,74,0.3)] transition-all text-white shadow-sm"
                         >
                             {isDark ? (
                                 <Sun className="w-4.5 h-4.5 text-amber-400 animate-spin-slow" />
@@ -128,7 +128,7 @@ export function SidebarContent({
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => setIsSidebarCollapsed(true)}
-                            className="hidden md:flex items-center justify-center w-11 h-11 rounded-2xl hover:bg-muted/50 transition-colors text-muted-foreground hover:text-primary"
+                            className="hidden md:flex items-center justify-center w-11 h-11 rounded-2xl hover:bg-white/10 transition-colors text-white/70 hover:text-white"
                         >
                             <Menu size={18} />
                         </motion.button>
@@ -171,7 +171,7 @@ export function SidebarContent({
                                 href={item.href}
                                 onClick={onMobileNav}
                                 className={`flex items-center gap-3.5 px-3.5 ${isMobile ? 'min-h-12 py-2.5' : 'py-2'} rounded-2xl transition-all duration-300 group relative ${isActive
-                                    ? 'text-black shadow-lg shadow-black/10'
+                                    ? 'text-[#1f2e85] shadow-lg shadow-black/20'
                                     : 'text-white/60 hover:text-white'
                                     }`}
                             >
@@ -179,7 +179,7 @@ export function SidebarContent({
                                 {isActive && (
                                     <motion.div
                                         layoutId={isMobile ? "activeTab-mobile" : "activeTab-desktop-v2"}
-                                        className="absolute inset-0 bg-white/90 backdrop-blur-md rounded-xl -z-10"
+                                        className="absolute inset-0 bg-[#f8f3e8] border-[1.5px] border-[#b8964a] shadow-[0_2px_10px_rgba(184,150,74,0.35)] rounded-xl -z-10"
                                         initial={isMobile ? { opacity: 0, scale: 0.95 } : false}
                                         animate={isMobile ? { opacity: 1, scale: 1 } : undefined}
                                         transition={{ type: 'spring', stiffness: 350, damping: 25 }}
@@ -188,16 +188,16 @@ export function SidebarContent({
 
                                 {/* Hover effect for non-active */}
                                 {!isActive && (
-                                    <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl -z-10" />
+                                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl -z-10" />
                                 )}
 
                                 <item.icon
                                     size={isMobile ? 24 : 22}
-                                    className={`${isActive ? 'text-black scale-110' : 'text-white/60 group-hover:text-white group-hover:scale-110'} relative z-10 transition-all duration-300`}
+                                    className={`${isActive ? 'text-[#1f2e85] scale-110' : 'text-white/60 group-hover:text-white group-hover:scale-110'} relative z-10 transition-all duration-300`}
                                 />
 
                                 {!isSidebarCollapsed && (
-                                    <span className={`flex-1 font-extrabold ${isMobile ? 'text-sm tracking-wide normal-case leading-5' : 'text-xs tracking-wide normal-case'} relative z-10 ${isActive ? 'text-black' : 'text-white/70 group-hover:text-white'} transition-colors`}>
+                                    <span className={`flex-1 font-extrabold ${isMobile ? 'text-sm tracking-wide normal-case leading-5' : 'text-xs tracking-wide normal-case'} relative z-10 ${isActive ? 'text-[#1f2e85]' : 'text-white/70 group-hover:text-white'} transition-colors`}>
                                         {item.label}
                                     </span>
                                 )}
@@ -209,7 +209,7 @@ export function SidebarContent({
                                         animate={{ x: 0, opacity: 1 }}
                                         className="relative z-10"
                                     >
-                                        <ChevronRight size={16} className="text-black/50" />
+                                        <ChevronRight size={16} className="text-[#b68f2f]" />
                                     </motion.div>
                                 )}
                             </Link>
@@ -228,7 +228,7 @@ export function SidebarContent({
                         className={`flex items-center gap-3 p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all ${isSidebarCollapsed ? 'justify-center' : ''}`}
                     >
                         {userProfile.avatar_url ? (
-                            <div className="relative w-10 h-10 rounded-xl overflow-hidden border-2 border-white/20">
+                            <div className="relative w-10 h-10 rounded-xl overflow-hidden border-2 border-[rgba(184,150,74,0.45)]">
                                 <NextImage
                                     src={userProfile.avatar_url}
                                     alt={userProfile.nombre || 'Avatar'}
@@ -237,7 +237,7 @@ export function SidebarContent({
                                 />
                             </div>
                         ) : (
-                            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold text-sm border-2 border-white/20">
+                            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold text-sm border-2 border-[rgba(184,150,74,0.45)]">
                                 {userProfile.nombre?.[0]}{userProfile.apellidos?.[0]}
                             </div>
                         )}

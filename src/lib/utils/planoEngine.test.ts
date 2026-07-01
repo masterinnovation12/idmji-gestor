@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
     asignarPlanoServicio,
+    construirHistorialParaServicio,
     crearHistorialVacio,
+    scorePersonaRol,
     sembrarUso,
     poolElegible,
     validarPoolSuficiente,
@@ -101,5 +103,79 @@ describe('planoEngine', () => {
         sembrarUso(conHistorial, 'h2')
         const rotado = asignarPlanoServicio('jueves', 1, personas, [], conHistorial)
         expect(rotado.map(r => r.persona_id).sort()).toEqual(['h3', 'h4'])
+    })
+
+    it('equilibra por histórico O/A: quien acumula más O sale como apoyo', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+        ]
+        const h = crearHistorialVacio()
+        h.roles.set('h1', { ofrendario: 5, apoyo: 0 })
+        h.roles.set('h2', { ofrendario: 0, apoyo: 1 })
+        const res = asignarPlanoServicio('jueves', 1, personas, [], h)
+        const ofr = res.find(r => r.rol === 'ofrendario')
+        const apo = res.find(r => r.rol === 'apoyo')
+        expect(ofr?.persona_id).toBe('h2')
+        expect(apo?.persona_id).toBe('h1')
+    })
+
+    it('histórico O/A pesa más que recencia vecina cuando el desequilibrio es grande', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+        ]
+        const h = construirHistorialParaServicio(
+            new Map([
+                ['h1', { ofrendario: 0, apoyo: 0 }],
+                ['h2', { ofrendario: 4, apoyo: 0 }],
+            ]),
+            [{ persona_id: 'h1', rol: 'ofrendario' }],
+        )
+        // h1 tiene +50 recencia pero h2 tiene +400 por 4O → h1 debe ser ofrendario
+        expect(scorePersonaRol(personas[0], h, 'jueves', 'ofrendario')).toBeLessThan(
+            scorePersonaRol(personas[1], h, 'jueves', 'ofrendario'),
+        )
+        const res = asignarPlanoServicio('jueves', 1, personas, [], h)
+        expect(res.find(r => r.rol === 'ofrendario')?.persona_id).toBe('h1')
+    })
+
+    it('construirHistorialParaServicio clona roles y sembra vecinos sin duplicar O/A', () => {
+        const roles = new Map([['a', { ofrendario: 2, apoyo: 1 }]])
+        const h = construirHistorialParaServicio(roles, [
+            { persona_id: 'a', rol: 'ofrendario' },
+            { persona_id: 'a', rol: 'apoyo' },
+        ])
+        expect(h.roles.get('a')).toEqual({ ofrendario: 2, apoyo: 1 })
+        expect(h.conteo.get('a')).toBe(2)
+        roles.get('a')!.ofrendario = 99
+        expect(h.roles.get('a')!.ofrendario).toBe(2)
+    })
+
+    it('equilibra por histórico O/A del turno: muchos O en domingo no penalizan jueves', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+        ]
+        const h = crearHistorialVacio()
+        // Globalmente h1 llevaría 5O, pero en jueves solo 1O
+        h.roles.set('h1', { ofrendario: 1, apoyo: 0 })
+        h.roles.set('h2', { ofrendario: 0, apoyo: 0 })
+        const res = asignarPlanoServicio('jueves', 1, personas, [], h)
+        expect(res.find(r => r.rol === 'ofrendario')?.persona_id).toBe('h2')
+    })
+
+    it('varios sacos en el mismo culto actualizan roles en memoria para el siguiente saco', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+            persona('h3', 'H3', { genero: 'hombre' }),
+            persona('h4', 'H4', { genero: 'hombre' }),
+        ]
+        const h = crearHistorialVacio()
+        const res = asignarPlanoServicio('jueves', 2, personas, [], h)
+        expect(res).toHaveLength(4)
+        const ofrs = res.filter(r => r.rol === 'ofrendario').map(r => r.persona_id)
+        expect(new Set(ofrs).size).toBe(2)
     })
 })

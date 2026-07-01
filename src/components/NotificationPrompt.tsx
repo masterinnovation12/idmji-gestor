@@ -16,7 +16,6 @@ import { subscribeToPush } from '@/app/actions/notifications'
 import { getPushClientType } from '@/lib/push-client-type'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import { useTheme } from '@/lib/theme/ThemeProvider'
 import { usePrompts } from '@/lib/PromptsContext'
 
 // Claves para persistencia
@@ -45,7 +44,6 @@ export function NotificationPrompt() {
     const [show, setShow] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const { t } = useI18n()
-    const { isDark } = useTheme()
     const prompts = usePrompts()
     const scheduledRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const initialScheduledRef = useRef(false)
@@ -172,7 +170,7 @@ export function NotificationPrompt() {
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                 className="fixed bottom-4 left-3 right-3 z-50 md:left-auto md:right-6 md:w-[380px]"
             >
-                <div className={`glass-panel rounded-3xl p-6 shadow-2xl border flex flex-col gap-4 relative overflow-hidden ${isDark ? 'border-white/10' : 'border-black/5'}`}>
+                <div className="ofrenda-liquid-card rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-2">
                         <button onClick={handleDismiss} className="text-muted-foreground hover:text-foreground transition-colors p-1">
                             <X size={16} />
@@ -180,8 +178,8 @@ export function NotificationPrompt() {
                     </div>
 
                     <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center shrink-0">
-                            <Bell className="w-6 h-6 text-blue-500 animate-pulse" />
+                        <div className="w-12 h-12 rounded-2xl bg-[#1f2e85]/10 border border-[rgba(184,150,74,0.35)] flex items-center justify-center shrink-0">
+                            <Bell className="w-6 h-6 text-[#b68f2f] animate-pulse" />
                         </div>
                         <div className="flex-1">
                             <h4 className="font-black text-sm uppercase tracking-tight mb-1">{t('notifications.prompt.title')}</h4>
@@ -194,14 +192,14 @@ export function NotificationPrompt() {
                     <div className="flex gap-3">
                         <button
                             onClick={handleDismiss}
-                            className="flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-muted transition-colors border border-border/50"
+                            className="flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#f8f3e8] transition-colors border-[1.5px] border-[rgba(184,150,74,0.32)] text-[#1f2e85]"
                         >
                             {t('notifications.prompt.later')}
                         </button>
                         <button
                             onClick={handleActivate}
                             disabled={isLoading}
-                            className="flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                            className="flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white shadow-lg shadow-[rgba(31,46,133,0.3)] transition-all flex items-center justify-center gap-2"
                         >
                             {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Bell size={14} />}
                             {t('notifications.prompt.activate')}

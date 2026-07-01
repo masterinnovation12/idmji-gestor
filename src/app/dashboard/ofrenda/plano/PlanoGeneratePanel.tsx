@@ -1,14 +1,17 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Sparkles, Loader2 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { interpolate, getDateFnsLocale } from '../ofrendaLocale'
 import { useOfrendaToast } from '../ofrendaFeedback'
 import { invokePlanoAction } from './planoInvoke'
 import { generarPlanoLabor, type PlanoGenerateMode, type PlanoGenerateScope } from './planoGenerateActions'
+import { getPlanoAsignacionCountsForPlan } from './planoActions'
 import { PlanoGenerateRulesInfo } from './PlanoGenerateRulesInfo'
 import { PlanoGenerateActionInfo } from './PlanoGenerateActionInfo'
+import { PlanoGenerateWeekPicker } from './PlanoGenerateWeekPicker'
+import { buildWeekFillInfo } from './planoGenerateWeekStatus'
 import type { PlanCompleto } from '../actions'
 import { formatWeekRangeLabel, groupServiciosByWeek } from '../exportWeekUtils'
 
@@ -34,15 +37,47 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
     const { quickSuccess, planError } = useOfrendaToast()
     const [scope, setScope] = useState<PlanoGenerateScope>('month')
     const [busy, setBusy] = useState(false)
+    const [countsByServicio, setCountsByServicio] = useState<Record<string, number>>({})
+
+    const turnLabels = useMemo(
+        () => ({
+            jueves: t('ofrenda.plano.personas.sectionJueves'),
+            domManana: t('ofrenda.plano.personas.sectionDomManana'),
+            domTarde: t('ofrenda.plano.personas.sectionDomTarde'),
+        }),
+        [t],
+    )
+
+    const loadCounts = useCallback(async () => {
+        if (!plan?.plan.id) return
+        const res = await invokePlanoAction(() => getPlanoAsignacionCountsForPlan(plan.plan.id))
+        if (res.data) setCountsByServicio(res.data)
+    }, [plan?.plan.id])
+
+    useEffect(() => {
+        void loadCounts()
+    }, [loadCounts])
+
+    const weekGroups = useMemo(() => {
+        if (!plan) return []
+        return groupServiciosByWeek(plan.servicios)
+    }, [plan])
+
+    const countMap = useMemo(() => new Map(Object.entries(countsByServicio)), [countsByServicio])
 
     const weekOptions = useMemo(() => {
         if (!plan) return []
         const dateLocale = getDateFnsLocale(language)
-        return groupServiciosByWeek(plan.servicios).map(week => ({
+        const sacos = plan.plan
+        return weekGroups.map((week, index) => ({
             semanaIso: week[0]?.semana_iso ?? 0,
+            weekIndex: index + 1,
+            totalWeeks: weekGroups.length,
             label: formatWeekRangeLabel(week, dateLocale),
+            fill: buildWeekFillInfo(week, countMap, sacos),
         }))
-    }, [plan, language])
+    }, [plan, weekGroups, language, countMap])
+
     const [semanaIso, setSemanaIso] = useState<number | undefined>(undefined)
     const selectedSemana = semanaIso ?? weekOptions[0]?.semanaIso
 
@@ -68,6 +103,7 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
             t('ofrenda.planoGenerate.success'),
             interpolate(t('ofrenda.planoGenerate.successDesc'), { n: String(res.asignados) }),
         )
+        await loadCounts()
         onGenerated()
     }
 
@@ -118,17 +154,13 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
                 </div>
 
                 {scope === 'week' && weekOptions.length > 0 && (
-                    <select
-                        value={selectedSemana}
-                        onChange={e => setSemanaIso(Number(e.target.value))}
-                        className="ofrenda-liquid-search w-full sm:w-auto px-3 py-2 min-h-[44px] rounded-xl text-sm"
-                    >
-                        {weekOptions.map(w => (
-                            <option key={w.semanaIso} value={w.semanaIso}>
-                                {w.label}
-                            </option>
-                        ))}
-                    </select>
+                    <PlanoGenerateWeekPicker
+                        weeks={weekOptions}
+                        selectedSemanaIso={selectedSemana}
+                        onSelect={setSemanaIso}
+                        disabled={busy}
+                        turnLabels={turnLabels}
+                    />
                 )}
             </div>
 

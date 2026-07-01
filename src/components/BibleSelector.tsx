@@ -765,11 +765,11 @@ export default function BibleSelector({
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="p-5 bg-primary/5 rounded-[2rem] border border-primary/10 shadow-inner relative overflow-hidden"
+                        className="p-5 bg-gradient-to-br from-[#f8f3e8] to-white rounded-[2rem] border-[1.5px] border-[rgba(184,150,74,0.4)] shadow-inner relative overflow-hidden"
                     >
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12" />
-                        <p className="text-[9px] font-black text-muted-foreground/60 mb-2 uppercase tracking-[0.3em] relative z-10">{t('bible.citationPreview')}</p>
-                        <p className="text-2xl md:text-3xl font-black text-primary tracking-tighter uppercase italic relative z-10">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#b8964a]/10 rounded-full blur-2xl -mr-12 -mt-12" />
+                        <p className="text-[9px] font-black text-[#b68f2f] mb-2 uppercase tracking-[0.3em] relative z-10">{t('bible.citationPreview')}</p>
+                        <p className="text-2xl md:text-3xl font-black text-[#1f2e85] tracking-tighter uppercase italic relative z-10">
                             {selectedLibroObj.nombre} {capituloInicio}:{versiculoInicio}
                             {versiculoFin && versiculoFin !== versiculoInicio && `-${versiculoFin}`}
                         </p>
@@ -781,7 +781,7 @@ export default function BibleSelector({
             <button
                 onClick={handleSubmit}
                 disabled={disabled || !selectedLibroObj || capituloInicio === '' || versiculoInicio === '' || !!error || chapterGate === 'blocked' || chapterGate === 'checking'}
-                className="w-full h-16 bg-black dark:bg-white text-white dark:text-black rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-20 disabled:cursor-not-allowed shadow-2xl flex items-center justify-center gap-3 mt-4"
+                className="w-full h-16 border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-20 disabled:cursor-not-allowed shadow-2xl flex items-center justify-center gap-3 mt-4"
             >
                 <BookOpen className="w-5 h-5" />
                 Registrar Lectura Bíblica

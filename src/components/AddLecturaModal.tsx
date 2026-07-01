@@ -220,7 +220,7 @@ export default function AddLecturaModal({
       onClose={handleClose}
       title={
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+          <div className="w-8 h-8 rounded-lg bg-[#1f2e85]/10 border border-[rgba(184,150,74,0.35)] flex items-center justify-center text-[#1f2e85]">
             <BookOpen className="w-4 h-4" />
           </div>
           <span className="text-sm font-black uppercase tracking-widest">
@@ -280,7 +280,7 @@ export default function AddLecturaModal({
             </div>
           </div>
 
-          <div className="p-6 bg-muted/50 rounded-4xl border border-border/50 text-center relative overflow-hidden group">
+          <div className="p-6 bg-[#f8f3e8] rounded-4xl border border-[rgba(184,150,74,0.3)] text-center relative overflow-hidden group">
             <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2 relative z-10">
               Pasaje Bíblico

@@ -182,7 +182,7 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
             {/* Navigation Header */}
             <div className="flex flex-col gap-4">
                 {/* Date Navigation Bar */}
-                <div className="flex items-center justify-between gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl sm:rounded-full p-2 shadow-lg border border-slate-100 dark:border-slate-800">
+                <div className="ofrenda-liquid-nav flex items-center justify-between gap-2 rounded-2xl sm:rounded-full p-2 shadow-lg">
                     {/* Prev Button */}
                     <motion.button
                         whileTap={{ scale: 0.9 }}
@@ -191,8 +191,8 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                         className={cn(
                             "w-12 h-12 sm:w-10 sm:h-10 rounded-xl sm:rounded-full flex items-center justify-center transition-all shrink-0",
                             canGoPrev && !isLoading
-                                ? "bg-slate-100 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-700 dark:text-slate-200"
-                                : "bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                                ? "bg-[#f8f3e8] hover:bg-[#f3ead4] border border-[rgba(184,150,74,0.3)] text-[#1f2e85]"
+                                : "bg-white/50 text-slate-300 cursor-not-allowed"
                         )}
                     >
                         <ChevronLeft className="w-5 h-5" />
@@ -227,8 +227,8 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                         className={cn(
                             "w-12 h-12 sm:w-10 sm:h-10 rounded-xl sm:rounded-full flex items-center justify-center transition-all shrink-0",
                             canGoNext && !isLoading
-                                ? "bg-slate-100 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-700 dark:text-slate-200"
-                                : "bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                                ? "bg-[#f8f3e8] hover:bg-[#f3ead4] border border-[rgba(184,150,74,0.3)] text-[#1f2e85]"
+                                : "bg-white/50 text-slate-300 cursor-not-allowed"
                         )}
                     >
                         <ChevronRight className="w-5 h-5" />

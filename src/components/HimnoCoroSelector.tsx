@@ -106,7 +106,7 @@ function SortableItem({ item, id, onRemove, onMoveUp, onMoveDown, isFirst, isLas
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: isDragging ? 0.5 : 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className={`flex items-center gap-4 p-4 md:p-5 bg-white dark:bg-zinc-800/50 border border-gray-200 dark:border-white/10 rounded-3xl shadow-sm transition-all group ${isDragging ? 'ring-2 ring-blue-500 bg-white dark:bg-zinc-800 shadow-2xl' : 'hover:border-blue-500/30 hover:shadow-md'
+            className={`flex items-center gap-4 p-4 md:p-5 bg-white border border-[rgba(184,150,74,0.28)] rounded-3xl shadow-sm transition-all group ${isDragging ? 'ring-2 ring-[#b8964a] bg-white shadow-2xl' : 'hover:border-[#b8964a] hover:shadow-md'
                 }`}
         >
             {/* CONTENIDO CENTRAL (MAXIMIZADO) - SIN ICONO IZQUIERDO */}
@@ -646,12 +646,12 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
     return (
         <div className={`space-y-3 md:space-y-5 ${className} overflow-hidden w-full`}>
             {/* Tipo Selector */}
-            <div className="flex bg-gray-100 dark:bg-zinc-800 p-1.5 rounded-2xl w-full border border-gray-200 dark:border-zinc-700">
+            <div className="flex gap-1 p-1.5 rounded-2xl w-full border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8]">
                 <button
                     onClick={() => setTipo('himno')}
                     className={`flex-1 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${tipo === 'himno'
-                        ? 'bg-blue-600 text-white shadow-xl'
-                        : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                        ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-lg'
+                        : 'text-slate-500 hover:text-[#1f2e85] hover:bg-white/60'
                         }`}
                 >
                     {t('himnoCoro.hymns')} ({himnosSelected.length}/{maxHimnos})
@@ -659,8 +659,8 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                 <button
                     onClick={() => setTipo('coro')}
                     className={`flex-1 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${tipo === 'coro'
-                        ? 'bg-blue-600 text-white shadow-xl'
-                        : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                        ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-lg'
+                        : 'text-slate-500 hover:text-[#1f2e85] hover:bg-white/60'
                         }`}
                 >
                     {t('himnoCoro.choruses')} ({corosSelected.length}/{maxCoros})
@@ -684,15 +684,15 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
             </div>
 
             <div className="relative group">
-                <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                <div className="relative bg-card border border-border rounded-2xl flex items-center px-5 h-14 shadow-sm focus-within:border-primary/50 transition-all">
-                    <Search className="w-5 h-5 text-muted-foreground mr-4" />
+                <div className="absolute inset-0 bg-[#b8964a]/15 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                <div className="relative bg-white border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-2xl flex items-center px-5 h-14 shadow-sm focus-within:ring-2 focus-within:ring-[#b8964a]/30 focus-within:border-[#b8964a] transition-all">
+                    <Search className="w-5 h-5 text-[#b68f2f] mr-4" />
                     <input
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder={`Buscar ${tipo === 'himno' ? 'por número o título' : 'en el catálogo'}...`}
-                        className="w-full bg-transparent border-none outline-none text-sm font-black uppercase tracking-widest placeholder:text-muted-foreground text-foreground"
+                        className="w-full bg-transparent border-none outline-none text-sm font-black uppercase tracking-widest placeholder:text-slate-400 text-[#0f172a]"
                         disabled={tipo === 'himno' ? !canAddHimno : !canAddCoro}
                     />
                 </div>
@@ -710,7 +710,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                         {results.map((item, idx) => (
                             <div
                                 key={item.id || `himno-coro-result-${idx}`}
-                                className="flex items-center justify-between p-4 bg-card rounded-xl hover:bg-blue-500/10 transition-all group cursor-pointer border border-border/50 shadow-sm"
+                                className="flex items-center justify-between p-4 bg-white rounded-xl hover:bg-[#f8f3e8] transition-all group cursor-pointer border border-[rgba(184,150,74,0.22)] shadow-sm"
                                 onClick={() => handleAdd(item)}
                             >
                                 <div className="flex-1">
@@ -725,7 +725,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                                         </div>
                                     )}
                                 </div>
-                                <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white group-hover:scale-110 transition-all shrink-0 ml-4 shadow-md">
+                                <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-[#1f2e85] to-[#283593] border border-[#b8964a] text-white group-hover:scale-110 transition-all shrink-0 ml-4 shadow-md">
                                     <Plus className="w-4 h-4" />
                                 </div>
                             </div>
@@ -739,7 +739,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                 <div className="grid grid-cols-2 gap-3 pt-2">
                     <button
                         onClick={handleSaveList}
-                        className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5"
+                        className="flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5"
                     >
                         Guardar Lista
                     </button>
@@ -847,7 +847,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl bg-white dark:bg-[#18181b] border border-gray-200 dark:border-zinc-700"
+                            className="relative w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl bg-white border-2 border-[#b8964a]"
                         >
                             <h2 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white mb-2 uppercase italic text-center">{t('himnoCoro.saveList')}</h2>
                             <p className="text-[10px] font-black text-gray-500 dark:text-zinc-400 text-center mb-8 uppercase tracking-[0.2em]">{t('himnoCoro.chooseName')}</p>
@@ -858,7 +858,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                                     value={listName}
                                     onChange={(e) => setListName(e.target.value)}
                                     placeholder={t('himnoCoro.listNamePlaceholder')}
-                                    className="w-full h-14 bg-gray-100 dark:bg-zinc-800 rounded-2xl px-6 font-black uppercase text-xs tracking-widest border border-gray-200 dark:border-zinc-600 focus:border-blue-500 outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                                    className="w-full h-14 bg-white rounded-2xl px-6 font-black uppercase text-xs tracking-widest border-[1.5px] border-[rgba(184,150,74,0.32)] focus:border-[#b8964a] focus:ring-2 focus:ring-[#b8964a]/30 outline-none text-[#0f172a] placeholder:text-slate-400"
                                     autoFocus
                                 />
                             </div>
@@ -866,13 +866,13 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                             <div className="grid grid-cols-2 gap-4">
                                 <button
                                     onClick={() => setIsSaveModalOpen(false)}
-                                    className="h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all"
+                                    className="h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-white border-[1.5px] border-[rgba(184,150,74,0.32)] text-[#1f2e85] hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-all"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={confirmSaveList}
-                                    className="h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                    className="h-12 border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
                                 >
                                     Confirmar
                                 </button>
@@ -900,7 +900,7 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl bg-white dark:bg-[#18181b] border border-gray-200 dark:border-zinc-700 text-center"
+                            className="relative w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl bg-white border-2 border-[#b8964a] text-center"
                         >
                             <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <Clock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
@@ -925,14 +925,14 @@ export default function HimnoCoroSelector(props: HimnoCoroSelectorProps) {
                                         setPendingCoroId(null)
                                         setPendingSequenceTipo(null)
                                     }}
-                                    className="h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all"
+                                    className="h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-white border-[1.5px] border-[rgba(184,150,74,0.32)] text-[#1f2e85] hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-all"
                                 >
                                     No, solo este
                                 </button>
                                 <button
                                     onClick={handleConfirmUpdateSequence}
                                     disabled={isUpdatingSequence}
-                                    className="h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    className="h-12 border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {isUpdatingSequence ? (
                                         <>

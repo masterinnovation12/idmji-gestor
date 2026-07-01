@@ -583,3 +583,31 @@ export async function deletePlanoPersona(personaId: string): Promise<{ error?: s
     revalidatePath('/dashboard/ofrenda')
     return {}
 }
+
+/** Recuento de asignaciones del plano por servicio (selector de semana en Generar). */
+export async function getPlanoAsignacionCountsForPlan(
+    planId: string,
+): Promise<{ data?: Record<string, number>; error?: string }> {
+    const supabase = await createClient()
+    const { data: servicios, error: svcErr } = await supabase
+        .from('ofrenda_servicios')
+        .select('id')
+        .eq('plan_id', planId)
+    if (svcErr) return { error: svcErr.message }
+
+    const ids = (servicios ?? []).map(s => s.id as string)
+    if (!ids.length) return { data: {} }
+
+    const { data: asig, error: asigErr } = await supabase
+        .from('ofrenda_plano_asignaciones')
+        .select('servicio_id')
+        .in('servicio_id', ids)
+    if (asigErr) return { error: asigErr.message }
+
+    const counts: Record<string, number> = {}
+    for (const row of asig ?? []) {
+        const sid = row.servicio_id as string
+        counts[sid] = (counts[sid] ?? 0) + 1
+    }
+    return { data: counts }
+}

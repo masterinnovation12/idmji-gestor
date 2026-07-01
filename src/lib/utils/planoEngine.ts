@@ -1,6 +1,10 @@
 import type { DiaTipo } from '@/lib/utils/ofrendaEngine'
 import type { PlanoRol } from '@/app/dashboard/ofrenda/plano/planoTypes'
 import {
+    clonarMapaRoleCounts,
+    type PlanoRoleCounts,
+} from '@/app/dashboard/ofrenda/plano/planoHistorial'
+import {
     puedeRolCapacidad,
     planoPersonaParticipaEnGeneracion,
     type PlanoPersonaTurnos,
@@ -24,12 +28,36 @@ export interface PlanoAsignacionBorrador {
 }
 
 export interface PlanoHistorialUso {
+    /** Recencia en servicios vecinos ±3 (mismo turno). */
     conteo: Map<string, number>
     ultimaPorTurno: Partial<Record<DiaTipo, string>>
+    /** Histórico O/A acumulado (misma fuente que «1O · 2A» en Personas). */
+    roles: Map<string, PlanoRoleCounts>
+}
+
+export interface VecinoAsignacion {
+    persona_id: string | null
+    rol: string
 }
 
 export function crearHistorialVacio(): PlanoHistorialUso {
-    return { conteo: new Map(), ultimaPorTurno: {} }
+    return { conteo: new Map(), ultimaPorTurno: {}, roles: new Map() }
+}
+
+/**
+ * Combina el histórico global O/A con la recencia de vecinos ±3 antes de
+ * asignar un culto. Los roles vienen de BD; los vecinos solo penalizan recencia.
+ */
+export function construirHistorialParaServicio(
+    rolesAcumulado: ReadonlyMap<string, PlanoRoleCounts>,
+    vecinos: readonly VecinoAsignacion[],
+): PlanoHistorialUso {
+    const h = crearHistorialVacio()
+    h.roles = clonarMapaRoleCounts(rolesAcumulado)
+    for (const v of vecinos) {
+        if (v.persona_id) sembrarUso(h, v.persona_id)
+    }
+    return h
 }
 
 /**
@@ -46,13 +74,26 @@ function uso(h: PlanoHistorialUso, id: string): number {
     return h.conteo.get(id) ?? 0
 }
 
-function registrarUso(h: PlanoHistorialUso, id: string, diaTipo: DiaTipo): void {
+function registrarUso(h: PlanoHistorialUso, id: string, diaTipo: DiaTipo, rol: PlanoRol): void {
     h.conteo.set(id, uso(h, id) + 1)
     h.ultimaPorTurno[diaTipo] = id
+    const cur = h.roles.get(id) ?? { ofrendario: 0, apoyo: 0 }
+    if (rol === 'ofrendario') cur.ofrendario++
+    else cur.apoyo++
+    h.roles.set(id, cur)
 }
 
-function scorePersona(p: PlanoPersonaEngine, h: PlanoHistorialUso, diaTipo: DiaTipo): number {
-    let s = uso(h, p.id) * 100
+/** Menor score = más prioritario. Pesa O/A del turno y recencia en vecinos ±3. */
+export function scorePersonaRol(
+    p: PlanoPersonaEngine,
+    h: PlanoHistorialUso,
+    diaTipo: DiaTipo,
+    rol: PlanoRol,
+): number {
+    const rc = h.roles.get(p.id) ?? { ofrendario: 0, apoyo: 0 }
+    const rolCount = rol === 'ofrendario' ? rc.ofrendario : rc.apoyo
+    let s = rolCount * 100
+    s += uso(h, p.id) * 50
     if (h.ultimaPorTurno[diaTipo] === p.id) s += 50
     return s
 }
@@ -119,10 +160,18 @@ function elegirOfrendarioApoyo(
     const aAp = puedeRolCapacidad(a.capacidad, 'apoyo')
     const bAp = puedeRolCapacidad(b.capacidad, 'apoyo')
 
-    if (aOf && bAp && scorePersona(a, h, diaTipo) <= scorePersona(b, h, diaTipo)) {
+    if (
+        aOf &&
+        bAp &&
+        scorePersonaRol(a, h, diaTipo, 'ofrendario') <= scorePersonaRol(b, h, diaTipo, 'ofrendario')
+    ) {
         return { ofrendario: a, apoyo: b }
     }
-    if (bOf && aAp && scorePersona(b, h, diaTipo) < scorePersona(a, h, diaTipo)) {
+    if (
+        bOf &&
+        aAp &&
+        scorePersonaRol(b, h, diaTipo, 'ofrendario') < scorePersonaRol(a, h, diaTipo, 'ofrendario')
+    ) {
         return { ofrendario: b, apoyo: a }
     }
     if (aOf && bAp) return { ofrendario: a, apoyo: b }
@@ -180,8 +229,8 @@ export function asignarPlanoServicio(
                 if (!par) return null
                 const score =
                     tier * 1000 +
-                    scorePersona(par.ofrendario, historial, diaTipo) +
-                    scorePersona(par.apoyo, historial, diaTipo)
+                    scorePersonaRol(par.ofrendario, historial, diaTipo, 'ofrendario') +
+                    scorePersonaRol(par.apoyo, historial, diaTipo, 'apoyo')
                 return { par, score }
             })
             .filter((x): x is NonNullable<typeof x> => x !== null)
@@ -193,8 +242,8 @@ export function asignarPlanoServicio(
         const { ofrendario, apoyo } = mejor.par
         asignados.add(ofrendario.id)
         asignados.add(apoyo.id)
-        registrarUso(historial, ofrendario.id, diaTipo)
-        registrarUso(historial, apoyo.id, diaTipo)
+        registrarUso(historial, ofrendario.id, diaTipo, 'ofrendario')
+        registrarUso(historial, apoyo.id, diaTipo, 'apoyo')
 
         resultado.push(
             {
