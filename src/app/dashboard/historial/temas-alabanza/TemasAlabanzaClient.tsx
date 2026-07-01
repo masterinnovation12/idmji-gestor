@@ -237,7 +237,7 @@ export default function TemasAlabanzaClient({
                                 exit={{ height: 0, opacity: 0 }}
                                 className="overflow-hidden"
                             >
-                                <Card className="border-border/50">
+                                <Card className="ofrenda-liquid-card">
                                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-border/50">
                                         <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
                                             <Filter className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -259,13 +259,13 @@ export default function TemasAlabanzaClient({
                                                         type="date"
                                                         value={startDate}
                                                         onChange={(e) => setStartDate(e.target.value)}
-                                                        className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm"
+                                                        className="w-full h-10 sm:h-11 px-3 sm:px-4 ofrenda-liquid-search rounded-xl text-sm"
                                                     />
                                                     <input
                                                         type="date"
                                                         value={endDate}
                                                         onChange={(e) => setEndDate(e.target.value)}
-                                                        className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm"
+                                                        className="w-full h-10 sm:h-11 px-3 sm:px-4 ofrenda-liquid-search rounded-xl text-sm"
                                                     />
                                                 </div>
                                             </div>
@@ -277,7 +277,7 @@ export default function TemasAlabanzaClient({
                                                 <select
                                                     value={temaKey}
                                                     onChange={(e) => setTemaKey(e.target.value)}
-                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm"
+                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 ofrenda-liquid-search rounded-xl text-sm"
                                                 >
                                                     <option value="" suppressHydrationWarning>{t('temasAlabanza.filtersTemaAll')}</option>
                                                     {temasKeys.map((key) => (
@@ -293,7 +293,7 @@ export default function TemasAlabanzaClient({
                                                 <select
                                                     value={hermanoId}
                                                     onChange={(e) => setHermanoId(e.target.value)}
-                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 rounded-xl border border-border bg-card text-sm"
+                                                    className="w-full h-10 sm:h-11 px-3 sm:px-4 ofrenda-liquid-search rounded-xl text-sm"
                                                 >
                                                     <option value="" suppressHydrationWarning>{t('temasAlabanza.filtersHermanoAll')}</option>
                                                     {hermanos.map((h) => (
@@ -309,7 +309,7 @@ export default function TemasAlabanzaClient({
                                                 <X className="w-3 h-3 sm:w-4 sm:h-4" />
                                                 <span suppressHydrationWarning>{t('temasAlabanza.clearFilters')}</span>
                                             </Button>
-                                            <Button onClick={applyFilters} className="w-full sm:w-auto text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white font-black">
+                                            <Button onClick={applyFilters} className="w-full sm:w-auto text-xs sm:text-sm border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white font-black">
                                                 <span suppressHydrationWarning>{t('temasAlabanza.applyFilters')}</span>
                                             </Button>
                                         </div>
@@ -327,7 +327,7 @@ export default function TemasAlabanzaClient({
                                 exit={{ height: 0, opacity: 0 }}
                                 className="overflow-hidden"
                             >
-                                <Card className="border-border/50">
+                                <Card className="ofrenda-liquid-card">
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                                             <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -388,7 +388,7 @@ export default function TemasAlabanzaClient({
                 </div>
 
                 {/* Tabla / Lista responsive */}
-                <div className="rounded-2xl border border-border/50 bg-card shadow-lg overflow-hidden">
+                <div className="ofrenda-liquid-card shadow-lg overflow-hidden">
                     {data.length === 0 ? (
                         <div className="p-8 sm:p-12 text-center">
                             <Sparkles className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-muted-foreground/50 mb-4" />
@@ -405,20 +405,20 @@ export default function TemasAlabanzaClient({
                             <div className="hidden md:block overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="border-b border-border/50 bg-muted/30">
-                                            <th className="text-left py-3 px-4 text-xs font-black uppercase tracking-wider text-muted-foreground">
+                                        <tr className="bg-gradient-to-br from-[#1f2e85] to-[#283593] border-b-2 border-[#b8964a]">
+                                            <th className="text-left py-3 px-4 text-xs font-black uppercase tracking-wider text-white/85">
                                                 {t('temasAlabanza.tableFecha')}
                                             </th>
-                                            <th className="text-left py-3 px-4 text-xs font-black uppercase tracking-wider text-muted-foreground">
+                                            <th className="text-left py-3 px-4 text-xs font-black uppercase tracking-wider text-white/85">
                                                 {t('temasAlabanza.tableCulto')}
                                             </th>
-                                            <th className="text-left py-3 px-4 text-xs font-black uppercase tracking-wider text-muted-foreground">
+                                            <th className="text-left py-3 px-4 text-xs font-black uppercase tracking-wider text-white/85">
                                                 {t('temasAlabanza.tableTema')}
                                             </th>
-                                            <th className="text-left py-3 px-4 text-xs font-black uppercase tracking-wider text-muted-foreground">
+                                            <th className="text-left py-3 px-4 text-xs font-black uppercase tracking-wider text-white/85">
                                                 {t('temasAlabanza.tableLectura')}
                                             </th>
-                                            <th className="text-left py-3 px-4 text-xs font-black uppercase tracking-wider text-muted-foreground">
+                                            <th className="text-left py-3 px-4 text-xs font-black uppercase tracking-wider text-white/85">
                                                 {t('temasAlabanza.tableHermano')}
                                             </th>
                                             <th className="w-12" />
@@ -574,7 +574,7 @@ export default function TemasAlabanzaClient({
                             <div className="pt-4 border-t border-border/50">
                                 <Link
                                     href={`/dashboard/cultos/${selectedRegistro.culto_id}`}
-                                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-colors"
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white font-bold text-sm shadow-[0_3px_12px_rgba(31,46,133,0.3)] hover:shadow-[0_5px_18px_rgba(31,46,133,0.42)] transition-shadow"
                                 >
                                     <ExternalLink className="w-4 h-4" />
                                     {t('temasAlabanza.verCulto')}
