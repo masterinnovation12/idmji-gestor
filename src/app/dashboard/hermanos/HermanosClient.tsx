@@ -17,7 +17,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Search, Users, ShieldCheck, Mail, Sparkles, Award, CheckCircle2, XCircle, X } from 'lucide-react'
+import { Search, Users, ShieldCheck, Mail, Phone, Sparkles, Award, CheckCircle2, XCircle, X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import BackButton from '@/components/BackButton'
 import { Profile, UserRole } from '@/types/database'
@@ -172,15 +172,16 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
         if (!text || !search.trim()) return text || ''
         const regex = new RegExp(`(${search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
         const parts = text.split(regex)
+        const searchLower = search.toLowerCase()
         return parts.map((part, index) =>
-            regex.test(part)
-                ? <strong key={index} className="text-primary font-black bg-primary/10 px-0.5 rounded">{part}</strong>
+            part.toLowerCase() === searchLower
+                ? <strong key={index} className="text-[#1f2e85] font-black bg-[#b8964a]/20 px-0.5 rounded">{part}</strong>
                 : part
         )
     }
 
     return (
-        <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4 md:px-6 no-scrollbar" data-page="hermanos">
+        <div className="ofrenda-liquid-scope max-w-7xl mx-auto space-y-10 pb-32 px-4 md:px-6 no-scrollbar" data-page="hermanos">
             {/* Breadcrumb Mejorado */}
             <motion.div
                 initial={{ opacity: 0, x: -20 }}
@@ -195,50 +196,44 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                 </div>
             </motion.div>
 
-            {/* Header Modernizado */}
-            <div className="flex flex-col xl:flex-row gap-8 justify-between items-start xl:items-end">
-                <div className="space-y-4 max-w-2xl">
-                    <motion.h1
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-5xl md:text-7xl font-black tracking-tight leading-none"
-                    >
-                        {t('hermanos.title').split(' ')[0]}
-                        <span className="block text-transparent bg-clip-text bg-linear-to-r from-primary via-accent to-primary animate-gradient-x">
-                            {t('hermanos.title').split(' ').slice(1).join(' ')}
-                        </span>
-                    </motion.h1>
-                    <motion.p
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="text-lg md:text-xl text-muted-foreground font-medium flex items-center gap-3"
-                    >
-                        <span className="w-10 h-[2px] bg-primary/30 hidden sm:block" />
-                        {t('hermanos.desc')}
-                    </motion.p>
-                </div>
+            {/* Header hero liquid (marino + dorado) */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative overflow-hidden rounded-[2rem] md:rounded-[3rem] border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] p-6 md:p-10 shadow-2xl"
+            >
+                <div className="absolute top-0 right-0 w-96 h-96 bg-[#b8964a]/25 rounded-full blur-[110px] -translate-y-1/2 translate-x-1/4" />
+                <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
 
-                {/* Buscador */}
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="w-full xl:w-96 group"
-                >
-                    <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl group-focus-within:bg-primary/30 transition-all opacity-0 group-focus-within:opacity-100" />
-                    <div className="relative glass border border-white/10 rounded-2xl flex items-center px-5 h-16 shadow-2xl focus-within:border-primary transition-all">
-                        <Search className="w-5 h-5 text-primary/50 mr-3 group-focus-within:text-primary transition-colors" />
-                        <input
-                            type="text"
-                            placeholder={t('hermanos.searchPlaceholder')}
-                            className="w-full bg-transparent border-none outline-none font-bold placeholder:text-muted-foreground/30 text-foreground text-lg"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                <div className="relative z-10 flex flex-col xl:flex-row gap-8 justify-between items-start xl:items-end">
+                    <div className="space-y-4 max-w-2xl">
+                        <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-none text-white">
+                            {t('hermanos.title').split(' ')[0]}
+                            <span className="block text-transparent bg-clip-text bg-linear-to-r from-[#e3cc92] via-[#d4b86a] to-[#e3cc92]">
+                                {t('hermanos.title').split(' ').slice(1).join(' ')}
+                            </span>
+                        </h1>
+                        <p className="text-lg md:text-xl text-white/70 font-medium flex items-center gap-3">
+                            <span className="w-10 h-[2px] bg-[#b8964a]/70 hidden sm:block" />
+                            {t('hermanos.desc')}
+                        </p>
                     </div>
-                </motion.div>
-            </div>
+
+                    {/* Buscador */}
+                    <div className="w-full xl:w-96 group">
+                        <div className="relative bg-white rounded-2xl flex items-center px-5 h-16 shadow-2xl border-[1.5px] border-[rgba(184,150,74,0.45)] focus-within:border-[#b8964a] focus-within:ring-2 focus-within:ring-[rgba(184,150,74,0.25)] transition-all">
+                            <Search className="w-5 h-5 text-[#b8964a] mr-3 shrink-0" />
+                            <input
+                                type="text"
+                                placeholder={t('hermanos.searchPlaceholder')}
+                                className="w-full bg-transparent border-none outline-none font-bold placeholder:text-slate-400 text-slate-800 text-lg"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
 
             {/* Listado con Animación Stagger */}
             <div className="space-y-6">
@@ -256,10 +251,10 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                 key={role}
                                 onClick={() => setFilterRole(role)}
                                 className={cn(
-                                    "px-5 py-3 sm:px-4 sm:py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 whitespace-nowrap min-w-[80px] sm:min-w-0 flex items-center justify-center",
+                                    "px-5 py-3 sm:px-4 sm:py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 whitespace-nowrap min-w-[80px] sm:min-w-0 flex items-center justify-center touch-manipulation",
                                     filterRole === role
-                                        ? "bg-foreground text-background border-foreground shadow-lg"
-                                        : "bg-white/60 dark:bg-white/5 border-zinc-300 dark:border-white/10 text-zinc-700 dark:text-muted-foreground hover:bg-white/80 dark:hover:bg-white/10 backdrop-blur-md"
+                                        ? "bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]"
+                                        : "bg-white border-[rgba(184,150,74,0.32)] text-slate-600 hover:bg-[#f8f3e8] hover:border-[#b8964a]"
                                 )}
                             >
                                 <span suppressHydrationWarning>{t(getRoleLabelKey(role))}</span>
@@ -274,19 +269,19 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className="flex flex-col items-center justify-center py-40 glass rounded-[3rem] border-dashed border-2 border-white/5"
+                            className="flex flex-col items-center justify-center py-40 bg-white/60 rounded-[3rem] border-dashed border-2 border-[rgba(184,150,74,0.3)]"
                         >
                             <div className="relative">
-                                <Search className="w-24 h-24 text-primary/10" />
+                                <Search className="w-24 h-24 text-[#1f2e85]/10" />
                                 <motion.div
                                     animate={{ rotate: 360 }}
                                     transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                                    className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center"
+                                    className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#b8964a]/20 flex items-center justify-center"
                                 >
-                                    <Sparkles className="w-4 h-4 text-accent" />
+                                    <Sparkles className="w-4 h-4 text-[#b68f2f]" />
                                 </motion.div>
                             </div>
-                            <p className="mt-6 text-2xl font-black tracking-tight text-muted-foreground/40 uppercase">
+                            <p className="mt-6 text-2xl font-black tracking-tight text-slate-400 uppercase">
                                 {t('hermanos.noResults')}
                             </p>
                         </motion.div>
@@ -309,10 +304,10 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                         getRoleGlowColor(hermano.rol)
                                     )} />
 
-                                    <div className="relative h-full glass border border-white/10 rounded-4xl p-5 hover:bg-white/5 dark:hover:bg-muted/30 transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 flex flex-col items-center text-center overflow-hidden">
+                                    <div className="relative h-full ofrenda-liquid-card rounded-4xl p-5 transition-all duration-500 hover:shadow-xl hover:shadow-[#1f2e85]/10 hover:-translate-y-1.5 flex flex-col items-center text-center overflow-hidden">
 
                                         {/* Decoración superior */}
-                                        <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
+                                        <div className="absolute top-0 right-0 p-4 opacity-[0.05] group-hover:opacity-15 transition-opacity text-[#1f2e85]">
                                             {hermano.rol === 'ADMIN' ? <ShieldCheck className="w-12 h-12" /> : <Award className="w-12 h-12" />}
                                         </div>
 
@@ -321,10 +316,10 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
 
                                         {/* Info Hermano Compacta */}
                                         <div className="mt-4 space-y-1 w-full">
-                                            <h3 className="text-sm font-black tracking-tight uppercase leading-tight truncate">
+                                            <h3 className="text-sm font-black tracking-tight uppercase leading-tight truncate text-slate-900">
                                                 {highlightText(hermano.nombre, searchTerm)}
                                             </h3>
-                                            <p className="text-[10px] font-bold text-primary/80 uppercase truncate">
+                                            <p className="text-[10px] font-bold text-[#1f2e85]/80 uppercase truncate">
                                                 {highlightText(hermano.apellidos, searchTerm)}
                                             </p>
 
@@ -339,9 +334,9 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                                 </span>
 
                                                 {hermano.pulpito && (
-                                                    <div className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-[8px] font-black uppercase tracking-widest">
+                                                    <div className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-full text-[8px] font-black uppercase tracking-widest">
                                                         <CheckCircle2 className="w-2 h-2" />
-                                                        Púlpito
+                                                        <span suppressHydrationWarning>{t('hermanos.pulpitoBadge' as TranslationKey)}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -356,9 +351,9 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
 
             {/* Modal de Detalles */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="max-w-md p-0 overflow-visible bg-background border-none shadow-none">
+                <DialogContent className="max-w-md p-0 overflow-visible bg-transparent border-none shadow-none">
                     {selectedHermano && (
-                        <div className="relative glass border border-white/10 rounded-[3rem] p-8 md:p-10 shadow-[0_30px_100px_rgba(0,0,0,0.5)] overflow-hidden">
+                        <div className="relative ofrenda-liquid-card rounded-[3rem] p-8 md:p-10 shadow-[0_30px_100px_rgba(21,31,92,0.35)] overflow-hidden">
                             {/* Glow de fondo */}
                             <div className={cn(
                                 "absolute -top-24 -right-24 w-64 h-64 blur-[100px] opacity-20 rounded-full",
@@ -367,7 +362,7 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
 
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="absolute top-6 right-6 w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all hover:scale-110 z-10"
+                                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white border-[1.5px] border-[rgba(184,150,74,0.32)] flex items-center justify-center text-slate-500 hover:text-[#1f2e85] hover:border-[#b8964a] hover:bg-[#f8f3e8] transition-all hover:scale-110 z-10"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -376,9 +371,9 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                 <HermanoAvatar hermano={selectedHermano} size="xl" />
 
                                 <div className="space-y-2">
-                                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter uppercase leading-none">
+                                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter uppercase leading-none text-slate-900">
                                         {selectedHermano.nombre}
-                                        <span className="block text-primary">
+                                        <span className="block text-[#1f2e85]">
                                             {selectedHermano.apellidos}
                                         </span>
                                     </h2>
@@ -392,9 +387,9 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                             <span suppressHydrationWarning>{t(getRoleLabelKey(selectedHermano.rol))}</span>
                                         </span>
                                         {selectedHermano.pulpito && (
-                                            <div className="flex items-center gap-1.5 px-4 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                            <div className="flex items-center gap-1.5 px-4 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase tracking-widest">
                                                 <CheckCircle2 className="w-3 h-3" />
-                                                Acceso Púlpito
+                                                <span suppressHydrationWarning>{t('users.form.pulpit')}</span>
                                             </div>
                                         )}
                                     </div>
@@ -404,9 +399,9 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                     {/* Sección de Contacto */}
                                     <div className="space-y-3">
                                         <div className="flex items-center gap-2 px-2">
-                                            <div className="h-px flex-1 bg-white/5" />
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">{t('hermanos.contactInfo')}</span>
-                                            <div className="h-px flex-1 bg-white/5" />
+                                            <div className="h-px flex-1 bg-[rgba(184,150,74,0.3)]" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-[#b68f2f]">{t('hermanos.contactInfo')}</span>
+                                            <div className="h-px flex-1 bg-[rgba(184,150,74,0.3)]" />
                                         </div>
 
                                         <div className="grid grid-cols-1 gap-3">
@@ -414,24 +409,24 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                             {selectedHermano.telefono ? (
                                                 <a
                                                     href={`tel:${selectedHermano.telefono}`}
-                                                    className="glass border border-white/5 rounded-2xl p-4 flex items-center gap-4 group hover:bg-primary/10 hover:border-primary/20 transition-all"
+                                                    className="bg-white/70 border border-[rgba(184,150,74,0.3)] rounded-2xl p-4 flex items-center gap-4 group hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-all"
                                                 >
-                                                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
-                                                        <CheckCircle2 className="w-5 h-5" /> {/* Reemplazar con Phone si estuviera disponible, o usar Lucide Phone */}
+                                                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                                                        <Phone className="w-5 h-5" />
                                                     </div>
                                                     <div className="text-left">
-                                                        <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">{t('users.form.phone')}</p>
-                                                        <p className="font-bold text-lg">{selectedHermano.telefono}</p>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('users.form.phone')}</p>
+                                                        <p className="font-bold text-lg text-slate-800">{selectedHermano.telefono}</p>
                                                     </div>
                                                 </a>
                                             ) : (
-                                                <div className="glass border border-white/5 rounded-2xl p-4 opacity-40 flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-xl bg-zinc-500/10 flex items-center justify-center text-zinc-500">
+                                                <div className="bg-white/70 border border-[rgba(184,150,74,0.25)] rounded-2xl p-4 opacity-50 flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-xl bg-slate-500/10 flex items-center justify-center text-slate-500">
                                                         <XCircle className="w-5 h-5" />
                                                     </div>
                                                     <div className="text-left">
-                                                        <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">{t('users.form.phone')}</p>
-                                                        <p className="font-bold">N/A</p>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('users.form.phone')}</p>
+                                                        <p className="font-bold text-slate-600" suppressHydrationWarning>{t('common.notAvailable' as TranslationKey)}</p>
                                                     </div>
                                                 </div>
                                             )}
@@ -440,24 +435,24 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                                             {selectedHermano.email_contacto ? (
                                                 <a
                                                     href={`mailto:${selectedHermano.email_contacto}`}
-                                                    className="glass border border-white/5 rounded-2xl p-4 flex items-center gap-4 group hover:bg-primary/10 hover:border-primary/20 transition-all"
+                                                    className="bg-white/70 border border-[rgba(184,150,74,0.3)] rounded-2xl p-4 flex items-center gap-4 group hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-all"
                                                 >
-                                                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                                    <div className="w-12 h-12 rounded-xl bg-[#1f2e85]/10 flex items-center justify-center text-[#1f2e85] group-hover:scale-110 transition-transform">
                                                         <Mail className="w-5 h-5" />
                                                     </div>
                                                     <div className="text-left">
-                                                        <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">{t('users.form.contactEmail')}</p>
-                                                        <p className="font-bold truncate max-w-[200px]">{selectedHermano.email_contacto}</p>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('users.form.contactEmail')}</p>
+                                                        <p className="font-bold truncate max-w-[200px] text-slate-800">{selectedHermano.email_contacto}</p>
                                                     </div>
                                                 </a>
                                             ) : (
-                                                <div className="glass border border-white/5 rounded-2xl p-4 opacity-40 flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-xl bg-zinc-500/10 flex items-center justify-center text-zinc-500">
+                                                <div className="bg-white/70 border border-[rgba(184,150,74,0.25)] rounded-2xl p-4 opacity-50 flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-xl bg-slate-500/10 flex items-center justify-center text-slate-500">
                                                         <Mail className="w-5 h-5" />
                                                     </div>
                                                     <div className="text-left">
-                                                        <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">{t('users.form.contactEmail')}</p>
-                                                        <p className="font-bold">N/A</p>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('users.form.contactEmail')}</p>
+                                                        <p className="font-bold text-slate-600" suppressHydrationWarning>{t('common.notAvailable' as TranslationKey)}</p>
                                                     </div>
                                                 </div>
                                             )}
@@ -466,15 +461,15 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
 
                                     {/* Información de Sistema */}
                                     <div className="grid grid-cols-2 gap-4 pt-4">
-                                        <div className="glass border border-white/5 rounded-2xl p-4 text-center">
-                                            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">{t('hermanos.registeredSince')}</p>
-                                            <p className="font-bold text-sm">
+                                        <div className="bg-white/70 border border-[rgba(184,150,74,0.25)] rounded-2xl p-4 text-center">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('hermanos.registeredSince')}</p>
+                                            <p className="font-bold text-sm text-slate-800">
                                                 {new Date(selectedHermano.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}
                                             </p>
                                         </div>
-                                        <div className="glass border border-white/5 rounded-2xl p-4 text-center">
-                                            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">{t('hermanos.emailAccess')}</p>
-                                            <p className="font-bold text-[10px] truncate opacity-60">
+                                        <div className="bg-white/70 border border-[rgba(184,150,74,0.25)] rounded-2xl p-4 text-center">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('hermanos.emailAccess')}</p>
+                                            <p className="font-bold text-[10px] truncate text-slate-600">
                                                 {selectedHermano.email}
                                             </p>
                                         </div>
@@ -491,27 +486,27 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-8 py-5 glass border border-white/20 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-12 backdrop-blur-2xl"
+                className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-6 sm:px-8 py-4 sm:py-5 ofrenda-liquid-card rounded-[2.5rem] shadow-[0_20px_50px_rgba(21,31,92,0.3)] flex items-center gap-8 sm:gap-12"
             >
                 <div className="flex items-center gap-4 group cursor-default">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-2xl bg-[#1f2e85]/10 flex items-center justify-center text-[#1f2e85] group-hover:scale-110 transition-transform">
                         <Award className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-2xl font-black leading-none">{stats.pulpito}</p>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t('hermanos.statsPulpito')}</p>
+                        <p className="text-2xl font-black leading-none text-[#1f2e85]">{stats.pulpito}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('hermanos.statsPulpito')}</p>
                     </div>
                 </div>
 
-                <div className="w-px h-10 bg-white/10" />
+                <div className="w-px h-10 bg-[rgba(184,150,74,0.35)]" />
 
                 <div className="flex items-center gap-4 group cursor-default">
-                    <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-2xl bg-[#b8964a]/15 flex items-center justify-center text-[#b68f2f] group-hover:scale-110 transition-transform">
                         <Users className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-2xl font-black leading-none">{stats.total}</p>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t('hermanos.statsTotal')}</p>
+                        <p className="text-2xl font-black leading-none text-[#1f2e85]">{stats.total}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('hermanos.statsTotal')}</p>
                     </div>
                 </div>
             </motion.div>
