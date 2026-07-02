@@ -98,12 +98,12 @@ describe('StatsClient', () => {
         expect(screen.queryByText('Ana García')).not.toBeInTheDocument()
     })
 
-    it('tab activo tiene clases de contraste (bg-primary text-primary-foreground)', () => {
+    it('tab activo tiene clases de contraste (navy liquid + texto blanco)', () => {
         render(<StatsClient {...defaultProps} />)
 
         const pulpitTab = screen.getByRole('button', { name: /admin\.stats\.tabPulpit/i })
-        expect(pulpitTab).toHaveClass('bg-primary')
-        expect(pulpitTab).toHaveClass('text-primary-foreground')
+        expect(pulpitTab).toHaveClass('from-[#1f2e85]')
+        expect(pulpitTab).toHaveClass('text-white')
     })
 
     it('mobile card muestra labels cortos (Intro, Final)', async () => {

@@ -112,19 +112,34 @@ export default function StatsClient({
     })
 
     return (
-        <div className="space-y-6">
+        <div className="ofrenda-liquid-scope space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <BackButton fallbackUrl="/dashboard/admin" />
             </div>
 
-            {/* Tabs - contraste garantizado: activo = fondo oscuro + texto claro */}
-            <div className="flex gap-2 p-1 bg-muted/30 rounded-xl w-fit">
+            {/* Hero liquid (marino + dorado) */}
+            <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] p-4 sm:p-6 shadow-xl">
+                <div className="absolute top-0 right-0 w-72 h-72 bg-[#b8964a]/25 rounded-full blur-[90px] -translate-y-1/2 translate-x-1/4" />
+                <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
+                <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+                    <div className="p-2 sm:p-3 bg-white border border-[rgba(227,204,146,0.5)] rounded-xl shrink-0 shadow-sm">
+                        <BarChart className="w-5 h-5 sm:w-6 sm:h-6 text-[#1f2e85]" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl sm:text-2xl font-bold text-white">{t('admin.stats.title')}</h1>
+                        <p className="text-white/70 text-sm">{t('admin.stats.subtitle')}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Tabs - segmented liquid: activo navy+dorado */}
+            <div className="inline-flex gap-1 p-1.5 rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] w-fit">
                 <button
                     type="button"
                     onClick={() => setActiveTab('pulpit')}
                     className={activeTab === 'pulpit'
-                        ? 'inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold bg-primary text-primary-foreground shadow-md transition-colors'
-                        : 'inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-foreground hover:bg-muted/50 transition-colors'}
+                        ? 'inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)] transition-all'
+                        : 'inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-slate-500 hover:text-[#1f2e85] transition-all'}
                 >
                     <BarChart className="w-4 h-4 shrink-0" />
                     <span>{t('admin.stats.tabPulpit')}</span>
@@ -133,8 +148,8 @@ export default function StatsClient({
                     type="button"
                     onClick={() => setActiveTab('bible')}
                     className={activeTab === 'bible'
-                        ? 'inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold bg-primary text-primary-foreground shadow-md transition-colors'
-                        : 'inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-foreground hover:bg-muted/50 transition-colors'}
+                        ? 'inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)] transition-all'
+                        : 'inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-slate-500 hover:text-[#1f2e85] transition-all'}
                 >
                     <BookOpen className="w-4 h-4 shrink-0" />
                     <span>{t('admin.stats.tabBible')}</span>
@@ -145,140 +160,128 @@ export default function StatsClient({
                 <>
                     {/* KPIs */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <Card className="p-4 sm:p-6 glass">
+                        <Card className="p-4 sm:p-6 ofrenda-liquid-card">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 sm:p-3 bg-primary/10 rounded-xl shrink-0">
-                                    <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                                <div className="p-2 sm:p-3 bg-[#1f2e85]/10 rounded-xl shrink-0">
+                                    <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-[#1f2e85]" />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-xs sm:text-sm text-muted-foreground">{t('admin.stats.kpiCultos')}</p>
-                                    <p className="text-xl sm:text-2xl font-bold">{summary.totalCultos}</p>
+                                    <p className="text-xs sm:text-sm text-slate-500">{t('admin.stats.kpiCultos')}</p>
+                                    <p className="text-xl sm:text-2xl font-bold text-[#1f2e85]">{summary.totalCultos}</p>
                                 </div>
                             </div>
                         </Card>
-                        <Card className="p-4 sm:p-6 glass">
+                        <Card className="p-4 sm:p-6 ofrenda-liquid-card">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 sm:p-3 bg-emerald-500/10 rounded-xl shrink-0">
                                     <Mic2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-xs sm:text-sm text-muted-foreground">{t('admin.stats.kpiParticipaciones')}</p>
-                                    <p className="text-xl sm:text-2xl font-bold">{summary.totalParticipaciones}</p>
+                                    <p className="text-xs sm:text-sm text-slate-500">{t('admin.stats.kpiParticipaciones')}</p>
+                                    <p className="text-xl sm:text-2xl font-bold text-[#1f2e85]">{summary.totalParticipaciones}</p>
                                 </div>
                             </div>
                         </Card>
-                        <Card className="p-4 sm:p-6 glass sm:col-span-2 lg:col-span-1">
+                        <Card className="p-4 sm:p-6 ofrenda-liquid-card sm:col-span-2 lg:col-span-1">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 sm:p-3 bg-blue-500/10 rounded-xl shrink-0">
                                     <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-xs sm:text-sm text-muted-foreground">{t('admin.stats.kpiHermanosActivos')}</p>
-                                    <p className="text-xl sm:text-2xl font-bold">{summary.hermanosActivos}</p>
+                                    <p className="text-xs sm:text-sm text-slate-500">{t('admin.stats.kpiHermanosActivos')}</p>
+                                    <p className="text-xl sm:text-2xl font-bold text-[#1f2e85]">{summary.hermanosActivos}</p>
                                 </div>
                             </div>
                         </Card>
                     </div>
 
-                    {/* Header / Filters */}
-                    <div className="glass rounded-2xl p-4 sm:p-6 flex flex-col gap-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div className="flex items-center gap-3 sm:gap-4">
-                                <div className="p-2 sm:p-3 bg-primary/10 rounded-xl shrink-0">
-                                    <BarChart className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                                </div>
-                                <div>
-                                    <h1 className="text-xl sm:text-2xl font-bold">{t('admin.stats.title')}</h1>
-                                    <p className="text-muted-foreground text-sm">{t('admin.stats.subtitle')}</p>
-                                </div>
+                    {/* Filters */}
+                    <div className="ofrenda-liquid-card rounded-2xl p-4 sm:p-6 flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full">
+                            <div className="relative flex-1 sm:min-w-[180px]">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#b8964a]" />
+                                <input
+                                    type="text"
+                                    placeholder={t('admin.stats.searchPlaceholder')}
+                                    className="w-full pl-9 pr-4 py-2 bg-white text-slate-800 border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-lg focus:border-[#b8964a] focus:ring-2 focus:ring-[rgba(184,150,74,0.2)] outline-none placeholder:text-slate-400 transition-colors"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
                             </div>
-
-                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
-                                <div className="relative flex-1 sm:min-w-[180px]">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <input
-                                        type="text"
-                                        placeholder={t('admin.stats.searchPlaceholder')}
-                                        className="w-full pl-9 pr-4 py-2 bg-background/50 border border-input rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-                                </div>
+                            <select
+                                className="p-2 bg-white text-slate-800 border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-lg outline-none cursor-pointer hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors"
+                                value={year}
+                                onChange={(e) => handleYearChange(e.target.value)}
+                                disabled={isLoading}
+                            >
+                                {years.map(y => (
+                                    <option key={y} value={y}>{y}</option>
+                                ))}
+                            </select>
+                            {cultoTypes.length > 0 && (
                                 <select
-                                    className="p-2 bg-background border border-input rounded-lg outline-none cursor-pointer hover:bg-muted/50 transition-colors"
-                                    value={year}
-                                    onChange={(e) => handleYearChange(e.target.value)}
+                                    className="p-2 bg-white text-slate-800 border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-lg outline-none cursor-pointer hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors"
+                                    value={tipoCultoId ?? ''}
+                                    onChange={(e) => handleTipoChange(e.target.value)}
                                     disabled={isLoading}
                                 >
-                                    {years.map(y => (
-                                        <option key={y} value={y}>{y}</option>
+                                    <option value="">{t('admin.stats.filterTipoAll')}</option>
+                                    {cultoTypes.map(tc => (
+                                        <option key={tc.id} value={tc.id}>{tc.nombre}</option>
                                     ))}
                                 </select>
-                                {cultoTypes.length > 0 && (
-                                    <select
-                                        className="p-2 bg-background border border-input rounded-lg outline-none cursor-pointer hover:bg-muted/50 transition-colors"
-                                        value={tipoCultoId ?? ''}
-                                        onChange={(e) => handleTipoChange(e.target.value)}
-                                        disabled={isLoading}
-                                    >
-                                        <option value="">{t('admin.stats.filterTipoAll')}</option>
-                                        {cultoTypes.map(tc => (
-                                            <option key={tc.id} value={tc.id}>{tc.nombre}</option>
-                                        ))}
-                                    </select>
-                                )}
-                            </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Table (desktop) / Cards (mobile) */}
-                    <div className="glass rounded-2xl overflow-hidden">
+                    <div className="ofrenda-liquid-card rounded-2xl overflow-hidden">
                         {/* Desktop */}
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full min-w-[600px]">
                                 <thead>
-                                    <tr className="border-b border-border/50 bg-muted/20">
-                                        <th className="text-left p-4 font-medium text-muted-foreground min-w-[150px] cursor-pointer hover:bg-muted/30 transition-colors sticky left-0 bg-background/80 backdrop-blur-sm" onClick={() => handleSort('nombre')}>
+                                    <tr className="border-b border-[rgba(184,150,74,0.3)] bg-[#f8f3e8]/70">
+                                        <th className="text-left p-4 font-medium text-[#1f2e85] min-w-[150px] cursor-pointer hover:bg-[#f8f3e8] transition-colors sticky left-0 bg-white/90 backdrop-blur-sm" onClick={() => handleSort('nombre')}>
                                             <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">{t('admin.stats.colBrother')} <ArrowUpDown className="w-3 h-3" /></div>
                                         </th>
-                                        <th className="text-center p-4 font-medium text-muted-foreground cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleSort('total')}>
+                                        <th className="text-center p-4 font-medium text-[#1f2e85] cursor-pointer hover:bg-[#f8f3e8] transition-colors" onClick={() => handleSort('total')}>
                                             <div className="flex items-center justify-center gap-1 text-xs md:text-sm">{t('common.total')} <ArrowUpDown className="w-3 h-3" /></div>
                                         </th>
-                                        <th className="text-center p-4 font-medium text-green-600/80 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleSort('introduccion')}>
+                                        <th className="text-center p-4 font-medium text-green-600 cursor-pointer hover:bg-[#f8f3e8] transition-colors" onClick={() => handleSort('introduccion')}>
                                             <div className="flex items-center justify-center gap-1 text-xs md:text-sm">{t('admin.stats.intro')} <ArrowUpDown className="w-3 h-3" /></div>
                                         </th>
-                                        <th className="text-center p-4 font-medium text-blue-600/80 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleSort('finalizacion')}>
+                                        <th className="text-center p-4 font-medium text-blue-600 cursor-pointer hover:bg-[#f8f3e8] transition-colors" onClick={() => handleSort('finalizacion')}>
                                             <div className="flex items-center justify-center gap-1 text-xs md:text-sm">{t('admin.stats.final')} <ArrowUpDown className="w-3 h-3" /></div>
                                         </th>
-                                        <th className="text-center p-4 font-medium text-purple-600/80 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleSort('ensenanza')}>
+                                        <th className="text-center p-4 font-medium text-purple-600 cursor-pointer hover:bg-[#f8f3e8] transition-colors" onClick={() => handleSort('ensenanza')}>
                                             <div className="flex items-center justify-center gap-1 text-xs md:text-sm">{t('admin.stats.teaching')} <ArrowUpDown className="w-3 h-3" /></div>
                                         </th>
-                                        <th className="text-center p-4 font-medium text-orange-600/80 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleSort('testimonios')}>
+                                        <th className="text-center p-4 font-medium text-orange-600 cursor-pointer hover:bg-[#f8f3e8] transition-colors" onClick={() => handleSort('testimonios')}>
                                             <div className="flex items-center justify-center gap-1 text-xs md:text-sm">{t('admin.stats.testimonies')} <ArrowUpDown className="w-3 h-3" /></div>
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-border/30">
+                                <tbody className="divide-y divide-[rgba(184,150,74,0.15)]">
                                     {isLoading && (
                                         <tr>
-                                            <td colSpan={6} className="p-8 text-center text-muted-foreground animate-pulse">
+                                            <td colSpan={6} className="p-8 text-center text-slate-500 animate-pulse">
                                                 {t('admin.stats.loading')}
                                             </td>
                                         </tr>
                                     )}
                                     {!isLoading && filteredStats.length === 0 && (
                                         <tr>
-                                            <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                                            <td colSpan={6} className="p-8 text-center text-slate-500">
                                                 {t('admin.stats.noResults')}
                                             </td>
                                         </tr>
                                     )}
                                     {!isLoading && filteredStats.length > 0 && filteredStats.map((stat, i) => (
-                                            <tr key={stat.userId} className="hover:bg-muted/30 transition-colors">
+                                            <tr key={stat.userId} className="hover:bg-[#f8f3e8]/70 transition-colors">
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-3">
                                                         {stat.user.avatar_url ? (
-                                                            <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0">
+                                                            <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0 ring-1 ring-[rgba(184,150,74,0.4)]">
                                                                 <NextImage
                                                                     src={stat.user.avatar_url}
                                                                     alt=""
@@ -287,21 +290,21 @@ export default function StatsClient({
                                                                 />
                                                             </div>
                                                         ) : (
-                                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                                                            <div className="w-8 h-8 rounded-full bg-[#1f2e85]/10 flex items-center justify-center text-[#1f2e85] text-xs font-bold shrink-0">
                                                                 {stat.user.nombre?.[0]}{stat.user.apellidos?.[0]}
                                                             </div>
                                                         )}
                                                         <div>
-                                                            <p className="font-medium text-foreground">{stat.user.nombre} {stat.user.apellidos}</p>
-                                                            <p className="text-xs text-muted-foreground">{i + 1}{t('admin.stats.ranking')}</p>
+                                                            <p className="font-medium text-slate-800">{stat.user.nombre} {stat.user.apellidos}</p>
+                                                            <p className="text-xs text-slate-500">{i + 1}{t('admin.stats.ranking')}</p>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="p-4 text-center font-bold text-lg">{stat.total}</td>
-                                                <td className="p-4 text-center text-muted-foreground">{stat.stats.introduccion > 0 ? stat.stats.introduccion : '-'}</td>
-                                                <td className="p-4 text-center text-muted-foreground">{stat.stats.finalizacion > 0 ? stat.stats.finalizacion : '-'}</td>
-                                                <td className="p-4 text-center text-muted-foreground">{stat.stats.ensenanza > 0 ? stat.stats.ensenanza : '-'}</td>
-                                                <td className="p-4 text-center text-muted-foreground">{stat.stats.testimonios > 0 ? stat.stats.testimonios : '-'}</td>
+                                                <td className="p-4 text-center font-bold text-lg text-[#1f2e85]">{stat.total}</td>
+                                                <td className="p-4 text-center text-slate-500">{stat.stats.introduccion > 0 ? stat.stats.introduccion : '-'}</td>
+                                                <td className="p-4 text-center text-slate-500">{stat.stats.finalizacion > 0 ? stat.stats.finalizacion : '-'}</td>
+                                                <td className="p-4 text-center text-slate-500">{stat.stats.ensenanza > 0 ? stat.stats.ensenanza : '-'}</td>
+                                                <td className="p-4 text-center text-slate-500">{stat.stats.testimonios > 0 ? stat.stats.testimonios : '-'}</td>
                                             </tr>
                                         ))}
                                 </tbody>
@@ -311,48 +314,48 @@ export default function StatsClient({
                         {/* Mobile cards */}
                         <div className="md:hidden p-4 space-y-4">
                             {isLoading && (
-                                <div className="p-8 text-center text-muted-foreground animate-pulse">{t('admin.stats.loading')}</div>
+                                <div className="p-8 text-center text-slate-500 animate-pulse">{t('admin.stats.loading')}</div>
                             )}
                             {!isLoading && filteredStats.length === 0 && (
-                                <div className="p-8 text-center text-muted-foreground">{t('admin.stats.noResults')}</div>
+                                <div className="p-8 text-center text-slate-500">{t('admin.stats.noResults')}</div>
                             )}
                             {!isLoading && filteredStats.length > 0 && filteredStats.map((stat, i) => (
-                                    <Card key={stat.userId} className="p-4">
+                                    <div key={stat.userId} className="p-4 bg-white border border-[rgba(184,150,74,0.3)] rounded-xl shadow-[0_1px_4px_rgba(31,46,133,0.05)]">
                                         <div className="flex items-center gap-3">
                                             {stat.user.avatar_url ? (
-                                                <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0">
+                                                <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 ring-1 ring-[rgba(184,150,74,0.4)]">
                                                     <NextImage src={stat.user.avatar_url} alt="" fill className="object-cover" />
                                                 </div>
                                             ) : (
-                                                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold shrink-0">
+                                                <div className="w-12 h-12 rounded-full bg-[#1f2e85]/10 flex items-center justify-center text-[#1f2e85] text-sm font-bold shrink-0">
                                                     {stat.user.nombre?.[0]}{stat.user.apellidos?.[0]}
                                                 </div>
                                             )}
                                             <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-foreground truncate">{stat.user.nombre} {stat.user.apellidos}</p>
-                                                <p className="text-xs text-muted-foreground">{i + 1}{t('admin.stats.ranking')}</p>
+                                                <p className="font-medium text-slate-800 truncate">{stat.user.nombre} {stat.user.apellidos}</p>
+                                                <p className="text-xs text-slate-500">{i + 1}{t('admin.stats.ranking')}</p>
                                             </div>
-                                            <p className="text-xl font-bold text-primary shrink-0">{stat.total}</p>
+                                            <p className="text-xl font-bold text-[#1f2e85] shrink-0">{stat.total}</p>
                                         </div>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 pt-3 border-t border-border/30">
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 pt-3 border-t border-[rgba(184,150,74,0.25)]">
                                             <div className="text-center min-w-0">
-                                                <p className="text-[10px] sm:text-xs text-muted-foreground truncate" title={t('admin.stats.intro')}>{t('admin.stats.introShort')}</p>
-                                                <p className="font-medium">{stat.stats.introduccion > 0 ? stat.stats.introduccion : '-'}</p>
+                                                <p className="text-[10px] sm:text-xs text-slate-500 truncate" title={t('admin.stats.intro')}>{t('admin.stats.introShort')}</p>
+                                                <p className="font-medium text-slate-800">{stat.stats.introduccion > 0 ? stat.stats.introduccion : '-'}</p>
                                             </div>
                                             <div className="text-center min-w-0">
-                                                <p className="text-[10px] sm:text-xs text-muted-foreground truncate" title={t('admin.stats.final')}>{t('admin.stats.finalShort')}</p>
-                                                <p className="font-medium">{stat.stats.finalizacion > 0 ? stat.stats.finalizacion : '-'}</p>
+                                                <p className="text-[10px] sm:text-xs text-slate-500 truncate" title={t('admin.stats.final')}>{t('admin.stats.finalShort')}</p>
+                                                <p className="font-medium text-slate-800">{stat.stats.finalizacion > 0 ? stat.stats.finalizacion : '-'}</p>
                                             </div>
                                             <div className="text-center min-w-0">
-                                                <p className="text-[10px] sm:text-xs text-muted-foreground truncate" title={t('admin.stats.teaching')}>{t('admin.stats.teachingShort')}</p>
-                                                <p className="font-medium">{stat.stats.ensenanza > 0 ? stat.stats.ensenanza : '-'}</p>
+                                                <p className="text-[10px] sm:text-xs text-slate-500 truncate" title={t('admin.stats.teaching')}>{t('admin.stats.teachingShort')}</p>
+                                                <p className="font-medium text-slate-800">{stat.stats.ensenanza > 0 ? stat.stats.ensenanza : '-'}</p>
                                             </div>
                                             <div className="text-center min-w-0">
-                                                <p className="text-[10px] sm:text-xs text-muted-foreground truncate" title={t('admin.stats.testimonies')}>{t('admin.stats.testimoniesShort')}</p>
-                                                <p className="font-medium">{stat.stats.testimonios > 0 ? stat.stats.testimonios : '-'}</p>
+                                                <p className="text-[10px] sm:text-xs text-slate-500 truncate" title={t('admin.stats.testimonies')}>{t('admin.stats.testimoniesShort')}</p>
+                                                <p className="font-medium text-slate-800">{stat.stats.testimonios > 0 ? stat.stats.testimonios : '-'}</p>
                                             </div>
                                         </div>
-                                    </Card>
+                                    </div>
                                 ))}
                         </div>
                     </div>
@@ -360,11 +363,11 @@ export default function StatsClient({
             ) : (
                 <>
                     {/* Filtros Biblia - arriba */}
-                    <div className="glass rounded-2xl p-4 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+                    <div className="ofrenda-liquid-card rounded-2xl p-4 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
                         <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">{t('admin.stats.filterYear')}:</span>
+                            <span className="text-sm text-slate-500">{t('admin.stats.filterYear')}:</span>
                             <select
-                                className="p-2 bg-background border border-input rounded-lg outline-none cursor-pointer hover:bg-muted/50 transition-colors"
+                                className="p-2 bg-white text-slate-800 border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-lg outline-none cursor-pointer hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors"
                                 value={bibleYear}
                                 onChange={(e) => handleBibleYearChange(e.target.value)}
                                 disabled={isLoading}
@@ -377,9 +380,9 @@ export default function StatsClient({
                         </div>
                         {cultoTypes.length > 0 && (
                             <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">{t('admin.stats.filterTipoCulto')}:</span>
+                                <span className="text-sm text-slate-500">{t('admin.stats.filterTipoCulto')}:</span>
                                 <select
-                                    className="p-2 bg-background border border-input rounded-lg outline-none cursor-pointer hover:bg-muted/50 transition-colors"
+                                    className="p-2 bg-white text-slate-800 border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-lg outline-none cursor-pointer hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors"
                                     value={tipoCultoId ?? ''}
                                     onChange={(e) => handleTipoChange(e.target.value)}
                                     disabled={isLoading}
@@ -393,8 +396,8 @@ export default function StatsClient({
                         )}
                         {!isLoading && (
                             <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">{t('admin.stats.totalLecturas')}:</span>
-                                <span className="font-bold text-primary">{readingStats?.totalLecturas ?? 0}</span>
+                                <span className="text-sm text-slate-500">{t('admin.stats.totalLecturas')}:</span>
+                                <span className="font-bold text-[#1f2e85]">{readingStats?.totalLecturas ?? 0}</span>
                             </div>
                         )}
                     </div>
@@ -402,21 +405,21 @@ export default function StatsClient({
                     {/* Biblical Stats */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Citas más leídas */}
-                        <Card className="p-4 sm:p-6 glass min-w-0">
+                        <Card className="p-4 sm:p-6 ofrenda-liquid-card min-w-0">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="p-2 bg-blue-500/10 rounded-lg shrink-0">
                                     <BarChart className="w-5 h-5 text-blue-500" />
                                 </div>
-                                <h3 className="font-bold text-lg">{t('admin.stats.topReadings')}</h3>
+                                <h3 className="font-bold text-lg text-[#1f2e85]">{t('admin.stats.topReadings')}</h3>
                             </div>
                             {(readingStats?.topReadings?.length ?? 0) > 0 ? (
                                 <>
                                     {/* Móvil: lista compacta (evita Recharts en móvil) */}
                                     <div className="md:hidden space-y-2">
                                         {readingStats?.topReadings?.slice(0, 5).map((r) => (
-                                            <div key={`${r.label}-${r.count}`} className="flex items-center justify-between py-2 px-3 bg-background/50 rounded-lg">
-                                                <span className="text-sm font-medium truncate flex-1 min-w-0">{r.label}</span>
-                                                <span className="text-sm font-bold text-primary shrink-0 ml-2">{r.count} {t('admin.stats.veces')}</span>
+                                            <div key={`${r.label}-${r.count}`} className="flex items-center justify-between py-2 px-3 bg-white/70 border border-[rgba(184,150,74,0.25)] rounded-lg">
+                                                <span className="text-sm font-medium truncate flex-1 min-w-0 text-slate-800">{r.label}</span>
+                                                <span className="text-sm font-bold text-[#1f2e85] shrink-0 ml-2">{r.count} {t('admin.stats.veces')}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -425,40 +428,40 @@ export default function StatsClient({
                                         <ResponsiveContainer width="100%" height="100%">
                                             <ReBarChart data={readingStats?.topReadings || []}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#88888820" vertical={false} />
-                                                <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} angle={-45} textAnchor="end" height={70} />
-                                                <YAxis />
-                                                <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                                                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#475569' }} interval={0} angle={-45} textAnchor="end" height={70} />
+                                                <YAxis tick={{ fill: '#475569' }} />
+                                                <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: '1px solid rgba(184,150,74,0.4)', boxShadow: '0 4px 12px rgba(31,46,133,0.12)', color: '#1e293b' }} />
+                                                <Bar dataKey="count" fill="#1f2e85" radius={[4, 4, 0, 0]} />
                                             </ReBarChart>
                                         </ResponsiveContainer>
                                     </div>
                                 </>
                             ) : (
                                 <div className="flex flex-col items-center justify-center gap-2 text-center py-8 px-4 min-h-[120px]">
-                                    <BookOpen className="w-12 h-12 text-muted-foreground/50" />
-                                    <p className="text-sm text-muted-foreground">{t('admin.stats.emptyChartTop')}</p>
-                                    <p className="text-xs text-muted-foreground/80">{t('admin.stats.noReadingsForYear')}</p>
+                                    <BookOpen className="w-12 h-12 text-slate-300" />
+                                    <p className="text-sm text-slate-500">{t('admin.stats.emptyChartTop')}</p>
+                                    <p className="text-xs text-slate-400">{t('admin.stats.noReadingsForYear')}</p>
                                 </div>
                             )}
                         </Card>
 
                         {/* Lecturas por tipo */}
-                        <Card className="p-4 sm:p-6 glass min-w-0">
+                        <Card className="p-4 sm:p-6 ofrenda-liquid-card min-w-0">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="p-2 bg-purple-500/10 rounded-lg shrink-0">
                                     <PieChartIcon className="w-5 h-5 text-purple-500" />
                                 </div>
-                                <h3 className="font-bold text-lg">{t('admin.stats.readingsByType')}</h3>
+                                <h3 className="font-bold text-lg text-[#1f2e85]">{t('admin.stats.readingsByType')}</h3>
                             </div>
                             {(readingStats?.readingsByType?.length ?? 0) > 0 ? (
                                 <>
                                     {/* Móvil: badges compactos */}
                                     <div className="md:hidden flex flex-wrap gap-2">
                                         {readingStats?.readingsByType?.map((r, idx) => (
-                                            <div key={`${r.label}-${r.count}`} className="flex items-center gap-2 px-4 py-3 rounded-xl bg-background/50 border border-border/30">
+                                            <div key={`${r.label}-${r.count}`} className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/70 border border-[rgba(184,150,74,0.25)]">
                                                 <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                                                <span className="text-sm font-medium">{r.label}</span>
-                                                <span className="text-sm font-bold text-primary">{r.count}</span>
+                                                <span className="text-sm font-medium text-slate-800">{r.label}</span>
+                                                <span className="text-sm font-bold text-[#1f2e85]">{r.count}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -478,35 +481,35 @@ export default function StatsClient({
                                 </>
                             ) : (
                                 <div className="flex flex-col items-center justify-center gap-2 text-center py-8 px-4 min-h-[120px]">
-                                    <PieChartIcon className="w-12 h-12 text-muted-foreground/50" />
-                                    <p className="text-sm text-muted-foreground">{t('admin.stats.emptyChartType')}</p>
-                                    <p className="text-xs text-muted-foreground/80">{t('admin.stats.noReadingsForYear')}</p>
+                                    <PieChartIcon className="w-12 h-12 text-slate-300" />
+                                    <p className="text-sm text-slate-500">{t('admin.stats.emptyChartType')}</p>
+                                    <p className="text-xs text-slate-400">{t('admin.stats.noReadingsForYear')}</p>
                                 </div>
                             )}
                         </Card>
                     </div>
 
                     {/* Table / List */}
-                    <div className="glass rounded-2xl overflow-hidden">
-                        <div className="p-4 border-b border-border/50 bg-muted/20">
-                            <h3 className="font-bold">{t('admin.stats.readingRanking')}</h3>
+                    <div className="ofrenda-liquid-card rounded-2xl overflow-hidden">
+                        <div className="ofrenda-liquid-headbar p-4 relative overflow-hidden">
+                            <h3 className="font-bold text-white">{t('admin.stats.readingRanking')}</h3>
                         </div>
                         <div className="p-4 space-y-4">
                             {(readingStats?.topReadings || []).map((reading, rankIndex) => (
-                                <div key={`${reading.label}-${reading.count}`} className="flex items-center justify-between p-3 bg-background/50 rounded-xl border border-border/10">
+                                <div key={`${reading.label}-${reading.count}`} className="flex items-center justify-between p-3 bg-white/70 rounded-xl border border-[rgba(184,150,74,0.25)]">
                                     <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
+                                        <div className="w-8 h-8 rounded-lg bg-[#1f2e85]/10 flex items-center justify-center text-[#1f2e85] font-bold shrink-0">
                                             {rankIndex + 1}
                                         </div>
-                                        <span className="font-medium truncate">{reading.label}</span>
+                                        <span className="font-medium truncate text-slate-800">{reading.label}</span>
                                     </div>
-                                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-bold shrink-0">
+                                    <span className="px-3 py-1 bg-[#f8f3e8] border border-[rgba(184,150,74,0.35)] text-[#1f2e85] rounded-full text-sm font-bold shrink-0">
                                         {reading.count} {t('admin.stats.veces')}
                                     </span>
                                 </div>
                             ))}
                             {(!readingStats?.topReadings || readingStats.topReadings.length === 0) && (
-                                <p className="text-center text-muted-foreground py-8">{t('admin.stats.noReadings')}</p>
+                                <p className="text-center text-slate-500 py-8">{t('admin.stats.noReadings')}</p>
                             )}
                         </div>
                     </div>
