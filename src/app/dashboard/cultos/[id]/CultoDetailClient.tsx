@@ -194,14 +194,7 @@ function AssignmentSection({
                                 <span className="hidden sm:inline">{t('culto.instrucciones.ver')}</span>
                             </button>
                         )}
-                        {optimisticId && !isEditing && !readOnly && (
-                            <button
-                                onClick={() => setIsEditing(true)}
-                                className="px-3 py-1 text-[9px] font-black uppercase tracking-widest border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-[#1f2e85] rounded-xl hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-all shadow-sm"
-                            >
-                                {t('culto.detail.modify' as TranslationKey)}
-                            </button>
-                        )}
+                        {/* El botón Modificar vive junto al asignado (alcanzable con el pulgar); la cabecera queda para "Ver instrucciones" */}
                     </div>
                 </CardHeader>
 
@@ -290,9 +283,33 @@ function AssignmentSection({
                                     <h3 className="text-xl md:text-2xl font-black text-slate-900 leading-none tracking-tight mb-1">
                                         {displayUser.nombre}
                                     </h3>
-                                    <p className="text-sm font-bold text-[#1f2e85] uppercase tracking-wider mb-6">
+                                    <p className="text-sm font-bold text-[#1f2e85] uppercase tracking-wider mb-4">
                                         {displayUser.apellidos?.split(' ')[0]}
                                     </p>
+
+                                    {/* Acciones junto al asignado (alcanzables con el pulgar en móvil) */}
+                                    {!readOnly && (
+                                        <div className="flex items-center justify-center gap-2 mb-6 w-full">
+                                            <button
+                                                type="button"
+                                                data-testid="assignment-modify-btn"
+                                                onClick={() => setIsEditing(true)}
+                                                disabled={isSaving}
+                                                className="min-h-[44px] px-5 py-2 text-[10px] font-black uppercase tracking-widest border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-[#1f2e85] rounded-xl hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-all shadow-sm touch-manipulation disabled:opacity-50"
+                                            >
+                                                {t('culto.detail.modify' as TranslationKey)}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                data-testid="assignment-remove-btn"
+                                                onClick={() => void handleUserSelectorSelect(null)}
+                                                disabled={isSaving}
+                                                className="min-h-[44px] px-5 py-2 text-[10px] font-black uppercase tracking-widest border border-red-200 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 hover:border-red-300 transition-all shadow-sm touch-manipulation disabled:opacity-50"
+                                            >
+                                                {t('culto.detail.remove' as TranslationKey)}
+                                            </button>
+                                        </div>
+                                    )}
 
                                     {/* Bloque de Lectura Bíblica Integrado (Con diseño mejorado) */}
                                     {label === t('culto.introduccion') && (

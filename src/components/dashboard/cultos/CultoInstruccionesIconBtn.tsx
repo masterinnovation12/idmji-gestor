@@ -21,8 +21,8 @@ export function CultoInstruccionesIconBtn({ rol, onOpen }: CultoInstruccionesIco
       aria-label={t('culto.instrucciones.ver')}
       data-testid={`ver-instrucciones-icon-${rol}`}
       className="flex items-center justify-center w-9 h-9 min-w-9 min-h-9 rounded-full
-                bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400
-                hover:bg-blue-200 dark:hover:bg-blue-800/50 border border-blue-200 dark:border-blue-700/50
+                bg-[#1f2e85]/10 text-[#1f2e85]
+                hover:bg-[#f8f3e8] border border-[rgba(184,150,74,0.35)] hover:border-[#b8964a]
                 active:scale-95 transition-all shadow-sm touch-manipulation"
     >
       <Info className="w-4 h-4 shrink-0" strokeWidth={2.5} />

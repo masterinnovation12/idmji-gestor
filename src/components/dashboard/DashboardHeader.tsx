@@ -38,7 +38,12 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                     </h1>
                     <div className="flex items-center gap-3 text-white/70 font-bold">
                         <Calendar className="w-5 h-5 text-[#e8d9a8]" />
-                        <span className="capitalize">{format(new Date(), 'PPPP', { locale })}</span>
+                        <span suppressHydrationWarning>
+                            {(() => {
+                                const f = format(new Date(), 'PPPP', { locale })
+                                return f.charAt(0).toUpperCase() + f.slice(1)
+                            })()}
+                        </span>
                     </div>
                 </motion.div>
 

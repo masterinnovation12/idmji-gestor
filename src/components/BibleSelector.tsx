@@ -79,35 +79,39 @@ export default function BibleSelector({
     const [chapterHistoryExtraCount, setChapterHistoryExtraCount] = useState(0)
     const [chapterHistoryPreviousCount, setChapterHistoryPreviousCount] = useState(0)
 
-    // Validation logic derived from state
-    const validationError = useMemo(() => {
-        if (!selectedLibroObj) return null
+    // Validation logic derived from state (flags + mensaje i18n)
+    const validation = useMemo(() => {
+        const none = { message: null as string | null, chapterTooHigh: false, verseStartTooHigh: false, verseEndTooHigh: false }
+        if (!selectedLibroObj || capituloInicio === '') return none
 
-        if (capituloInicio !== '') {
-            const maxCaps = selectedLibroObj.capitulos.length
-            if (capituloInicio > maxCaps) {
-                return `El libro ${selectedLibroObj.nombre} solo tiene ${maxCaps} capítulos.`
-            }
-
-            const maxVers = (() => {
-                const cap = selectedLibroObj.capitulos.find(c => c.n === Number(capituloInicio))
-                return cap ? cap.v : 0
-            })()
-
-            if (versiculoInicio !== '' && Number(versiculoInicio) > maxVers) {
-                return `El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${maxVers} versículos.`
-            }
-            if (versiculoFin !== '' && Number(versiculoFin) > maxVers) {
-                return `El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${maxVers} versículos.`
-            }
-            if (versiculoInicio !== '' && versiculoFin !== '' && Number(versiculoFin) < Number(versiculoInicio)) {
-                return `El versículo de fin no puede ser menor al de inicio.`
+        const maxCaps = selectedLibroObj.capitulos.length
+        if (Number(capituloInicio) > maxCaps) {
+            return {
+                ...none,
+                chapterTooHigh: true,
+                message: interpolate(t('bible.errorBookChapters'), { libro: selectedLibroObj.nombre, max: maxCaps }),
             }
         }
 
-        return null
-    }, [selectedLibroObj, capituloInicio, versiculoInicio, versiculoFin])
+        const maxVers = selectedLibroObj.capitulos.find(c => c.n === Number(capituloInicio))?.v ?? 0
+        const verseMsg = interpolate(t('bible.errorChapterVerses'), {
+            capitulo: capituloInicio,
+            libro: selectedLibroObj.nombre,
+            max: maxVers,
+        })
+        if (versiculoInicio !== '' && Number(versiculoInicio) > maxVers) {
+            return { ...none, verseStartTooHigh: true, message: verseMsg }
+        }
+        if (versiculoFin !== '' && Number(versiculoFin) > maxVers) {
+            return { ...none, verseEndTooHigh: true, message: verseMsg }
+        }
+        if (versiculoInicio !== '' && versiculoFin !== '' && Number(versiculoFin) < Number(versiculoInicio)) {
+            return { ...none, verseEndTooHigh: true, message: t('bible.errorVerseOrder') }
+        }
+        return none
+    }, [selectedLibroObj, capituloInicio, versiculoInicio, versiculoFin, t])
 
+    const validationError = validation.message
     const [submitError, setSubmitError] = useState<string | null>(null)
     const error = validationError || submitError
 
@@ -379,7 +383,7 @@ export default function BibleSelector({
 
     const handleSubmit = () => {
         if (!selectedLibroObj || !capituloInicio || !versiculoInicio) {
-            setSubmitError("Por favor, selecciona un libro, capítulo y versículo.")
+            setSubmitError(t('bible.errorIncomplete'))
             return
         }
 
@@ -392,13 +396,13 @@ export default function BibleSelector({
 
         const maxCaps = getMaxChapters()
         if (capituloInicio > maxCaps) {
-            setSubmitError(`El libro ${selectedLibroObj.nombre} solo tiene ${maxCaps} capítulos.`)
+            setSubmitError(interpolate(t('bible.errorBookChapters'), { libro: selectedLibroObj.nombre, max: maxCaps }))
             return
         }
 
         const maxVers = getMaxVerses(Number(capituloInicio))
         if (versiculoInicio > maxVers) {
-            setSubmitError(`El capítulo ${capituloInicio} de ${selectedLibroObj.nombre} solo tiene ${maxVers} versículos.`)
+            setSubmitError(interpolate(t('bible.errorChapterVerses'), { capitulo: capituloInicio, libro: selectedLibroObj.nombre, max: maxVers }))
             return
         }
 
@@ -422,7 +426,7 @@ export default function BibleSelector({
                 onMouseEnter={() => setSelectedIndex(globalIdx)}
                 className={cn(
                     "w-full px-4 py-3 flex items-center justify-between group transition-all rounded-xl relative overflow-hidden",
-                    isSelected ? "bg-primary/10" : "hover:bg-primary/5"
+                    isSelected ? "bg-[#f8f3e8] border border-[rgba(184,150,74,0.35)]" : "hover:bg-[#f8f3e8]/60"
                 )}
             >
                 <div className="flex items-center gap-3 relative z-10 w-full">
@@ -440,7 +444,7 @@ export default function BibleSelector({
                     <div className="flex-1 min-w-0 text-left">
                         <p className={cn(
                             "font-black text-sm uppercase tracking-tight truncate transition-colors",
-                            isSelected ? "text-primary" : "text-foreground"
+                            isSelected ? "text-[#1f2e85]" : "text-slate-800"
                         )}>
                             {libro.nombre}
                         </p>
@@ -453,8 +457,8 @@ export default function BibleSelector({
                             )}>
                                 {libro.testamento === 'AT' ? 'AT' : 'NT'}
                             </span>
-                            <span className="text-[7px] text-muted-foreground/50 font-black uppercase tracking-widest truncate">
-                                {libro.capitulos.length} CAP
+                            <span className="text-[7px] text-slate-400 font-black uppercase tracking-widest truncate">
+                                {interpolate(t('bible.chaptersShort'), { n: libro.capitulos.length })}
                             </span>
                         </div>
                     </div>
@@ -463,7 +467,7 @@ export default function BibleSelector({
                     {isSelected && (
                         <motion.div
                             layoutId="check-indicator"
-                            className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shrink-0"
+                            className="w-5 h-5 rounded-full bg-gradient-to-br from-[#1f2e85] to-[#283593] border border-[#b8964a] text-white flex items-center justify-center shrink-0"
                         >
                             <Check className="w-3 h-3" />
                         </motion.div>
@@ -477,13 +481,13 @@ export default function BibleSelector({
         <div className="space-y-6">
             {/* Libro Input - Trigger */}
             <div className="space-y-2.5 relative">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">
-                    Libro de la Biblia
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#b68f2f] ml-1">
+                    {t('bible.bookLabel')}
                 </label>
                 <div className="relative group">
-                    <div className="absolute inset-0 bg-primary/10 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-[#b8964a]/15 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
                     <div className="relative">
-                        <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/60 group-focus-within:text-primary transition-colors" />
+                        <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#b8964a] group-focus-within:text-[#1f2e85] transition-colors" />
                         <input
                             type="text"
                             ref={inputRef}
@@ -498,12 +502,12 @@ export default function BibleSelector({
                             placeholder={t('bible.searchBook')}
                             disabled={disabled}
                             autoComplete="off"
-                            className="w-full bg-muted/30 border border-border/50 rounded-2xl pl-12 pr-10 py-4 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all text-sm md:text-base font-bold placeholder:text-muted-foreground/40 shadow-sm md:cursor-text"
+                            className="w-full bg-white/70 border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-2xl pl-12 pr-10 py-4 outline-none focus:ring-4 focus:ring-[rgba(184,150,74,0.15)] focus:border-[#b8964a] transition-all text-sm md:text-base font-bold text-slate-800 placeholder:text-slate-400 shadow-sm md:cursor-text"
                         />
                         {/* Command Icon hint */}
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 opacity-40 pointer-events-none">
-                            <span className="text-[10px] uppercase font-black tracking-widest border border-border rounded px-1.5 py-0.5">
-                                LISTA
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 opacity-50 pointer-events-none">
+                            <span className="text-[10px] uppercase font-black tracking-widest border border-[rgba(184,150,74,0.4)] text-[#b68f2f] rounded px-1.5 py-0.5">
+                                {t('bible.listHint')}
                             </span>
                         </div>
                     </div>
@@ -517,17 +521,17 @@ export default function BibleSelector({
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
                                 transition={{ duration: 0.15 }}
-                                className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-primary/20 rounded-[1.5rem] shadow-2xl z-100 overflow-hidden flex flex-col max-h-[350px]"
+                                className="absolute top-full left-0 right-0 mt-2 bg-white border-[1.5px] border-[rgba(184,150,74,0.4)] rounded-[1.5rem] shadow-2xl z-100 overflow-hidden flex flex-col max-h-[350px]"
                             >
                                 {/* Scrollable List */}
                                 <div className="overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20 scrollbar-track-transparent">
                                     {filteredLibros.length === 0 ? (
                                         <div className="p-8 text-center flex flex-col items-center">
-                                            <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center mb-3">
-                                                <Search className="w-5 h-5 text-muted-foreground/50" />
+                                            <div className="w-12 h-12 bg-[#f8f3e8] border border-[rgba(184,150,74,0.3)] rounded-full flex items-center justify-center mb-3">
+                                                <Search className="w-5 h-5 text-[#b8964a]" />
                                             </div>
-                                            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">
-                                                No se encontraron libros
+                                            <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+                                                {t('bible.noBooks')}
                                             </p>
                                         </div>
                                     ) : (
@@ -535,9 +539,9 @@ export default function BibleSelector({
                                             {/* Groups */}
                                             {groupedLibros.AT.length > 0 && (
                                                 <div>
-                                                    <div className="sticky top-0 bg-white dark:bg-slate-900 z-20 px-4 py-2.5 mb-2 border-b border-border/70 shadow-[0_3px_0_0_rgba(0,0,0,0.06)] dark:shadow-[0_3px_0_0_rgba(255,255,255,0.05)]">
-                                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-500">
-                                                            Antiguo Testamento
+                                                    <div className="sticky top-0 bg-white z-20 px-4 py-2.5 mb-2 border-b border-[rgba(184,150,74,0.3)] shadow-[0_3px_0_0_rgba(184,150,74,0.08)]">
+                                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-600">
+                                                            {t('bible.oldTestament')}
                                                         </span>
                                                     </div>
                                                     <div className="grid grid-cols-1 gap-1 px-1">
@@ -548,9 +552,9 @@ export default function BibleSelector({
 
                                             {groupedLibros.NT.length > 0 && (
                                                 <div>
-                                                    <div className="sticky top-0 bg-white dark:bg-slate-900 z-20 px-4 py-2.5 mb-2 border-b border-border/70 mt-2 shadow-[0_3px_0_0_rgba(0,0,0,0.06)] dark:shadow-[0_3px_0_0_rgba(255,255,255,0.05)]">
-                                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-500">
-                                                            Nuevo Testamento
+                                                    <div className="sticky top-0 bg-white z-20 px-4 py-2.5 mb-2 border-b border-[rgba(184,150,74,0.3)] mt-2 shadow-[0_3px_0_0_rgba(184,150,74,0.08)]">
+                                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600">
+                                                            {t('bible.newTestament')}
                                                         </span>
                                                     </div>
                                                     <div className="grid grid-cols-1 gap-1 px-1">
@@ -563,9 +567,9 @@ export default function BibleSelector({
                                 </div>
 
                                 {/* Footer Tip */}
-                                <div className="p-3 bg-muted/30 border-t border-white/10 text-center flex items-center justify-center gap-4 text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] shrink-0">
-                                    <span className="flex items-center gap-1"><ArrowLeft className="w-3 h-3 rotate-90" /> Navegar</span>
-                                    <span className="flex items-center gap-1">ENTER Seleccionar</span>
+                                <div className="p-3 bg-[#f8f3e8]/70 border-t border-[rgba(184,150,74,0.25)] text-center flex items-center justify-center gap-4 text-[9px] font-black text-[#b68f2f] uppercase tracking-[0.2em] shrink-0">
+                                    <span className="flex items-center gap-1"><ArrowLeft className="w-3 h-3 rotate-90" /> {t('bible.navigate')}</span>
+                                    <span className="flex items-center gap-1">{t('bible.enterToSelect')}</span>
                                 </div>
                             </motion.div>
                         )}
@@ -579,9 +583,9 @@ export default function BibleSelector({
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <div className="flex justify-between items-end ml-1">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t('bible.chapter')}</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-[#b68f2f]">{t('bible.chapter')}</label>
                             {selectedLibroObj && (
-                                <span className="text-[8px] font-black text-primary uppercase">Máx: {getMaxChapters()}</span>
+                                <span className="text-[8px] font-black text-[#1f2e85] uppercase">{interpolate(t('bible.max'), { n: getMaxChapters() })}</span>
                             )}
                         </div>
                         <input
@@ -602,7 +606,7 @@ export default function BibleSelector({
                             onBlur={handleCapituloBlur}
                             placeholder={t('lecturas.chapterPlaceholder')}
                             disabled={disabled || !selectedLibroObj || chapterGate === 'checking'}
-                            className={`w-full h-14 bg-muted/30 border rounded-2xl px-5 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${error && (error.includes('capítulos') || (capituloInicio !== '' && Number(capituloInicio) > getMaxChapters())) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
+                            className={`w-full h-14 bg-white/70 border-[1.5px] rounded-2xl px-5 outline-none focus:ring-4 transition-all text-sm font-black text-slate-800 placeholder:text-slate-400 shadow-sm disabled:opacity-50 ${validation.chapterTooHigh ? 'border-red-500 ring-4 ring-red-500/10 focus:ring-red-500/10' : 'border-[rgba(184,150,74,0.32)] focus:border-[#b8964a] focus:ring-[rgba(184,150,74,0.15)]'
                                 }`}
                         />
                     </div>
@@ -613,9 +617,9 @@ export default function BibleSelector({
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                className="col-span-full flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                                className="col-span-full flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500"
                             >
-                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                <Loader2 className="w-4 h-4 animate-spin text-[#1f2e85]" />
                                 {t('lecturas.chapterHistoryChecking')}
                             </motion.div>
                         )}
@@ -629,13 +633,13 @@ export default function BibleSelector({
                             >
                                 <div className="flex gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
-                                        <History className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+                                        <History className="w-5 h-5 text-amber-700" />
                                     </div>
                                     <div className="min-w-0 space-y-2">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-800 dark:text-amber-300">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-800">
                                             {t('lecturas.chapterHistoryTitle')}
                                         </p>
-                                        <p className="text-sm font-medium text-amber-950 dark:text-amber-100 leading-snug">
+                                        <p className="text-sm font-medium text-amber-950 leading-snug">
                                             {interpolate(t('lecturas.chapterHistoryMessage'), {
                                                 libro: selectedLibroObj.nombre,
                                                 capitulo: capituloInicio,
@@ -645,17 +649,17 @@ export default function BibleSelector({
                                                 rol: rolLabel(chapterHistoryHit.tipoLectura),
                                             })}
                                         </p>
-                                        <p className="text-xs text-amber-800/80 dark:text-amber-200/80">
+                                        <p className="text-xs text-amber-800/80">
                                             {chapterHistoryHit.pasaje}
                                         </p>
                                         {chapterHistoryExtraCount > 0 && (
-                                            <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                                            <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">
                                                 {chapterHistoryExtraCount === 1
                                                     ? interpolate(t('lecturas.chapterHistoryMoreTimes'), { count: chapterHistoryExtraCount })
                                                     : interpolate(t('lecturas.chapterHistoryMoreTimesPlural'), { count: chapterHistoryExtraCount })}
                                             </p>
                                         )}
-                                        <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
+                                        <p className="text-xs font-semibold text-amber-900">
                                             {t('lecturas.chapterHistoryQuestion')}
                                         </p>
                                     </div>
@@ -671,7 +675,7 @@ export default function BibleSelector({
                                     <button
                                         type="button"
                                         onClick={handleRejectChapterContinue}
-                                        className="flex-1 h-11 rounded-xl border border-amber-600/40 bg-white/80 dark:bg-slate-900/80 text-amber-900 dark:text-amber-100 font-black text-[10px] uppercase tracking-widest hover:bg-amber-500/10 transition-colors"
+                                        className="flex-1 h-11 rounded-xl border border-amber-600/40 bg-white/80 text-amber-900 font-black text-[10px] uppercase tracking-widest hover:bg-amber-500/10 transition-colors"
                                     >
                                         {t('lecturas.chapterHistoryCancel')}
                                     </button>
@@ -683,7 +687,7 @@ export default function BibleSelector({
                                             Number(capituloInicio),
                                             cultoId
                                         )}
-                                        className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+                                        className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#1f2e85] hover:underline"
                                     >
                                         <History className="w-3.5 h-3.5" />
                                         {t('lecturas.chapterHistoryViewDetail')}
@@ -695,14 +699,14 @@ export default function BibleSelector({
 
                     <div className="space-y-2">
                         <div className="flex justify-between items-end ml-1">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t('bible.versesRange')}</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-[#b68f2f]">{t('bible.versesRange')}</label>
                             {selectedLibroObj && capituloInicio !== '' && (
-                                <span className="text-[8px] font-black text-primary uppercase">Máx: {getMaxVerses(Number(capituloInicio))}</span>
+                                <span className="text-[8px] font-black text-[#1f2e85] uppercase">{interpolate(t('bible.max'), { n: getMaxVerses(Number(capituloInicio)) })}</span>
                             )}
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="flex-1 relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground/40 uppercase">De</span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-[#b68f2f]/70 uppercase">{t('bible.from')}</span>
                                 <input
                                     type="number"
                                     inputMode="numeric"
@@ -716,13 +720,13 @@ export default function BibleSelector({
                                     }}
                                     placeholder={t('bible.start')}
                                     disabled={disabled || !selectedLibroObj || !versesAllowed}
-                                    className={`w-full h-14 bg-muted/30 border rounded-2xl pl-8 pr-2 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${error && (error.includes('versículos') && versiculoInicio !== '' && Number(versiculoInicio) > getMaxVerses(Number(capituloInicio))) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
+                                    className={`w-full h-14 bg-white/70 border-[1.5px] rounded-2xl pl-8 pr-2 outline-none focus:ring-4 transition-all text-sm font-black text-slate-800 placeholder:text-slate-400 shadow-sm disabled:opacity-50 ${validation.verseStartTooHigh ? 'border-red-500 ring-4 ring-red-500/10 focus:ring-red-500/10' : 'border-[rgba(184,150,74,0.32)] focus:border-[#b8964a] focus:ring-[rgba(184,150,74,0.15)]'
                                         }`}
                                 />
                             </div>
-                            <span className="text-muted-foreground font-black">—</span>
+                            <span className="text-[#b8964a] font-black">—</span>
                             <div className="flex-1 relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-muted-foreground/40 uppercase">{t('bible.to')}</span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-[#b68f2f]/70 uppercase">{t('bible.to')}</span>
                                 <input
                                     type="number"
                                     inputMode="numeric"
@@ -736,7 +740,7 @@ export default function BibleSelector({
                                     }}
                                     placeholder={t('bible.end')}
                                     disabled={disabled || !selectedLibroObj || !versesAllowed}
-                                    className={`w-full h-14 bg-muted/30 border rounded-2xl pl-10 pr-2 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black shadow-sm ${error && (error.includes('versículos') && versiculoFin !== '' && Number(versiculoFin) > getMaxVerses(Number(capituloInicio))) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-border/50 focus:border-primary/50'
+                                    className={`w-full h-14 bg-white/70 border-[1.5px] rounded-2xl pl-10 pr-2 outline-none focus:ring-4 transition-all text-sm font-black text-slate-800 placeholder:text-slate-400 shadow-sm disabled:opacity-50 ${validation.verseEndTooHigh ? 'border-red-500 ring-4 ring-red-500/10 focus:ring-red-500/10' : 'border-[rgba(184,150,74,0.32)] focus:border-[#b8964a] focus:ring-[rgba(184,150,74,0.15)]'
                                         }`}
                                 />
                             </div>
@@ -784,7 +788,7 @@ export default function BibleSelector({
                 className="w-full h-16 border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-20 disabled:cursor-not-allowed shadow-2xl flex items-center justify-center gap-3 mt-4"
             >
                 <BookOpen className="w-5 h-5" />
-                Registrar Lectura Bíblica
+                {t('bible.register')}
             </button>
         </div>
     )

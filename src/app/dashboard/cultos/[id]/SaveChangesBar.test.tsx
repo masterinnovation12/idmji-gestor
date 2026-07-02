@@ -25,7 +25,8 @@ describe('SaveChangesBar', () => {
         expect(element.props['data-testid']).toBe('save-changes-bar')
         const inner = element.props.children
         expect(inner.props.className).toContain('bg-white')
-        expect(inner.props.className).toContain('dark:bg-slate-900')
+        // Marco liquid: borde dorado fijo (la barra flota siempre clara, como los modales)
+        expect(inner.props.className).toContain('border-[rgba(184,150,74,0.45)]')
         expect(inner.props.className).toContain('flex-wrap')
     })
 
