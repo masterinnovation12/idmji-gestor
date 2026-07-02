@@ -60,7 +60,7 @@ export function SearchBar({
       <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none z-10">
         <Search
           className={`w-4 h-4 transition-all duration-200 ${
-            isActive ? accentColor : 'text-muted-foreground/40'
+            isActive ? accentColor : 'text-[#b8964a]'
           }`}
         />
       </div>
@@ -73,15 +73,15 @@ export function SearchBar({
         onChange={(e) => handleChange(e.target.value)}
         placeholder={placeholder}
         className={`
-          w-full pl-10 pr-10 py-3 rounded-xl border text-sm
-          bg-background/60 backdrop-blur-sm
-          placeholder:text-muted-foreground/40
+          w-full pl-10 pr-10 py-3 rounded-xl border-[1.5px] text-sm
+          bg-white text-slate-800
+          placeholder:text-slate-400
           focus:outline-none focus:ring-2 transition-all duration-200
           ${hasNoResults
-            ? 'border-destructive/40 focus:border-destructive/60 focus:ring-destructive/15'
+            ? 'border-red-400/60 focus:border-red-500/70 focus:ring-red-500/15'
             : isActive
-              ? 'border-primary/40 focus:border-primary/60 focus:ring-primary/15 bg-background'
-              : 'border-border hover:border-border/80 focus:border-primary/40 focus:ring-primary/10'
+              ? 'border-[#b8964a] focus:ring-[rgba(184,150,74,0.25)]'
+              : 'border-[rgba(184,150,74,0.32)] hover:border-[rgba(184,150,74,0.5)] focus:border-[#b8964a] focus:ring-[rgba(184,150,74,0.18)]'
           }
         `}
       />
@@ -90,19 +90,19 @@ export function SearchBar({
           type="button"
           aria-label={t('common.clearSearch')}
           onClick={() => { handleChange(''); inputRef.current?.focus() }}
-          className="absolute inset-y-0 right-3 flex items-center p-1.5 hover:bg-muted rounded-lg transition-colors group"
+          className="absolute inset-y-0 right-3 flex items-center p-1.5 hover:bg-[#f8f3e8] rounded-lg transition-colors group"
         >
-          <X className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-foreground" />
+          <X className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700" />
         </button>
       )}
       {isActive && (
         <div
           className={`absolute -bottom-5 right-1 pointer-events-none select-none text-[9px] font-bold uppercase tracking-wider transition-colors ${
-            hasNoResults ? 'text-destructive/80' : 'text-muted-foreground/50'
+            hasNoResults ? 'text-red-500/90' : 'text-muted-foreground/50'
           }`}
         >
           {hasNoResults
-            ? 'Sin resultados'
+            ? <span suppressHydrationWarning>{t('archivos.search.noResultsShort' as Parameters<typeof t>[0])}</span>
             : `${resultsCount} / ${totalCount}`}
         </div>
       )}

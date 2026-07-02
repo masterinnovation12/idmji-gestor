@@ -16,7 +16,7 @@ type SortDropdownProps = Readonly<{
   setSortConfig: (v: SortConfig | null) => void
   activeTabConfig: TabConfig
   hasDateInfo: boolean
-  tSortLabels: { recent: string; oldest: string; alpha: string; alphaR: string; noSort: string; sort: string }
+  tSortLabels: { recent: string; oldest: string; alpha: string; alphaR: string; noSort: string; sort: string; dateWord: string }
 }>
 
 export function SortDropdown({
@@ -30,8 +30,8 @@ export function SortDropdown({
   const hasSort = sortConfig !== null
 
   const ALL_SORT_OPTIONS: SortOption[] = [
-    { field: 'date', dir: 'desc', label: tSortLabels.recent, sublabel: 'fecha ↓', Icon: ArrowDown },
-    { field: 'date', dir: 'asc', label: tSortLabels.oldest, sublabel: 'fecha ↑', Icon: ArrowUp },
+    { field: 'date', dir: 'desc', label: tSortLabels.recent, sublabel: `${tSortLabels.dateWord} ↓`, Icon: ArrowDown },
+    { field: 'date', dir: 'asc', label: tSortLabels.oldest, sublabel: `${tSortLabels.dateWord} ↑`, Icon: ArrowUp },
     { field: 'alpha', dir: 'asc', label: tSortLabels.alpha, sublabel: 'A → Z', Icon: ArrowDown },
     { field: 'alpha', dir: 'desc', label: tSortLabels.alphaR, sublabel: 'Z → A', Icon: ArrowUp },
   ]
@@ -58,8 +58,8 @@ export function SortDropdown({
           flex items-center gap-2 min-h-[40px] px-4 py-2 rounded-xl text-sm font-semibold
           transition-all touch-manipulation
           ${hasSort
-            ? `${activeTabConfig.activeBg} text-white shadow`
-            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            ? `${activeTabConfig.activeBg} text-white shadow border-[1.5px] border-[#b8964a]/70`
+            : 'bg-white text-slate-600 border-[1.5px] border-[rgba(184,150,74,0.32)] hover:bg-[#f8f3e8] hover:border-[#b8964a]'
           }
         `}
       >
@@ -75,7 +75,7 @@ export function SortDropdown({
         <>
           <div className="fixed inset-0 z-200" aria-hidden onClick={() => setOpen(false)} />
           <div
-            className="fixed z-201 rounded-xl border border-border shadow-2xl overflow-hidden bg-white dark:bg-zinc-900"
+            className="fixed z-201 rounded-xl border-[1.5px] border-[rgba(184,150,74,0.45)] shadow-2xl overflow-hidden bg-white"
             style={{ top: rect.top, left: rect.left, minWidth: rect.minWidth }}
           >
             {/* Sin ordenar */}
@@ -86,14 +86,14 @@ export function SortDropdown({
                 'w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors',
                 !hasSort
                   ? `${activeTabConfig.activeBg} text-white`
-                  : 'text-muted-foreground hover:bg-muted/50',
+                  : 'text-slate-500 hover:bg-[#f8f3e8]',
               ].join(' ')}
             >
               <ArrowUpDown className="w-4 h-4 shrink-0" />
               <span>{tSortLabels.noSort}</span>
             </button>
 
-            <div className="h-px bg-border/40 mx-3" />
+            <div className="h-px bg-[rgba(184,150,74,0.3)] mx-3" />
 
             {/* Opciones */}
             {options.map((opt) => {
@@ -108,13 +108,13 @@ export function SortDropdown({
                     'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
                     isActive
                       ? `${activeTabConfig.activeBg} text-white font-semibold`
-                      : 'text-foreground hover:bg-muted/50',
+                      : 'text-slate-700 hover:bg-[#f8f3e8]',
                   ].join(' ')}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
                   <div className="flex flex-col items-start leading-tight">
                     <span className="font-medium">{opt.label}</span>
-                    <span className={`text-[10px] ${isActive ? 'opacity-70' : 'text-muted-foreground'}`}>{opt.sublabel}</span>
+                    <span className={`text-[10px] ${isActive ? 'opacity-70' : 'text-slate-500'}`}>{opt.sublabel}</span>
                   </div>
                 </button>
               )

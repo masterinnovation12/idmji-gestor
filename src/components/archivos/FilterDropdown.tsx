@@ -48,8 +48,8 @@ export function FilterDropdown({
           flex items-center gap-2 min-h-[40px] px-4 py-2 rounded-xl text-sm font-semibold
           transition-all touch-manipulation
           ${hasFilter
-            ? `${activeTabConfig.activeBg} text-white shadow`
-            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            ? `${activeTabConfig.activeBg} text-white shadow border-[1.5px] border-[#b8964a]/70`
+            : 'bg-white text-slate-600 border-[1.5px] border-[rgba(184,150,74,0.32)] hover:bg-[#f8f3e8] hover:border-[#b8964a]'
           }
         `}
       >
@@ -65,7 +65,7 @@ export function FilterDropdown({
         <>
           <div className="fixed inset-0 z-200" aria-hidden onClick={() => setOpen(false)} />
           <div
-            className="fixed z-201 rounded-xl border border-border shadow-2xl overflow-hidden bg-white dark:bg-zinc-900 max-h-[300px] overflow-y-auto"
+            className="fixed z-201 rounded-xl border-[1.5px] border-[rgba(184,150,74,0.45)] shadow-2xl overflow-hidden bg-white max-h-[300px] overflow-y-auto"
             style={{ top: rect.top, left: rect.left, minWidth: rect.minWidth }}
           >
             {/* Todos */}
@@ -76,7 +76,7 @@ export function FilterDropdown({
                 'w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors',
                 filterMonthYear === 'all'
                   ? `${activeTabConfig.activeBg} text-white`
-                  : 'text-foreground hover:bg-muted/50',
+                  : 'text-slate-700 hover:bg-[#f8f3e8]',
               ].join(' ')}
             >
               <span className="text-base leading-none">·</span>
@@ -86,7 +86,7 @@ export function FilterDropdown({
             {/* Por año agrupado */}
             {years.map((year) => (
               <div key={year}>
-                <div className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 bg-muted/30 border-t border-border/40">
+                <div className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#b68f2f] bg-[#f8f3e8]/70 border-t border-[rgba(184,150,74,0.25)]">
                   {year}
                 </div>
                 {byYear[year].map((opt) => {
@@ -101,7 +101,7 @@ export function FilterDropdown({
                         'w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors',
                         isActive
                           ? `${activeTabConfig.activeBg} text-white font-semibold`
-                          : 'text-foreground hover:bg-muted/50',
+                          : 'text-slate-700 hover:bg-[#f8f3e8]',
                       ].join(' ')}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-white' : activeTabConfig.color.replace('text-', 'bg-')}`} />
