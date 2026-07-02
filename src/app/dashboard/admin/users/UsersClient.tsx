@@ -209,21 +209,23 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500 no-scrollbar" data-page="users">
-            {/* Header Actions */}
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-card/50 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-xl">
-                <div>
-                    <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
-                        <Users className="w-8 h-8 text-primary" />
+        <div className="ofrenda-liquid-scope space-y-8 animate-in fade-in duration-500 no-scrollbar" data-page="users">
+            {/* Header hero liquid (marino + dorado) */}
+            <div className="relative overflow-hidden flex flex-col md:flex-row gap-4 justify-between items-start md:items-center p-6 rounded-3xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] shadow-xl">
+                <div className="absolute top-0 right-0 w-72 h-72 bg-[#b8964a]/25 rounded-full blur-[90px] -translate-y-1/2 translate-x-1/4" />
+                <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
+                <div className="relative z-10">
+                    <h1 className="text-3xl font-black tracking-tight flex items-center gap-3 text-white">
+                        <Users className="w-8 h-8 text-[#e3cc92]" />
                         {t('users.title')}
                     </h1>
-                    <p className="text-muted-foreground mt-1 font-medium">{t('users.desc')}</p>
+                    <p className="text-white/70 mt-1 font-medium">{t('users.desc')}</p>
                 </div>
 
-                <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="relative z-10 flex items-center gap-3 w-full md:w-auto">
                     <Button
                         onClick={() => { resetForm(); setIsCreateOpen(true) }}
-                        className="gap-2 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20"
+                        className="gap-2 rounded-xl font-bold border-2 border-[#b8964a] bg-white text-[#1f2e85] hover:bg-[#f8f3e8] shadow-lg"
                     >
                         <Plus className="w-5 h-5" />
                         {t('users.new')}
@@ -234,25 +236,24 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
             {/* Search & Stats Bar */}
             <div className="grid md:grid-cols-4 gap-4">
                 <div className="md:col-span-2 relative group">
-                    <div className="absolute inset-0 bg-blue-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
-                    <div className="relative bg-card rounded-2xl border border-white/10 shadow-lg flex items-center px-4 h-14">
-                        <Search className="w-5 h-5 text-muted-foreground mr-3" />
+                    <div className="relative bg-white rounded-2xl border-[1.5px] border-[rgba(184,150,74,0.32)] focus-within:border-[#b8964a] focus-within:ring-2 focus-within:ring-[rgba(184,150,74,0.2)] shadow-lg flex items-center px-4 h-14 transition-all">
+                        <Search className="w-5 h-5 text-[#b8964a] mr-3" />
                         <input
                             type="text"
                             placeholder={t('users.search')}
-                            className="bg-transparent border-none outline-none w-full text-foreground placeholder:text-muted-foreground/50 font-medium"
+                            className="bg-transparent border-none outline-none w-full text-slate-800 placeholder:text-slate-400 font-medium"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
                 </div>
 
-                <div className="bg-card rounded-2xl border border-white/10 p-4 flex items-center justify-between shadow-lg">
-                    <span className="text-muted-foreground font-medium text-sm">{t('users.total')}</span>
-                    <span className="text-2xl font-black text-blue-500">{users.length}</span>
+                <div className="ofrenda-liquid-card rounded-2xl p-4 flex items-center justify-between">
+                    <span className="text-slate-500 font-medium text-sm">{t('users.total')}</span>
+                    <span className="text-2xl font-black text-[#1f2e85]">{users.length}</span>
                 </div>
-                <div className="bg-card rounded-2xl border border-white/10 p-4 flex items-center justify-between shadow-lg">
-                    <span className="text-muted-foreground font-medium text-sm">{t('users.admins')}</span>
+                <div className="ofrenda-liquid-card rounded-2xl p-4 flex items-center justify-between">
+                    <span className="text-slate-500 font-medium text-sm">{t('users.admins')}</span>
                     <span className="text-2xl font-black text-amber-500">{users.filter(u => u.rol === 'ADMIN').length}</span>
                 </div>
             </div>
@@ -267,13 +268,13 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             layout
-                            className="group relative bg-card hover:bg-card/80 border border-white/5 hover:border-blue-500/30 rounded-3xl p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-black/20"
+                            className="group relative ofrenda-liquid-card rounded-3xl p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-[#1f2e85]/15 hover:-translate-y-1"
                         >
                             <div className="flex flex-col items-center text-center space-y-4">
                                 <div className="relative">
-                                    <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="absolute inset-0 bg-[#b8964a]/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                                     {user.avatar_url ? (
-                                        <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-card group-hover:border-blue-500/20 transition-colors shadow-xl">
+                                        <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white ring-1 ring-[rgba(184,150,74,0.4)] transition-colors shadow-xl">
                                             <NextImage
                                                 src={user.avatar_url}
                                                 alt=""
@@ -282,11 +283,11 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                                             />
                                         </div>
                                     ) : (
-                                        <div className="relative w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl font-black text-muted-foreground border-4 border-card group-hover:border-blue-500/20 transition-colors shadow-xl">
+                                        <div className="relative w-24 h-24 rounded-full bg-[#f8f3e8] flex items-center justify-center text-2xl font-black text-[#1f2e85] border-4 border-white ring-1 ring-[rgba(184,150,74,0.4)] transition-colors shadow-xl">
                                             {user.nombre?.[0]}{user.apellidos?.[0]}
                                         </div>
                                     )}
-                                    <span className={`absolute bottom-1 right-1 px-2 py-0.5 rounded-full text-[10px] font-black border-2 border-card uppercase ${user.rol === 'ADMIN' ? 'bg-amber-500 text-black' :
+                                    <span className={`absolute bottom-1 right-1 px-2 py-0.5 rounded-full text-[10px] font-black border-2 border-white uppercase ${user.rol === 'ADMIN' ? 'bg-amber-500 text-black' :
                                         user.rol === 'EDITOR' ? 'bg-blue-500 text-white' : 'bg-zinc-200 text-zinc-700'
                                         }`}>
                                         {user.rol}
@@ -294,8 +295,8 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                                 </div>
 
                                 <div className="space-y-1 w-full">
-                                    <h3 className="font-bold text-lg leading-tight truncate px-2">{user.nombre} {user.apellidos}</h3>
-                                    <p className="text-xs text-muted-foreground truncate px-2">{user.email}</p>
+                                    <h3 className="font-bold text-lg leading-tight truncate px-2 text-slate-900">{user.nombre} {user.apellidos}</h3>
+                                    <p className="text-xs text-slate-500 truncate px-2">{user.email}</p>
                                 </div>
 
                                 <div className="flex items-center gap-2 pt-2 w-full">
@@ -303,7 +304,7 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                                         variant="outline"
                                         size="sm"
                                         onClick={() => openEdit(user)}
-                                        className="flex-1 rounded-xl h-9 font-bold bg-white/5 border-white/10 hover:bg-white/10"
+                                        className="flex-1 rounded-xl h-9 font-bold bg-white border-[rgba(184,150,74,0.32)] text-[#1f2e85] hover:bg-[#f8f3e8] hover:border-[#b8964a]"
                                     >
                                         <Edit2 className="w-3.5 h-3.5 mr-2" />
                                         {t('common.edit')}
@@ -326,17 +327,17 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
 
             {/* Create/Edit Modal - LIGHT THEME */}
             <Dialog open={isCreateOpen || isEditOpen} onOpenChange={(open) => { if (!open) { setIsCreateOpen(false); setIsEditOpen(false); } }}>
-                <DialogContent className="max-w-2xl bg-white border-zinc-200 p-0 gap-0 rounded-3xl shadow-2xl text-zinc-900 max-h-[90vh] overflow-y-auto no-scrollbar">
-                    <div className="bg-zinc-50 p-6 border-b border-zinc-200 sticky top-0 z-10">
+                <DialogContent className="max-w-2xl bg-white border-[rgba(184,150,74,0.45)] p-0 gap-0 rounded-3xl shadow-2xl text-zinc-900 max-h-[90vh] overflow-y-auto no-scrollbar">
+                    <div className="bg-[#f8f3e8] p-6 border-b border-[rgba(184,150,74,0.35)] sticky top-0 z-10">
                         <div className="flex items-center justify-between gap-3">
-                            <DialogTitle className="text-2xl font-black flex items-center gap-3 text-zinc-900">
-                                {isEditOpen ? <Edit2 className="w-6 h-6 text-blue-600" /> : <Plus className="w-6 h-6 text-blue-600" />}
+                            <DialogTitle className="text-2xl font-black flex items-center gap-3 text-[#1f2e85]">
+                                {isEditOpen ? <Edit2 className="w-6 h-6 text-[#b68f2f]" /> : <Plus className="w-6 h-6 text-[#b68f2f]" />}
                                 {isEditOpen ? t('users.edit.title') : t('users.create.title')}
                             </DialogTitle>
                             <button
                                 onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); resetForm(); }}
-                                className="text-zinc-500 hover:text-zinc-800 transition-colors p-1 rounded-lg hover:bg-zinc-100"
-                                aria-label={t('common.close') || 'Cerrar'}
+                                className="text-zinc-500 hover:text-[#1f2e85] transition-colors p-1 rounded-lg hover:bg-white"
+                                aria-label={t('common.close')}
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -516,7 +517,7 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                                         <div className="[&>button]:bg-white [&>button]:border-zinc-300 [&>button]:text-zinc-900 [&>button]:h-10 [&>button]:rounded-xl">
                                             <Select value={formData.rol} onValueChange={(val) => setFormData({ ...formData, rol: val })}>
                                                 <SelectTrigger className="h-11 rounded-xl bg-white border-zinc-300 text-zinc-900 focus:ring-blue-500 focus:border-blue-500">
-                                                    <SelectValue placeholder={t('users.form.selectRole') || 'Seleccionar rol'} />
+                                                    <SelectValue placeholder={t('users.form.selectRole')} />
                                                 </SelectTrigger>
                                                 <SelectContent className="min-w-[200px]">
                                                     {availableRoles.length === 0 && (
@@ -546,11 +547,11 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                             </div>
                         </div>
 
-                        <DialogFooter className="pt-4 border-t border-zinc-100">
-                            <Button variant="ghost" type="button" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false) }} className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100">
+                        <DialogFooter className="pt-4 border-t border-[rgba(184,150,74,0.25)]">
+                            <Button variant="ghost" type="button" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false) }} className="text-[#1f2e85] border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white hover:bg-[#f8f3e8] hover:border-[#b8964a] rounded-xl">
                                 {t('common.cancel')}
                             </Button>
-                            <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl px-8 shadow-lg shadow-blue-600/20">
+                            <Button type="submit" disabled={isLoading} className="border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white font-bold rounded-xl px-8 shadow-[0_4px_16px_rgba(31,46,133,0.32)] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)]">
                                 {isLoading ? t('common.loading') : t('users.form.save')}
                             </Button>
                         </DialogFooter>
@@ -560,7 +561,7 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
 
             {/* Confirm Delete Modal - LIGHT THEME */}
             <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen} >
-                <DialogContent className="max-w-md bg-white border-zinc-200 rounded-3xl shadow-2xl text-zinc-900 overflow-hidden [&>*]:no-scrollbar">
+                <DialogContent className="max-w-md bg-white border-[rgba(184,150,74,0.45)] rounded-3xl shadow-2xl text-zinc-900 overflow-hidden [&>*]:no-scrollbar">
                     <DialogHeader>
                         <DialogTitle className="text-red-600 flex items-center gap-2">
                             <AlertCircle className="w-5 h-5" />
@@ -573,7 +574,7 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsDeleteOpen(false)} className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100">{t('common.cancel')}</Button>
+                        <Button variant="ghost" onClick={() => setIsDeleteOpen(false)} className="text-[#1f2e85] border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white hover:bg-[#f8f3e8] hover:border-[#b8964a] rounded-xl">{t('common.cancel')}</Button>
                         <Button variant="destructive" onClick={handleDelete} disabled={isLoading} className="font-bold rounded-xl bg-red-600 text-white hover:bg-red-700">
                             {isLoading ? t('common.loading') : t('users.delete.confirm')}
                         </Button>
