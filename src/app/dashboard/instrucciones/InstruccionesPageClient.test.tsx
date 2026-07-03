@@ -75,6 +75,53 @@ describe('InstruccionesPageClient', () => {
   })
 })
 
+describe('InstruccionesPageClient — contexto claro dentro de cards liquid', () => {
+  const cultoConContenido: CultoInstrucciones = {
+    ...alabanzaCulto,
+    roles: [
+      {
+        rol: 'temas_alabanza',
+        titulo: 'Temas para preparar la alabanza',
+        contenido: '1. PREPARARNOS\n• Punto con **negrita clave**\nTexto suelto',
+        publicado: true,
+      },
+    ],
+  }
+
+  it('el contenido abierto usa colores fijos (sin clases dependientes del tema)', () => {
+    render(<InstruccionesPageClient cultos={[cultoConContenido]} />)
+    fireEvent.click(screen.getByRole('button', { name: /instrucciones\.rol\.temasAlabanza/i }))
+
+    const panel = document.getElementById('instruccion-content-temas_alabanza')
+    expect(panel).not.toBeNull()
+    // Dentro de ofrenda-liquid-card (siempre clara) no puede haber dark:* ni tokens del tema
+    expect(panel!.innerHTML).not.toMatch(/dark:/)
+    expect(panel!.innerHTML).not.toMatch(/text-foreground|text-muted-foreground|border-border/)
+    const items = panel!.querySelectorAll('li')
+    expect(items.length).toBeGreaterThanOrEqual(2)
+    items.forEach((li) => expect(li.className).toContain('text-slate-700'))
+  })
+
+  it('las negritas ** ** se renderizan como <strong> con color fijo', () => {
+    render(<InstruccionesPageClient cultos={[cultoConContenido]} />)
+    fireEvent.click(screen.getByRole('button', { name: /instrucciones\.rol\.temasAlabanza/i }))
+
+    const strong = screen.getByText('negrita clave')
+    expect(strong.tagName).toBe('STRONG')
+    expect(strong.className).toContain('text-slate-900')
+  })
+
+  it('la cabecera de la card usa las variantes card* claras y no las theme-aware', () => {
+    render(<InstruccionesPageClient cultos={[cultoConContenido]} />)
+    const toggle = screen.getByRole('button', { name: /instrucciones\.rol\.temasAlabanza/i })
+    expect(toggle.className).not.toMatch(/dark:/)
+    fireEvent.click(toggle)
+    // Abierta: fondo de acento claro fijo (identidad azul de Alabanza)
+    expect(toggle.className).toContain('bg-blue-50')
+    expect(toggle.className).not.toMatch(/dark:/)
+  })
+})
+
 describe('InstruccionesPageClient — orden desde actions (integración de datos)', () => {
   it('respeta orden si los roles ya vienen ordenados como getAllInstrucciones', async () => {
     const { sortInstruccionRoles } = await import('@/lib/instrucciones/sortInstruccionRoles')

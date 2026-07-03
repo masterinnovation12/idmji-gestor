@@ -72,23 +72,23 @@ export function InstruccionesCultoModal({
       <div data-testid="instrucciones-culto-modal" className="space-y-4">
         {loading && (
           <div className="flex items-center justify-center py-12">
-            <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <div className="w-10 h-10 border-4 border-[#1f2e85]/30 border-t-[#1f2e85] rounded-full animate-spin" />
           </div>
         )}
         {error && (
-          <p className="text-sm text-red-600 dark:text-red-400 font-medium">{error}</p>
+          <p className="text-sm text-red-600 font-medium">{error}</p>
         )}
         {!loading && !error && (
           <>
             {contenido ? (
-              <div className="p-3 sm:p-4 md:p-6 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-inner">
+              <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-br from-[#f8f3e8]/70 to-white rounded-xl sm:rounded-2xl border-[1.5px] border-[rgba(184,150,74,0.35)] shadow-inner">
                 <div className="flex gap-3 sm:gap-4">
-                  <div className="shrink-0 w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg sm:rounded-xl bg-primary/10 flex items-center justify-center ring-2 ring-primary/10">
-                    <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-primary" aria-hidden />
+                  <div className="shrink-0 w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg sm:rounded-xl bg-[#1f2e85]/10 border border-[rgba(184,150,74,0.35)] flex items-center justify-center">
+                    <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-[#1f2e85]" aria-hidden />
                   </div>
                   <div className="min-w-0 flex-1 overflow-x-hidden">
                     <article
-                      className="text-sm md:text-base leading-[1.65] md:leading-[1.7] text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-medium antialiased selection:bg-primary/20 wrap-break-word"
+                      className="text-sm md:text-base leading-[1.65] md:leading-[1.7] text-slate-800 whitespace-pre-wrap font-medium antialiased selection:bg-[#1f2e85]/15 wrap-break-word"
                       aria-label={t('culto.instrucciones.title')}
                     >
                       {contenido}
@@ -98,10 +98,10 @@ export function InstruccionesCultoModal({
               </div>
             ) : (
               <div className="py-6 px-4 text-center">
-                <p className="text-muted-foreground font-medium">
+                <p className="text-slate-500 font-medium">
                   {t('instrucciones.comingSoon')}
                 </p>
-                <p className="text-sm text-muted-foreground/70 mt-1">
+                <p className="text-sm text-slate-400 mt-1">
                   {t('culto.instrucciones.empty')}
                 </p>
               </div>
