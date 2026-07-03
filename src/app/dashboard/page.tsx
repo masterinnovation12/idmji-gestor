@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Suspense } from 'react'
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
 import { getUserAssignments } from './cultos/actions'
 import DashboardClient from './DashboardClient'
@@ -117,6 +117,9 @@ export default async function DashboardPage() {
             </Suspense>
         )
     } catch (error) {
+        // redirect() funciona lanzando NEXT_REDIRECT: hay que relanzarlo para que
+        // Next ejecute la redirección en vez de pintar el fallback de error.
+        unstable_rethrow(error)
         console.error('CRITICAL ERROR in Dashboard Page:', error)
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center bg-white dark:bg-slate-950 rounded-lg">
