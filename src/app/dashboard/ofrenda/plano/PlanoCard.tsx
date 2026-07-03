@@ -100,7 +100,7 @@ export const PlanoCard = memo(function PlanoCard({
                 <button
                     type="button"
                     onClick={onEditNombre}
-                    className="text-center font-extrabold break-words whitespace-pre-line touch-manipulation w-full hover:bg-muted/30 transition-colors"
+                    className="text-center font-extrabold break-words whitespace-pre-line touch-manipulation w-full hover:bg-black/5 transition-colors"
                     style={{
                         fontSize: tarjetas.nameFont,
                         lineHeight: `${tarjetas.nameFont + 3}px`,

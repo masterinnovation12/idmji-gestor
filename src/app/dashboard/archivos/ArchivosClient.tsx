@@ -46,12 +46,14 @@ import type { TabConfig } from '@/components/archivos/types'
 const POLLING_INTERVAL_MS = 45_000
 const POLLING_STALE_MS = 12_000
 
+// Colores de identidad por pestaña, SIEMPRE claros: se pintan dentro de cards
+// liquid (fondo crema/blanco fijo), por lo que no deben variar con el tema.
 const TABS_BASE = [
-  { id: 'ensenanzas' as SheetSourceId, labelKey: 'archivos.tab.ensenanzas', icon: BookOpen,       color: 'text-blue-600  dark:text-blue-400',  bg: 'bg-blue-50  dark:bg-blue-950/40',  activeBg: 'bg-blue-600  dark:bg-blue-500'  },
-  { id: 'estudios'   as SheetSourceId, labelKey: 'archivos.tab.estudios',   icon: BookText,       color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40', activeBg: 'bg-emerald-600 dark:bg-emerald-500' },
-  { id: 'instituto'  as SheetSourceId, labelKey: 'archivos.tab.instituto',  icon: GraduationCap, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40', activeBg: 'bg-violet-600 dark:bg-violet-500' },
-  { id: 'pastorado'  as SheetSourceId, labelKey: 'archivos.tab.pastorado',  icon: UsersRound,    color: 'text-amber-600  dark:text-amber-400',  bg: 'bg-amber-50  dark:bg-amber-950/40',  activeBg: 'bg-amber-600  dark:bg-amber-500'  },
-  { id: 'profecia'   as SheetSourceId, labelKey: 'archivos.tab.profecia',   icon: HandHeart,     color: 'text-rose-600   dark:text-rose-400',   bg: 'bg-rose-50   dark:bg-rose-950/40',   activeBg: 'bg-rose-600   dark:bg-rose-500'   },
+  { id: 'ensenanzas' as SheetSourceId, labelKey: 'archivos.tab.ensenanzas', icon: BookOpen,      color: 'text-blue-600',    bg: 'bg-blue-50',    activeBg: 'bg-blue-600'    },
+  { id: 'estudios'   as SheetSourceId, labelKey: 'archivos.tab.estudios',   icon: BookText,      color: 'text-emerald-600', bg: 'bg-emerald-50', activeBg: 'bg-emerald-600' },
+  { id: 'instituto'  as SheetSourceId, labelKey: 'archivos.tab.instituto',  icon: GraduationCap, color: 'text-violet-600',  bg: 'bg-violet-50',  activeBg: 'bg-violet-600'  },
+  { id: 'pastorado'  as SheetSourceId, labelKey: 'archivos.tab.pastorado',  icon: UsersRound,    color: 'text-amber-600',   bg: 'bg-amber-50',   activeBg: 'bg-amber-600'   },
+  { id: 'profecia'   as SheetSourceId, labelKey: 'archivos.tab.profecia',   icon: HandHeart,     color: 'text-rose-600',    bg: 'bg-rose-50',    activeBg: 'bg-rose-600'    },
 ]
 
 /* ─── Main Component ──────────────────────────────────── */
@@ -154,26 +156,26 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
         setData(result.data)
         setStaleInfo(null)
         setError(null)
-        toast.success('¡Datos actualizados desde Google Sheets!', {
-          description: `${result.data.length} registros cargados.`,
+        toast.success(t('archivos.toast.updated' as Parameters<typeof t>[0]), {
+          description: (t('archivos.toast.updatedDesc' as Parameters<typeof t>[0]) as string).replace('{n}', String(result.data.length)),
         })
       } else {
         const code = result.lastErrorCode
-        toast.error('Google Sheets sigue sin responder', {
+        toast.error(t('archivos.toast.stillDown' as Parameters<typeof t>[0]), {
           description: code
-            ? `HTTP ${code}. La hoja puede estar procesando los últimos cambios; espera un par de minutos e inténtalo de nuevo.`
-            : 'Inténtalo de nuevo en unos minutos.',
+            ? (t('archivos.toast.stillDownDescCode' as Parameters<typeof t>[0]) as string).replace('{code}', String(code))
+            : t('archivos.toast.stillDownDesc' as Parameters<typeof t>[0]),
           duration: 8000,
         })
       }
     } catch {
-      toast.error('No se pudo conectar con el servidor. Comprueba tu conexión.')
+      toast.error(t('archivos.toast.connectionError' as Parameters<typeof t>[0]))
     } finally {
       clearInterval(ticker)
       setForceLoading(false)
       setForceAttempt(0)
     }
-  }, [forceLoading])
+  }, [forceLoading, t])
 
   /* ── Tab change: prefer SSR data, fallback to fetch ── */
   useEffect(() => {
@@ -295,57 +297,61 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
 
   /* ── Render ── */
   return (
-    <div className="space-y-4 sm:space-y-6 pb-6">
+    <div className="ofrenda-liquid-scope space-y-4 sm:space-y-6 pb-6">
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-xl ${activeTabConfig.bg}`}>
-            <activeTabConfig.icon className={`w-6 h-6 ${activeTabConfig.color}`} />
+      {/* Header hero liquid (marino + dorado) */}
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] p-4 sm:p-6 shadow-xl">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-[#b8964a]/25 rounded-full blur-[90px] -translate-y-1/2 translate-x-1/4" />
+        <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl bg-white border border-[rgba(227,204,146,0.5)] shadow-sm`}>
+              <activeTabConfig.icon className={`w-6 h-6 ${activeTabConfig.color}`} />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-white">{t('archivos.title')}</h1>
+              <p className="text-xs text-white/70 mt-0.5">
+                {staleInfo?.stale
+                  ? t('archivos.syncStaleHint' as Parameters<typeof t>[0])
+                  : t('archivos.syncSubtitle' as Parameters<typeof t>[0])}
+                {(refreshing || forceLoading) && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-[#e3cc92]">
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    <ForcingLabel forceLoading={forceLoading} forceAttempt={forceAttempt} />
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t('archivos.title')}</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {staleInfo?.stale
-                ? t('archivos.syncStaleHint' as Parameters<typeof t>[0])
-                : t('archivos.syncSubtitle' as Parameters<typeof t>[0])}
-              {(refreshing || forceLoading) && (
-                <span className="ml-2 inline-flex items-center gap-1 text-primary">
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                  <ForcingLabel forceLoading={forceLoading} forceAttempt={forceAttempt} />
-                </span>
+          {/* Botón fuerza siempre visible cuando hay datos stale */}
+          {staleInfo?.stale && (
+            <button
+              onClick={() => forceRefresh(activeTab)}
+              disabled={forceLoading || refreshing}
+              title={t('archivos.refreshTitle')}
+              className={`
+                hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+                transition-all touch-manipulation shadow-sm
+                ${forceLoading
+                  ? 'bg-white/10 text-[#e3cc92] border border-[rgba(227,204,146,0.4)] cursor-wait'
+                  : 'border-2 border-[#b8964a] bg-white text-[#1f2e85] hover:bg-[#f8f3e8]'}
+                disabled:opacity-60
+              `}
+            >
+              {forceLoading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" />{t('archivos.trying')} {forceAttempt > 1 ? `(${forceAttempt})` : ''}</>
+              ) : (
+                <><Zap className="w-4 h-4" />{t('archivos.getNewData')}</>
               )}
-            </p>
-          </div>
+            </button>
+          )}
+          {!staleInfo?.stale && data && data.length > 0 && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-emerald-300 font-medium">
+              <CheckCircle2 className="w-4 h-4" />
+              <span suppressHydrationWarning>{t('archivos.liveData' as Parameters<typeof t>[0])}</span>
+            </span>
+          )}
         </div>
-        {/* Botón fuerza siempre visible cuando hay datos stale */}
-        {staleInfo?.stale && (
-          <button
-            onClick={() => forceRefresh(activeTab)}
-            disabled={forceLoading || refreshing}
-            title={t('archivos.refreshTitle')}
-            className={`
-              hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-              transition-all touch-manipulation shadow-sm
-              ${forceLoading
-                ? 'bg-primary/10 text-primary border border-primary/30 cursor-wait'
-                : 'bg-primary text-primary-foreground hover:bg-primary/90 border border-transparent'}
-              disabled:opacity-60
-            `}
-          >
-            {forceLoading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" />{t('archivos.trying')} {forceAttempt > 1 ? `(${forceAttempt})` : ''}</>
-            ) : (
-              <><Zap className="w-4 h-4" />{t('archivos.getNewData')}</>
-            )}
-          </button>
-        )}
-        {!staleInfo?.stale && data && data.length > 0 && (
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-            <CheckCircle2 className="w-4 h-4" />
-            Datos en vivo
-          </span>
-        )}
       </div>
 
       {/* Stale banner */}
@@ -380,7 +386,7 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-xs font-bold transition-all disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${refreshing && !forceLoading ? 'animate-spin' : ''}`} />
-                Sincronizar
+                <span suppressHydrationWarning>{t('archivos.sync' as Parameters<typeof t>[0])}</span>
               </button>
               <button
                 onClick={() => forceRefresh(activeTab)}
@@ -391,12 +397,12 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
                 {forceLoading ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Intentando… {forceAttempt > 1 ? `(${forceAttempt})` : ''}</span>
+                    <span suppressHydrationWarning>{t('archivos.trying')} {forceAttempt > 1 ? `(${forceAttempt})` : ''}</span>
                   </>
                 ) : (
                   <>
                     <Zap className="w-3.5 h-3.5" />
-                    Forzar actualización
+                    <span suppressHydrationWarning>{t('archivos.forceUpdate' as Parameters<typeof t>[0])}</span>
                   </>
                 )}
               </button>
@@ -420,8 +426,8 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
                 transition-all duration-200 touch-manipulation
                 flex items-center justify-center sm:justify-start gap-2
                 ${isActive
-                  ? `${tab.activeBg} text-white shadow-lg`
-                  : `${tab.bg} ${tab.color} hover:brightness-95`
+                  ? `${tab.activeBg} text-white shadow-lg border-[1.5px] border-[#b8964a]/70`
+                  : `bg-white ${tab.color} border-[1.5px] border-[rgba(184,150,74,0.32)] hover:bg-[#f8f3e8] hover:border-[#b8964a]`
                 }
               `}
             >
@@ -468,6 +474,7 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
               alphaR: t('archivos.sort.alphaReverse'),
               noSort: t('archivos.sort.noSort'),
               sort: t('archivos.sort.sortLabel'),
+              dateWord: t('common.date').toLowerCase(),
             }}
           />
 
@@ -499,9 +506,9 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
 
       {/* Loading state */}
       {loading && !data && (
-        <div className="glass rounded-2xl border border-border/50 p-12 flex flex-col items-center justify-center gap-4">
+        <div className="ofrenda-liquid-card rounded-2xl p-12 flex flex-col items-center justify-center gap-4">
           <Loader2 className={`w-10 h-10 ${activeTabConfig.color} animate-spin`} />
-          <p className="text-muted-foreground text-sm">{t('archivos.loading')}</p>
+          <p className="text-slate-500 text-sm">{t('archivos.loading')}</p>
         </div>
       )}
 
@@ -510,29 +517,29 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
         const { type, hint } = parseErrorDisplay(error)
         return (
           <div
-            className="glass rounded-2xl border-2 border-destructive/40 bg-destructive/5 p-8 sm:p-10 flex flex-col items-center justify-center gap-4 max-w-md"
+            className="ofrenda-liquid-card rounded-2xl !border-2 !border-red-400/50 p-8 sm:p-10 flex flex-col items-center justify-center gap-4 max-w-md"
             role="alert"
             aria-live="polite"
           >
-            <div className="flex items-center gap-2 text-destructive">
+            <div className="flex items-center gap-2 text-red-600">
               <AlertCircle className="w-10 h-10 shrink-0" />
               <span className="font-bold text-base">{type}</span>
             </div>
-            <p className="text-muted-foreground text-sm text-center wrap-break-word">
+            <p className="text-slate-500 text-sm text-center wrap-break-word">
               {error}
             </p>
             {hint && (
-              <p className="text-xs text-muted-foreground text-center bg-muted/50 rounded-lg px-4 py-3 border border-border/50">
+              <p className="text-xs text-slate-500 text-center bg-white/70 rounded-lg px-4 py-3 border border-[rgba(184,150,74,0.25)]">
                 {hint}
               </p>
             )}
             <button
               type="button"
               onClick={() => fetchTab(activeTab)}
-              className="mt-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors touch-manipulation shadow-sm"
+              className="mt-2 px-5 py-2.5 rounded-xl text-sm font-bold border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white shadow-[0_4px_16px_rgba(31,46,133,0.32)] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)] transition-shadow touch-manipulation"
             >
               <RefreshCw className="w-4 h-4 inline-block mr-2" />
-              Reintentar
+              <span suppressHydrationWarning>{t('archivos.retry' as Parameters<typeof t>[0])}</span>
             </button>
           </div>
         )
@@ -540,22 +547,22 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
 
       {/* Empty state */}
       {!loading && !error && data && (displayData?.length ?? 0) === 0 && (
-        <div className="glass rounded-2xl border border-border/50 p-12 flex flex-col items-center justify-center gap-3">
+        <div className="ofrenda-liquid-card rounded-2xl !border-2 !border-dashed p-12 flex flex-col items-center justify-center gap-3">
           {hasSearch
-            ? <Search className="w-10 h-10 text-muted-foreground/30" />
-            : <Filter className="w-10 h-10 text-muted-foreground/40" />
+            ? <Search className="w-10 h-10 text-slate-300" />
+            : <Filter className="w-10 h-10 text-slate-300" />
           }
-          <p className="text-muted-foreground text-sm text-center">
+          <p className="text-slate-500 text-sm text-center">
             {hasSearch
-              ? <>{t('archivos.noResultsFor')} <strong className="text-foreground">&quot;{searchQuery}&quot;</strong></>
-              : hasFilter ? 'No hay datos para este período.' : t('archivos.empty')
+              ? <>{t('archivos.noResultsFor')} <strong className="text-slate-800">&quot;{searchQuery}&quot;</strong></>
+              : hasFilter ? <span suppressHydrationWarning>{t('archivos.noDataPeriod' as Parameters<typeof t>[0])}</span> : t('archivos.empty')
             }
           </p>
           {hasAnyFilter && (
             <button
               type="button"
               onClick={clearAllFilters}
-              className="text-xs text-primary underline hover:no-underline"
+              className="text-xs text-[#1f2e85] underline hover:no-underline"
             >
               {t('archivos.clearFilters')}
             </button>
@@ -595,7 +602,7 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
             />
 
             {/* Mobile cards */}
-            <div className="sm:hidden glass rounded-2xl border border-border/50 overflow-hidden divide-y divide-border/30">
+            <div className="sm:hidden ofrenda-liquid-card rounded-2xl overflow-hidden divide-y divide-[rgba(184,150,74,0.18)]">
               {displayData.map((row, i) => {
                 const rowKey = row['id'] || `${activeTab}-${row['FECHA'] || 'card'}-${i}`
                 return (
@@ -614,7 +621,7 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
               })}
               {/* Mobile footer */}
               <div className="px-4 py-2.5 flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-slate-500">
                   {displayData.length} {displayData.length === 1 ? t('archivos.record') : t('archivos.records')}
                   {hasFilter && filterLabel && ` · ${filterLabel}`}
                   {hasSearch && ` · "${searchQuery}"`}
@@ -623,7 +630,7 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
                   <button
                     type="button"
                     onClick={clearAllFilters}
-                    className="text-[10px] text-primary/70 hover:text-primary underline transition-colors"
+                    className="text-[10px] text-[#1f2e85]/70 hover:text-[#1f2e85] underline transition-colors"
                   >
                     {t('archivos.clear')}
                   </button>

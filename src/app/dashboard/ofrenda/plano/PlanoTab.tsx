@@ -617,7 +617,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                     unstyledBody
                 >
                     <div className="px-4 pb-4 space-y-4">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-slate-500">
                             {interpolate(
                                 t(
                                     pendingAssign.pos.rol === 'apoyo'
@@ -690,7 +690,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
                     unstyledBody
                 >
                     <div className="px-4 pb-4 space-y-4">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-slate-500">
                             {confirmAction === 'clear'
                                 ? t('ofrenda.plano.confirmClearDesc')
                                 : t('ofrenda.plano.confirmResetDesc')}

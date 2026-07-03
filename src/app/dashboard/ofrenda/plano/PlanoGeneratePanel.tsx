@@ -48,11 +48,12 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
         [t],
     )
 
+    const planId = plan?.plan.id ?? null
     const loadCounts = useCallback(async () => {
-        if (!plan?.plan.id) return
-        const res = await invokePlanoAction(() => getPlanoAsignacionCountsForPlan(plan.plan.id))
+        if (!planId) return
+        const res = await invokePlanoAction(() => getPlanoAsignacionCountsForPlan(planId))
         if (res.data) setCountsByServicio(res.data)
-    }, [plan?.plan.id])
+    }, [planId])
 
     useEffect(() => {
         void loadCounts()
@@ -109,7 +110,7 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
 
     if (!plan) {
         return (
-            <div className="rounded-2xl border-2 border-dashed border-[rgba(184,150,74,0.3)] p-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-2xl border-2 border-dashed border-[rgba(184,150,74,0.3)] p-8 text-center text-sm text-slate-500">
                 {t('ofrenda.planoGenerate.noPlan')}
             </div>
         )
@@ -132,7 +133,7 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
                         </h3>
                         <PlanoGenerateRulesInfo />
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">{t('ofrenda.planoGenerate.desc')}</p>
+                    <p className="text-sm text-slate-500 mt-1">{t('ofrenda.planoGenerate.desc')}</p>
                 </div>
             </div>
 

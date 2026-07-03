@@ -37,36 +37,36 @@ import {
 import './ofrenda-plan-desktop.css'
 
 const STICKY_ROLE_HEADER_CLASS =
-    'ofrenda-plan-sticky-role px-3 py-3 text-left text-sm font-black text-[#1f2e85] dark:text-[#e8d9a8] border-b border-border/50 whitespace-nowrap'
+    'ofrenda-plan-sticky-role px-3 py-3 text-left text-sm font-black text-[#1f2e85] border-b border-[rgba(184,150,74,0.25)] whitespace-nowrap'
 const STICKY_ROLE_CELL_CLASS =
-    'ofrenda-plan-sticky-role ofrenda-plan-sticky-role--body px-3 py-2.5 text-sm font-semibold border-b border-border/50 whitespace-nowrap'
+    'ofrenda-plan-sticky-role ofrenda-plan-sticky-role--body px-3 py-2.5 text-sm font-semibold border-b border-[rgba(184,150,74,0.2)] whitespace-nowrap'
 
 // ─── Esquema de colores por tipo de día ────────────────────────────────────────
 
 const TIPO_COLORS = {
     jueves: {
         border:  'border-emerald-500/30',
-        header:  'bg-emerald-500/10 text-emerald-800 dark:text-emerald-200',
-        badge:   'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300',
-        label:   'text-emerald-700 dark:text-emerald-300',
+        header:  'bg-emerald-500/10 text-emerald-800',
+        badge:   'bg-emerald-500/20 text-emerald-700',
+        label:   'text-emerald-700',
         thBg:    '#064e3b',
         seqBg:   '#ecfdf5',
         seqText: '#065f46',
     },
     domingo: {
         border:  'border-blue-500/30',
-        header:  'bg-blue-500/10 text-blue-800 dark:text-blue-200',
-        badge:   'bg-blue-500/20 text-blue-700 dark:text-blue-300',
-        label:   'text-blue-700 dark:text-blue-300',
+        header:  'bg-blue-500/10 text-blue-800',
+        badge:   'bg-blue-500/20 text-blue-700',
+        label:   'text-blue-700',
         thBg:    '#1e3a5f',
         seqBg:   '#eff6ff',
         seqText: '#1e40af',
     },
     domingo_tarde: {
         border:  'border-violet-500/30',
-        header:  'bg-violet-500/10 text-violet-800 dark:text-violet-200',
-        badge:   'bg-violet-500/20 text-violet-700 dark:text-violet-300',
-        label:   'text-violet-700 dark:text-violet-300',
+        header:  'bg-violet-500/10 text-violet-800',
+        badge:   'bg-violet-500/20 text-violet-700',
+        label:   'text-violet-700',
         thBg:    '#3b0764',
         seqBg:   '#f5f3ff',
         seqText: '#5b21b6',
@@ -266,11 +266,11 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
         return (
             <div className="space-y-4" data-testid="ofrenda-plan-hydrate-placeholder" aria-hidden>
                 <div className="flex flex-wrap gap-3 justify-center">
-                    <div className="h-4 w-20 rounded bg-muted/50 animate-pulse" />
-                    <div className="h-4 w-24 rounded bg-muted/50 animate-pulse" />
-                    <div className="h-4 w-24 rounded bg-muted/50 animate-pulse" />
+                    <div className="h-4 w-20 rounded bg-slate-200/70 animate-pulse" />
+                    <div className="h-4 w-24 rounded bg-slate-200/70 animate-pulse" />
+                    <div className="h-4 w-24 rounded bg-slate-200/70 animate-pulse" />
                 </div>
-                <div className="h-[min(420px,55vh)] rounded-2xl bg-muted/30 animate-pulse border border-border/40" />
+                <div className="h-[min(420px,55vh)] rounded-2xl bg-slate-100 animate-pulse border border-[rgba(184,150,74,0.2)]" />
             </div>
         )
     }
@@ -279,15 +279,15 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
         <div className="space-y-4">
             {/* Leyenda de colores */}
             <div className="flex flex-wrap gap-3 justify-center text-xs font-semibold">
-                <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
+                <span className="flex items-center gap-1.5 text-emerald-700">
                     <span className="w-2.5 h-2.5 rounded-sm bg-emerald-800" />
                     {t('ofrenda.legend.jueves')}
                 </span>
-                <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+                <span className="flex items-center gap-1.5 text-blue-700">
                     <span className="w-2.5 h-2.5 rounded-sm bg-blue-900" />
                     {t('ofrenda.legend.domManana')}
                 </span>
-                <span className="flex items-center gap-1.5 text-violet-700 dark:text-violet-300">
+                <span className="flex items-center gap-1.5 text-violet-700">
                     <span className="w-2.5 h-2.5 rounded-sm bg-violet-950" />
                     {t('ofrenda.legend.domTarde')}
                 </span>
@@ -331,7 +331,7 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                         aria-hidden
                     />
                 )}
-                <p className="text-xs text-muted-foreground px-4 py-2.5 border-b border-[rgba(184,150,74,0.15)] bg-[#1f2e85]/[0.04] font-medium tracking-wide">
+                <p className="text-xs text-slate-500 px-4 py-2.5 border-b border-[rgba(184,150,74,0.15)] bg-[#1f2e85]/[0.04] font-medium tracking-wide">
                     {t('ofrenda.scrollHint')}
                 </p>
                 <div
@@ -372,7 +372,7 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                                 return (
                                     <th
                                         key={`${srv.id}-hdr`}
-                                        className={`px-2 py-2 text-center border-b border-border/50 align-middle ${isWeekStart && idx > 0 ? 'border-l-2 border-l-[rgba(184,150,74,0.35)]' : ''} ${getThBg(srv.dia_tipo)}`}
+                                        className={`px-2 py-2 text-center border-b border-black/10 align-middle ${isWeekStart && idx > 0 ? 'border-l-2 border-l-[rgba(184,150,74,0.35)]' : ''} ${getThBg(srv.dia_tipo)}`}
                                         style={PLAN_SERVICE_COL_STYLE}
                                         data-week-col={isWeekStart ? Math.floor(idx / 3) : undefined}
                                     >
@@ -403,7 +403,7 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                                 return (
                                     <td
                                         key={`${srv.id}-seq`}
-                                        className={`px-1 py-1.5 text-center border-b border-border/50 align-middle ${isWeekStart ? 'border-l-2 border-l-border' : ''} ${getSeqBg(srv.dia_tipo)}`}
+                                        className={`px-1 py-1.5 text-center border-b border-black/10 align-middle ${isWeekStart ? 'border-l-2 border-l-black/10' : ''} ${getSeqBg(srv.dia_tipo)}`}
                                         style={PLAN_SERVICE_COL_STYLE}
                                     >
                                         <SecuenciaCell
@@ -427,7 +427,7 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                             return (
                                 <tr key={`g1-${key}`} className={ri % 2 === 0 ? 'bg-emerald-500/2' : ''}>
                                     <td
-                                        className={`${STICKY_ROLE_CELL_CLASS} text-emerald-700 dark:text-emerald-300`}
+                                        className={`${STICKY_ROLE_CELL_CLASS} text-emerald-700`}
                                         style={PLAN_ROLE_COL_STYLE}
                                         data-testid="ofrenda-plan-sticky-role"
                                     >
@@ -439,7 +439,7 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                                         return (
                                             <td
                                                 key={`${srv.id}-${key}`}
-                                                className={`px-1 py-1.5 text-center border-b border-border/50 align-middle ${isWeekStart ? 'border-l-2 border-l-border' : ''}`}
+                                                className={`px-1 py-1.5 text-center border-b border-black/10 align-middle ${isWeekStart ? 'border-l-2 border-l-black/10' : ''}`}
                                                 style={PLAN_SERVICE_COL_STYLE}
                                             >
                                                 <AsignacionCell
@@ -472,7 +472,7 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                             return (
                                 <tr key={`g2-${key}`} className={ri % 2 === 0 ? 'bg-blue-500/2' : ''}>
                                     <td
-                                        className={`${STICKY_ROLE_CELL_CLASS} text-blue-700 dark:text-blue-300`}
+                                        className={`${STICKY_ROLE_CELL_CLASS} text-blue-700`}
                                         style={PLAN_ROLE_COL_STYLE}
                                         data-testid="ofrenda-plan-sticky-role"
                                     >
@@ -485,7 +485,7 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                                         return (
                                             <td
                                                 key={`${srv.id}-${key}`}
-                                                className={`px-1 py-1.5 text-center border-b border-border/50 align-middle ${isWeekStart ? 'border-l-2 border-l-border' : ''}`}
+                                                className={`px-1 py-1.5 text-center border-b border-black/10 align-middle ${isWeekStart ? 'border-l-2 border-l-black/10' : ''}`}
                                                 style={PLAN_SERVICE_COL_STYLE}
                                             >
                                                 {aplica ? (
@@ -502,7 +502,7 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                                                         onChanged={onAsignacionChange}
                                                     />
                                                 ) : (
-                                                    <span className="text-muted-foreground/50 text-sm">—</span>
+                                                    <span className="text-slate-400 text-sm">—</span>
                                                 )}
                                             </td>
                                         )
@@ -613,7 +613,7 @@ function ServicioCard({
                     const asig = getAsig(asignaciones, servicio.id, key)
                     return (
                         <div key={key} className="flex items-center justify-between px-4 py-2 gap-2">
-                            <span className="text-sm font-semibold text-blue-700 dark:text-blue-300 shrink-0 w-32">
+                            <span className="text-sm font-semibold text-blue-700 shrink-0 w-32">
                                 {label}
                             </span>
                             <AsignacionCell
@@ -884,7 +884,7 @@ function SecuenciaCell({
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-black font-mono hover:bg-black/10 dark:hover:bg-white/10 transition-colors touch-manipulation min-h-[36px] ${labelColor}`}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-black font-mono hover:bg-black/10 transition-colors touch-manipulation min-h-[36px] ${labelColor}`}
             >
                 {saving ? (
                     <div className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />

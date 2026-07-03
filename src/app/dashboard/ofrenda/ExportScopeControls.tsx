@@ -32,7 +32,7 @@ export function ExportScopeControls({
 }: Readonly<ExportScopeControlsProps>) {
     return (
         <div className="space-y-3" data-testid="ofrenda-export-scope">
-            <p className="text-xs font-semibold text-muted-foreground">{labels.weekPicker}</p>
+            <p className="text-xs font-semibold text-slate-500">{labels.weekPicker}</p>
             <div
                 className="grid grid-cols-2 gap-2 rounded-2xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-1.5"
                 role="tablist"
@@ -95,11 +95,11 @@ export function ExportScopeControls({
                                         : 'border-[rgba(184,150,74,0.3)] bg-white hover:bg-[#f8f3e8]'
                                 }`}
                             >
-                                <span className="block text-xs font-black text-[#1f2e85] dark:text-[#e8d9a8]">
+                                <span className="block text-xs font-black text-[#1f2e85]">
                                     {labels.weekChip(i + 1, weeks.length)}
                                 </span>
                                 {range ? (
-                                    <span className="block text-[10px] font-semibold text-muted-foreground truncate">
+                                    <span className="block text-[10px] font-semibold text-slate-500 truncate">
                                         {range}
                                     </span>
                                 ) : null}

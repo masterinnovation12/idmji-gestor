@@ -101,7 +101,7 @@ export default function AddLecturaModal({
         capituloFin: capFin ?? capInicio,
         versiculoFin: versFin ?? versInicio,
       })
-      toast.success('Lectura añadida al borrador')
+      toast.success(t('addLectura.draftAdded'))
       onSuccess?.()
       handleClose()
       return
@@ -139,7 +139,7 @@ export default function AddLecturaModal({
         toast.error(result.error)
       }
     } catch {
-      toast.error('Error al guardar la lectura')
+      toast.error(t('addLectura.saveError'))
     } finally {
       setIsActionLoading(false)
     }
@@ -156,7 +156,7 @@ export default function AddLecturaModal({
         capituloFin: repetitionData.capFin,
         versiculoFin: repetitionData.versFin,
       })
-      toast.success('Lectura repetida añadida al borrador')
+      toast.success(t('addLectura.draftRepeatedAdded'))
       setRepetitionData(null)
       onSuccess?.()
       handleClose()
@@ -178,15 +178,15 @@ export default function AddLecturaModal({
       )
 
       if (result.success) {
-        toast.success('Lectura guardada como repetida')
+        toast.success(t('addLectura.savedRepeated'))
         setRepetitionData(null)
         onSuccess?.(result.data as Parameters<NonNullable<typeof onSuccess>>[0])
         handleClose()
       } else {
-        toast.error(result.error ?? 'Error al confirmar')
+        toast.error(result.error ?? t('addLectura.confirmError'))
       }
     } catch {
-      toast.error('Error de conexión')
+      toast.error(t('addLectura.connectionError'))
     } finally {
       setIsActionLoading(false)
     }
@@ -201,18 +201,18 @@ export default function AddLecturaModal({
         toast.error(result.error)
         return
       }
-      toast.success('Lectura eliminada')
+      toast.success(t('addLectura.deleted'))
       onDeleteSuccess?.(lecturaId)
       handleClose()
     } catch {
-      toast.error('Error al eliminar la lectura')
+      toast.error(t('addLectura.deleteError'))
     } finally {
       setIsActionLoading(false)
     }
   }
 
-  const tipoLabel = tipo === 'introduccion' ? 'Introducción' : 'Finalización'
-  const titleVerb = isEdit ? 'Modificar' : 'Añadir'
+  const tipoLabel = tipo === 'introduccion' ? t('cultos.intro') : t('cultos.finalizacion')
+  const modalTitle = (isEdit ? t('addLectura.modalTitleEdit') : t('addLectura.modalTitle')).replace('{tipo}', tipoLabel)
 
   return (
     <Modal
@@ -224,7 +224,7 @@ export default function AddLecturaModal({
             <BookOpen className="w-4 h-4" />
           </div>
           <span className="text-sm font-black uppercase tracking-widest">
-            {titleVerb} Lectura: {tipoLabel}
+            {modalTitle}
           </span>
         </div>
       }
@@ -254,10 +254,10 @@ export default function AddLecturaModal({
                 type="button"
                 onClick={handleDeleteLectura}
                 disabled={isActionLoading}
-                className="w-full h-12 rounded-2xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 font-black text-[10px] uppercase tracking-widest hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full h-12 rounded-2xl border border-red-300 bg-red-50 text-red-700 font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 touch-manipulation"
               >
                 <Trash2 className="w-4 h-4" />
-                Eliminar lectura
+                {t('addLectura.deleteButton')}
               </button>
             </div>
           )}
@@ -270,22 +270,27 @@ export default function AddLecturaModal({
             </div>
             <div className="space-y-2">
               <h3 className="text-2xl font-black uppercase tracking-tighter text-red-600">{t('addLectura.repeatedTitle')}</h3>
-              <p className="text-muted-foreground text-sm font-medium max-w-xs mx-auto">
-                Esta cita ya fue leída anteriormente el{' '}
-                <span className="text-foreground font-bold">
-                  {format(new Date(repetitionData.existingReading.fecha), 'PP', { locale })}
-                </span>
-                .
+              <p className="text-slate-500 text-sm font-medium max-w-xs mx-auto">
+                {t('addLectura.repeatedReadOn').split('{fecha}').map((part, i, arr) => (
+                  <span key={part + String(i)}>
+                    {part}
+                    {i < arr.length - 1 && (
+                      <span className="text-[#1f2e85] font-bold">
+                        {format(new Date(repetitionData.existingReading.fecha), 'PP', { locale })}
+                      </span>
+                    )}
+                  </span>
+                ))}
               </p>
             </div>
           </div>
 
-          <div className="p-6 bg-[#f8f3e8] rounded-4xl border border-[rgba(184,150,74,0.3)] text-center relative overflow-hidden group">
-            <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2 relative z-10">
-              Pasaje Bíblico
+          <div className="p-6 bg-gradient-to-br from-[#f8f3e8] to-white rounded-4xl border-[1.5px] border-[rgba(184,150,74,0.4)] text-center relative overflow-hidden group shadow-inner">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#b8964a]/10 rounded-full blur-2xl -mr-12 -mt-12" />
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#b68f2f] mb-2 relative z-10">
+              {t('addLectura.passage')}
             </p>
-            <p className="text-3xl font-black uppercase tracking-tighter relative z-10 leading-none">
+            <p className="text-3xl font-black uppercase tracking-tighter relative z-10 leading-none text-[#1f2e85]">
               {repetitionData.libro} {repetitionData.capInicio}:{repetitionData.versInicio}
               {(repetitionData.capFin !== repetitionData.capInicio ||
                 repetitionData.versFin !== repetitionData.versInicio) && (
@@ -303,7 +308,7 @@ export default function AddLecturaModal({
             <button
               type="button"
               onClick={() => setRepetitionData(null)}
-              className="flex-1 h-14 bg-muted text-muted-foreground font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-muted/80 transition-colors order-2 sm:order-1"
+              className="flex-1 h-14 border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-[#1f2e85] font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors order-2 sm:order-1 touch-manipulation"
             >
               {t('common.cancel')}
             </button>
@@ -311,14 +316,14 @@ export default function AddLecturaModal({
               type="button"
               onClick={handleConfirmRepetida}
               disabled={isActionLoading}
-              className="flex-2 h-14 bg-red-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 order-1 sm:order-2 flex items-center justify-center gap-2"
+              className="flex-2 h-14 bg-red-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 order-1 sm:order-2 flex items-center justify-center gap-2 touch-manipulation"
             >
               {isActionLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  Usar de todos modos
+                  {t('addLectura.useAnyway')}
                 </>
               )}
             </button>

@@ -22,7 +22,7 @@ export function ExportPeopleScopeControls({
 }: Readonly<ExportPeopleScopeControlsProps>) {
     return (
         <div className="space-y-3" data-testid={EXPORT_PEOPLE_SCOPE_TEST_ID}>
-            <p className="text-xs font-semibold text-muted-foreground">{labels.label}</p>
+            <p className="text-xs font-semibold text-slate-500">{labels.label}</p>
             <div
                 className="grid grid-cols-2 gap-2 rounded-2xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-1.5"
                 role="tablist"

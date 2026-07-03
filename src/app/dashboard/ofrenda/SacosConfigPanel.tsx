@@ -121,8 +121,8 @@ export function SacosConfigPanel({
                         className="overflow-hidden"
                         data-testid="ofrenda-sacos-config-body"
                     >
-                        <div className="space-y-4 border-t border-[rgba(184,150,74,0.2)] bg-background px-4 py-4">
-                            <p className="text-xs leading-relaxed text-muted-foreground">
+                        <div className="space-y-4 border-t border-[rgba(184,150,74,0.2)] bg-white/70 px-4 py-4">
+                            <p className="text-xs leading-relaxed text-slate-500">
                                 {t('ofrenda.sacos.configDesc')}
                             </p>
                             <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-3 min-[480px]:gap-4">
@@ -172,7 +172,7 @@ export function SacosConfigPanel({
                                     onChange={setSecMax}
                                     testId="ofrenda-sacos-secuencia-max"
                                 />
-                                <p className="mt-2 text-center text-[10px] leading-relaxed text-muted-foreground">
+                                <p className="mt-2 text-center text-[10px] leading-relaxed text-slate-500">
                                     {t('ofrenda.sacos.secuenciaMaxHint')}
                                 </p>
                             </div>
@@ -200,7 +200,7 @@ export function SacosConfigPanel({
                                         setSecMax(plan.secuencia_maximo ?? 20)
                                         setOpen(false)
                                     }}
-                                    className="min-h-[44px] px-2 text-xs text-muted-foreground transition-colors hover:text-foreground touch-manipulation"
+                                    className="min-h-[44px] px-2 text-xs text-slate-500 transition-colors hover:text-[#1f2e85] touch-manipulation"
                                 >
                                     {t('common.cancel')}
                                 </button>
@@ -243,19 +243,19 @@ function SacosInput({
 
     const styles = {
         emerald: {
-            label: 'text-emerald-800 dark:text-emerald-200',
+            label: 'text-emerald-800',
             ring: 'focus:ring-emerald-500/35 focus:border-emerald-500/50',
             border: 'border-emerald-500/25',
             bg: 'bg-emerald-500/5',
         },
         blue: {
-            label: 'text-blue-800 dark:text-blue-200',
+            label: 'text-blue-800',
             ring: 'focus:ring-blue-500/35 focus:border-blue-500/50',
             border: 'border-blue-500/25',
             bg: 'bg-blue-500/5',
         },
         violet: {
-            label: 'text-violet-800 dark:text-violet-200',
+            label: 'text-violet-800',
             ring: 'focus:ring-violet-500/35 focus:border-violet-500/50',
             border: 'border-violet-500/25',
             bg: 'bg-violet-500/5',
@@ -300,7 +300,7 @@ function SacosInput({
                         ;(e.target as HTMLInputElement).blur()
                     }
                 }}
-                className={`w-full rounded-lg border border-border/60 bg-background px-2 py-2.5 text-center text-lg font-black font-mono text-foreground outline-none focus:ring-2 min-h-[48px] ${SACOS_INPUT_SPINNER_HIDE} ${styles.ring}`}
+                className={`w-full rounded-lg border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white px-2 py-2.5 text-center text-lg font-black font-mono text-slate-800 outline-none focus:ring-2 min-h-[48px] ${SACOS_INPUT_SPINNER_HIDE} ${styles.ring}`}
                 aria-label={label}
             />
         </label>

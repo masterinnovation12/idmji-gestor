@@ -250,7 +250,7 @@ export default function UserSelector({
     return (
         <div className="relative" ref={containerRef}>
             <div className="relative group">
-                <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${isSearching ? 'text-primary' : 'text-muted-foreground group-focus-within:text-primary'}`}>
+                <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${isSearching ? 'text-[#1f2e85]' : 'text-[#b8964a] group-focus-within:text-[#1f2e85]'}`}>
                     {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 </div>
                 <input
@@ -268,13 +268,13 @@ export default function UserSelector({
                     placeholder={t('hermanos.searchPlaceholder')}
                     disabled={disabled}
                     data-testid="user-selector-input"
-                    className="w-full bg-muted/30 border border-border/50 rounded-2xl pl-12 pr-12 py-3.5 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all disabled:opacity-50 font-medium text-sm placeholder:text-muted-foreground/60 shadow-inner"
+                    className="w-full bg-white/70 border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-2xl pl-12 pr-12 py-3.5 outline-none focus:ring-4 focus:ring-[rgba(184,150,74,0.15)] focus:border-[#b8964a] transition-all disabled:opacity-50 font-medium text-sm text-slate-800 placeholder:text-slate-400 shadow-inner"
                 />
                 {query && (
                     <button
                         onClick={() => setQuery('')}
                         data-testid="user-selector-clear"
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-xl transition-colors text-muted-foreground hover:text-foreground"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 hover:bg-[#f8f3e8] rounded-xl transition-colors text-slate-400 hover:text-[#1f2e85]"
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -300,15 +300,16 @@ export default function UserSelector({
                             maxHeight: dropdownRect.maxHeight,
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        className="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] border border-gray-200 dark:border-white/10 flex flex-col pointer-events-auto"
+                        className="bg-white rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] border-[1.5px] border-[rgba(184,150,74,0.4)] flex flex-col pointer-events-auto"
                     >
-                        <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between shrink-0">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                                {query ? 'Resultados de búsqueda' : 'Hermanos sugeridos'}
+                        <div className="p-4 border-b border-[rgba(184,150,74,0.25)] bg-[#f8f3e8]/70 flex items-center justify-between shrink-0 rounded-t-[2.5rem]">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-[#b68f2f]">
+                                {query ? t('userSelector.searchResults') : t('userSelector.suggested')}
                             </p>
                             <button
                                 onClick={() => setShowResults(false)}
-                                className="p-1.5 hover:bg-muted rounded-full transition-colors text-muted-foreground"
+                                aria-label={t('common.close')}
+                                className="p-1.5 hover:bg-white rounded-full transition-colors text-slate-500"
                             >
                                 <X className="w-4 h-4" />
                             </button>
@@ -334,13 +335,13 @@ export default function UserSelector({
                                                 }}
                                                 className={`
                                                     w-full px-4 py-3.5 text-left transition-all rounded-3xl flex items-center justify-between group/item relative overflow-hidden
-                                                    ${isSelected ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'hover:bg-primary/5 text-foreground'}
+                                                    ${isSelected ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] border border-[#b8964a] text-white shadow-lg shadow-[rgba(31,46,133,0.25)]' : 'hover:bg-[#f8f3e8]/70 text-slate-800'}
                                                     ${!isAvailable && !isSelected ? 'opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0' : ''}
                                                 `}
                                             >
                                                 <div className="flex items-center gap-4 relative z-10 min-w-0">
                                                     {/* Avatar o Iniciales */}
-                                                    <div className={`w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover/item:scale-105 group-hover/item:rotate-3 ${isSelected ? 'bg-white/20 border-white/20' : 'bg-primary/5 border-primary/10 text-primary'
+                                                    <div className={`w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center font-black text-xs border shadow-sm transition-all group-hover/item:scale-105 group-hover/item:rotate-3 ${isSelected ? 'bg-white/20 border-white/20' : 'bg-[#1f2e85]/5 border-[rgba(184,150,74,0.3)] text-[#1f2e85]'
                                                         }`}>
                                                         {user.avatar_url ? (
                                                             <div className="relative w-full h-full">
@@ -362,15 +363,15 @@ export default function UserSelector({
                                                         </p>
                                                         <div className="flex items-center gap-2 mt-0.5">
                                                             <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : isAvailable ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                                                            <p className={`text-[10px] uppercase font-black tracking-widest ${isSelected ? 'text-white/60' : isAvailable ? 'text-emerald-500' : 'text-muted-foreground'}`}>
-                                                                {isSelected ? 'Seleccionado' : isAvailable ? 'Disponible' : 'No disponible'}
+                                                            <p className={`text-[10px] uppercase font-black tracking-widest ${isSelected ? 'text-white/60' : isAvailable ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                                                {isSelected ? t('userSelector.selected') : isAvailable ? t('userSelector.available') : t('userSelector.unavailable')}
                                                             </p>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all relative z-10 ${isSelected ? 'bg-white/20' : 'bg-primary/0 group-hover/item:bg-primary/10'}`}>
-                                                    {isSelected ? <Check className="w-4 h-4 text-white" strokeWidth={3} /> : <ChevronDown className="w-4 h-4 text-muted-foreground/30 -rotate-90 group-hover/item:text-primary group-hover/item:translate-x-0.5 transition-all" />}
+                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all relative z-10 ${isSelected ? 'bg-white/20' : 'group-hover/item:bg-[#1f2e85]/10'}`}>
+                                                    {isSelected ? <Check className="w-4 h-4 text-white" strokeWidth={3} /> : <ChevronDown className="w-4 h-4 text-slate-300 -rotate-90 group-hover/item:text-[#1f2e85] group-hover/item:translate-x-0.5 transition-all" />}
                                                 </div>
                                             </button>
                                         )
@@ -379,21 +380,21 @@ export default function UserSelector({
                             ) : (
                                 !isSearching && (
                                     <div className="p-12 text-center">
-                                        <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <User className="w-8 h-8 text-muted-foreground/30" />
+                                        <div className="w-16 h-16 bg-[#f8f3e8] border border-[rgba(184,150,74,0.3)] rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <User className="w-8 h-8 text-[#b8964a]" />
                                         </div>
-                                        <p className="text-sm font-black text-foreground uppercase tracking-widest mb-1">
-                                            Sin resultados
+                                        <p className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">
+                                            {t('archivos.search.noResultsShort')}
                                         </p>
-                                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                                            No se encontró ningún hermano con &quot;{query}&quot;
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                            {t('userSelector.noResultsFor').replace('{query}', query)}
                                         </p>
                                     </div>
                                 )
                             )}
                         </div>
-                        <div className="p-3 bg-muted/20 border-t border-border/50 text-center shrink-0">
-                            <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">{t('hermanos.selectToAssign')}</p>
+                        <div className="p-3 bg-[#f8f3e8]/70 border-t border-[rgba(184,150,74,0.25)] text-center shrink-0 rounded-b-[2.5rem]">
+                            <p className="text-[9px] font-black text-[#b68f2f] uppercase tracking-[0.2em]">{t('hermanos.selectToAssign')}</p>
                         </div>
                     </motion.div >
                 </div >,
@@ -408,7 +409,7 @@ export default function UserSelector({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         onClick={handleClear}
-                        className="mt-3 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-red-500 hover:text-red-400 hover:bg-red-500/5 rounded-xl transition-all inline-flex items-center gap-2 border border-transparent hover:border-red-500/10"
+                        className="mt-3 min-h-[44px] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-300 rounded-xl transition-all inline-flex items-center gap-2 touch-manipulation"
                     >
                         <X className="w-3 h-3" strokeWidth={3} />
                         {t('hermanos.removeAssignment')}
@@ -420,9 +421,9 @@ export default function UserSelector({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         onClick={() => setIsEditing(false)}
-                        className="mt-3 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-all inline-flex items-center gap-2"
+                        className="mt-3 min-h-[44px] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#1f2e85] border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white hover:bg-[#f8f3e8] hover:border-[#b8964a] rounded-xl transition-all inline-flex items-center gap-2 touch-manipulation"
                     >
-                        Cancelar
+                        {t('common.cancel')}
                     </motion.button>
                 )}
             </div>

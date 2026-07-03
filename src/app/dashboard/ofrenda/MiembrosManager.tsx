@@ -33,7 +33,7 @@ import { normalizeMiembroDisponibilidad, type MiembroDisponibilidadTurnos } from
 const GROUP_ACCENT = {
     emerald: {
         sectionTitle: 'text-emerald-600 dark:text-emerald-400',
-        posNum: 'text-emerald-600 dark:text-emerald-400',
+        posNum: 'text-emerald-600',
         addBtn: 'bg-emerald-600 hover:bg-emerald-700',
         legendBg: 'bg-emerald-500/5 border-emerald-500/20',
         legendTitle: 'text-emerald-700 dark:text-emerald-300',
@@ -41,7 +41,7 @@ const GROUP_ACCENT = {
     },
     blue: {
         sectionTitle: 'text-blue-600 dark:text-blue-400',
-        posNum: 'text-blue-600 dark:text-blue-400',
+        posNum: 'text-blue-600',
         addBtn: 'bg-blue-600 hover:bg-blue-700',
         legendBg: 'bg-blue-500/5 border-blue-500/20',
         legendTitle: 'text-blue-700 dark:text-blue-300',
@@ -59,7 +59,7 @@ function getRowClass(isPendingDelete: boolean, activo: boolean): string {
 
 function getCheckboxClass(yaEsta: boolean, isSel: boolean): string {
     if (yaEsta || isSel) return 'border-emerald-500 bg-emerald-500'
-    return 'border-border bg-background'
+    return 'border-[rgba(184,150,74,0.4)] bg-white'
 }
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -263,7 +263,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                                 {/* Botón de importar desde directorio */}
                                 <button
                                     onClick={() => { setSyncModalOpen(true); setAddGrupo(grupo) }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border-[1.5px] border-[rgba(184,150,74,0.32)] text-[#1f2e85] rounded-xl hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors touch-manipulation"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-[#1f2e85] rounded-xl hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors touch-manipulation"
                                     title={t('ofrenda.people.import')}
                                 >
                                     <Users className="w-3.5 h-3.5" />
@@ -433,7 +433,7 @@ function MiembroRow({
         >
             <div className="flex items-center gap-1 min-w-0">
                 {isDraggable && (
-                    <div className="cursor-grab active:cursor-grabbing text-muted-foreground/35 hover:text-muted-foreground touch-manipulation shrink-0 -ml-0.5">
+                    <div className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-400 touch-manipulation shrink-0 -ml-0.5">
                         <GripVertical className="w-3.5 h-3.5" />
                     </div>
                 )}
@@ -443,7 +443,7 @@ function MiembroRow({
                 </span>
 
                 <p
-                    className={`flex-1 min-w-0 text-sm font-semibold leading-tight line-clamp-2 sm:line-clamp-1 ${miembro.activo ? 'text-foreground' : 'line-through text-muted-foreground'}`}
+                    className={`flex-1 min-w-0 text-sm font-semibold leading-tight line-clamp-2 sm:line-clamp-1 ${miembro.activo ? 'text-slate-800' : 'line-through text-slate-400'}`}
                     title={miembro.nombre}
                     data-testid={`ofrenda-miembro-name-${miembro.id}`}
                 >
@@ -452,7 +452,7 @@ function MiembroRow({
 
                 {esG1 && tieneFijo && (
                     <span
-                        className="hidden min-[480px]:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300 whitespace-nowrap"
+                        className="hidden min-[480px]:inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-700 whitespace-nowrap"
                         title={t('ofrenda.people.fijo.title')}
                         data-testid={`ofrenda-miembro-fijo-badge-${miembro.id}`}
                     >
@@ -469,7 +469,7 @@ function MiembroRow({
                             exit={{ opacity: 0, scale: 0.95 }}
                             className="flex items-center gap-1 shrink-0"
                         >
-                            <span className="hidden min-[400px]:inline text-[10px] font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
+                            <span className="hidden min-[400px]:inline text-[10px] font-semibold text-red-600 whitespace-nowrap">
                                 {t('ofrenda.people.deleteConfirm')}
                             </span>
                             <button
@@ -482,7 +482,7 @@ function MiembroRow({
                             <button
                                 type="button"
                                 onClick={onDeleteCancel}
-                                className="px-2 py-1 text-[10px] font-medium border border-border rounded-lg hover:bg-muted touch-manipulation"
+                                className="px-2 py-1 text-[10px] font-medium border border-[rgba(184,150,74,0.35)] bg-white text-[#1f2e85] rounded-lg hover:bg-[#f8f3e8] touch-manipulation"
                             >
                                 {t('ofrenda.people.cancel')}
                             </button>
@@ -508,7 +508,7 @@ function MiembroRow({
                                 <button
                                     type="button"
                                     onClick={onToggleExpand}
-                                    className="p-1 rounded-md hover:bg-muted/60 text-muted-foreground touch-manipulation min-w-[30px] min-h-[30px] flex items-center justify-center"
+                                    className="p-1 rounded-md hover:bg-[#f8f3e8] text-slate-500 touch-manipulation min-w-[30px] min-h-[30px] flex items-center justify-center"
                                     aria-expanded={expanded}
                                     aria-label={
                                         expanded
@@ -542,7 +542,7 @@ function MiembroRow({
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="overflow-hidden border-t border-border/30 mt-1.5 pt-1.5"
+                        className="overflow-hidden border-t border-black/10 mt-1.5 pt-1.5"
                     >
                         <MemberTurnAvailability
                             value={disp}
@@ -614,16 +614,16 @@ function FijoEditor({
     const chipOff = 'bg-white border-[rgba(184,150,74,0.3)] text-slate-500 hover:bg-[#f8f3e8] hover:border-[#b8964a]'
 
     return (
-        <div className="mt-2 pt-2 border-t border-border/30" data-testid={`ofrenda-miembro-fijo-${miembro.id}`}>
+        <div className="mt-2 pt-2 border-t border-black/10" data-testid={`ofrenda-miembro-fijo-${miembro.id}`}>
             <div className="flex items-center justify-between mb-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">
                     {t('ofrenda.people.fijo.title')}
                 </p>
                 {(selDia || selRol) && (
                     <button
                         type="button"
                         onClick={() => apply(null, null)}
-                        className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline-offset-2 hover:underline touch-manipulation"
+                        className="text-[10px] font-semibold text-slate-500 hover:text-[#1f2e85] underline-offset-2 hover:underline touch-manipulation"
                     >
                         {t('ofrenda.people.fijo.none')}
                     </button>
@@ -668,7 +668,7 @@ function FijoEditor({
                 })}
             </div>
 
-            <p className="mt-1.5 text-[10px] text-muted-foreground leading-snug">{t('ofrenda.people.fijo.help')}</p>
+            <p className="mt-1.5 text-[10px] text-slate-500 leading-snug">{t('ofrenda.people.fijo.help')}</p>
         </div>
     )
 }
@@ -717,7 +717,7 @@ function MiembroAcciones({
             <button
                 type="button"
                 onClick={onDeleteRequest}
-                className={`${btnClass} hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors`}
+                className={`${btnClass} hover:bg-red-500/10 text-slate-500 hover:text-red-500 transition-colors`}
                 aria-label={interpolate(t('ofrenda.people.deleteAria'), { name: miembro.nombre })}
                 title={t('ofrenda.people.deleteTitle')}
             >

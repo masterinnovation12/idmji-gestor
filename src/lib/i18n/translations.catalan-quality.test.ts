@@ -84,6 +84,10 @@ describe('qualitat català — guarda de cadenes sense traduir', () => {
         'common.previous', 'common.confirm', 'common.apply', 'common.prevShort', 'common.total',
         'common.language.ariaSelectCa', 'common.language.nameCa',
         'bibleManager.repeated', // "Repetida" — vàlid en ambdues llengües
+        'bible.from', // "De" — preposició idèntica en ambdues llengües
+        'bible.chaptersShort', // "{n} cap." — abreviatura idèntica
+        'userSelector.available', // "Disponible" — idèntic en ambdues llengües
+        'userSelector.unavailable', // "No disponible" — idèntic en ambdues llengües
         'culto.detail.inicioAnticipado.placeholderMin', 'culto.protocol.noPray', 'culto.protocol.yesPray',
         'cultos.role.final', 'cultos.role.intro',
         'dashboard.calendarExport.apple', 'dashboard.calendarExport.google', 'dashboard.calendarExport.outlook',

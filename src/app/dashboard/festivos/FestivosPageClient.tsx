@@ -44,10 +44,10 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
      * Maneja el envio de festivos aleatorios
      */
     const handleRandom = async () => {
-        if (!confirm('¿Generar 5 festivos aleatorios para pruebas?')) return
+        if (!confirm(t('festivos.seedConfirm' as Parameters<typeof t>[0]))) return
         setIsSubmitting(true)
         await seedRandomFestivos(selectedYear)
-        toast.success('Festivos generados')
+        toast.success(t('festivos.seedDone' as Parameters<typeof t>[0]))
         setIsSubmitting(false)
         window.location.reload()
     }
@@ -90,11 +90,12 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
         }
     }
 
+    // Colores de identidad por tipo, siempre claros: se pintan dentro de cards liquid
     const tipoColors: Record<string, string> = {
-        nacional: 'bg-red-500/10 text-red-600 border-red-200 dark:border-red-900/30',
-        autonomico: 'bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-900/30',
-        local: 'bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-900/30',
-        laborable_festivo: 'bg-purple-500/10 text-purple-600 border-purple-200 dark:border-purple-900/30',
+        nacional: 'bg-red-500/10 text-red-600 border-red-200',
+        autonomico: 'bg-amber-500/10 text-amber-600 border-amber-200',
+        local: 'bg-blue-500/10 text-blue-600 border-blue-200',
+        laborable_festivo: 'bg-purple-500/10 text-purple-600 border-purple-200',
     }
 
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
@@ -127,23 +128,58 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
     ])).sort((a, b) => a - b)
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8 pb-20 px-4 md:px-8 relative">
+        <div className="ofrenda-liquid-scope max-w-7xl mx-auto space-y-8 pb-20 px-4 md:px-8 relative">
+
+            {/* Hero liquid (marino + dorado) con selector de año */}
+            <div className="relative overflow-hidden rounded-[2rem] md:rounded-[3rem] border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] p-6 md:p-10 shadow-2xl">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-[#b8964a]/25 rounded-full blur-[110px] -translate-y-1/2 translate-x-1/4" />
+                <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
+                <div className="relative z-10 space-y-3">
+                    <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white">
+                        {t('festivos.title')}
+                    </h1>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-white/70 font-bold tracking-wide flex items-center gap-2 uppercase text-xs" suppressHydrationWarning>
+                            <span className="w-2 h-2 rounded-full bg-[#e3cc92] animate-pulse" />
+                            {t('festivos.subtitle' as Parameters<typeof t>[0])}
+                        </p>
+
+                        {/* Selector de Año */}
+                        <div className="flex bg-white/10 border border-[rgba(227,204,146,0.35)] p-1 rounded-xl">
+                            {years.map(year => (
+                                <button
+                                    key={year}
+                                    onClick={() => setSelectedYear(year)}
+                                    className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all ${selectedYear === year
+                                        ? 'bg-white shadow-sm text-[#1f2e85]'
+                                        : 'text-white/60 hover:text-white'
+                                        }`}
+                                >
+                                    {year}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Intro Stats Visual */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="glass p-6 rounded-3xl border border-white/20 shadow-xl flex items-center justify-between group hover:scale-[1.02] transition-transform bg-white/60 dark:bg-black/40">
+                <div className="ofrenda-liquid-card p-6 rounded-3xl flex items-center justify-between group hover:scale-[1.02] transition-transform">
                     <div className="relative z-10">
-                        <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/70 mb-1">Total Festivos ({selectedYear})</p>
-                        <p className="text-4xl font-black text-primary">{filteredFestivos.length}</p>
+                        <p className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1" suppressHydrationWarning>
+                            {(t('festivos.totalYear' as Parameters<typeof t>[0]) as string).replace('{year}', String(selectedYear))}
+                        </p>
+                        <p className="text-4xl font-black text-[#1f2e85]">{filteredFestivos.length}</p>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary transition-all group-hover:bg-primary group-hover:text-white shadow-sm group-hover:shadow-lg group-hover:shadow-primary/30">
+                    <div className="w-12 h-12 rounded-2xl bg-[#1f2e85]/10 flex items-center justify-center text-[#1f2e85] transition-all group-hover:bg-[#1f2e85] group-hover:text-white shadow-sm group-hover:shadow-lg group-hover:shadow-[#1f2e85]/30">
                         <Calendar className="w-6 h-6" />
                     </div>
                 </div>
-                <div className="glass p-6 rounded-3xl border border-white/20 shadow-xl flex items-center justify-between group hover:scale-[1.02] transition-transform bg-white/60 dark:bg-black/40">
+                <div className="ofrenda-liquid-card p-6 rounded-3xl flex items-center justify-between group hover:scale-[1.02] transition-transform">
                     <div className="relative z-10">
-                        <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/70 mb-1">{t('festivos.nextHoliday')}</p>
-                        <p className="text-xl font-bold truncate max-w-[150px]">
+                        <p className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1">{t('festivos.nextHoliday')}</p>
+                        <p className="text-xl font-bold truncate max-w-[150px] text-slate-800">
                             {filteredFestivos.length > 0
                                 ? format(new Date(filteredFestivos[0].fecha), 'd MMM', { locale })
                                 : '-'
@@ -154,53 +190,22 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
                         <Info className="w-6 h-6" />
                     </div>
                 </div>
-                <div className="glass p-6 rounded-3xl border border-white/20 shadow-xl flex items-center justify-between group hover:scale-[1.02] transition-transform bg-white/60 dark:bg-black/40 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-linear-to-br from-blue-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="ofrenda-liquid-card p-6 rounded-3xl flex items-center justify-between group hover:scale-[1.02] transition-transform relative overflow-hidden">
                     <div className="flex flex-col gap-2 w-full h-full justify-center">
                         <Button
                             onClick={() => setIsModalOpen(true)}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-all active:scale-95 border-b-4 border-blue-800 relative z-10 py-6"
+                            className="w-full border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white rounded-2xl font-black uppercase tracking-widest shadow-[0_4px_16px_rgba(31,46,133,0.32)] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)] flex items-center justify-center gap-2 transition-all active:scale-95 relative z-10 py-6"
                         >
                             <Plus className="w-5 h-5" />
                             <span className="text-xs">{t('festivos.add')}</span>
                         </Button>
                         <button
                             onClick={handleRandom}
-                            className="text-[10px] text-muted-foreground hover:text-primary uppercase font-bold tracking-widest hover:underline"
+                            className="text-[10px] text-slate-500 hover:text-[#1f2e85] uppercase font-bold tracking-widest hover:underline"
+                            suppressHydrationWarning
                         >
-                            + Generar Datos Prueba
+                            + {t('festivos.seedBtn' as Parameters<typeof t>[0])}
                         </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Header / Title */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4 border-b border-border/10">
-                <div className="space-y-2">
-                    <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-[#063b7a] dark:text-white">
-                        {t('festivos.title')}
-                    </h1>
-                    <div className="flex items-center gap-3">
-                        <p className="text-muted-foreground font-bold tracking-wide flex items-center gap-2 uppercase text-xs opacity-70">
-                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                            Gestión del Calendario Laboral
-                        </p>
-
-                        {/* Selector de Año */}
-                        <div className="flex bg-muted/30 p-1 rounded-xl">
-                            {years.map(year => (
-                                <button
-                                    key={year}
-                                    onClick={() => setSelectedYear(year)}
-                                    className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all ${selectedYear === year
-                                        ? 'bg-white shadow-sm text-primary'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                        }`}
-                                >
-                                    {year}
-                                </button>
-                            ))}
-                        </div>
                     </div>
                 </div>
             </div>
@@ -222,39 +227,39 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
             {/* Listado de Festivos Agrupado por Mes */}
             <div className="space-y-10">
                 {festivos.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-center space-y-6 glass rounded-[3rem] border-dashed border-2 border-muted-foreground/20">
-                        <div className="w-24 h-24 bg-muted/30 rounded-full flex items-center justify-center">
-                            <Calendar className="w-10 h-10 text-muted-foreground/40" />
+                    <div className="flex flex-col items-center justify-center py-20 text-center space-y-6 bg-white/60 rounded-[3rem] border-dashed border-2 border-[rgba(184,150,74,0.3)]">
+                        <div className="w-24 h-24 bg-[#f8f3e8] rounded-full flex items-center justify-center">
+                            <Calendar className="w-10 h-10 text-[#b8964a]/60" />
                         </div>
                         <div className="space-y-1">
-                            <h3 className="text-xl font-black text-muted-foreground">{t('festivos.emptyTitle')}</h3>
-                            <p className="text-sm text-muted-foreground/60 max-w-xs mx-auto">
+                            <h3 className="text-xl font-black text-slate-500">{t('festivos.emptyTitle')}</h3>
+                            <p className="text-sm text-slate-400 max-w-xs mx-auto">
                                 {t('festivos.noEvents')}
                             </p>
                         </div>
                         <Button
                             onClick={() => setIsModalOpen(true)}
                             variant="outline"
-                            className="rounded-xl mt-4 border-primary/20 text-primary hover:bg-primary/5 font-bold"
+                            className="rounded-xl mt-4 border-[rgba(184,150,74,0.32)] bg-white text-[#1f2e85] hover:bg-[#f8f3e8] hover:border-[#b8964a] font-bold"
                         >
-                            Crear el primero
+                            <span suppressHydrationWarning>{t('festivos.createFirst' as Parameters<typeof t>[0])}</span>
                         </Button>
                     </div>
                 ) : (
                     sortedMonthKeys.map(monthKey => (
                         <div key={monthKey} className="space-y-4">
                             <div className="flex items-center gap-4">
-                                <h2 className="text-2xl font-black uppercase tracking-tighter text-muted-foreground/40">
+                                <h2 className="text-2xl font-black uppercase tracking-tighter text-[#b68f2f]">
                                     {festivosPorMes[monthKey].monthName}
                                 </h2>
-                                <div className="h-px flex-1 bg-border/40" />
+                                <div className="h-px flex-1 bg-[rgba(184,150,74,0.3)]" />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {festivosPorMes[monthKey].items.map((festivo) => (
                                     <div
                                         key={festivo.id}
-                                        className="group relative flex flex-col justify-between p-6 bg-white/50 dark:bg-black/20 backdrop-blur-md border border-white/20 dark:border-white/5 rounded-[2rem] hover:bg-white/80 dark:hover:bg-white/5 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden"
+                                        className="group relative flex flex-col justify-between p-6 ofrenda-liquid-card rounded-[2rem] transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden"
                                     >
                                         <div className={`absolute top-0 right-0 w-24 h-24 rounded-bl-[3rem] opacity-20 transition-transform group-hover:scale-110 ${festivo.tipo === 'nacional' ? 'bg-red-500' :
                                             festivo.tipo === 'autonomico' ? 'bg-amber-500' :
@@ -264,10 +269,10 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
                                         <div className="space-y-4 relative z-10 w-full">
                                             <div className="flex items-start justify-between">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 mb-1">
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#b68f2f] mb-1">
                                                         {format(new Date(festivo.fecha), 'EEEE', { locale })}
                                                     </span>
-                                                    <p className="font-black text-4xl tracking-tighter leading-none text-foreground">
+                                                    <p className="font-black text-4xl tracking-tighter leading-none text-[#1f2e85]">
                                                         {format(new Date(festivo.fecha), 'dd', { locale })}
                                                     </p>
                                                 </div>
@@ -296,7 +301,7 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
 
                                                     {/* Mostrar Culto Asociado si existe */}
                                                     {(festivo as Festivo & { culto?: { id: number; hora: string; tipo: string } }).culto && (
-                                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border bg-primary/5 text-primary border-primary/20">
+                                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border bg-[#f8f3e8] text-[#1f2e85] border-[rgba(184,150,74,0.35)]">
                                                             <Calendar className="w-3 h-3" />
                                                             {(festivo as Festivo & { culto?: { id: number; hora: string; tipo: string } }).culto?.tipo}
                                                         </div>
@@ -304,7 +309,7 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
                                                 </div>
 
                                                 {festivo.descripcion && (
-                                                    <p className="text-sm text-muted-foreground font-medium line-clamp-2">
+                                                    <p className="text-sm text-slate-500 font-medium line-clamp-2">
                                                         {festivo.descripcion}
                                                     </p>
                                                 )}
@@ -331,16 +336,16 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
                             name="fecha"
                             label={t('festivos.modal.fecha')}
                             required
-                            className="h-16 rounded-2xl font-bold text-lg bg-muted/30 border-transparent focus:bg-background transition-colors"
+                            className="h-16 rounded-2xl font-bold text-lg bg-white/70 text-slate-800 border-[rgba(184,150,74,0.32)] focus:border-[#b8964a] transition-colors"
                         />
 
                         <Select
                             name="tipo"
                             label={t('festivos.modal.tipo')}
                             required
-                            className="h-16 rounded-2xl font-bold text-lg bg-muted/30 border-transparent focus:bg-background transition-colors"
+                            className="h-16 rounded-2xl font-bold text-lg bg-white/70 text-slate-800 border-[rgba(184,150,74,0.32)] focus:border-[#b8964a] transition-colors"
                             options={[
-                                { value: '', label: 'Seleccionar tipo...' },
+                                { value: '', label: t('festivos.selectType' as Parameters<typeof t>[0]) },
                                 { value: 'nacional', label: `🔴 ${t('festivos.type.nacional')}` },
                                 { value: 'autonomico', label: `🟠 ${t('festivos.type.autonomico')}` },
                                 { value: 'local', label: `🔵 ${t('festivos.type.local')}` },
@@ -353,23 +358,23 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
                             name="descripcion"
                             label={t('festivos.modal.desc')}
                             placeholder={t('festivos.namePlaceholder')}
-                            className="h-16 rounded-2xl font-bold text-lg bg-muted/30 border-transparent focus:bg-background transition-colors"
+                            className="h-16 rounded-2xl font-bold text-lg bg-white/70 text-slate-800 border-[rgba(184,150,74,0.32)] focus:border-[#b8964a] transition-colors"
                         />
                     </div>
 
-                    <div className="flex gap-4 pt-6 border-t border-border/50">
+                    <div className="flex gap-4 pt-6 border-t border-[rgba(184,150,74,0.25)]">
                         <Button
                             type="button"
                             onClick={() => setIsModalOpen(false)}
                             variant="ghost"
-                            className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-red-50 hover:text-red-600"
+                            className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-xs text-[#1f2e85] border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white hover:bg-[#f8f3e8] hover:border-[#b8964a]"
                         >
                             {t('common.cancel')}
                         </Button>
                         <Button
                             type="submit"
                             isLoading={isSubmitting}
-                            className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 bg-blue-600 hover:bg-blue-700 text-white border-b-4 border-blue-800 active:border-b-0 active:translate-y-1 transition-all"
+                            className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-xs border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white shadow-[0_4px_16px_rgba(31,46,133,0.32)] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)] transition-all"
                         >
                             {t('common.save')}
                         </Button>

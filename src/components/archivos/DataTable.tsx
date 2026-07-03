@@ -79,21 +79,21 @@ export function DataTable({
   }, [preDisplayData, sortConfig, setSortConfig])
 
   return (
-    <div className="hidden sm:block glass rounded-2xl border border-border/50 overflow-hidden">
+    <div className="hidden sm:block ofrenda-liquid-card rounded-2xl overflow-hidden">
       <div className="overflow-x-auto">
         <table
           className="w-full text-left text-sm"
           style={{ minWidth: `${Math.max(columns.length * 160, 500)}px` }}
         >
           <thead>
-            <tr className={`border-b border-border/60 ${activeTabConfig.bg}`}>
+            <tr className={`border-b border-[rgba(184,150,74,0.3)] ${activeTabConfig.bg}`}>
               {columns.map((col) => {
                 const isColActive = sortConfig?.field === 'col' && sortConfig.col === col
                 return (
                   <th
                     key={col}
                     onClick={() => handleColSort(col)}
-                    title={`Ordenar por ${prettyKey(col)}`}
+                    title={(t('archivos.sortBy' as Parameters<typeof t>[0]) as string).replace('{col}', prettyKey(col))}
                     className={`
                       px-4 py-3.5 font-bold text-xs uppercase tracking-wide whitespace-nowrap
                       select-none cursor-pointer group transition-all
@@ -124,12 +124,12 @@ export function DataTable({
                   aria-label={t('archivos.viewRecordDetail')}
                   onClick={() => onRowClick(row)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onRowClick(row) }}
-                  className="border-b border-border/30 hover:bg-muted/20 transition-colors cursor-pointer group"
+                  className="border-b border-[rgba(184,150,74,0.15)] hover:bg-[#f8f3e8]/70 transition-colors cursor-pointer group"
                 >
                   {columns.map((col) => (
                     <td
                       key={col}
-                      className="px-4 py-3 text-sm text-foreground/80 group-hover:text-foreground transition-colors"
+                      className="px-4 py-3 text-sm text-slate-600 group-hover:text-slate-900 transition-colors"
                     >
                       <span className="line-clamp-2 max-w-[260px] block">
                         <HighlightText text={row[col] || '—'} query={searchQuery} />
@@ -143,8 +143,8 @@ export function DataTable({
         </table>
       </div>
       {/* Footer */}
-      <div className="px-4 py-2.5 border-t border-border/30 flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-muted-foreground">
+      <div className="px-4 py-2.5 border-t border-[rgba(184,150,74,0.25)] flex items-center gap-2 flex-wrap">
+        <span className="text-xs text-slate-500">
           {data.length} {data.length === 1 ? tRecord : tRecords}
           {hasFilter && filterLabel && ` · ${filterLabel}`}
           {hasSearch && ` · "${searchQuery}"`}
@@ -153,7 +153,7 @@ export function DataTable({
           <button
             type="button"
             onClick={clearAllFilters}
-            className="text-[10px] text-primary/70 hover:text-primary underline transition-colors"
+            className="text-[10px] text-[#1f2e85]/70 hover:text-[#1f2e85] underline transition-colors"
           >
             {tClear}
           </button>

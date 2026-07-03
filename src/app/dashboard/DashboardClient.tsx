@@ -56,8 +56,8 @@ export default function DashboardClient({
                                     /* Renderizado Delegado al Componente Renderer */
                                     <CultoCardRenderer culto={navCulto} esHoy={navEsHoy} currentUserId={user.id} />
                                 ) : (
-                                    <div className="glass rounded-[2.5rem] p-12 text-center border-dashed border-2 border-slate-200 dark:border-slate-800">
-                                        <p className="text-slate-400 font-bold">{t('dashboard.navigator.noService')}</p>
+                                    <div className="rounded-[2.5rem] p-12 text-center border-2 border-dashed border-[rgba(184,150,74,0.35)] bg-[#f8f3e8]/30 dark:bg-white/5">
+                                        <p className="text-slate-400 font-bold" suppressHydrationWarning>{t('dashboard.navigator.noService')}</p>
                                     </div>
                                 )}
                             </>

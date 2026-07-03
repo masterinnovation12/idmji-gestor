@@ -12,7 +12,12 @@ import type { RolInstruccionCulto } from '@/types/database'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { sortInstruccionRoles } from '@/lib/instrucciones/sortInstruccionRoles'
 
-/* ─── Config visual por tipo de culto ───────────────────────── */
+/* ─── Config visual por tipo de culto ─────────────────────────
+   Dos familias de clases por color:
+   - accentBg, accentText, border, pill, comingSoonBg: NIVEL PÁGINA (tabs, chips,
+     coming-soon) → theme-aware (con variantes dark).
+   - cardBg, cardText, cardBorder, cardPill: DENTRO de ofrenda-liquid-card
+     (siempre clara) → valores claros fijos, sin variantes dark. */
 const CULTO_STYLES: Record<string, {
   icon: React.ElementType
   gradient: string
@@ -22,6 +27,10 @@ const CULTO_STYLES: Record<string, {
   tabActive: string
   pill: string
   comingSoonBg: string
+  cardBg: string
+  cardText: string
+  cardBorder: string
+  cardPill: string
 }> = {
   Alabanza: {
     icon: Music,
@@ -32,6 +41,10 @@ const CULTO_STYLES: Record<string, {
     tabActive: 'bg-blue-600 dark:bg-blue-500',
     pill: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300',
     comingSoonBg: 'bg-blue-50/60 dark:bg-blue-950/20',
+    cardBg: 'bg-blue-50',
+    cardText: 'text-blue-600',
+    cardBorder: 'border-blue-200',
+    cardPill: 'bg-blue-100 text-blue-700',
   },
   'Estudio Bíblico': {
     icon: BookOpen,
@@ -42,6 +55,10 @@ const CULTO_STYLES: Record<string, {
     tabActive: 'bg-emerald-600 dark:bg-emerald-500',
     pill: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300',
     comingSoonBg: 'bg-emerald-50/60 dark:bg-emerald-950/20',
+    cardBg: 'bg-emerald-50',
+    cardText: 'text-emerald-600',
+    cardBorder: 'border-emerald-200',
+    cardPill: 'bg-emerald-100 text-emerald-700',
   },
   'Enseñanza': {
     icon: GraduationCap,
@@ -52,6 +69,10 @@ const CULTO_STYLES: Record<string, {
     tabActive: 'bg-violet-600 dark:bg-violet-500',
     pill: 'bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300',
     comingSoonBg: 'bg-violet-50/60 dark:bg-violet-950/20',
+    cardBg: 'bg-violet-50',
+    cardText: 'text-violet-600',
+    cardBorder: 'border-violet-200',
+    cardPill: 'bg-violet-100 text-violet-700',
   },
 }
 
@@ -104,8 +125,8 @@ function renderFormattedText(text: string) {
     <>
       {parts.map((part, i) => {
         if (part.startsWith('**') && part.endsWith('**')) {
-           
-          return <strong key={i} className="font-bold text-foreground/90">{part.slice(2, -2)}</strong>
+
+          return <strong key={i} className="font-bold text-slate-900">{part.slice(2, -2)}</strong>
         }
          
         return <span key={i}>{part}</span>
@@ -168,16 +189,16 @@ function InstruccionCard({ rolInfo, style, defaultOpen = false }: InstruccionCar
         aria-controls={`instruccion-content-${rolInfo.rol}`}
         onClick={() => setOpen((o) => !o)}
         className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors touch-manipulation
-          ${open ? style.accentBg : 'bg-white hover:bg-[#f8f3e8]/60'}`}
+          ${open ? style.cardBg : 'bg-white hover:bg-[#f8f3e8]/60'}`}
       >
-        <div className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${style.accentBg} ${style.border} border`}>
+        <div className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${style.cardBg} ${style.cardBorder} border`}>
           <RolIcon className={`w-4 h-4 ${meta.color}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`font-bold text-sm ${style.accentText}`}>{t(meta.labelKey as Parameters<typeof t>[0])}</p>
-          <p className="text-xs text-muted-foreground truncate mt-0.5">{rolInfo.titulo}</p>
+          <p className={`font-bold text-sm ${style.cardText}`}>{t(meta.labelKey as Parameters<typeof t>[0])}</p>
+          <p className="text-xs text-slate-500 truncate mt-0.5">{rolInfo.titulo}</p>
         </div>
-        <ChevronDown className={`w-4 h-4 text-muted-foreground/60 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence initial={false}>
@@ -191,12 +212,12 @@ function InstruccionCard({ rolInfo, style, defaultOpen = false }: InstruccionCar
             transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }} // Curva fluida tipo "spring" CSS
             className="overflow-hidden"
           >
-            <div className="px-5 py-5 space-y-5 border-t border-border/40">
+            <div className="px-5 py-5 space-y-5 border-t border-[rgba(184,150,74,0.2)]">
               {sections.map((sec, si) => (
-                 
+
                 <div key={si}>
                   {sec.heading && (
-                    <div className={`inline-flex items-center gap-2 mb-2 px-2.5 py-1 rounded-lg ${style.pill} text-xs font-bold uppercase tracking-wide`}>
+                    <div className={`inline-flex items-center gap-2 mb-2 px-2.5 py-1 rounded-lg ${style.cardPill} text-xs font-bold uppercase tracking-wide`}>
                       <span>{sec.heading}</span>
                     </div>
                   )}
@@ -204,10 +225,10 @@ function InstruccionCard({ rolInfo, style, defaultOpen = false }: InstruccionCar
                     {sec.items.map((item, ii) => {
                       const isBullet = item.startsWith('•') || item.startsWith('-')
                       const text = isBullet ? item.slice(1).trim() : item
-                      const accentClass = style.accentText.replace('text-', 'bg-')
+                      const accentClass = style.cardText.replace('text-', 'bg-')
                       return (
-                         
-                        <li key={ii} className={`flex gap-2 text-sm text-foreground/80 leading-relaxed`}>
+
+                        <li key={ii} className={`flex gap-2 text-sm text-slate-700 leading-relaxed`}>
                           {isBullet && (
                             <span className={`mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full ${accentClass}`} />
                           )}
@@ -339,7 +360,10 @@ export default function InstruccionesPageClient({ cultos }: Props) {
               className="space-y-4"
             >
               {/* Banner del culto */}
-              <div className={`rounded-2xl border-2 border-[#b8964a] bg-linear-to-r ${style.gradient} p-5 sm:p-6 text-white overflow-hidden relative shadow-[0_8px_28px_rgba(31,46,133,0.18)]`}>
+              <div
+                data-testid="instrucciones-banner"
+                className={`rounded-2xl border-2 border-[#b8964a] bg-linear-to-r ${style.gradient} p-5 sm:p-6 text-white overflow-hidden relative shadow-[0_8px_28px_rgba(31,46,133,0.18)]`}
+              >
                 <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10" />
                 <div className="absolute -right-2 -bottom-8 w-24 h-24 rounded-full bg-white/5" />
                 <div className="relative flex items-center gap-4">
@@ -369,7 +393,7 @@ export default function InstruccionesPageClient({ cultos }: Props) {
                 </div>
               </div>
 
-              {/* Cards de instrucciones */}
+              {/* Cards de instrucciones (cerradas por defecto: decisión de QA previa) */}
               <div className="space-y-3">
                 {activeRoles.map((rolInfo) =>
                   rolInfo.publicado ? (

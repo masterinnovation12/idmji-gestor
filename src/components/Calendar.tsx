@@ -16,7 +16,7 @@
 
 'use client'
 
-import { useState, useSyncExternalStore, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertCircle, CheckCircle, Clock } from 'lucide-react'
 import {
     startOfMonth,
@@ -49,27 +49,12 @@ interface CalendarProps {
     view?: 'month' | 'week' | 'day'
     selectedDate?: Date
     onDateSelect?: (date: Date) => void
+    /** Al clicar una celda de día (vista mes/semana) abre ese día en detalle */
+    onDayOpen?: (date: Date) => void
 }
 
-// Helper for dark mode detection without setState in useEffect
-function subscribeToDarkMode(callback: () => void) {
-    const observer = new MutationObserver(callback)
-    if (typeof document !== 'undefined') {
-        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    }
-    return () => observer.disconnect()
-}
-function getDarkModeSnapshot() {
-    if (typeof document === 'undefined') return false
-    return document.documentElement.classList.contains('dark')
-}
-function getDarkModeServerSnapshot() {
-    return false
-}
-
-export default function Calendar({ events, onMonthChange, view = 'month', selectedDate, onDateSelect }: CalendarProps) {
+export default function Calendar({ events, onMonthChange, view = 'month', selectedDate, onDateSelect, onDayOpen }: CalendarProps) {
     const { t, language } = useI18n()
-    const isDark = useSyncExternalStore(subscribeToDarkMode, getDarkModeSnapshot, getDarkModeServerSnapshot)
     const listRef = useRef<HTMLDivElement>(null)
 
     const [internalDate, setInternalDate] = useState(new Date())
@@ -186,39 +171,39 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
     return (
         <div className="space-y-6">
             {/* Header del Calendario */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 px-2 mb-8">
-                <div className="flex items-center gap-5">
-                    <div className="p-4 bg-primary/10 rounded-3xl border border-primary/20 shadow-inner">
-                        <CalendarIcon className="w-7 h-7 text-primary" />
+            <div className="flex flex-col xl:flex-row items-center justify-between gap-4 xl:gap-6 px-2 mb-8">
+                <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+                    <div className="p-3 sm:p-4 bg-[#1f2e85]/10 rounded-3xl border border-[rgba(184,150,74,0.35)] shadow-inner shrink-0">
+                        <CalendarIcon className="w-6 h-6 sm:w-7 sm:h-7 text-[#1f2e85]" />
                     </div>
-                    <div className="flex flex-col">
-                        <h2 className="text-3xl font-black uppercase tracking-tighter leading-none mb-1">
+                    <div className="flex flex-col min-w-0">
+                        <h2 className="text-xl sm:text-2xl xl:text-3xl font-black uppercase tracking-tighter leading-tight mb-1 text-[#1f2e85]">
                             {view === 'month' ? format(currentDate, 'MMMM yyyy', { locale }) :
-                                view === 'week' ? `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd MMM')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd MMM, yyyy')}` :
+                                view === 'week' ? `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd MMM', { locale })} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd MMM, yyyy', { locale })}` :
                                     format(currentDate, 'EEEE, d MMMM yyyy', { locale })}
                         </h2>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-60">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
                             {view === 'month' ? t('calendar.viewMonthDesc') : view === 'week' ? t('calendar.viewWeekDesc') : t('calendar.viewDayDesc')}
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 bg-muted/30 p-2 rounded-[2.5rem] border border-border/50 shadow-inner backdrop-blur-md">
+                <div className="flex items-center justify-center flex-nowrap gap-1 lg:gap-2 bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-1.5 lg:p-2 rounded-[2.5rem] border-[1.5px] border-[rgba(184,150,74,0.32)] shadow-inner shrink-0 max-w-full">
                     <button
                         onClick={handlePrev}
                         disabled={isAtLimit}
-                        className={`p-3 rounded-2xl transition-all group active:scale-90 flex items-center gap-2 ${isAtLimit ? 'opacity-20 cursor-not-allowed' : 'hover:bg-background hover:shadow-lg'}`}
+                        className={`p-2 lg:p-3 rounded-2xl transition-all group active:scale-90 flex items-center gap-2 shrink-0 ${isAtLimit ? 'opacity-20 cursor-not-allowed' : 'hover:bg-white hover:shadow-lg'}`}
                         title={view === 'month' ? t('calendar.prevMonth') : view === 'week' ? t('calendar.prevWeek') : t('calendar.prevDay')}
                     >
-                        <ChevronLeft className="w-6 h-6 text-primary group-hover:-translate-x-0.5 transition-transform" />
-                        <span className="hidden lg:inline text-[10px] font-black uppercase tracking-widest text-primary/70">{t('calendar.prev')}</span>
+                        <ChevronLeft className="w-6 h-6 text-[#1f2e85] group-hover:-translate-x-0.5 transition-transform" />
+                        <span className="hidden lg:inline text-[10px] font-black uppercase tracking-widest text-[#1f2e85]/70">{t('calendar.prev')}</span>
                     </button>
 
                     <button
                         onClick={handleToday}
-                        className={`px-8 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-2xl border-b-2 ${isMonthActual
-                            ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20 border-blue-800'
-                            : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-muted-foreground hover:text-blue-600 border-transparent hover:border-blue-200'
+                        className={`px-3 lg:px-8 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-2xl whitespace-nowrap ${isMonthActual
+                            ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]'
+                            : 'text-slate-500 hover:text-[#1f2e85] hover:bg-white border border-transparent hover:border-[rgba(184,150,74,0.4)]'
                             }`}
                     >
                         {isMonthActual ? t('calendar.today') : t('calendar.todayBtn')}
@@ -226,20 +211,20 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
 
                     <button
                         onClick={handleNext}
-                        className="p-3 hover:bg-background hover:shadow-lg rounded-2xl transition-all group active:scale-90 flex items-center gap-2"
+                        className="p-2 lg:p-3 hover:bg-white hover:shadow-lg rounded-2xl transition-all group active:scale-90 flex items-center gap-2 shrink-0"
                         title={view === 'month' ? t('calendar.nextMonth') : view === 'week' ? t('calendar.nextWeek') : t('calendar.nextDay')}
                     >
-                        <span className="hidden lg:inline text-[10px] font-black uppercase tracking-widest text-primary/70">{t('calendar.nextBtn')}</span>
-                        <ChevronRight className="w-6 h-6 text-primary group-hover:translate-x-0.5 transition-transform" />
+                        <span className="hidden lg:inline text-[10px] font-black uppercase tracking-widest text-[#1f2e85]/70">{t('calendar.nextBtn')}</span>
+                        <ChevronRight className="w-6 h-6 text-[#1f2e85] group-hover:translate-x-0.5 transition-transform" />
                     </button>
                 </div>
             </div>
 
             {/* Calendar Grid (Desktop) */}
             <div className="hidden xl:block">
-                <div className={`grid ${view === 'day' ? 'grid-cols-1' : 'grid-cols-7'} gap-px bg-border/20 rounded-4xl overflow-hidden border border-border/50 shadow-2xl`}>
+                <div className={`grid ${view === 'day' ? 'grid-cols-1' : 'grid-cols-7'} gap-px bg-[rgba(184,150,74,0.22)] rounded-4xl overflow-hidden border-[1.5px] border-[rgba(184,150,74,0.4)] shadow-2xl`}>
                     {view !== 'day' && weekDays.map(day => (
-                        <div key={day} className="bg-muted/30 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground py-4 border-b border-border/50">
+                        <div key={day} className="bg-[#f8f3e8]/90 text-center text-[10px] font-black uppercase tracking-[0.2em] text-[#1f2e85] py-4 border-b border-[rgba(184,150,74,0.3)]">
                             {day}
                         </div>
                     ))}
@@ -257,10 +242,12 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                             return (
                                 <div
                                     key={dateStr}
-                                    className={`${view === 'day' ? 'min-h-[400px]' : view === 'week' ? 'min-h-[300px]' : 'min-h-[220px] md:min-h-[280px]'} p-2 md:p-4 bg-muted/5 opacity-20 pointer-events-none border-none shadow-none`}
+                                    className={`${view === 'day' ? 'min-h-[400px]' : view === 'week' ? 'min-h-[300px]' : 'min-h-[220px] md:min-h-[280px]'} p-2 md:p-4 bg-white/40 opacity-30 pointer-events-none border-none shadow-none`}
                                 />
                             )
                         }
+
+                        const canOpenDay = view !== 'day' && !!onDayOpen
 
                         return (
                             <motion.div
@@ -268,21 +255,31 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: idx * 0.01 }}
-                                onClick={() => onDateSelect?.(day)}
+                                onClick={() => { onDateSelect?.(day); if (canOpenDay) onDayOpen(day) }}
+                                onKeyDown={(e) => {
+                                    if (canOpenDay && (e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
+                                        e.preventDefault()
+                                        onDateSelect?.(day)
+                                        onDayOpen(day)
+                                    }
+                                }}
+                                role={canOpenDay ? 'button' : undefined}
+                                tabIndex={canOpenDay ? 0 : undefined}
+                                aria-label={canOpenDay ? `${t('calendar.openDayAria')} ${format(day, 'd MMMM yyyy', { locale })}` : undefined}
                                 className={`
                                     ${view === 'day' ? 'min-h-[400px]' : view === 'week' ? 'min-h-[300px]' : 'min-h-[220px] md:min-h-[280px]'} p-2 md:p-4 transition-all relative group/day cursor-pointer overflow-hidden flex flex-col
-                                    ${isCurrentMonth || view !== 'month' ? 'bg-background/40' : 'bg-muted/10 opacity-40'}
-                                    ${isToday ? 'ring-2 ring-inset ring-primary shadow-[inset_0_0_20px_rgba(var(--primary-rgb),0.05)]' : ''}
-                                    hover:bg-primary/5
+                                    bg-white/70
+                                    ${isToday ? 'ring-2 ring-inset ring-[#b8964a] bg-[#f8f3e8]/70' : ''}
+                                    hover:bg-[#f8f3e8]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1f2e85]
                                 `}
                             >
                                 <div className="flex items-center justify-between mb-2 md:mb-4 shrink-0">
                                     <div className="flex flex-col">
-                                        <span className={`text-base md:text-lg font-black ${!isCurrentMonth && view === 'month' ? 'text-muted-foreground/40' : isToday ? 'text-primary' : ''}`}>
+                                        <span className={`text-base md:text-lg font-black ${isToday ? 'text-[#1f2e85]' : 'text-slate-800'}`}>
                                             {format(day, 'd')}
                                         </span>
                                         {view === 'day' && (
-                                            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                                            <span className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest">
                                                 {format(day, 'EEEE', { locale })}
                                             </span>
                                         )}
@@ -292,7 +289,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                             {dayEvents.map(event => (
                                                 <div
                                                     key={event.id}
-                                                    className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.1)] border-2 border-white dark:border-slate-800 shrink-0"
+                                                    className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.1)] border-2 border-white shrink-0"
                                                     style={{ backgroundColor: event.tipo_culto?.color || '#888' }}
                                                 />
                                             ))}
@@ -311,20 +308,20 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                             const showFinal = config.tiene_lectura_finalizacion !== false
 
                                             return (
-                                                <Link href={`/dashboard/cultos/${event.id}`} key={event.id} className="block shrink-0">
+                                                <Link href={`/dashboard/cultos/${event.id}`} key={event.id} className="block shrink-0" onClick={(e) => e.stopPropagation()}>
                                                     <div className={`
                                                         w-full p-2.5 md:p-3 rounded-2xl md:rounded-3xl transition-all cursor-pointer border shadow-md flex flex-col justify-between text-center overflow-hidden
                                                         ${status === 'complete'
-                                                            ? (isDark ? 'bg-emerald-900/30 border-emerald-500/40 hover:bg-emerald-900/40' : 'bg-emerald-100 border-emerald-300 hover:bg-emerald-200 shadow-lg shadow-emerald-200/20')
+                                                            ? 'bg-emerald-100 border-emerald-300 hover:bg-emerald-200 shadow-lg shadow-emerald-200/20'
                                                             : event.es_laborable_festivo
-                                                                ? (isDark ? 'bg-amber-900/30 border-amber-500/40 hover:bg-amber-900/40' : 'bg-amber-100 border-amber-300 hover:bg-amber-200 shadow-lg shadow-amber-200/20')
-                                                                : (isDark ? 'bg-slate-800/40 border-white/5 hover:bg-slate-800/60' : 'bg-white border-gray-100 hover:bg-gray-50')
+                                                                ? 'bg-amber-100 border-amber-300 hover:bg-amber-200 shadow-lg shadow-amber-200/20'
+                                                                : 'bg-white border-[rgba(184,150,74,0.3)] hover:bg-[#f8f3e8]'
                                                         }
                                                     `}>
                                                         {/* Cabecera: Nombre del Culto */}
                                                         <div className="w-full text-center">
-                                                            <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-tight leading-tight mb-1 ${status === 'complete' ? 'text-emerald-900 dark:text-emerald-100' :
-                                                                event.es_laborable_festivo ? 'text-amber-900 dark:text-amber-100' : ''
+                                                            <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-tight leading-tight mb-1 ${status === 'complete' ? 'text-emerald-900' :
+                                                                event.es_laborable_festivo ? 'text-amber-900' : 'text-slate-800'
                                                                 }`}>
                                                                 {event.tipo_culto?.nombre} {dayEvents.length > 1 && `(${event.hora_inicio.slice(0, 5) === '10:00' ? '10h' : '17h'})`}
                                                             </p>
@@ -332,8 +329,8 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                             <div className={`
                                                                 mx-auto text-[7px] md:text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full inline-flex items-center gap-1 shadow-xs border
                                                                 ${status === 'complete'
-                                                                    ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
-                                                                    : 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30'}
+                                                                    ? 'bg-emerald-500/20 text-emerald-800 border-emerald-500/30'
+                                                                    : 'bg-amber-500/20 text-amber-800 border-amber-500/30'}
                                                             `}>
                                                                 {status === 'complete' ? <CheckCircle size={8} /> : <Clock size={8} />}
                                                                 <span>{status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}</span>
@@ -347,26 +344,26 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                             (showTestimonios && event.usuario_testimonios) ||
                                                             (showFinal && event.usuario_finalizacion)
                                                         ) && (
-                                                            <div className="w-full space-y-0.5 mt-1.5 pt-1.5 border-t border-black/5 dark:border-white/5">
+                                                            <div className="w-full space-y-0.5 mt-1.5 pt-1.5 border-t border-[rgba(184,150,74,0.2)]">
                                                                 <div className="space-y-0.5">
                                                                     {showIntro && event.usuario_intro && (
-                                                                        <div className="text-[9px] font-bold px-1 leading-snug text-left truncate">
-                                                                            <span className="text-muted-foreground/70">I:</span> <span className="wrap-break-word">{event.usuario_intro.nombre}</span>
+                                                                        <div className="text-[9px] font-bold px-1 leading-snug text-left truncate text-slate-700">
+                                                                            <span className="text-slate-400">I:</span> <span className="wrap-break-word">{event.usuario_intro.nombre}</span>
                                                                         </div>
                                                                     )}
                                                                     {showEnsenanza && event.usuario_ensenanza && (
-                                                                        <div className="text-[9px] font-bold px-1 leading-snug text-left truncate">
-                                                                            <span className="text-muted-foreground/70">E:</span> <span className="wrap-break-word">{event.usuario_ensenanza.nombre}</span>
+                                                                        <div className="text-[9px] font-bold px-1 leading-snug text-left truncate text-slate-700">
+                                                                            <span className="text-slate-400">E:</span> <span className="wrap-break-word">{event.usuario_ensenanza.nombre}</span>
                                                                         </div>
                                                                     )}
                                                                     {showTestimonios && event.usuario_testimonios && (
-                                                                        <div className="text-[9px] font-bold px-1 leading-snug text-left truncate">
-                                                                            <span className="text-muted-foreground/70">T:</span> <span className="wrap-break-word">{event.usuario_testimonios.nombre}</span>
+                                                                        <div className="text-[9px] font-bold px-1 leading-snug text-left truncate text-slate-700">
+                                                                            <span className="text-slate-400">T:</span> <span className="wrap-break-word">{event.usuario_testimonios.nombre}</span>
                                                                         </div>
                                                                     )}
                                                                     {showFinal && event.usuario_finalizacion && (
-                                                                        <div className="text-[9px] font-bold px-1 leading-snug text-left truncate">
-                                                                            <span className="text-muted-foreground/70">F:</span> <span className="wrap-break-word">{event.usuario_finalizacion.nombre}</span>
+                                                                        <div className="text-[9px] font-bold px-1 leading-snug text-left truncate text-slate-700">
+                                                                            <span className="text-slate-400">F:</span> <span className="wrap-break-word">{event.usuario_finalizacion.nombre}</span>
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -374,7 +371,7 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                         )}
 
                                                         {/* Pie: Hora */}
-                                                        <div className="w-full mt-1.5 pt-1 flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-bold text-muted-foreground border-t border-black/5 dark:border-white/5">
+                                                        <div className="w-full mt-1.5 pt-1 flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-bold text-slate-500 border-t border-[rgba(184,150,74,0.2)]">
                                                             <Clock size={8} />
                                                             {event.hora_inicio.slice(0, 5)}
                                                         </div>
@@ -384,8 +381,8 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                         })}
                                     </div>
                                 ) : view === 'day' ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
-                                        <CalendarIcon className="w-16 h-16 mb-4" />
+                                    <div className="h-full flex flex-col items-center justify-center text-center text-slate-400">
+                                        <CalendarIcon className="w-16 h-16 mb-4 opacity-40" />
                                         <p className="text-sm font-bold uppercase tracking-widest">{t('calendar.noCultos')}</p>
                                     </div>
                                 ) : null}
@@ -437,12 +434,12 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: idx * 0.05 }}
                                             className={`
-                                                glass rounded-4xl p-5 flex items-start gap-4 border active:scale-[0.98] transition-all shadow-xl shadow-black/5 min-h-[140px]
+                                                rounded-4xl p-5 flex items-start gap-4 border active:scale-[0.98] transition-all shadow-xl shadow-black/5 min-h-[140px]
                                                 ${status === 'complete'
-                                                    ? (isDark ? 'bg-emerald-900/30 border-emerald-500/40' : 'bg-emerald-50 border-emerald-200 shadow-emerald-500/10')
+                                                    ? 'bg-emerald-50 border-emerald-200 shadow-emerald-500/10'
                                                     : event.es_laborable_festivo
-                                                        ? (isDark ? 'bg-amber-900/30 border-amber-500/40' : 'bg-amber-50 border-amber-200 shadow-amber-500/10')
-                                                        : 'border-white/20'
+                                                        ? 'bg-amber-50 border-amber-200 shadow-amber-500/10'
+                                                        : 'bg-white border-[rgba(184,150,74,0.3)]'
                                                 }
                                             `}
                                         >
@@ -450,23 +447,23 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                 ? 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30'
                                                 : event.es_laborable_festivo
                                                     ? 'bg-amber-500/20 text-amber-600 border-amber-500/30'
-                                                    : 'bg-primary/10 text-primary border-primary/20'
+                                                    : 'bg-[#1f2e85]/10 text-[#1f2e85] border-[rgba(184,150,74,0.35)]'
                                                 }`}>
-                                                <span className={`text-[8px] font-bold uppercase tracking-wider leading-none mb-0.5 ${status === 'complete' ? 'text-emerald-700 dark:text-emerald-400' :
-                                                    event.es_laborable_festivo ? 'text-amber-700 dark:text-amber-400' :
-                                                        'text-primary/60'
+                                                <span className={`text-[8px] font-bold uppercase tracking-wider leading-none mb-0.5 ${status === 'complete' ? 'text-emerald-700' :
+                                                    event.es_laborable_festivo ? 'text-amber-700' :
+                                                        'text-[#1f2e85]/60'
                                                     }`}>
                                                     {format(new Date(event.fecha), 'EEE', { locale })}
                                                 </span>
-                                                <span className={`text-[9px] font-black uppercase tracking-tighter leading-none mb-0.5 ${status === 'complete' ? 'text-emerald-700 dark:text-emerald-400' :
-                                                    event.es_laborable_festivo ? 'text-amber-700 dark:text-amber-400' :
-                                                        'text-primary/60'
+                                                <span className={`text-[9px] font-black uppercase tracking-tighter leading-none mb-0.5 ${status === 'complete' ? 'text-emerald-700' :
+                                                    event.es_laborable_festivo ? 'text-amber-700' :
+                                                        'text-[#1f2e85]/60'
                                                     }`}>
                                                     {format(new Date(event.fecha), 'MMM', { locale })}
                                                 </span>
-                                                <span className={`text-xl font-black tracking-tighter leading-none ${status === 'complete' ? 'text-emerald-700 dark:text-emerald-400' :
-                                                    event.es_laborable_festivo ? 'text-amber-700 dark:text-amber-400' :
-                                                        'text-primary'
+                                                <span className={`text-xl font-black tracking-tighter leading-none ${status === 'complete' ? 'text-emerald-700' :
+                                                    event.es_laborable_festivo ? 'text-amber-700' :
+                                                        'text-[#1f2e85]'
                                                     }`}>
                                                     {format(new Date(event.fecha), 'd')}
                                                 </span>
@@ -474,8 +471,8 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
 
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-2 mb-2">
-                                                    <h3 className={`font-black text-sm uppercase tracking-tight leading-tight wrap-break-word flex-1 ${status === 'complete' ? 'text-emerald-900 dark:text-emerald-50' :
-                                                        event.es_laborable_festivo ? 'text-amber-900 dark:text-amber-50' : ''
+                                                    <h3 className={`font-black text-sm uppercase tracking-tight leading-tight wrap-break-word flex-1 ${status === 'complete' ? 'text-emerald-900' :
+                                                        event.es_laborable_festivo ? 'text-amber-900' : 'text-slate-800'
                                                         }`}>
                                                         {event.tipo_culto?.nombre} {event.hora_inicio && `(${event.hora_inicio.slice(0, 5) === '10:00' ? '10h' : '17h'})`}
                                                     </h3>
@@ -485,22 +482,22 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                     />
                                                 </div>
                                                 <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mb-2">
-                                                    <div className={`text-[10px] font-bold flex items-center gap-1 ${status === 'complete' ? 'text-emerald-700 dark:text-emerald-300' :
-                                                        event.es_laborable_festivo ? 'text-amber-700 dark:text-amber-300' :
-                                                            'text-muted-foreground'
+                                                    <div className={`text-[10px] font-bold flex items-center gap-1 ${status === 'complete' ? 'text-emerald-700' :
+                                                        event.es_laborable_festivo ? 'text-amber-700' :
+                                                            'text-slate-500'
                                                         }`}>
                                                         <div className="flex items-center gap-1">
                                                             <Clock size={12} className="opacity-60" />
                                                             {event.hora_inicio.slice(0, 5)}
                                                         </div>
                                                         {event.es_laborable_festivo && (
-                                                            <div className="flex items-center gap-1 bg-amber-500/10 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                                            <div className="flex items-center gap-1 bg-amber-500/10 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider text-amber-600 border border-amber-500/20">
                                                                 <AlertCircle size={10} />
                                                                 <span>{t('calendar.festivoLabel')}</span>
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ${status === 'complete' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                                    <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ${status === 'complete' ? 'text-emerald-600' : 'text-amber-600'}`}>
                                                         {status === 'complete' ? <CheckCircle size={10} /> : <Clock size={10} />}
                                                         {status === 'complete' ? t('calendar.status.complete') : t('calendar.status.pending')}
                                                     </div>
@@ -509,34 +506,34 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                                                 {((showIntro && event.usuario_intro) || (showEnsenanza && event.usuario_ensenanza) || (showTestimonios && event.usuario_testimonios) || (showFinal && event.usuario_finalizacion)) && (
                                                     <div className={`space-y-1 pt-2 border-t ${status === 'complete' ? 'border-emerald-500/10' :
                                                         event.es_laborable_festivo ? 'border-amber-500/10' :
-                                                            'border-white/10 dark:border-white/5'
+                                                            'border-[rgba(184,150,74,0.2)]'
                                                         }`}>
                                                         {showIntro && event.usuario_intro && (
-                                                            <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="opacity-70">I:</span> <span className="wrap-break-word">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
+                                                            <div className="text-[10px] font-bold leading-snug text-slate-700">
+                                                                <span className="text-slate-400">I:</span> <span className="wrap-break-word">{event.usuario_intro.nombre} {event.usuario_intro.apellidos}</span>
                                                             </div>
                                                         )}
                                                         {showEnsenanza && event.usuario_ensenanza && (
-                                                            <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="opacity-70">E:</span> <span className="wrap-break-word">{event.usuario_ensenanza.nombre} {event.usuario_ensenanza.apellidos}</span>
+                                                            <div className="text-[10px] font-bold leading-snug text-slate-700">
+                                                                <span className="text-slate-400">E:</span> <span className="wrap-break-word">{event.usuario_ensenanza.nombre} {event.usuario_ensenanza.apellidos}</span>
                                                             </div>
                                                         )}
                                                         {showTestimonios && event.usuario_testimonios && (
-                                                            <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="opacity-70">T:</span> <span className="wrap-break-word">{event.usuario_testimonios.nombre} {event.usuario_testimonios.apellidos}</span>
+                                                            <div className="text-[10px] font-bold leading-snug text-slate-700">
+                                                                <span className="text-slate-400">T:</span> <span className="wrap-break-word">{event.usuario_testimonios.nombre} {event.usuario_testimonios.apellidos}</span>
                                                             </div>
                                                         )}
                                                         {showFinal && event.usuario_finalizacion && (
-                                                            <div className="text-[10px] font-bold leading-snug">
-                                                                <span className="opacity-70">F:</span> <span className="wrap-break-word">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
+                                                            <div className="text-[10px] font-bold leading-snug text-slate-700">
+                                                                <span className="text-slate-400">F:</span> <span className="wrap-break-word">{event.usuario_finalizacion.nombre} {event.usuario_finalizacion.apellidos}</span>
                                                             </div>
                                                         )}
                                                     </div>
                                                 )}
                                             </div>
 
-                                            <div className="p-2 bg-muted/30 rounded-xl shrink-0">
-                                                <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
+                                            <div className="p-2 bg-[#f8f3e8] border border-[rgba(184,150,74,0.3)] rounded-xl shrink-0">
+                                                <ChevronRight className="w-4 h-4 text-[#b8964a]" />
                                             </div>
                                         </motion.div>
                                     </Link>
@@ -550,9 +547,9 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
                             if (view === 'day') return isSameDay(eventDate, currentDate)
                             return true
                         }).length === 0 && (
-                                <div className="text-center py-12 glass rounded-3xl border border-white/20">
-                                    <CalendarIcon className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
-                                    <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                                <div className="text-center py-12 bg-white/60 rounded-3xl border-2 border-dashed border-[rgba(184,150,74,0.3)]">
+                                    <CalendarIcon className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                                    <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
                                         {t('calendar.noCultos')}
                                     </p>
                                 </div>
@@ -562,18 +559,18 @@ export default function Calendar({ events, onMonthChange, view = 'month', select
             </div>
 
             {/* Leyenda y Notas */}
-            <div className="flex flex-wrap items-center justify-center gap-6 px-4 py-6 glass rounded-4xl border border-white/10">
+            <div className="flex flex-wrap items-center justify-center gap-6 px-4 py-6 bg-white/70 rounded-4xl border border-[rgba(184,150,74,0.25)]">
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/20" />
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('calendar.legend.estudio')}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{t('calendar.legend.estudio')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/20" />
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('calendar.legend.alabanza')}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{t('calendar.legend.alabanza')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-purple-500 shadow-lg shadow-purple-500/20" />
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('calendar.legend.ensenanza')}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{t('calendar.legend.ensenanza')}</span>
                 </div>
                 <div className="flex items-center gap-2 bg-amber-500/10 px-3 py-1 rounded-full">
                     <AlertCircle size={14} className="text-amber-500" />

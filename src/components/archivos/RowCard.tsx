@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronRight } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 import type { SheetSourceId } from '@/lib/csv-sheets'
 import type { DateColResult } from '@/app/dashboard/archivos/archivos-helpers'
 import { pickPrimaryColumn } from '@/app/dashboard/archivos/archivos-helpers'
@@ -32,6 +33,7 @@ export function RowCard({
   onClick,
   searchQuery = '',
 }: RowCardProps) {
+  const { t } = useI18n()
   const dateVal = getDateDisplay(row, dateInfo)
   const dateCols = DATE_COL_KEYS(dateInfo)
   const primaryCol = pickPrimaryColumn(columns, dateCols, tabId)
@@ -46,8 +48,8 @@ export function RowCard({
       type="button"
       onClick={onClick}
       data-testid="archivo-card"
-      aria-label={primaryVal ? `Ver detalle: ${String(primaryVal).slice(0, 50)}` : 'Ver detalle del registro'}
-      className="w-full text-left p-4 hover:bg-muted/30 active:bg-muted/50 transition-colors group touch-manipulation"
+      aria-label={primaryVal ? `${t('archivos.viewRecordDetail')}: ${String(primaryVal).slice(0, 50)}` : t('archivos.viewRecordDetail')}
+      className="w-full text-left p-4 hover:bg-[#f8f3e8]/70 active:bg-[#f8f3e8] transition-colors group touch-manipulation"
     >
       <div className="flex items-start gap-3">
         {/* Date badge */}
@@ -69,13 +71,13 @@ export function RowCard({
         {/* Main content */}
         <div className="flex-1 min-w-0">
           {primaryCol && (
-            <div className="font-semibold text-sm text-foreground line-clamp-2 mb-1">
+            <div className="font-semibold text-sm text-slate-800 line-clamp-2 mb-1">
               <HighlightText text={row[primaryCol] || '—'} query={searchQuery} />
             </div>
           )}
           {restCols.slice(0, 3).map((col) => (
             row[col] ? (
-              <div key={col} className="text-xs text-muted-foreground truncate">
+              <div key={col} className="text-xs text-slate-500 truncate">
                 <span className="font-medium">{prettyKey(col)}:</span>{' '}
                 <HighlightText text={row[col]} query={searchQuery} />
               </div>
@@ -83,7 +85,7 @@ export function RowCard({
           ))}
         </div>
 
-        <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-muted-foreground shrink-0 mt-0.5 transition-colors" />
+        <ChevronRight className="w-4 h-4 text-[#b8964a]/60 group-hover:text-[#b8964a] shrink-0 mt-0.5 transition-colors" />
       </div>
     </button>
   )

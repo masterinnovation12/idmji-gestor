@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/Card'
-import { Clock, Plus, Music } from 'lucide-react'
+import { Clock, Plus, Music, CalendarDays } from 'lucide-react'
+import { format } from 'date-fns'
+import { es, ca } from 'date-fns/locale'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { AssignmentPill } from './AssignmentPill'
 import { computeCultoDetails } from '@/lib/utils/computeCultoDetails'
@@ -16,7 +18,8 @@ import { CultoInstruccionesIconBtn, type InstrModalState } from './CultoInstrucc
 import { FormattedNote } from '@/components/ui/FormattedNote'
 
 export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ culto: Culto; esHoy: boolean; currentUserId: string }>) {
-    const { t } = useI18n()
+    const { t, language } = useI18n()
+    const dateLocale = language === 'ca-ES' ? ca : es
     const { observacionesData, lecturaData, temaIntroduccionAlabanza, observacionesIntroduccion, observacionesFinalizacion, observacionesEnsenanza, observacionesTestimonios } = computeCultoDetails(culto)
     const [instrModal, setInstrModal] = useState<InstrModalState>(null)
     const [addLecturaModalOpen, setAddLecturaModalOpen] = useState(false)
@@ -60,21 +63,25 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                         {/* Header compacto */}
                         <div className="mb-4 md:mb-6">
                             <div className="flex items-center justify-between gap-3 mb-2">
-                                <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.18em] shadow-lg ${esHoy ? 'bg-red-500 text-white shadow-red-500/30' : 'bg-blue-600 text-white shadow-blue-500/30'}`}>
+                                <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.18em] shadow-lg border ${esHoy ? 'bg-red-500 border-red-400 text-white shadow-red-500/30' : 'bg-gradient-to-br from-[#1f2e85] to-[#283593] border-[#b8964a] text-white shadow-[rgba(31,46,133,0.3)]'}`}>
                                     {esHoy ? t('dashboard.today') : getTranslatedCultoName(cultoNombre)}
                                 </div>
                                 <div className="flex items-center gap-1.5 text-slate-500 font-bold">
-                                    <Clock className="w-4 h-4 text-blue-500" />
-                                    <span className="text-sm">{(culto.hora_inicio || '').slice(0, 5)}</span>
+                                    <Clock className="w-4 h-4 text-[#b8964a]" />
+                                    <span className="text-sm text-[#1f2e85] font-black">{(culto.hora_inicio || '').slice(0, 5)}</span>
                                 </div>
                             </div>
-                            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight">
+                            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 uppercase italic tracking-tighter leading-tight">
                                 {getTranslatedCultoName(cultoNombre)}
                             </h2>
                             <div className="flex items-center gap-2 text-slate-500 font-bold mt-1.5">
-                                <Clock className="w-5 h-5 text-blue-500" />
-                                <span className="text-xs uppercase tracking-widest">{t('common.date')}</span>
-                                <span className="text-xs">{new Date(culto.fecha).toLocaleDateString()}</span>
+                                <CalendarDays className="w-4 h-4 text-[#b8964a]" />
+                                <span className="text-xs" suppressHydrationWarning>
+                                    {(() => {
+                                        const f = format(new Date(culto.fecha + 'T12:00:00'), 'PPPP', { locale: dateLocale })
+                                        return f.charAt(0).toUpperCase() + f.slice(1)
+                                    })()}
+                                </span>
                             </div>
                         </div>
 
@@ -84,20 +91,20 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                             const hasObs = !!obsContent && obsContent.length > 0
                             return (
                                 <div className={`mb-4 md:mb-6 rounded-xl border ${hasObs
-                                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30'
-                                    : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50'} ${hasObs ? 'p-3' : 'p-2'}`}>
+                                    ? 'bg-amber-50 border-amber-200'
+                                    : 'bg-[#f8f3e8]/50 border-[rgba(184,150,74,0.25)]'} ${hasObs ? 'p-3' : 'p-2'}`}>
                                     <p className={`text-[10px] font-black uppercase tracking-widest ${hasObs ? 'mb-1' : 'mb-0'} ${hasObs
-                                        ? 'text-amber-600 dark:text-amber-400'
-                                        : 'text-slate-400 dark:text-slate-500'}`}>
+                                        ? 'text-amber-600'
+                                        : 'text-[#b68f2f]/80'}`}>
                                         📝 {t('dashboard.observaciones')}
                                     </p>
                                     {hasObs ? (
                                         <FormattedNote
                                             text={obsContent}
-                                            className="text-sm font-medium leading-snug text-amber-800 dark:text-amber-200"
+                                            className="text-sm font-medium leading-snug text-amber-800"
                                         />
                                     ) : (
-                                        <div className="inline-flex items-center rounded-full border border-slate-300 dark:border-slate-600 bg-white/80 dark:bg-slate-700/50 px-2.5 py-1 text-[11px] font-semibold text-slate-500 dark:text-slate-300 italic">
+                                        <div className="inline-flex items-center rounded-full border border-[rgba(184,150,74,0.3)] bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-slate-500 italic">
                                             {t('dashboard.noObservaciones')}
                                         </div>
                                     )}
@@ -147,7 +154,7 @@ export function StandardCultoCard({ culto, esHoy, currentUserId }: Readonly<{ cu
                                 {showAddHimnos && (
                                     <Link
                                         href={`/dashboard/cultos/${culto.id}#himnos`}
-                                        className="w-full py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-indigo-400/30 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-indigo-500/5 hover:bg-indigo-500/10 hover:border-indigo-400/50 active:scale-[0.98] transition-all touch-manipulation text-indigo-600 dark:text-indigo-400"
+                                        className="w-full py-2.5 sm:py-3 px-4 sm:px-5 border border-dashed border-indigo-400/30 rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-indigo-500/5 hover:bg-indigo-500/10 hover:border-indigo-400/50 active:scale-[0.98] transition-all touch-manipulation text-indigo-600"
                                     >
                                         <Music className="w-4 h-4 shrink-0" strokeWidth={2.5} />
                                         <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">

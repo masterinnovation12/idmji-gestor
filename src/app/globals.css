@@ -3,6 +3,13 @@
 /* Force Tailwind v4 to use class-based dark mode */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Breakpoint extra "xs" (480px): usado por el mini-calendario del dashboard,
+   AssignmentPill, DashboardHeader… Sin esta definición, todo `xs:*` es inerte
+   en Tailwind v4 (no existe por defecto). */
+@theme {
+  --breakpoint-xs: 30rem;
+}
+
 /* Forzar ocultar scrollbar en html y body desde el inicio */
 html {
   overflow-y: auto;

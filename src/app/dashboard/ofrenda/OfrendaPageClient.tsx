@@ -576,7 +576,7 @@ export function DeletePlanButton({
                         type="button"
                         onClick={() => setConfirmOpen(false)}
                         disabled={isLoading}
-                        className="w-full px-3 py-3 min-h-[48px] text-sm font-semibold border-2 border-border bg-background rounded-xl hover:bg-muted touch-manipulation order-2"
+                        className="w-full px-3 py-3 min-h-[48px] text-sm font-semibold border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-[#1f2e85] rounded-xl hover:bg-[#f8f3e8] touch-manipulation order-2"
                     >
                         {t('ofrenda.deletePlan.no')}
                     </button>

@@ -40,6 +40,16 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
     const { language, t } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
 
+    const getTranslatedCultoName = (name: string | undefined) => {
+        if (!name) return ''
+        const lower = name.toLowerCase()
+        if (lower.includes('estudio')) return t('culto.estudio')
+        if (lower.includes('alabanza')) return t('culto.alabanza')
+        if (lower.includes('enseñanza') || lower.includes('ensenanza')) return t('culto.ensenanza')
+        if (lower.includes('testimonios')) return t('culto.testimonios')
+        return name
+    }
+
     // State
     const [selectedDate, setSelectedDate] = useState<Date>(new Date(initialDate + 'T12:00:00'))
     const [currentCulto, setCurrentCulto] = useState<CultoWithLecturas | null>(initialCulto)
@@ -172,7 +182,7 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
     if (!mounted) {
         return (
             <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                <Loader2 className="w-6 h-6 animate-spin text-[#b8964a]" />
             </div>
         )
     }
@@ -198,13 +208,13 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                         <ChevronLeft className="w-5 h-5" />
                     </motion.button>
 
-                    {/* Current Date Display */}
+                    {/* Current Date Display — dentro del marco liquid (crema): colores fijos, sin dark:* */}
                     <div className="flex-1 text-center min-w-0 px-2">
                         <div className="flex flex-col items-center gap-1">
-                            <span className="text-sm sm:text-base font-black text-slate-800 dark:text-white capitalize truncate">
+                            <span className="text-sm sm:text-base font-black text-slate-800 capitalize truncate">
                                 {format(selectedDate, 'EEEE', { locale })}
                             </span>
-                            <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400">
+                            <span className="text-xs sm:text-sm font-bold text-slate-500">
                                 {format(selectedDate, 'd MMMM', { locale })}
                             </span>
                         </div>
@@ -237,21 +247,19 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
 
                 {/* Selector de Horario si hay múltiples cultos en el mismo día */}
                 {dayCultos.length > 1 && (
-                    <div className="flex justify-center gap-2 p-1.5 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <div className="flex justify-center gap-1 p-1 rounded-2xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] shadow-sm">
                         {dayCultos.map((culto) => {
                             const isSelected = currentCulto?.id === culto.id
-                            const horaLabel = culto.hora_inicio.slice(0, 5) === '10:00' 
-                                ? 'Enseñanza (10:00)' 
-                                : 'Enseñanza (17:00)'
+                            const horaLabel = `${getTranslatedCultoName(culto.tipo_culto?.nombre)} (${culto.hora_inicio.slice(0, 5)})`
                             return (
                                 <button
                                     key={culto.id}
                                     onClick={() => setCurrentCulto(culto)}
                                     className={cn(
-                                        "flex-1 px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
+                                        "flex-1 min-h-[44px] px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all touch-manipulation",
                                         isSelected
-                                            ? "bg-blue-600 text-white shadow-xl"
-                                            : "text-gray-600 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700"
+                                            ? "bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]"
+                                            : "text-slate-500 hover:text-[#1f2e85] hover:bg-white/70"
                                     )}
                                 >
                                     {horaLabel}
@@ -276,19 +284,19 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                                 onClick={() => goToDay(day)}
                                 disabled={!isInRange || isLoading}
                                 className={cn(
-                                    "flex flex-col items-center gap-1 py-2 sm:py-3 rounded-xl sm:rounded-2xl transition-all",
+                                    "flex flex-col items-center gap-1 py-2 sm:py-3 rounded-xl sm:rounded-2xl transition-all border",
                                     isSelected
-                                        ? "bg-slate-900 dark:bg-white shadow-lg"
+                                        ? "bg-gradient-to-br from-[#1f2e85] to-[#283593] border-[#b8964a] shadow-[0_4px_14px_rgba(31,46,133,0.35)]"
                                         : isInRange && !isLoading
-                                            ? "bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-700"
-                                            : "bg-slate-50 dark:bg-slate-900 opacity-40 cursor-not-allowed"
+                                            ? "border-transparent bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-700"
+                                            : "border-transparent bg-slate-50 dark:bg-slate-900 opacity-40 cursor-not-allowed"
                                 )}
                             >
                                 {/* Day Name */}
                                 <span className={cn(
                                     "text-[9px] sm:text-[10px] font-black uppercase tracking-tight",
                                     isSelected
-                                        ? "text-white dark:text-slate-900"
+                                        ? "text-[#e8d9a8]"
                                         : "text-slate-400 dark:text-slate-500"
                                 )}>
                                     {format(day, 'EEE', { locale }).slice(0, 2)}
@@ -298,9 +306,9 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                                 <span className={cn(
                                     "text-sm sm:text-base font-black",
                                     isSelected
-                                        ? "text-white dark:text-slate-900"
+                                        ? "text-white"
                                         : isToday
-                                            ? "text-blue-600 dark:text-blue-400"
+                                            ? "text-[#b68f2f]"
                                             : "text-slate-700 dark:text-slate-200"
                                 )}>
                                     {format(day, 'd')}

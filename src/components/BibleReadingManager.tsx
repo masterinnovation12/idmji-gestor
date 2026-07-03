@@ -147,7 +147,7 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
             const { data, error } = await getLecturasByCulto(cultoId)
             if (error) {
                 console.error('Error cargando lecturas:', error)
-                toast.error('Error al cargar lecturas')
+                toast.error(t('bibleManager.loadError'))
             } else if (data) {
                 console.log('Lecturas cargadas:', data)
                 setLecturas(data)
@@ -160,7 +160,7 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
         } finally {
             setIsLoading(false)
         }
-    }, [cultoId, mode])
+    }, [cultoId, mode, t])
 
     useEffect(() => {
         loadLecturas()
@@ -178,7 +178,7 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
             setLecturas(updated)
             onDraftChangeRef.current?.(updated, true)
             setDeleteConfirmId(null)
-            toast.success('Lectura eliminada del borrador')
+            toast.success(t('bibleManager.draftDeleted'))
             return
         }
         setIsLoading(true)
@@ -190,16 +190,16 @@ export default function BibleReadingManager({ cultoId, userId, config, mode = 'c
             const result = await deleteLectura(id, cultoId)
 
             if (result.success) {
-                toast.success('Lectura eliminada')
+                toast.success(t('addLectura.deleted'))
                 // No llamamos a loadLecturas() inmediatamente para evitar el flash
                 // El revalidatePath del servidor se encargará de la sincronización real
             } else {
                 // Revertir si falla
                 setLecturas(currentLecturas)
-                toast.error(result.error || 'Error al eliminar')
+                toast.error(result.error || t('addLectura.deleteError'))
             }
         } catch {
-            toast.error('Error de conexión')
+            toast.error(t('addLectura.connectionError'))
         } finally {
             setIsLoading(false)
             setDeleteConfirmId(null)

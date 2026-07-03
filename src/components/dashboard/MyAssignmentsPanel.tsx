@@ -179,11 +179,11 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                 <CardContent className="flex-1 flex flex-col">
                     {/* Week Navigation */}
                     <div className="flex items-center justify-between mb-3 bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] border border-[rgba(184,150,74,0.25)] rounded-full p-1">
-                        <button type="button" onClick={() => changeWeek('prev')} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-all shadow-sm touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label={t('calendar.prev')}>
+                        <button type="button" onClick={() => changeWeek('prev')} className="p-2 hover:bg-white rounded-full transition-all shadow-sm touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center text-[#1f2e85]" aria-label={t('calendar.prev')}>
                             <ChevronLeft className="w-4 h-4" />
                         </button>
-                        <span className="text-xs font-bold uppercase tracking-wider px-1 text-center">{weekLabel}</span>
-                        <button type="button" onClick={() => changeWeek('next')} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-all shadow-sm touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label={t('calendar.nextBtn')}>
+                        <span className="text-xs font-bold uppercase tracking-wider px-1 text-center text-[#1f2e85]" suppressHydrationWarning>{weekLabel}</span>
+                        <button type="button" onClick={() => changeWeek('next')} className="p-2 hover:bg-white rounded-full transition-all shadow-sm touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center text-[#1f2e85]" aria-label={t('calendar.nextBtn')}>
                             <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
@@ -207,7 +207,7 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                     {/* Assignments List */}
                     <div className="flex-1 space-y-3 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
                         {isLoadingAssignments ? (
-                            <div className="flex justify-center py-8"><div className="animate-spin w-6 h-6 border-2 border-blue-500 rounded-full border-t-transparent" /></div>
+                            <div className="flex justify-center py-8"><div className="animate-spin w-6 h-6 border-2 border-[#1f2e85] rounded-full border-t-transparent" /></div>
                         ) : assignments.length > 0 ? (
                             assignments.map((asg) => {
                                 const roles: string[] = []
@@ -225,7 +225,7 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div className="flex flex-col">
                                                         <span className="text-xs font-bold text-slate-400 uppercase">{format(new Date(asg.fecha), 'EEE d', { locale })} {asg.hora_inicio && ` - ${asg.hora_inicio.slice(0, 5)}`}</span>
-                                                        <span className="font-black text-slate-800 dark:text-slate-100">{getTranslatedCultoName(asg.tipo_culto?.nombre)}</span>
+                                                        <span className="font-black text-slate-800">{getTranslatedCultoName(asg.tipo_culto?.nombre)}</span>
                                                     </div>
                                                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: asg.tipo_culto?.color }} />
                                                 </div>
@@ -237,7 +237,7 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                                                     ))}
                                                 </div>
                                                 {asg.id_usuario_intro === user.id && asg.tipo_culto?.nombre?.toLowerCase().includes('alabanza') && (asg.meta_data as { tema_introduccion_alabanza?: string })?.tema_introduccion_alabanza && (
-                                                    <p className="mt-2 text-[10px] font-bold text-blue-600 dark:text-blue-400 leading-tight line-clamp-2">
+                                                    <p className="mt-2 text-[10px] font-bold text-blue-600 leading-tight line-clamp-2">
                                                         {formatTemaAlabanzaLabel(
                                                             (asg.meta_data as { tema_introduccion_alabanza: string }).tema_introduccion_alabanza,
                                                             t
@@ -251,7 +251,7 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                                                 <button
                                                     type="button"
                                                     onClick={() => setInstruccionesModal({ cultoTypeId: asg.tipo_culto_id, cultoTypeNombre: asg.tipo_culto?.nombre ?? '', rol: firstRol })}
-                                                    className="min-h-[44px] py-2.5 text-[10px] font-bold uppercase tracking-wider text-primary hover:underline text-left px-3 touch-manipulation rounded-lg hover:bg-primary/5 active:bg-primary/10 transition-colors"
+                                                    className="min-h-[44px] py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#1f2e85] hover:underline text-left px-3 touch-manipulation rounded-lg hover:bg-[#f8f3e8] active:bg-[#f3ead4] transition-colors"
                                                 >
                                                     {t('culto.instrucciones.ver')}
                                                 </button>
@@ -260,7 +260,7 @@ export function MyAssignmentsPanel({ user, initialAssignments }: MyAssignmentsPa
                                                 type="button"
                                                 onClick={() => void openCalendarForOne(asg)}
                                                 disabled={calendarSharing}
-                                                className="min-h-[44px] py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-primary text-left px-3 touch-manipulation rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5 disabled:opacity-60"
+                                                className="min-h-[44px] py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 hover:text-[#1f2e85] text-left px-3 touch-manipulation rounded-lg hover:bg-[#f8f3e8] transition-colors flex items-center gap-1.5 disabled:opacity-60"
                                             >
                                                 {calendarSharing ? (
                                                     <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" />

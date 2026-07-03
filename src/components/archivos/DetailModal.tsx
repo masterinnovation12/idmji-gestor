@@ -23,13 +23,13 @@ export function DetailModal({ row, onClose, activeTabConfig }: DetailModalProps)
       keyPrefix="archivos-detail"
     >
       {row && (
-        <div className="space-y-0 divide-y divide-border/40">
+        <div className="space-y-0 divide-y divide-[rgba(184,150,74,0.2)]">
           {Object.entries(row).map(([key, value]) => (
             <div key={key} className="py-3 first:pt-0 last:pb-0">
               <div className={`text-[11px] font-bold uppercase tracking-wider ${activeTabConfig.color} mb-0.5`}>
                 {prettyKey(key)}
               </div>
-              <div className="text-sm text-foreground wrap-break-word leading-relaxed">
+              <div className="text-sm text-slate-800 wrap-break-word leading-relaxed">
                 {value || '—'}
               </div>
             </div>

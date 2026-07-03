@@ -174,11 +174,11 @@ function AssignmentSection({
             animate={{ opacity: 1, y: 0 }}
             className={`h-full w-full min-w-0 ${isEditing ? 'relative z-100' : 'relative z-10'}`}
         >
-            <Card className={`h-full w-full min-w-0 border-t-4 border-primary/40 glass group hover:border-primary transition-all duration-500 shadow-xl relative overflow-visible ${isEditing ? 'ring-4 ring-primary/30' : ''}`}>
-                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors pointer-events-none" />
+            <Card className={`ofrenda-liquid-card h-full w-full min-w-0 group transition-all duration-500 relative overflow-visible ${isEditing ? 'ring-4 ring-[rgba(184,150,74,0.3)]' : ''}`}>
+                <div className="absolute top-0 right-0 w-24 h-24 bg-[#b8964a]/10 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-[#b8964a]/15 transition-colors pointer-events-none" />
 
-                <CardHeader className="flex flex-row items-center justify-between pb-2 md:pb-4 shrink-0 gap-2 border-b border-primary/5">
-                    <CardTitle icon={icon} className="text-primary font-black uppercase tracking-widest text-[10px] md:text-[11px] leading-tight">
+                <CardHeader className="flex flex-row items-center justify-between pb-2 md:pb-4 shrink-0 gap-2 border-b border-[rgba(184,150,74,0.25)]">
+                    <CardTitle icon={icon} className="text-[#1f2e85] font-black uppercase tracking-widest text-[10px] md:text-[11px] leading-tight">
                         {label}
                     </CardTitle>
                     <div className="flex items-center gap-2 shrink-0">
@@ -187,21 +187,14 @@ function AssignmentSection({
                                 type="button"
                                 data-testid="ver-instrucciones-btn"
                                 onClick={onVerInstrucciones}
-                                className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2.5 sm:px-2 sm:py-1 text-[9px] font-black uppercase tracking-widest text-primary/80 hover:text-primary rounded-xl hover:bg-primary/10 transition-all flex items-center justify-center gap-1.5 touch-manipulation"
+                                className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2.5 sm:px-2 sm:py-1 text-[9px] font-black uppercase tracking-widest text-[#1f2e85]/80 hover:text-[#1f2e85] rounded-xl hover:bg-[#f8f3e8] transition-all flex items-center justify-center gap-1.5 touch-manipulation"
                                 aria-label={t('culto.instrucciones.ver')}
                             >
                                 <Info className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 shrink-0" />
                                 <span className="hidden sm:inline">{t('culto.instrucciones.ver')}</span>
                             </button>
                         )}
-                        {optimisticId && !isEditing && !readOnly && (
-                            <button
-                                onClick={() => setIsEditing(true)}
-                                className="px-3 py-1 text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary/15 hover:text-primary dark:hover:bg-primary dark:hover:text-white transition-all shadow-sm"
-                            >
-                                {t('culto.detail.modify' as TranslationKey)}
-                            </button>
-                        )}
+                        {/* El botón Modificar vive junto al asignado (alcanzable con el pulgar); la cabecera queda para "Ver instrucciones" */}
                     </div>
                 </CardHeader>
 
@@ -209,9 +202,9 @@ function AssignmentSection({
                     <div className="flex-1 flex flex-col overflow-visible relative">
                         {/* Overlay de Carga */}
                         {isSaving && (
-                            <div className="absolute inset-0 z-[120] bg-white/60 dark:bg-black/60 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center gap-3 animate-in fade-in duration-200">
-                                <div className="w-8 h-8 md:w-10 md:h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin shadow-lg" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">
+                            <div className="absolute inset-0 z-[120] bg-white/60 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center gap-3 animate-in fade-in duration-200">
+                                <div className="w-8 h-8 md:w-10 md:h-10 border-4 border-[#1f2e85]/30 border-t-[#1f2e85] rounded-full animate-spin shadow-lg" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-[#1f2e85] animate-pulse">
                                     {t('culto.detail.saving' as TranslationKey)}
                                 </span>
                             </div>
@@ -239,16 +232,16 @@ function AssignmentSection({
                             <motion.div
                                 initial={{ opacity: 0, y: 8 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="mt-2 p-4 border border-primary/20 rounded-2xl bg-primary/5 flex items-center gap-3"
+                                className="mt-2 p-4 border border-[rgba(184,150,74,0.35)] rounded-2xl bg-[#f8f3e8] flex items-center gap-3"
                             >
-                                <div className="w-11 h-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+                                <div className="w-11 h-11 rounded-xl bg-[#1f2e85]/10 text-[#1f2e85] flex items-center justify-center">
                                     <PlayCircle className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/80">{t('cultos.ensenanza')}</p>
-                                    <p className="text-sm font-bold text-foreground">{videoLabel || 'Video de la Hna. María Luisa Piraquive'}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#1f2e85]/80">{t('cultos.ensenanza')}</p>
+                                    <p className="text-sm font-bold text-slate-800" suppressHydrationWarning>{videoLabel || t('culto.detail.videoDefaultLabel' as TranslationKey)}</p>
                                     {videoTitle?.trim() && (
-                                        <p className="text-xs text-muted-foreground mt-1">{videoTitle}</p>
+                                        <p className="text-xs text-slate-500 mt-1">{videoTitle}</p>
                                     )}
                                 </div>
                             </motion.div>
@@ -266,7 +259,7 @@ function AssignmentSection({
                                     {/* Avatar Vertical Grande */}
                                     <div className="relative group/avatar mb-4">
                                         <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full transform group-hover/avatar:scale-125 transition-transform duration-500" />
-                                        <div className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 rounded-[2rem] border-4 border-white dark:border-slate-800 shadow-2xl relative overflow-hidden bg-slate-100 dark:bg-slate-800 transition-transform hover:scale-105 duration-300">
+                                        <div className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 rounded-[2rem] border-4 border-white shadow-2xl relative overflow-hidden bg-slate-100 transition-transform hover:scale-105 duration-300 ring-1 ring-[rgba(184,150,74,0.4)]">
                                             {displayUser.avatar_url ? (
                                                 <NextImage
                                                     src={displayUser.avatar_url}
@@ -287,12 +280,36 @@ function AssignmentSection({
                                     </div>
 
                                     {/* Info Usuario */}
-                                    <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white leading-none tracking-tight mb-1">
+                                    <h3 className="text-xl md:text-2xl font-black text-slate-900 leading-none tracking-tight mb-1">
                                         {displayUser.nombre}
                                     </h3>
-                                    <p className="text-sm font-bold text-primary uppercase tracking-wider mb-6">
+                                    <p className="text-sm font-bold text-[#1f2e85] uppercase tracking-wider mb-4">
                                         {displayUser.apellidos?.split(' ')[0]}
                                     </p>
+
+                                    {/* Acciones junto al asignado (alcanzables con el pulgar en móvil) */}
+                                    {!readOnly && (
+                                        <div className="flex items-center justify-center gap-2 mb-6 w-full">
+                                            <button
+                                                type="button"
+                                                data-testid="assignment-modify-btn"
+                                                onClick={() => setIsEditing(true)}
+                                                disabled={isSaving}
+                                                className="min-h-[44px] px-5 py-2 text-[10px] font-black uppercase tracking-widest border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-[#1f2e85] rounded-xl hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-all shadow-sm touch-manipulation disabled:opacity-50"
+                                            >
+                                                {t('culto.detail.modify' as TranslationKey)}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                data-testid="assignment-remove-btn"
+                                                onClick={() => void handleUserSelectorSelect(null)}
+                                                disabled={isSaving}
+                                                className="min-h-[44px] px-5 py-2 text-[10px] font-black uppercase tracking-widest border border-red-200 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 hover:border-red-300 transition-all shadow-sm touch-manipulation disabled:opacity-50"
+                                            >
+                                                {t('culto.detail.remove' as TranslationKey)}
+                                            </button>
+                                        </div>
+                                    )}
 
                                     {/* Bloque de Lectura Bíblica Integrado (Con diseño mejorado) */}
                                     {label === t('culto.introduccion') && (
@@ -301,7 +318,7 @@ function AssignmentSection({
                                             animate={{ opacity: 1, y: 0 }}
                                             className="w-full text-left"
                                         >
-                                            <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/20 to-transparent mb-4" />
+                                            <div className="h-px w-full bg-gradient-to-r from-transparent via-[#b8964a]/40 to-transparent mb-4" />
                                             <BibleReadingManager
                                                 cultoId={cultoId}
                                                 userId={displayUser.id || ''}
@@ -320,7 +337,7 @@ function AssignmentSection({
                                     key="unassigned"
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    className="p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col items-center justify-center gap-3 opacity-50 mt-4"
+                                    className="p-8 border-2 border-dashed border-[rgba(184,150,74,0.3)] rounded-3xl flex flex-col items-center justify-center gap-3 opacity-60 mt-4"
                                 >
                                     <User className="w-8 h-8 text-slate-400" />
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
@@ -670,7 +687,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
     const config = culto.tipo_culto || {}
 
     return (
-        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto space-y-3 md:space-y-6 lg:space-y-8 pb-16 md:pb-20 px-3 md:px-8 no-scrollbar w-full">
+        <div className="ofrenda-liquid-scope max-w-7xl 2xl:max-w-[1600px] mx-auto space-y-3 md:space-y-6 lg:space-y-8 pb-16 md:pb-20 px-3 md:px-8 no-scrollbar w-full">
             {/* Header / Breadcrumb */}
             <div className="space-y-4 md:space-y-6 w-full">
                 <BackButton fallbackUrl="/dashboard/cultos" />
@@ -678,9 +695,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="glass rounded-[2rem] md:rounded-[3rem] p-3 md:p-4 lg:p-6 xl:p-8 shadow-2xl relative overflow-hidden border border-white/20 dark:border-white/5 w-full"
+                    className="rounded-[2rem] md:rounded-[3rem] p-3 md:p-4 lg:p-6 xl:p-8 shadow-2xl relative overflow-hidden border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] w-full"
                 >
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl animate-pulse" />
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-[#b8964a]/25 rounded-full -mr-32 -mt-32 blur-3xl" />
+                    <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
 
                     <div className="relative z-10">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-8">
@@ -690,31 +708,31 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         className="w-6 h-6 md:w-8 md:h-8 rounded-xl md:rounded-2xl shadow-2xl animate-bounce shrink-0"
                                         style={{ backgroundColor: config.color || '#4A90E2', boxShadow: `0 10px 25px -5px ${config.color || '#4A90E2'}40` }}
                                     />
-                                    <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase italic leading-none truncate py-1">
+                                    <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase italic leading-none truncate py-1 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
                                         {tipoCulto}
                                     </h1>
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-3 md:gap-10">
-                                    <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 backdrop-blur-md px-4 md:px-8 py-2.5 md:py-4 rounded-2xl md:rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30">
-                                        <Calendar className="w-6 h-6 text-primary" />
+                                    <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 md:px-8 py-2.5 md:py-4 rounded-2xl md:rounded-3xl border border-[rgba(227,204,146,0.35)] shadow-sm transition-all hover:bg-white/15">
+                                        <Calendar className="w-6 h-6 text-[#e3cc92]" />
                                         <div className="flex flex-col">
-                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none mb-1">
+                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-[#e3cc92]/80 leading-none mb-1">
                                                 {t('culto.detail.meta.cultoDate' as TranslationKey)}
                                             </p>
-                                            <span className="text-base md:text-xl font-black uppercase tracking-tight">
+                                            <span className="text-base md:text-xl font-black uppercase tracking-tight text-white">
                                                 {format(new Date(culto.fecha), 'PPPP', { locale })}
                                             </span>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 backdrop-blur-md px-4 md:px-8 py-2.5 md:py-4 rounded-2xl md:rounded-3xl border border-white/20 shadow-sm transition-all hover:bg-white/60 dark:hover:bg-black/30 font-black">
-                                        <Clock className="w-6 h-6 text-primary" />
+                                    <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 md:px-8 py-2.5 md:py-4 rounded-2xl md:rounded-3xl border border-[rgba(227,204,146,0.35)] shadow-sm transition-all hover:bg-white/15 font-black">
+                                        <Clock className="w-6 h-6 text-[#e3cc92]" />
                                         <div className="flex flex-col">
-                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none mb-1">
+                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-[#e3cc92]/80 leading-none mb-1">
                                                 {t('culto.detail.meta.startTime' as TranslationKey)}
                                             </p>
-                                            <span className="text-base md:text-xl uppercase tracking-widest">
+                                            <span className="text-base md:text-xl uppercase tracking-widest text-white">
                                                 {draftHoraInicio.slice(0, 5)}
                                             </span>
                                         </div>
@@ -722,7 +740,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
 
                                     {/* Toggle Festivo Premium */}
                                     <div className="flex flex-col gap-2 w-full sm:w-auto">
-                                        <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-4 leading-none">
+                                        <p className="text-[8px] font-black uppercase tracking-[0.2em] text-[#e3cc92]/80 ml-4 leading-none">
                                             {t('culto.detail.meta.workdayStatus' as TranslationKey)}
                                         </p>
                                         <button
@@ -730,7 +748,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                             disabled={isUpdating || readOnlyAssignments}
                                             className={`flex items-center gap-3 px-4 md:px-8 py-2.5 md:py-4 rounded-2xl md:rounded-3xl border transition-all font-black group relative overflow-hidden h-full ${draftFestivo
                                                 ? 'bg-amber-500 text-white border-amber-600 shadow-xl shadow-amber-500/30 scale-105'
-                                                : 'bg-white/40 dark:bg-black/20 backdrop-blur-md text-muted-foreground border-white/20 hover:border-amber-500/50 hover:bg-amber-50/10'
+                                                : 'bg-white/10 backdrop-blur-md text-white/80 border-[rgba(227,204,146,0.35)] hover:border-amber-400/70 hover:bg-white/15'
                                                 }`}
                                         >
                                             <div className={`absolute inset-0 bg-linear-to-r from-white/20 to-transparent -translate-x-full transition-transform duration-1000 ${draftFestivo ? 'group-hover:translate-x-full' : ''}`} />
@@ -738,7 +756,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                 <AlertCircle className={`w-6 h-6 ${draftFestivo ? 'text-white' : 'text-amber-500'}`} />
                                             </div>
                                             <div className="flex flex-col items-start">
-                                                <span className={`text-[10px] uppercase tracking-widest leading-none mb-1 ${draftFestivo ? 'text-white/80' : 'text-muted-foreground'}`}>
+                                                <span className={`text-[10px] uppercase tracking-widest leading-none mb-1 ${draftFestivo ? 'text-white/80' : 'text-white/60'}`}>
                                                     {draftFestivo
                                                         ? t('culto.detail.meta.specialDay' as TranslationKey)
                                                         : t('culto.detail.meta.workday' as TranslationKey)}
@@ -762,8 +780,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 </div>
                             </div>
 
-                            <div className="hidden lg:block p-8 bg-primary/5 rounded-[2.5rem] border border-primary/10 shadow-inner">
-                                <Sparkles className="w-12 h-12 text-primary opacity-20" />
+                            <div className="hidden lg:block p-8 bg-white/5 rounded-[2.5rem] border border-[rgba(227,204,146,0.25)] shadow-inner">
+                                <Sparkles className="w-12 h-12 text-[#e3cc92] opacity-40" />
                             </div>
                         </div>
                     </div>
@@ -776,7 +794,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 animate={{ opacity: 1, y: 0 }}
                 className="w-full"
             >
-                <div className="glass rounded-3xl md:rounded-4xl p-3 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                <div className="ofrenda-liquid-card rounded-3xl md:rounded-4xl p-3 md:p-6 relative overflow-hidden">
                     <div className="flex flex-col gap-4 relative z-10">
                         {/* Header */}
                         <div className="flex items-center gap-4">
@@ -784,10 +802,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 <span className="text-2xl">📝</span>
                             </div>
                             <div>
-                                <h3 className="text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
-                                    Observaciones
+                                <h3 className="text-lg font-black uppercase tracking-tight leading-none mb-1 text-[#1f2e85]" suppressHydrationWarning>
+                                    {t('culto.obs.title' as TranslationKey)}
                                 </h3>
-                                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">
                                     {t('culto.obs.formatHint')}
                                 </p>
                             </div>
@@ -795,9 +813,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
 
                         {/* Observación general (para todos) */}
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-[11px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                            <label className="text-[11px] font-black uppercase tracking-widest text-amber-600">
                                 {t('culto.obs.generalLabel')}
-                                <span className="ml-2 font-bold normal-case tracking-normal text-muted-foreground/70">
+                                <span className="ml-2 font-bold normal-case tracking-normal text-slate-500">
                                     {t('culto.obs.generalDesc')}
                                 </span>
                             </label>
@@ -809,7 +827,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     setDraftObservaciones(e.target.value)
                                     setIsDirty(true)
                                 }}
-                                className={`w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-amber-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                className={`w-full px-4 py-3 bg-white/70 text-slate-800 border border-[rgba(184,150,74,0.32)] rounded-2xl text-sm outline-none focus:ring-2 focus:ring-amber-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
                                 rows={2}
                             />
                         </div>
@@ -817,9 +835,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                         {/* Nota para introducción (solo si el culto tiene este rol) */}
                         {config.tiene_lectura_introduccion && (
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-blue-600">
                                     {t('culto.obs.introLabel')}
-                                    <span className="ml-2 font-bold normal-case tracking-normal text-muted-foreground/70">
+                                    <span className="ml-2 font-bold normal-case tracking-normal text-slate-500">
                                         {t('culto.obs.introDesc')}
                                     </span>
                                 </label>
@@ -831,7 +849,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         setDraftObsIntro(e.target.value)
                                         setIsDirty(true)
                                     }}
-                                    className={`w-full px-4 py-3 bg-blue-50/60 dark:bg-blue-900/15 border border-blue-200 dark:border-blue-800/40 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                    className={`w-full px-4 py-3 bg-blue-50/60 text-slate-800 border border-blue-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
                                     rows={3}
                                 />
                             </div>
@@ -840,9 +858,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                         {/* Nota para finalización (solo si el culto tiene este rol) */}
                         {config.tiene_lectura_finalizacion && (
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-orange-600">
                                     {t('culto.obs.finalLabel')}
-                                    <span className="ml-2 font-bold normal-case tracking-normal text-muted-foreground/70">
+                                    <span className="ml-2 font-bold normal-case tracking-normal text-slate-500">
                                         {t('culto.obs.finalDesc')}
                                     </span>
                                 </label>
@@ -854,7 +872,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         setDraftObsFinal(e.target.value)
                                         setIsDirty(true)
                                     }}
-                                    className={`w-full px-4 py-3 bg-orange-50/60 dark:bg-orange-900/15 border border-orange-200 dark:border-orange-800/40 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-orange-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                    className={`w-full px-4 py-3 bg-orange-50/60 text-slate-800 border border-orange-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-orange-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
                                     rows={3}
                                 />
                             </div>
@@ -863,9 +881,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                         {/* Nota para enseñanza (solo si el culto tiene este rol — Enseñanza) */}
                         {config.tiene_ensenanza && (
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-purple-600">
                                     {t('culto.obs.ensenanzaLabel')}
-                                    <span className="ml-2 font-bold normal-case tracking-normal text-muted-foreground/70">
+                                    <span className="ml-2 font-bold normal-case tracking-normal text-slate-500">
                                         {t('culto.obs.ensenanzaDesc')}
                                     </span>
                                 </label>
@@ -877,7 +895,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         setDraftObsEnsenanza(e.target.value)
                                         setIsDirty(true)
                                     }}
-                                    className={`w-full px-4 py-3 bg-purple-50/60 dark:bg-purple-900/15 border border-purple-200 dark:border-purple-800/40 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-purple-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                    className={`w-full px-4 py-3 bg-purple-50/60 text-slate-800 border border-purple-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-purple-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
                                     rows={3}
                                 />
                             </div>
@@ -886,9 +904,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                         {/* Nota para testimonios (solo si el culto tiene este rol — Enseñanza) */}
                         {config.tiene_testimonios && (
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-emerald-600">
                                     {t('culto.obs.testimoniosLabel')}
-                                    <span className="ml-2 font-bold normal-case tracking-normal text-muted-foreground/70">
+                                    <span className="ml-2 font-bold normal-case tracking-normal text-slate-500">
                                         {t('culto.obs.testimoniosDesc')}
                                     </span>
                                 </label>
@@ -900,7 +918,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         setDraftObsTestimonios(e.target.value)
                                         setIsDirty(true)
                                     }}
-                                    className={`w-full px-4 py-3 bg-emerald-50/60 dark:bg-emerald-900/15 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                    className={`w-full px-4 py-3 bg-emerald-50/60 text-slate-800 border border-emerald-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
                                     rows={3}
                                 />
                             </div>
@@ -916,17 +934,17 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full"
                 >
-                    <div className="glass rounded-3xl md:rounded-4xl p-3 sm:p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                    <div className="ofrenda-liquid-card rounded-3xl md:rounded-4xl p-3 sm:p-4 md:p-6 relative overflow-hidden">
                         <div className="flex flex-col gap-3 sm:gap-6 relative z-10">
                             <div className="flex items-center gap-3 sm:gap-4">
                                 <div className="p-2.5 sm:p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 shrink-0">
                                     <BookMarked className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <h3 className="text-base sm:text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
+                                    <h3 className="text-base sm:text-lg font-black uppercase tracking-tight leading-none mb-1 text-[#1f2e85]">
                                         {t('alabanza.tema.title')}
                                     </h3>
-                                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">
                                         {t('alabanza.tema.desc')}
                                     </p>
                                 </div>
@@ -944,9 +962,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     }}
                                     disabled={readOnlyAssignments}
                                     className={`flex w-full min-h-[44px] items-center justify-between gap-3 px-4 py-3 rounded-2xl border-2 transition-all touch-manipulation text-left ${draftTema
-                                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300'
-                                        : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
-                                        } ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-blue-300 dark:hover:border-blue-700'}`}
+                                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-700'
+                                        : 'bg-white/70 border-[rgba(184,150,74,0.32)] text-slate-600'
+                                        } ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-blue-300'}`}
                                 >
                                     <span className="text-sm font-bold truncate">
                                         {draftTema
@@ -966,7 +984,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                             initial={{ opacity: 0, y: -8 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             data-testid="tema-introduccion-dropdown"
-                                            className="fixed z-[9999] mt-2 min-w-[200px] max-w-[min(400px,calc(100vw-2rem))] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden"
+                                            className="fixed z-[9999] mt-2 min-w-[200px] max-w-[min(400px,calc(100vw-2rem))] rounded-2xl border-[1.5px] border-[rgba(184,150,74,0.45)] bg-white shadow-2xl overflow-hidden"
                                             style={{
                                                 top: dropdownStyle.top,
                                                 left: dropdownStyle.left,
@@ -989,8 +1007,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                                 })
                                                             }}
                                                             className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl text-left text-sm font-bold transition-colors touch-manipulation ${isSelected
-                                                                ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
-                                                                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                                                                ? 'bg-blue-500/15 text-blue-700'
+                                                                : 'hover:bg-[#f8f3e8] text-slate-700'
                                                                 }`}
                                                         >
                                                             {isSelected && <CheckCircle className="w-4 h-4 shrink-0 text-blue-500" />}
@@ -1000,14 +1018,14 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                 })}
                                                 {draftTema && (
                                                     <>
-                                                        <div className="h-px bg-slate-200 dark:bg-slate-700 my-1.5" />
+                                                        <div className="h-px bg-[rgba(184,150,74,0.3)] my-1.5" />
                                                         <button
                                                             type="button"
                                                             onClick={() => {
                                                                 setTemaDropdownOpen(false)
                                                                 setTemaConfirmState({ tipo: 'delete', temaKey: null })
                                                             }}
-                                                            className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-left text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors touch-manipulation"
+                                                            className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-left text-sm font-bold text-red-600 hover:bg-red-50 transition-colors touch-manipulation"
                                                         >
                                                             <Trash2 className="w-4 h-4 shrink-0" />
                                                             {t('alabanza.tema.sinAsignar')}
@@ -1027,14 +1045,14 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
 
                     {/* Dialog confirmar / eliminar / modificar */}
                     <Dialog open={!!temaConfirmState} onOpenChange={(open) => !open && setTemaConfirmState(null)}>
-                        <DialogContent className="max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-3xl">
+                        <DialogContent className="max-w-md bg-white border-[rgba(184,150,74,0.45)] rounded-3xl">
                             <DialogHeader>
-                                <DialogTitle className="text-slate-900 dark:text-white font-black uppercase tracking-tight">
+                                <DialogTitle className="text-[#1f2e85] font-black uppercase tracking-tight">
                                     {temaConfirmState?.tipo === 'delete' && t('alabanza.tema.confirmDelete')}
                                     {temaConfirmState?.tipo === 'assign' && t('alabanza.tema.confirmAssign')}
                                     {temaConfirmState?.tipo === 'modify' && t('alabanza.tema.confirmModify')}
                                 </DialogTitle>
-                                <DialogDescription className="text-slate-600 dark:text-slate-400">
+                                <DialogDescription className="text-slate-600">
                                     {temaConfirmState?.tipo === 'assign' && temaConfirmState?.temaKey && formatTemaAlabanzaLabel(temaConfirmState.temaKey, t)}
                                     {temaConfirmState?.tipo === 'modify' && temaConfirmState?.temaKey && formatTemaAlabanzaLabel(temaConfirmState.temaKey, t)}
                                 </DialogDescription>
@@ -1043,7 +1061,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 <button
                                     type="button"
                                     onClick={() => setTemaConfirmState(null)}
-                                    className="px-4 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                    className="px-4 py-2.5 rounded-xl font-bold text-[#1f2e85] border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors"
                                 >
                                     {t('common.cancel')}
                                 </button>
@@ -1057,9 +1075,9 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         toast.success(t('culto.detail.toast.pendingReminder' as TranslationKey))
                                         setTemaConfirmState(null)
                                     }}
-                                    className={`px-4 py-2.5 rounded-xl font-bold transition-colors ${temaConfirmState?.tipo === 'delete'
+                                    className={`px-4 py-2.5 rounded-xl font-bold transition-all ${temaConfirmState?.tipo === 'delete'
                                         ? 'bg-red-600 hover:bg-red-700 text-white'
-                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                        : 'border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white shadow-[0_4px_16px_rgba(31,46,133,0.32)] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)]'
                                         }`}
                                 >
                                     {t('himnario.confirm')}
@@ -1076,12 +1094,12 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full"
                 >
-                    <div className="glass rounded-3xl md:rounded-4xl p-3 sm:p-4 md:p-6 border border-white/20 shadow-xl">
+                    <div className="ofrenda-liquid-card rounded-3xl md:rounded-4xl p-3 sm:p-4 md:p-6">
                         <div className="flex flex-col gap-3">
-                            <p className="text-[10px] uppercase tracking-widest font-black text-muted-foreground">
-                                Modalidad de enseñanza
+                            <p className="text-[10px] uppercase tracking-widest font-black text-[#1f2e85]" suppressHydrationWarning>
+                                {t('culto.detail.ensenanzaModo.title' as TranslationKey)}
                             </p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-2xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-1.5">
                                 <button
                                     type="button"
                                     disabled={readOnlyAssignments}
@@ -1089,11 +1107,11 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         setDraftEnsenanzaModo('hermano')
                                         setIsDirty(true)
                                     }}
-                                    className={`px-4 py-3 rounded-2xl border text-sm font-black transition-colors ${draftEnsenanzaModo === 'hermano'
-                                        ? 'bg-primary/15 text-primary border-primary/40'
-                                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}
+                                    className={`px-4 py-3 rounded-xl text-sm font-black transition-all touch-manipulation ${draftEnsenanzaModo === 'hermano'
+                                        ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]'
+                                        : 'text-slate-500 hover:text-[#1f2e85]'}`}
                                 >
-                                    Hermano
+                                    {t('culto.detail.ensenanzaModo.hermano' as TranslationKey)}
                                 </button>
                                 <button
                                     type="button"
@@ -1103,11 +1121,11 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         setDraftAssignments((prev) => ({ ...prev, ensenanza: null }))
                                         setIsDirty(true)
                                     }}
-                                    className={`px-4 py-3 rounded-2xl border text-sm font-black transition-colors ${draftEnsenanzaModo === 'video_hna_maria_luisa'
-                                        ? 'bg-primary/15 text-primary border-primary/40'
-                                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}
+                                    className={`px-4 py-3 rounded-xl text-sm font-black transition-all touch-manipulation ${draftEnsenanzaModo === 'video_hna_maria_luisa'
+                                        ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]'
+                                        : 'text-slate-500 hover:text-[#1f2e85]'}`}
                                 >
-                                    Video Hna. Maria Luisa
+                                    {t('culto.detail.ensenanzaModo.video' as TranslationKey)}
                                 </button>
                             </div>
                             {draftEnsenanzaModo === 'video_hna_maria_luisa' && (
@@ -1121,7 +1139,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                             setDraftEnsenanzaVideoTitulo(e.target.value)
                                             setIsDirty(true)
                                         }}
-                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm"
+                                        className="w-full px-3 py-2 rounded-xl border border-[rgba(184,150,74,0.32)] bg-white/70 text-slate-800 text-sm outline-none focus:border-[#b8964a] focus:ring-2 focus:ring-[rgba(184,150,74,0.25)]"
                                     />
                                 </div>
                             )}
@@ -1137,7 +1155,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full"
                 >
-                    <div className="glass rounded-3xl md:rounded-4xl p-3 sm:p-4 md:p-6 border border-white/20 shadow-xl relative overflow-hidden">
+                    <div className="ofrenda-liquid-card rounded-3xl md:rounded-4xl p-3 sm:p-4 md:p-6 relative overflow-hidden">
                         <div className="flex flex-col gap-3 sm:gap-6 relative z-10">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                 <div className="flex items-center gap-3 sm:gap-4">
@@ -1145,13 +1163,13 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-500" />
                                     </div>
                                     <div className="min-w-0">
-                                        <h3 className="text-base sm:text-lg font-black uppercase tracking-tight leading-none mb-1 text-foreground/90">
+                                        <h3 className="text-base sm:text-lg font-black uppercase tracking-tight leading-none mb-1 text-[#1f2e85]">
                                             {t('culto.config.title' as TranslationKey)}
                                         </h3>
-                                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                                        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">
                                             {t('culto.config.desc' as TranslationKey)}
                                         </p>
-                                        <p className="text-[10px] text-muted-foreground/80 mt-1.5 sm:mt-2 opacity-90">
+                                        <p className="text-[10px] text-slate-500 mt-1.5 sm:mt-2 opacity-90">
                                             {t('culto.protocol.helpDashboard')}
                                         </p>
                                     </div>
@@ -1181,8 +1199,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         setIsDirty(true)
                                     }}
                                     className={`flex items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-3 min-h-[44px] sm:min-h-0 rounded-2xl border-2 transition-all cursor-pointer touch-manipulation shrink-0 w-full sm:w-auto sm:min-w-[180px] ${draftConfiguracionDefinida
-                                        ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-700 dark:text-indigo-300'
-                                        : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
+                                        ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-700'
+                                        : 'bg-white/70 border-[rgba(184,150,74,0.32)] text-slate-500'
                                         }`}
                                 >
                                     <span className="text-xs sm:text-sm font-black uppercase tracking-tight">
@@ -1192,7 +1210,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     </span>
                                     <div className={`w-11 h-6 sm:w-12 sm:h-7 rounded-full p-0.5 sm:p-1 transition-colors border shrink-0 ${draftConfiguracionDefinida
                                         ? 'bg-indigo-500 border-indigo-600'
-                                        : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
+                                        : 'bg-slate-300 border-slate-400'
                                         }`}>
                                         <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${draftConfiguracionDefinida ? 'translate-x-5 sm:translate-x-5' : 'translate-x-0'}`} />
                                     </div>
@@ -1251,17 +1269,17 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     </div>
 
                                     {/* Inicio anticipado (hijo) */}
-                                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 space-y-3 sm:space-y-4">
+                                    <div className="pt-2 border-t border-[rgba(184,150,74,0.25)] space-y-3 sm:space-y-4">
                                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 shrink-0">
                                                     <Clock className="w-4 h-4 text-amber-500" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#1f2e85]">
                                                         {t('culto.detail.inicioAnticipado.title' as TranslationKey)}
                                                     </p>
-                                                    <p className="text-[10px] text-muted-foreground/80">
+                                                    <p className="text-[10px] text-slate-500">
                                                         {t('culto.detail.inicioAnticipado.subtitle' as TranslationKey)}
                                                     </p>
                                                 </div>
@@ -1283,8 +1301,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                     )
                                                 }}
                                                 className={`flex items-center justify-between gap-3 px-4 py-3 min-h-[44px] rounded-2xl border-2 transition-all cursor-pointer touch-manipulation w-full sm:w-auto sm:min-w-[180px] ${(draftInicioAnticipado?.activo ?? false)
-                                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300'
-                                                    : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-500'
+                                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-700'
+                                                    : 'bg-white/70 border-[rgba(184,150,74,0.32)] text-slate-500'
                                                     }`}
                                             >
                                                 <span className="text-xs font-black uppercase tracking-tight">
@@ -1294,7 +1312,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                 </span>
                                                 <div className={`w-11 h-6 rounded-full p-0.5 border shrink-0 ${(draftInicioAnticipado?.activo ?? false)
                                                     ? 'bg-amber-500 border-amber-600'
-                                                    : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-600'
+                                                    : 'bg-slate-300 border-slate-400'
                                                     }`}>
                                                     <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${(draftInicioAnticipado?.activo ?? false) ? 'translate-x-5' : 'translate-x-0'}`} />
                                                 </div>
@@ -1309,7 +1327,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 >
                                     {/* Minute Buttons */}
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                                             {t('culto.detail.inicioAnticipado.minutosAntes' as TranslationKey)}
                                         </label>
                                         <div className="flex flex-wrap gap-2">
@@ -1331,16 +1349,16 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                             )
                                                         )
                                                     }}
-                                                    className={`min-h-[44px] px-5 sm:px-6 py-3 rounded-2xl font-black text-sm transition-all touch-manipulation ${(draftInicioAnticipado?.minutos ?? 5) === mins
-                                                        ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
-                                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                    className={`min-h-[44px] px-5 sm:px-6 py-3 rounded-2xl font-black text-sm transition-all touch-manipulation border ${(draftInicioAnticipado?.minutos ?? 5) === mins
+                                                        ? 'bg-amber-500 text-white border-amber-600 shadow-lg shadow-amber-500/30'
+                                                        : 'bg-white/70 border-[rgba(184,150,74,0.32)] text-slate-700 hover:bg-[#f8f3e8]'
                                                         }`}
                                                 >
                                                     {mins} min
                                                 </button>
                                             ))}
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs text-muted-foreground font-bold">
+                                                <span className="text-xs text-slate-500 font-bold">
                                                     {t('culto.detail.inicioAnticipado.otro' as TranslationKey)}
                                                 </span>
                                                 <input
@@ -1370,7 +1388,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                             )
                                                         }
                                                     }}
-                                                    className="w-20 px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center font-black text-sm outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    className="w-20 px-3 py-2 bg-white/70 text-slate-800 border border-[rgba(184,150,74,0.32)] rounded-xl text-center font-black text-sm outline-none focus:ring-2 focus:ring-amber-500/50"
                                                 />
                                             </div>
                                         </div>
@@ -1381,10 +1399,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         <div className="flex items-center gap-3">
                                             <Clock className="w-5 h-5 text-amber-600" />
                                             <div>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 opacity-70">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 opacity-70">
                                                     {t('culto.detail.inicioAnticipado.horaReal' as TranslationKey)}
                                                 </p>
-                                                <p className="text-xl font-black text-amber-700 dark:text-amber-300">
+                                                <p className="text-xl font-black text-amber-700">
                                                     {(() => {
                                                         const [hours, minutes] = draftHoraInicio.split(':').map(Number)
                                                         const minsBefore = draftInicioAnticipado?.minutos ?? 5
@@ -1396,8 +1414,10 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                                         }
                                                         return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`
                                                     })()}
-                                                    <span className="text-sm font-bold text-amber-600/60 ml-2">
-                                                        ({draftInicioAnticipado?.minutos ?? 5} min antes de {draftHoraInicio.slice(0, 5)})
+                                                    <span className="text-sm font-bold text-amber-600/60 ml-2" suppressHydrationWarning>
+                                                        {(t('culto.detail.inicioAnticipado.antesDe' as TranslationKey))
+                                                            .replace('{mins}', String(draftInicioAnticipado?.minutos ?? 5))
+                                                            .replace('{hora}', draftHoraInicio.slice(0, 5))}
                                                     </span>
                                                 </p>
                                             </div>
@@ -1459,7 +1479,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 onVerInstrucciones={() => setInstruccionesModalRol('ensenanza')}
                                 readOnly={readOnlyAssignments}
                                 isVideoMode={draftEnsenanzaModo === 'video_hna_maria_luisa'}
-                                videoLabel="Video de la Hna. María Luisa Piraquive"
+                                videoLabel={t('culto.detail.videoDefaultLabel' as TranslationKey)}
                                 videoTitle={draftEnsenanzaVideoTitulo}
                             />
                         </div>
@@ -1519,20 +1539,20 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[2.5rem] shadow-2xl border border-white/20 dark:border-white/10 overflow-hidden relative"
+                                className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl border-2 border-[rgba(184,150,74,0.45)] overflow-hidden relative"
                             >
                                 <div className="absolute top-0 left-0 w-full h-32 bg-amber-500/10" />
                                 <div className="p-8 relative z-10 text-center">
-                                    <div className="w-20 h-20 bg-amber-100 dark:bg-amber-500/20 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-xl shadow-amber-500/20">
-                                        <AlertTriangle className="w-10 h-10 text-amber-600 dark:text-amber-500" />
+                                    <div className="w-20 h-20 bg-amber-100 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-xl shadow-amber-500/20">
+                                        <AlertTriangle className="w-10 h-10 text-amber-600" />
                                     </div>
 
-                                    <h3 className="text-2xl font-black uppercase tracking-tight mb-3">
-                                        Usuario No Disponible
+                                    <h3 className="text-2xl font-black uppercase tracking-tight mb-3 text-[#1f2e85]" suppressHydrationWarning>
+                                        {t('culto.conflict.title' as TranslationKey)}
                                     </h3>
 
-                                    <p className="text-muted-foreground font-medium leading-relaxed mb-8">
-                                        Este hermano ha indicado que no está disponible para esta fecha o tipo de asignación. ¿Deseas asignarlo de todos modos?
+                                    <p className="text-slate-500 font-medium leading-relaxed mb-8" suppressHydrationWarning>
+                                        {t('culto.conflict.desc' as TranslationKey)}
                                     </p>
 
                                     <div className="flex flex-col gap-3">
@@ -1540,16 +1560,16 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                             onClick={handleConfirmAssignment}
                                             className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm transition-all shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98]"
                                         >
-                                            Asignar de todos modos
+                                            {t('culto.conflict.assignAnyway' as TranslationKey)}
                                         </button>
                                         <button
                                             onClick={() => {
                                                 setIsConflictDialogOpen(false)
                                                 setPendingAssignment(null)
                                             }}
-                                            className="w-full py-4 bg-muted hover:bg-muted/80 text-foreground/70 hover:text-foreground rounded-2xl font-black uppercase tracking-widest text-sm transition-all"
+                                            className="w-full py-4 border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white hover:bg-[#f8f3e8] hover:border-[#b8964a] text-[#1f2e85] rounded-2xl font-black uppercase tracking-widest text-sm transition-all"
                                         >
-                                            Cancelar
+                                            {t('common.cancel')}
                                         </button>
                                     </div>
                                 </div>
@@ -1570,15 +1590,15 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                             transition={{ delay: 0.3 }}
                             className="lg:col-span-12 w-full"
                         >
-                            <Card className="glass rounded-[2.5rem] border border-white/20 shadow-2xl w-full">
-                                <CardHeader className="p-4 md:p-6 lg:p-8 border-b border-white/10 bg-accent/5">
+                            <Card className="ofrenda-liquid-card rounded-[2.5rem] w-full">
+                                <CardHeader className="ofrenda-liquid-headbar rounded-2xl px-4 py-4 md:px-6 md:py-5 mb-4 overflow-hidden relative">
                                     <div className="flex items-center justify-between">
-                                        <CardTitle icon={<Music className="w-6 h-6 text-primary" />} className="text-xl md:text-2xl font-black uppercase tracking-tighter">
+                                        <CardTitle icon={<Music className="w-6 h-6 text-[#e3cc92]" />} className="text-xl md:text-2xl font-black uppercase tracking-tighter text-white">
                                             {t('dashboard.hymns')}
                                         </CardTitle>
-                                        <div className="hidden sm:block bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10">
-                                            <p className="text-[10px] text-primary font-black uppercase tracking-widest leading-none">
-                                                Máximo {LIMITES.MAX_HIMNOS_POR_CULTO} por categoría
+                                        <div className="hidden sm:block bg-white/10 px-4 py-2 rounded-2xl border border-[rgba(227,204,146,0.4)]">
+                                            <p className="text-[10px] text-[#e3cc92] font-black uppercase tracking-widest leading-none" suppressHydrationWarning>
+                                                {(t('culto.detail.maxPerCategory' as TranslationKey)).replace('{n}', String(LIMITES.MAX_HIMNOS_POR_CULTO))}
                                             </p>
                                         </div>
                                     </div>
@@ -1621,12 +1641,12 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
             />
 
             <Dialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
-                <DialogContent className="max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-3xl">
+                <DialogContent className="max-w-md bg-white border-[rgba(184,150,74,0.45)] rounded-3xl">
                     <DialogHeader>
-                        <DialogTitle className="text-slate-900 dark:text-white font-black uppercase tracking-tight">
+                        <DialogTitle className="text-[#1f2e85] font-black uppercase tracking-tight">
                             {t('culto.detail.leaveTitle' as TranslationKey)}
                         </DialogTitle>
-                        <DialogDescription className="text-slate-600 dark:text-slate-400">
+                        <DialogDescription className="text-slate-600">
                             {t('culto.detail.leaveDesc' as TranslationKey)}
                         </DialogDescription>
                     </DialogHeader>
@@ -1637,7 +1657,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 setLeaveConfirmOpen(false)
                                 setPendingNavigationHref(null)
                             }}
-                            className="px-4 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            className="px-4 py-2.5 rounded-xl font-bold text-[#1f2e85] border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors"
                         >
                             {t('profile.leave.stay' as TranslationKey)}
                         </button>
