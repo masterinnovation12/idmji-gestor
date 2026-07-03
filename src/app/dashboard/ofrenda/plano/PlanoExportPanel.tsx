@@ -167,7 +167,7 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
 
     if (!plan) {
         return (
-            <div className="rounded-2xl border-2 border-dashed border-[rgba(184,150,74,0.3)] p-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-2xl border-2 border-dashed border-[rgba(184,150,74,0.3)] p-8 text-center text-sm text-slate-500">
                 {t('ofrenda.planoGenerate.noPlan')}
             </div>
         )

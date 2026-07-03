@@ -84,7 +84,7 @@ export function PlanoGenerateWeekPicker({
                 aria-expanded={open}
             >
                 <span className="min-w-0 text-left">
-                    <span className="block text-xs font-black uppercase tracking-wide text-muted-foreground">
+                    <span className="block text-xs font-black uppercase tracking-wide text-slate-500">
                         {interpolate(t('ofrenda.planoGenerate.weekPicker.weekChip'), {
                             n: String(selected.weekIndex),
                             total: String(selected.totalWeeks),
@@ -103,7 +103,7 @@ export function PlanoGenerateWeekPicker({
                     >
                         {fillLabel(selected.fill.weekStatus, 'week')}
                     </span>
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" aria-hidden />
+                    <ChevronDown className="w-4 h-4 text-slate-400" aria-hidden />
                 </span>
             </button>
 
@@ -165,7 +165,7 @@ export function PlanoGenerateWeekPicker({
                                                 className="flex items-center justify-between gap-2 text-[11px]"
                                                 data-testid={`plano-generate-week-culto-${w.semanaIso}-${c.diaTipo}`}
                                             >
-                                                <span className="inline-flex items-center gap-1.5 min-w-0 text-muted-foreground font-semibold">
+                                                <span className="inline-flex items-center gap-1.5 min-w-0 text-slate-500 font-semibold">
                                                     <Icon className="w-3 h-3 shrink-0" aria-hidden />
                                                     <span className="truncate">{cultoLabel(c.diaTipo, turnLabels)}</span>
                                                 </span>

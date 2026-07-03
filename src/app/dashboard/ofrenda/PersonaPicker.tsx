@@ -76,7 +76,7 @@ function MemberList({
                             <span className="block truncate">{m.nombre}</span>
                             {outOfTurn && (
                                 <span
-                                    className="mt-0.5 block text-[10px] font-semibold text-amber-700 dark:text-amber-300"
+                                    className="mt-0.5 block text-[10px] font-semibold text-amber-700"
                                     data-testid={`ofrenda-picker-out-of-turn-${m.id}`}
                                 >
                                     {t('ofrenda.picker.outOfTurn')}

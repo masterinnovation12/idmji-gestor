@@ -676,12 +676,12 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             />
 
             {peopleScope === 'g2' ? (
-                <p className="text-[11px] text-muted-foreground font-medium leading-relaxed px-0.5">
+                <p className="text-[11px] text-slate-500 font-medium leading-relaxed px-0.5">
                     {t('ofrenda.export.people.g2Hint')}
                 </p>
             ) : (
                 <div className="space-y-2" data-testid="ofrenda-export-extra-roles">
-                    <p className="text-xs font-semibold text-muted-foreground">
+                    <p className="text-xs font-semibold text-slate-500">
                         {t('ofrenda.export.extraRoles.label')}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
@@ -713,7 +713,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                             )
                         })}
                     </div>
-                    <p className="text-[11px] text-muted-foreground font-medium leading-relaxed px-0.5">
+                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed px-0.5">
                         {t('ofrenda.export.extraRoles.hint')}
                     </p>
                 </div>
@@ -787,7 +787,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                     className="w-full flex items-center justify-between px-4 py-3 bg-[#f8f3e8]/60 hover:bg-[#f8f3e8] transition-colors text-left"
                     aria-expanded={previewOpen}
                 >
-                    <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
                         <Info className="w-3.5 h-3.5" />
                         {t('ofrenda.export.preview')}
                     </div>
@@ -795,7 +795,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                         animate={{ rotate: previewOpen ? 180 : 0 }}
                         transition={{ duration: 0.18 }}
                     >
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
                     </motion.div>
                 </button>
 
@@ -810,7 +810,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                         >
                             <div className="p-3 bg-white/50 space-y-2">
                                 {previewLoading && (
-                                    <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+                                    <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500">
                                         <Loader2 className="w-4 h-4 animate-spin" />
                                         {t('ofrenda.export.previewLoading')}
                                     </div>
@@ -822,11 +822,11 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                                     />
                                 )}
                                 {!previewLoading && !previewUrl && (
-                                    <p className="text-center py-8 text-sm text-muted-foreground">
+                                    <p className="text-center py-8 text-sm text-slate-500">
                                         {t('ofrenda.toast.exportError')}
                                     </p>
                                 )}
-                                <p className="text-center text-[10px] text-muted-foreground font-medium px-1">
+                                <p className="text-center text-[10px] text-slate-500 font-medium px-1">
                                     {t('ofrenda.export.previewNote')}
                                 </p>
                             </div>
@@ -882,24 +882,24 @@ const CARD_COLORS: Record<CardColor, {
     blue: {
         bg:         'hover:bg-[#f8f3e8]/40',
         border:     'border-blue-500/15',
-        badgeBg:    'bg-blue-500/10 dark:bg-blue-500/20',
-        badgeText:  'text-blue-700 dark:text-blue-300',
+        badgeBg:    'bg-blue-500/10',
+        badgeText:  'text-blue-700',
         btnBg:      'bg-gradient-to-br from-[#1f2e85] to-[#283593] border-2 border-[#b8964a] hover:shadow-[0_5px_18px_rgba(31,46,133,0.42)] focus:ring-[#b8964a]/30',
         progressBg: 'bg-blue-500',
     },
     red: {
         bg:         'hover:bg-[#f8f3e8]/40',
         border:     'border-red-500/15',
-        badgeBg:    'bg-red-500/10 dark:bg-red-500/20',
-        badgeText:  'text-red-700 dark:text-red-300',
+        badgeBg:    'bg-red-500/10',
+        badgeText:  'text-red-700',
         btnBg:      'bg-gradient-to-br from-[#1f2e85] to-[#283593] border-2 border-[#b8964a] hover:shadow-[0_5px_18px_rgba(31,46,133,0.42)] focus:ring-[#b8964a]/30',
         progressBg: 'bg-red-500',
     },
     green: {
         bg:         'hover:bg-[#f8f3e8]/40',
         border:     'border-emerald-500/15',
-        badgeBg:    'bg-emerald-500/10 dark:bg-emerald-500/20',
-        badgeText:  'text-emerald-700 dark:text-emerald-300',
+        badgeBg:    'bg-emerald-500/10',
+        badgeText:  'text-emerald-700',
         btnBg:      'bg-gradient-to-br from-[#1f2e85] to-[#283593] border-2 border-[#b8964a] hover:shadow-[0_5px_18px_rgba(31,46,133,0.42)] focus:ring-[#b8964a]/30',
         progressBg: 'bg-emerald-500',
     },
@@ -965,12 +965,12 @@ function ExportOptionRow({
                 </div>
                 <div className="flex-1 min-w-0 space-y-0.5">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-bold text-sm text-foreground">{title}</h4>
+                        <h4 className="font-bold text-sm text-slate-800">{title}</h4>
                         <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wide ${bc.badgeBg} ${bc.badgeText}`}>
                             {badge}
                         </span>
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed truncate-3-lines">{description}</p>
+                    <p className="text-xs text-slate-500 leading-relaxed truncate-3-lines">{description}</p>
                     
                     {/* Barra de progreso incrustada */}
                     <AnimatePresence>
@@ -988,7 +988,7 @@ function ExportOptionRow({
                                         transition={{ duration: 0.35, ease: 'easeOut' }}
                                     />
                                 </div>
-                                <p className="text-[9px] text-muted-foreground font-medium">
+                                <p className="text-[9px] text-slate-500 font-medium">
                                     {stepLabels[step]}
                                 </p>
                             </motion.div>

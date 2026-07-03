@@ -115,7 +115,7 @@ export function PlanoPersonaCombobox({
     }
 
     const rowClass =
-        'w-full flex items-center gap-3 px-4 py-3.5 text-left text-sm transition-all touch-manipulation min-h-[48px] rounded-xl hover:bg-muted/80'
+        'w-full flex items-center gap-3 px-4 py-3.5 text-left text-sm transition-all touch-manipulation min-h-[48px] rounded-xl hover:bg-[#f8f3e8]'
 
     const list = (
         <div className="flex flex-col gap-1 px-2 pb-3 max-h-[min(50vh,360px)] overflow-y-auto">
@@ -124,14 +124,14 @@ export function PlanoPersonaCombobox({
                 className={rowClass}
                 onClick={() => { onSelect(null, null, null); onClose() }}
             >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100">
                     <User className="w-4 h-4 opacity-70" />
                 </span>
                 <span className="flex-1 font-medium">{t('ofrenda.plano.combobox.clear')}</span>
             </button>
 
             {loading && (
-                <p className="px-4 py-2 text-xs text-muted-foreground">{t('ofrenda.plano.combobox.loading')}</p>
+                <p className="px-4 py-2 text-xs text-slate-500">{t('ofrenda.plano.combobox.loading')}</p>
             )}
             {error && (
                 <p className="px-4 py-2 text-xs text-destructive" role="alert">{error}</p>
@@ -152,7 +152,7 @@ export function PlanoPersonaCombobox({
                     </span>
                     <span className="flex-1 min-w-0 truncate">{p.nombre}</span>
                     {normalizePlanoPersonaNombre(p.nombre) === normQuery && (
-                        <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                        <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
                             <Check className="w-3 h-3" />
                             {t('ofrenda.plano.combobox.existing')}
                         </span>
@@ -175,10 +175,10 @@ export function PlanoPersonaCombobox({
             )}
 
             {!loading && trimmed.length >= 1 && results.length === 0 && !exactMatch && trimmed.length < 2 && (
-                <p className="px-4 py-2 text-xs text-muted-foreground">{t('ofrenda.plano.combobox.typeMore')}</p>
+                <p className="px-4 py-2 text-xs text-slate-500">{t('ofrenda.plano.combobox.typeMore')}</p>
             )}
             {!loading && trimmed.length >= 2 && results.length === 0 && !exactMatch && (
-                <p className="px-4 py-2 text-xs text-muted-foreground">{t('ofrenda.plano.combobox.noMatch')}</p>
+                <p className="px-4 py-2 text-xs text-slate-500">{t('ofrenda.plano.combobox.noMatch')}</p>
             )}
         </div>
     )
@@ -198,7 +198,7 @@ export function PlanoPersonaCombobox({
                 <div className="px-4 pb-2">
                     <label htmlFor={inputId} className="sr-only">{t('ofrenda.plano.combobox.search')}</label>
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                             id={inputId}
                             type="search"
@@ -208,7 +208,7 @@ export function PlanoPersonaCombobox({
                             autoCapitalize="words"
                             enterKeyHint="done"
                             autoFocus
-                            className="w-full pl-10 pr-4 py-3 min-h-[48px] rounded-xl border border-border bg-background text-base"
+                            className="w-full pl-10 pr-4 py-3 min-h-[48px] rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-base text-slate-800"
                             placeholder={t('ofrenda.plano.combobox.search')}
                         />
                     </div>
@@ -234,7 +234,7 @@ export function PlanoPersonaCombobox({
             <div className="px-4 pb-2">
                 <label htmlFor={inputId} className="sr-only">{t('ofrenda.plano.combobox.search')}</label>
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                         id={inputId}
                         type="search"
@@ -243,7 +243,7 @@ export function PlanoPersonaCombobox({
                         autoComplete="off"
                         autoCapitalize="words"
                         autoFocus
-                        className="w-full pl-10 pr-4 py-2.5 min-h-[44px] rounded-xl border border-border bg-background"
+                        className="w-full pl-10 pr-4 py-2.5 min-h-[44px] rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-slate-800"
                         placeholder={t('ofrenda.plano.combobox.search')}
                     />
                 </div>

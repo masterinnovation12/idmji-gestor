@@ -22,7 +22,7 @@ export function PlanoGenerateActionInfo({ mode }: Readonly<Props>) {
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] shrink-0 rounded-xl border border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 touch-manipulation"
+                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] shrink-0 rounded-xl border border-blue-500/30 text-blue-600 hover:bg-blue-500/10 touch-manipulation"
                 aria-label={t(labelKey)}
                 data-testid={`ofrenda-plano-generate-info-${mode}`}
             >
@@ -38,7 +38,7 @@ export function PlanoGenerateActionInfo({ mode }: Readonly<Props>) {
                 accent="blue"
                 testIdPrefix={`ofrenda-plano-generate-info-${mode}`}
             >
-                <p className="text-sm leading-relaxed text-muted-foreground pb-2" suppressHydrationWarning>
+                <p className="text-sm leading-relaxed text-slate-500 pb-2" suppressHydrationWarning>
                     {t(bodyKey)}
                 </p>
             </OfrendaLiquidShell>

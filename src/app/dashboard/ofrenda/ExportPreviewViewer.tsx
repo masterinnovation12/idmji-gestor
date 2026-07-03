@@ -114,8 +114,8 @@ function PreviewControls({
     const HintIcon = hintMode === 'pointer' ? Hand : MoveHorizontal
 
     return (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b border-border/50 bg-muted/50 shrink-0">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b border-black/10 bg-slate-100/80 shrink-0">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 min-w-0">
                 <HintIcon className="w-3.5 h-3.5 shrink-0 text-primary/70" />
                 <span className="truncate">{scrollHint}</span>
             </div>
@@ -124,19 +124,19 @@ function PreviewControls({
                     type="button"
                     onClick={onZoomOut}
                     disabled={zoom <= ZOOM_MIN + 0.001}
-                    className="p-1.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors touch-manipulation disabled:opacity-40 disabled:pointer-events-none"
+                    className="p-1.5 rounded-lg border border-[rgba(184,150,74,0.35)] bg-white text-[#1f2e85] hover:bg-[#f8f3e8] transition-colors touch-manipulation disabled:opacity-40 disabled:pointer-events-none"
                     aria-label={zoomOutLabel}
                 >
                     <ZoomOut className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-[10px] font-bold tabular-nums w-10 text-center text-muted-foreground">
+                <span className="text-[10px] font-bold tabular-nums w-10 text-center text-slate-500">
                     {Math.round(zoom * 100)}%
                 </span>
                 <button
                     type="button"
                     onClick={onZoomIn}
                     disabled={zoom >= ZOOM_MAX - 0.001}
-                    className="p-1.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors touch-manipulation disabled:opacity-40 disabled:pointer-events-none"
+                    className="p-1.5 rounded-lg border border-[rgba(184,150,74,0.35)] bg-white text-[#1f2e85] hover:bg-[#f8f3e8] transition-colors touch-manipulation disabled:opacity-40 disabled:pointer-events-none"
                     aria-label={zoomInLabel}
                 >
                     <ZoomIn className="w-3.5 h-3.5" />
@@ -144,7 +144,7 @@ function PreviewControls({
                 <button
                     type="button"
                     onClick={onFit}
-                    className="p-1.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors touch-manipulation"
+                    className="p-1.5 rounded-lg border border-[rgba(184,150,74,0.35)] bg-white text-[#1f2e85] hover:bg-[#f8f3e8] transition-colors touch-manipulation"
                     aria-label={fitLabel}
                     title={fitLabel}
                 >
@@ -176,7 +176,7 @@ function PanDragOverlay({ label, onDismiss }: Readonly<PanDragOverlayProps>) {
         <button
             type="button"
             onClick={onDismiss}
-            className="absolute inset-0 z-20 flex items-center justify-center bg-background/90 cursor-pointer border-0 p-0"
+            className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 cursor-pointer border-0 p-0"
             aria-label={label}
         >
             <div className="flex flex-col items-center gap-2.5 px-5 py-4 rounded-2xl bg-foreground/80 text-background shadow-xl pointer-events-none">
@@ -342,7 +342,7 @@ function PreviewCanvas({
     const showOverlay = showPanOverlay && canScroll && isFullscreen
 
     return (
-        <div className="relative ofrenda-export-preview flex flex-col min-h-0 flex-1 bg-muted/20">
+        <div className="relative ofrenda-export-preview flex flex-col min-h-0 flex-1 bg-slate-100/60">
             <div
                 className="pointer-events-none absolute inset-y-0 left-0 w-8 z-10 bg-gradient-to-r from-background to-transparent"
                 aria-hidden
@@ -357,7 +357,7 @@ function PreviewCanvas({
                 onScroll={handleScroll}
                 onMouseDown={handleMouseDown}
                 className={[
-                    'ofrenda-export-preview__scroll overflow-x-auto overflow-y-auto overscroll-contain p-4 scroll-smooth flex-1 min-h-0 bg-background',
+                    'ofrenda-export-preview__scroll overflow-x-auto overflow-y-auto overscroll-contain p-4 scroll-smooth flex-1 min-h-0 bg-white',
                     maxHeightClass,
                     enableDragPan ? (isDragging ? 'cursor-grabbing select-none' : 'cursor-grab') : '',
                     isPinching ? 'touch-none' : '',
@@ -373,7 +373,7 @@ function PreviewCanvas({
                     src={imageUrl}
                     alt={alt}
                     draggable={false}
-                    className="block h-auto select-none rounded-md border border-border/40 shadow-md mx-auto ofrenda-export-preview__img pointer-events-none"
+                    className="block h-auto select-none rounded-md border border-black/10 shadow-md mx-auto ofrenda-export-preview__img pointer-events-none"
                     style={{
                         width: displayWidth,
                         minWidth: displayWidth,
@@ -568,14 +568,14 @@ export function ExportPreviewViewer({ imageUrl, alt }: Readonly<ExportPreviewVie
                 }}
             >
                 <div
-                    className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-border shrink-0 bg-background"
+                    className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-black/10 shrink-0 bg-white"
                     style={{ paddingTop: 'max(0.625rem, env(safe-area-inset-top))' }}
                 >
                     <p className="text-sm font-semibold truncate">{alt}</p>
                     <button
                         type="button"
                         onClick={closeFullscreen}
-                        className="p-2 rounded-xl border border-border bg-muted/50 hover:bg-muted transition-colors touch-manipulation shrink-0"
+                        className="p-2 rounded-xl border border-[rgba(184,150,74,0.35)] bg-white text-[#1f2e85] hover:bg-[#f8f3e8] transition-colors touch-manipulation shrink-0"
                         aria-label={labels.close}
                     >
                         <X className="w-5 h-5" />
@@ -584,7 +584,7 @@ export function ExportPreviewViewer({ imageUrl, alt }: Readonly<ExportPreviewVie
 
                 <PreviewControls {...fullscreenControls} />
 
-                <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-background">
+                <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-white">
                     <PreviewCanvas
                         {...canvasProps}
                         scrollRef={fullscreenScrollRef}
@@ -600,7 +600,7 @@ export function ExportPreviewViewer({ imageUrl, alt }: Readonly<ExportPreviewVie
     return (
         <>
             {!fullscreenOpen && (
-                <div className="rounded-xl border border-border/60 bg-background overflow-hidden shadow-sm">
+                <div className="rounded-xl border border-[rgba(184,150,74,0.3)] bg-white overflow-hidden shadow-sm">
                     <PreviewControls {...inlineControls} />
                     <PreviewCanvas
                         {...canvasProps}

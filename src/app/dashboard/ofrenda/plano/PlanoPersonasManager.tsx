@@ -64,8 +64,8 @@ const CAP_ICON: Record<PlanoCapacidad, typeof Star> = {
 }
 
 const CAP_BADGE: Record<PlanoCapacidad, string> = {
-    ofrendario: 'bg-blue-600/15 text-blue-700 dark:text-blue-300',
-    apoyo: 'border border-blue-600/40 text-blue-600 dark:text-blue-400',
+    ofrendario: 'bg-blue-600/15 text-blue-700',
+    apoyo: 'border border-blue-600/40 text-blue-600',
     ambos: 'bg-blue-600 text-white',
 }
 
@@ -391,7 +391,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
             )}
 
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                     type="search"
                     value={query}
@@ -525,7 +525,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                             <button
                                 type="button"
                                 onClick={clearFilters}
-                                className="ml-auto inline-flex items-center gap-1 px-3 py-2 min-h-[40px] rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 touch-manipulation"
+                                className="ml-auto inline-flex items-center gap-1 px-3 py-2 min-h-[40px] rounded-xl text-xs font-semibold text-slate-500 hover:text-[#1f2e85] hover:bg-[#f8f3e8] touch-manipulation"
                                 data-testid="plano-personas-filters-clear"
                             >
                                 <X className="w-3.5 h-3.5" />
@@ -634,10 +634,10 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                     unstyledBody
                 >
                     <div className="px-4 pb-4 space-y-4">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-slate-500">
                             {interpolate(t('ofrenda.plano.personas.deleteDesc'), { nombre: deleting.nombre })}
                             {deleting.asignaciones > 0 && (
-                                <span className="block mt-2 font-semibold text-blue-700 dark:text-blue-300">
+                                <span className="block mt-2 font-semibold text-blue-700">
                                     {interpolate(t('ofrenda.plano.personas.deleteAssignedWarn'), {
                                         n: String(deleting.asignaciones),
                                     })}
@@ -673,7 +673,7 @@ function FilterRow({
 }: Readonly<{ label: string; children: React.ReactNode }>) {
     return (
         <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-wide text-muted-foreground w-full sm:w-20 shrink-0">
+            <span className="text-[10px] font-black uppercase tracking-wide text-slate-500 w-full sm:w-20 shrink-0">
                 {label}
             </span>
             <div className="flex flex-wrap gap-1.5">{children}</div>
@@ -749,7 +749,7 @@ function PersonaRow({
             <div className="flex items-center gap-1 min-w-0">
                 <p
                     className={`flex-1 min-w-0 text-sm font-semibold leading-tight line-clamp-2 sm:line-clamp-1 ${
-                        p.activo ? 'text-foreground' : 'line-through text-muted-foreground'
+                        p.activo ? 'text-slate-800' : 'line-through text-slate-400'
                     }`}
                     title={p.nombre}
                 >
@@ -776,7 +776,7 @@ function PersonaRow({
 
                 <span
                     className={`hidden sm:inline text-[10px] font-semibold shrink-0 whitespace-nowrap tabular-nums ${
-                        roleTotal > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground/60'
+                        roleTotal > 0 ? 'text-blue-600' : 'text-slate-400'
                     }`}
                     data-testid={`plano-persona-assignments-${p.id}`}
                     aria-label={
@@ -809,7 +809,7 @@ function PersonaRow({
                     <button
                         type="button"
                         onClick={onToggleExpand}
-                        className="p-1 rounded-md hover:bg-muted/60 text-muted-foreground touch-manipulation min-w-[30px] min-h-[30px] flex items-center justify-center"
+                        className="p-1 rounded-md hover:bg-[#f8f3e8] text-slate-500 touch-manipulation min-w-[30px] min-h-[30px] flex items-center justify-center"
                         aria-expanded={expanded}
                         aria-label={
                             expanded
@@ -833,7 +833,7 @@ function PersonaRow({
                             className={`p-1 rounded-md touch-manipulation min-w-[30px] min-h-[30px] flex items-center justify-center transition-colors ${
                                 p.prioridad_ofrendario
                                     ? 'text-amber-500 hover:bg-amber-500/10'
-                                    : 'text-muted-foreground hover:bg-muted/60'
+                                    : 'text-slate-500 hover:bg-[#f8f3e8]'
                             }`}
                         >
                             <Star className={`w-3.5 h-3.5 ${p.prioridad_ofrendario ? 'fill-current' : ''}`} />
@@ -856,7 +856,7 @@ function PersonaRow({
                             type="button"
                             onClick={onDelete}
                             aria-label={t('common.delete')}
-                            className="p-1 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-500 touch-manipulation min-w-[30px] min-h-[30px] flex items-center justify-center"
+                            className="p-1 rounded-md hover:bg-red-500/10 text-slate-500 hover:text-red-500 touch-manipulation min-w-[30px] min-h-[30px] flex items-center justify-center"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -871,7 +871,7 @@ function PersonaRow({
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="overflow-hidden border-t border-border/30 mt-1.5 pt-1.5 space-y-2"
+                        className="overflow-hidden border-t border-black/10 mt-1.5 pt-1.5 space-y-2"
                         data-testid={`plano-persona-expanded-${p.id}`}
                     >
                         <MemberTurnAvailability
@@ -926,7 +926,7 @@ function PersonaRow({
                                     <button
                                         type="button"
                                         onClick={onPair}
-                                        className="inline-flex items-center gap-1 px-3 py-2 min-h-[36px] rounded-xl border border-blue-500/40 text-xs font-bold text-blue-700 dark:text-blue-300 touch-manipulation"
+                                        className="inline-flex items-center gap-1 px-3 py-2 min-h-[36px] rounded-xl border border-blue-500/40 bg-blue-500/5 hover:bg-blue-500/10 text-xs font-bold text-blue-700 touch-manipulation"
                                     >
                                         <Heart className="w-3.5 h-3.5" />
                                         {t('ofrenda.plano.personas.asignarPareja')}
@@ -949,12 +949,12 @@ function PersonaRow({
                         </div>
 
                         {p.parejaNombre && (
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="text-[11px] text-slate-500">
                                 {t('ofrenda.plano.personas.pareja')}: {p.parejaNombre}
                             </p>
                         )}
 
-                        <p className="text-[10px] text-muted-foreground sm:hidden tabular-nums">
+                        <p className="text-[10px] text-slate-500 sm:hidden tabular-nums">
                             {roleTotal > 0
                                 ? interpolate(t('ofrenda.plano.personas.roleCounts'), {
                                       o: String(p.asignacionesOfrendario),
@@ -1012,7 +1012,7 @@ function ParejaDialog({
             unstyledBody
         >
             <div className="px-4 pb-4 space-y-3">
-                <p className="text-sm text-muted-foreground">{persona.nombre}</p>
+                <p className="text-sm text-slate-500">{persona.nombre}</p>
                 <select
                     value={selected}
                     onChange={e => setSelected(e.target.value)}
@@ -1103,9 +1103,9 @@ function RenameDialog({
                             type="button"
                             onClick={() => setValue('')}
                             aria-label={t('common.clearSearch')}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-muted"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-[#f8f3e8]"
                         >
-                            <X className="w-4 h-4 text-muted-foreground" />
+                            <X className="w-4 h-4 text-slate-400" />
                         </button>
                     )}
                 </div>

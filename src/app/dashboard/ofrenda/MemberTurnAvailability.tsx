@@ -31,7 +31,7 @@ export function TurnAvailabilityDots({
         color === 'emerald'
             ? 'bg-emerald-500 ring-emerald-500/30'
             : 'bg-[#1f2e85] ring-[#1f2e85]/30'
-    const offClass = 'bg-muted-foreground/25 ring-transparent'
+    const offClass = 'bg-slate-300 ring-transparent'
 
     const dots = [
         { key: 'jueves', on: value.puede_jueves },
@@ -71,11 +71,11 @@ export function MemberTurnAvailability({
         color === 'emerald'
             ? {
                   chipOn: 'bg-emerald-600 text-white border-emerald-600',
-                  chipOff: 'bg-background border-border/70 text-muted-foreground hover:bg-muted/40',
+                  chipOff: 'bg-white border-black/15 text-slate-500 hover:bg-[#f8f3e8]',
               }
             : {
                   chipOn: 'bg-[#1f2e85] text-white border-[#1f2e85]',
-                  chipOff: 'bg-background border-border/70 text-muted-foreground hover:bg-muted/40',
+                  chipOff: 'bg-white border-black/15 text-slate-500 hover:bg-[#f8f3e8]',
               }
 
     const toggle = (key: keyof MiembroDisponibilidadTurnos) => {

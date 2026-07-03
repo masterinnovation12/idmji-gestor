@@ -42,7 +42,7 @@ export function PlanMonthNavigator({
             >
                 {isLoading ? (
                     <span
-                        className="mx-auto inline-block w-32 max-w-full h-6 bg-muted animate-pulse rounded-lg"
+                        className="mx-auto inline-block w-32 max-w-full h-6 bg-[#1f2e85]/10 animate-pulse rounded-lg"
                         data-testid="ofrenda-month-title-skeleton"
                     />
                 ) : (
@@ -55,7 +55,7 @@ export function PlanMonthNavigator({
                 onClick={onNext}
                 disabled={isLoading}
                 aria-label={nextAriaLabel}
-                className="shrink-0 p-2.5 rounded-xl hover:bg-muted transition-colors disabled:opacity-50 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="ofrenda-liquid-nav-arrow shrink-0 p-2.5 transition-colors disabled:opacity-50 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
                 <ChevronRight className="w-5 h-5" />
             </button>

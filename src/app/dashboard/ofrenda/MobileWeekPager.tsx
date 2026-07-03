@@ -49,20 +49,20 @@ export function MobileWeekPager({
     return (
         <div className="space-y-3" data-testid="ofrenda-mobile-week-pager">
             {/* Navegación */}
-            <div className="flex items-center justify-between gap-2 bg-muted/30 rounded-2xl px-3 py-2 border border-border/50 shadow-sm">
+            <div className="ofrenda-liquid-nav flex items-center justify-between gap-2 px-3 py-2">
                 <button
                     type="button"
                     onClick={() => goToPage(Math.max(0, currentPage - 1))}
                     disabled={atStart}
-                    className="p-2.5 rounded-xl hover:bg-muted disabled:opacity-30 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center transition-opacity"
+                    className="ofrenda-liquid-nav-arrow p-2.5 disabled:opacity-30 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center transition-opacity"
                     aria-label={t('ofrenda.week.prev')}
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </button>
                 <div className="flex-1 text-center min-w-0 px-1">
-                    <p className="text-sm font-bold truncate">{weekLabel}</p>
+                    <p className="text-sm font-bold truncate text-[#1f2e85]">{weekLabel}</p>
                     {weekRangeLabel ? (
-                        <p className="text-[11px] text-muted-foreground font-medium truncate mt-0.5">
+                        <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
                             {weekRangeLabel}
                         </p>
                     ) : null}
@@ -71,7 +71,7 @@ export function MobileWeekPager({
                     type="button"
                     onClick={() => goToPage(Math.min(weeksCount - 1, currentPage + 1))}
                     disabled={atEnd}
-                    className="p-2.5 rounded-xl hover:bg-muted disabled:opacity-30 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center transition-opacity"
+                    className="ofrenda-liquid-nav-arrow p-2.5 disabled:opacity-30 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center transition-opacity"
                     aria-label={t('ofrenda.week.next')}
                 >
                     <ChevronRight className="w-5 h-5" />

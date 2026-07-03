@@ -15,7 +15,7 @@ export function PlanoGenerateRulesInfo() {
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-xl border border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted/50 touch-manipulation"
+                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-xl border border-[rgba(184,150,74,0.35)] text-slate-500 hover:text-[#1f2e85] hover:bg-[#f8f3e8] touch-manipulation"
                 aria-label={t('ofrenda.planoGenerate.rulesInfoLabel')}
                 data-testid="ofrenda-plano-generate-rules-info"
             >
@@ -35,7 +35,7 @@ export function PlanoGenerateRulesInfo() {
                 <ul className="space-y-3 text-sm leading-relaxed pb-4">
                     {PLANO_GENERATE_RULE_IDS.map(id => (
                         <li key={id} className="flex gap-2">
-                            <span className="text-blue-600 dark:text-blue-400 shrink-0">•</span>
+                            <span className="text-blue-600 shrink-0">•</span>
                             <span suppressHydrationWarning>{t(`ofrenda.planoGenerate.rules.${id}`)}</span>
                         </li>
                     ))}

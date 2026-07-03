@@ -46,8 +46,8 @@ function EditorRows({
                             type="button"
                             disabled={!canEdit}
                             onClick={() => canEdit && onEditPosicion(p)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 min-h-[48px] rounded-xl border border-border/60 bg-background/80 text-left transition-colors touch-manipulation ${
-                                canEdit ? 'hover:bg-muted/80 active:scale-[0.99]' : 'opacity-90 cursor-default'
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 min-h-[48px] rounded-xl border border-black/10 bg-white/80 text-left transition-colors touch-manipulation ${
+                                canEdit ? 'hover:bg-[#f8f3e8] active:scale-[0.99]' : 'opacity-90 cursor-default'
                             }`}
                         >
                             <span
@@ -57,10 +57,10 @@ function EditorRows({
                                 {p.bloque}
                             </span>
                             <span className="flex-1 min-w-0">
-                                <span className="block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                                <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-500">
                                     {rolLabel(p.rol)}
                                 </span>
-                                <span className={`block text-sm font-semibold truncate ${!p.nombre?.trim() ? 'text-muted-foreground' : ''}`}>
+                                <span className={`block text-sm font-semibold truncate ${!p.nombre?.trim() ? 'text-slate-400' : ''}`}>
                                     {nombre}
                                 </span>
                             </span>
@@ -92,14 +92,14 @@ function EditorActions({
     const { t } = useI18n()
     const [open, setOpen] = useState(false)
     const btn =
-        'w-full flex items-center gap-2.5 px-3 py-2.5 min-h-[44px] rounded-xl border border-border/60 text-sm font-semibold transition-colors touch-manipulation hover:bg-muted/70 disabled:opacity-50'
+        'w-full flex items-center gap-2.5 px-3 py-2.5 min-h-[44px] rounded-xl border border-black/10 bg-white text-sm font-semibold transition-colors touch-manipulation hover:bg-[#f8f3e8] disabled:opacity-50'
 
     return (
-        <div className="mt-4 border-t border-border/50 pt-3">
+        <div className="mt-4 border-t border-black/10 pt-3">
             <button
                 type="button"
                 onClick={() => setOpen(v => !v)}
-                className="w-full flex items-center justify-between text-xs font-bold text-muted-foreground uppercase tracking-wide py-2 touch-manipulation"
+                className="w-full flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wide py-2 touch-manipulation"
             >
                 {t('ofrenda.plano.editor.actions')}
                 {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -133,7 +133,7 @@ function EditorActions({
                                 <Eraser className="w-4 h-4 shrink-0" />
                                 {t('ofrenda.plano.clearNombres')}
                             </button>
-                            <button type="button" className={`${btn} text-amber-800 dark:text-amber-200 border-amber-500/40`} onClick={onResetLayout}>
+                            <button type="button" className={`${btn} text-amber-800 border-amber-500/40`} onClick={onResetLayout}>
                                 <RotateCcw className="w-4 h-4 shrink-0" />
                                 {t('ofrenda.plano.resetLayout')}
                             </button>
@@ -177,7 +177,7 @@ export function PlanoEditorSheet(props: Readonly<Props>) {
 
     return (
         <>
-            <div className="ofrenda-liquid-surface rounded-2xl border border-border/60 p-4 hidden xl:block">
+            <div className="ofrenda-liquid-surface rounded-2xl border border-[rgba(184,150,74,0.3)] p-4 hidden xl:block">
                 <h3 className="text-sm font-bold mb-3">{t('ofrenda.plano.editor.title')}</h3>
                 <EditorPanelContent {...props} />
             </div>
@@ -207,7 +207,7 @@ export function PlanoEditorSheet(props: Readonly<Props>) {
                     <EditorPanelContent {...props} />
                 </div>
                 <div className="flex justify-center pb-2">
-                    <ChevronUp className="w-5 h-5 text-muted-foreground opacity-50" aria-hidden />
+                    <ChevronUp className="w-5 h-5 text-slate-400 opacity-50" aria-hidden />
                 </div>
             </OfrendaLiquidShell>
         </>

@@ -35,7 +35,7 @@ export function PlanoBlockLabelEdit({ bloque, onClose, onSave }: Readonly<Props>
         >
             <div className="px-4 pb-4 space-y-4">
                 <div>
-                    <label htmlFor={inputId} className="block text-xs font-bold text-muted-foreground mb-1.5">
+                    <label htmlFor={inputId} className="block text-xs font-bold text-slate-500 mb-1.5">
                         {t('ofrenda.plano.blockEdit.label')}
                     </label>
                     <input
@@ -44,14 +44,14 @@ export function PlanoBlockLabelEdit({ bloque, onClose, onSave }: Readonly<Props>
                         value={text}
                         onChange={e => setText(e.target.value)}
                         autoFocus
-                        className="w-full px-4 py-3 min-h-[48px] rounded-xl border border-border bg-background text-base"
+                        className="w-full px-4 py-3 min-h-[48px] rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-base text-slate-800"
                     />
                 </div>
                 <div className="flex gap-2">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 py-3 min-h-[48px] rounded-xl border border-border font-semibold touch-manipulation"
+                        className="flex-1 py-3 min-h-[48px] rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-[#1f2e85] font-semibold hover:bg-[#f8f3e8] touch-manipulation"
                     >
                         {t('common.cancel')}
                     </button>
