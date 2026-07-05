@@ -14,6 +14,7 @@ import {
     type LaborOfrendaHeaderLabels,
 } from './drawLaborOfrendaExportHeader'
 import { laborExportScaleForDesign } from './laborExportResolution'
+import { deliverCanvasAsJpeg, type ImageDeliverMode } from '../exportImageShare'
 
 const figureImageCache = new Map<string, Promise<HTMLImageElement>>()
 
@@ -103,6 +104,8 @@ export async function exportPlanoPng(
     labels: PlanoExportLabels,
     filename: string,
     header?: LaborOfrendaHeaderLabels,
+    mode: ImageDeliverMode = 'download',
+    shareTitle = 'Labor Ofrenda',
 ): Promise<void> {
     const bg = await loadBackground(data)
     const tarjetas = data.layout.tarjetas
@@ -219,24 +222,7 @@ export async function exportPlanoPng(
         ctx.restore()
     }
 
-    return new Promise((resolve, reject) => {
-        canvas.toBlob(blob => {
-            if (!blob) {
-                reject(new Error('No se pudo generar la captura'))
-                return
-            }
-            const a = document.createElement('a')
-            a.href = URL.createObjectURL(blob)
-            a.download = filename
-            document.body.appendChild(a)
-            a.click()
-            setTimeout(() => {
-                URL.revokeObjectURL(a.href)
-                a.remove()
-            }, 1200)
-            resolve()
-        }, 'image/png')
-    })
+    await deliverCanvasAsJpeg(canvas, filename, mode, shareTitle)
 }
 
 /** Limpia caché de muñecos (tests). */

@@ -12,6 +12,7 @@ import {
     LISTA_TABLE_CARD_RADIUS,
     LISTA_TABLE_HEADER_BG,
 } from './planoExportListaLayout'
+import { deliverCanvasAsJpeg, type ImageDeliverMode } from '../exportImageShare'
 
 export interface PlanoListaRow {
     bloque: number
@@ -84,7 +85,12 @@ export async function exportPlanoListaPng(
     rows: PlanoListaRow[],
     labels: PlanoListaExportLabels,
     filename: string,
-    options?: { diaTipo?: ServiceExportKey; layoutReferenceRows?: number },
+    options?: {
+        diaTipo?: ServiceExportKey
+        layoutReferenceRows?: number
+        mode?: ImageDeliverMode
+        shareTitle?: string
+    },
 ): Promise<void> {
     const diaTipo = options?.diaTipo ?? 'domingo'
     const layout = computeListaSquareLayout(rows.length, options?.layoutReferenceRows)
@@ -224,24 +230,12 @@ export async function exportPlanoListaPng(
     ctx.textBaseline = 'middle'
     ctx.fillText(labels.footer, tableX + tableWidth / 2, footerBarY + footerBarH / 2)
 
-    return new Promise((resolve, reject) => {
-        canvas.toBlob(blob => {
-            if (!blob) {
-                reject(new Error('No se pudo generar la captura'))
-                return
-            }
-            const a = document.createElement('a')
-            a.href = URL.createObjectURL(blob)
-            a.download = filename
-            document.body.appendChild(a)
-            a.click()
-            setTimeout(() => {
-                URL.revokeObjectURL(a.href)
-                a.remove()
-            }, 1200)
-            resolve()
-        }, 'image/png')
-    })
+    await deliverCanvasAsJpeg(
+        canvas,
+        filename,
+        options?.mode ?? 'download',
+        options?.shareTitle ?? 'Labor Ofrenda',
+    )
 }
 
 /** @deprecated Ancho landscape; lista usa siempre cuadrado móvil. */

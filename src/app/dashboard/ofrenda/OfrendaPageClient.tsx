@@ -23,8 +23,9 @@ import { getTituloMes, interpolate } from './ofrendaLocale'
 import { SacosConfigPanel } from './SacosConfigPanel'
 import { PlanMonthNavigator } from './PlanMonthNavigator'
 import { formatOfrendaActionError, isOfrendaDbConstraintError } from './ofrendaDbErrors'
+import { PulpitoSection } from './pulpito/PulpitoSection'
 
-type Section = 'general' | 'laborOfrenda'
+type Section = 'general' | 'laborOfrenda' | 'laborPulpito'
 type GeneralTab = 'plan' | 'personas' | 'exportar'
 type LaborTab = 'personas' | 'generar' | 'plano' | 'exportar'
 
@@ -67,6 +68,7 @@ interface Props {
     initialAnio: number
     initialMes: number
     canEdit: boolean
+    isAdmin: boolean
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -85,6 +87,7 @@ function OfrendaPageClientInner({
     initialAnio,
     initialMes,
     canEdit,
+    isAdmin,
 }: Readonly<Props>) {
     const { t, language } = useI18n()
     const feedback = useOfrendaToast()
@@ -237,8 +240,20 @@ function OfrendaPageClientInner({
                         role="tablist"
                         aria-label={t('ofrenda.title')}
                     >
-                        {(['general', 'laborOfrenda'] as const).map(sec => {
+                        {(['general', 'laborOfrenda', 'laborPulpito'] as const).map(sec => {
                             const active = section === sec
+                            const activeClass =
+                                sec === 'general'
+                                    ? 'bg-emerald-600 text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(5,150,105,0.32)]'
+                                    : sec === 'laborOfrenda'
+                                        ? 'bg-blue-600 text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(37,99,235,0.32)]'
+                                        : 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.32)]'
+                            const sectionKey: TranslationKey =
+                                sec === 'general'
+                                    ? 'ofrenda.sections.general'
+                                    : sec === 'laborOfrenda'
+                                        ? 'ofrenda.sections.laborOfrenda'
+                                        : 'ofrenda.sections.laborPulpito'
                             return (
                                 <button
                                     key={sec}
@@ -247,33 +262,30 @@ function OfrendaPageClientInner({
                                     aria-selected={active}
                                     data-testid={`ofrenda-section-${sec}`}
                                     onClick={() => handleSectionChange(sec)}
-                                    className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-[0.7rem] text-xs font-bold transition-all touch-manipulation ${
-                                        active
-                                            ? sec === 'general'
-                                                ? 'bg-emerald-600 text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(5,150,105,0.32)]'
-                                                : 'bg-blue-600 text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(37,99,235,0.32)]'
-                                            : 'text-slate-500 hover:text-[#1f2e85] hover:bg-white/60'
+                                    className={`flex-1 px-2.5 py-2.5 min-h-[44px] rounded-[0.7rem] text-xs font-bold leading-tight transition-all touch-manipulation ${
+                                        active ? activeClass : 'text-slate-500 hover:text-[#1f2e85] hover:bg-white/60'
                                     }`}
                                 >
-                                    <span suppressHydrationWarning>
-                                        {t(sec === 'general' ? 'ofrenda.sections.general' : 'ofrenda.sections.laborOfrenda')}
-                                    </span>
+                                    <span suppressHydrationWarning>{t(sectionKey)}</span>
                                 </button>
                             )
                         })}
                     </div>
 
-                    <PlanMonthNavigator
-                        title={tituloMes}
-                        isLoading={isLoading}
-                        onPrev={() => navigate(-1)}
-                        onNext={() => navigate(1)}
-                        prevAriaLabel={t('ofrenda.month.prev')}
-                        nextAriaLabel={t('ofrenda.month.next')}
-                    />
+                    {section !== 'laborPulpito' && (
+                        <PlanMonthNavigator
+                            title={tituloMes}
+                            isLoading={isLoading}
+                            onPrev={() => navigate(-1)}
+                            onNext={() => navigate(1)}
+                            prevAriaLabel={t('ofrenda.month.prev')}
+                            nextAriaLabel={t('ofrenda.month.next')}
+                        />
+                    )}
                 </div>
 
-                {/* ── Sub-tabs ─────────────────────────────────────────── */}
+                {/* ── Sub-tabs (secciones basadas en plan mensual) ─────── */}
+                {section !== 'laborPulpito' && (
                 <div className="max-w-5xl mx-auto px-4">
                     <div className="flex gap-1 pb-0.5 overflow-x-auto no-scrollbar">
                         {activeTabDefs.map(tab => {
@@ -310,6 +322,7 @@ function OfrendaPageClientInner({
                         })}
                     </div>
                 </div>
+                )}
             </div>
 
             {/* ── Contenido ───────────────────────────────────────────────── */}
@@ -527,6 +540,20 @@ function OfrendaPageClientInner({
                                 plan={plan}
                                 tituloMes={tituloMes}
                             />
+                        </motion.div>
+                    )}
+
+                    {/* ── LABOR PÚLPITO ───────────────────────────────── */}
+                    {section === 'laborPulpito' && (
+                        <motion.div
+                            key="labor-pulpito"
+                            initial={false}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.18 }}
+                            className="min-w-0"
+                        >
+                            <PulpitoSection canEdit={canEdit} isAdmin={isAdmin} />
                         </motion.div>
                     )}
                 </AnimatePresence>
