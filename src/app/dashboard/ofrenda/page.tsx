@@ -18,6 +18,7 @@ export default async function OfrendaPage() {
         .single()
 
     const canEdit = profile?.rol === 'ADMIN' || profile?.rol === 'EDITOR'
+    const isAdmin = profile?.rol === 'ADMIN'
 
     // Cargar datos del mes actual
     const now = new Date()
@@ -36,6 +37,7 @@ export default async function OfrendaPage() {
             initialAnio={anioActual}
             initialMes={mesActual}
             canEdit={canEdit}
+            isAdmin={isAdmin}
         />
     )
 }

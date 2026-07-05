@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Loader2 } from 'lucide-react'
+import { Download, Loader2, Share2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { getDateFnsLocale } from '../ofrendaLocale'
@@ -49,7 +49,7 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
     const [formato, setFormato] = useState<ExportFormat>('plano')
     const [vista, setVista] = useState<PlanoVista>('3d')
     const [servicioId, setServicioId] = useState<string | null>(null)
-    const [exporting, setExporting] = useState(false)
+    const [exporting, setExporting] = useState<null | 'download' | 'share'>(null)
 
     const servicios = plan?.servicios ?? []
     const servicio = servicios.find(s => s.id === servicioId) ?? servicios[0] ?? null
@@ -85,9 +85,9 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
         }, dateLocale)
     }, [servicio, tituloMes, t, dateLocale])
 
-    const runExport = async () => {
+    const runExport = async (mode: 'download' | 'share') => {
         if (!plan || !servicio || exporting) return
-        setExporting(true)
+        setExporting(mode)
         try {
             const sacos = sacosParaDia(plan.plan, servicio.dia_tipo)
             const modo = resolverModo(sacos)
@@ -111,7 +111,7 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
                       : 'dom-tarde'
 
             if (formato === 'plano') {
-                const filename = `labor-ofrenda-plano-${servicio.fecha}-${turnoSlug}-${vista}.png`
+                const filename = `labor-ofrenda-plano-${servicio.fecha}-${turnoSlug}-${vista}.jpg`
                 await exportPlanoPng(
                     data,
                     {
@@ -121,6 +121,8 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
                     },
                     filename,
                     header,
+                    mode,
+                    t('ofrenda.planoExport.title'),
                 )
             } else {
                 const byBloque = new Map<number, { ofrendario: string; apoyo: string }>()
@@ -135,7 +137,7 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
                     .sort(([a], [b]) => a - b)
                     .map(([bloque, r]) => ({ bloque, ...r }))
 
-                const filename = `labor-ofrenda-lista-${servicio.fecha}-${turnoSlug}.png`
+                const filename = `labor-ofrenda-lista-${servicio.fecha}-${turnoSlug}.jpg`
                 await exportPlanoListaPng(
                     rows,
                     {
@@ -154,6 +156,8 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
                                   ? 'jueves'
                                   : 'domingo',
                         layoutReferenceRows: listaLayoutReferenceRowCount(sacos),
+                        mode,
+                        shareTitle: t('ofrenda.planoExport.title'),
                     },
                 )
             }
@@ -161,7 +165,7 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
         } catch (err) {
             planError(err instanceof Error ? err.message : t('ofrenda.plano.exportError'))
         } finally {
-            setExporting(false)
+            setExporting(null)
         }
     }
 
@@ -222,16 +226,28 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
                 onSelect={setServicioId}
             />
 
-            <button
-                type="button"
-                disabled={exporting || !servicio}
-                onClick={() => void runExport()}
-                className="flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-3 min-h-[44px] rounded-xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white text-sm font-bold shadow-[0_4px_16px_rgba(31,46,133,0.32)] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)] transition-shadow disabled:opacity-50 touch-manipulation"
-                data-testid="ofrenda-plano-export-btn"
-            >
-                {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                {t('ofrenda.planoExport.exportBtn')}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                    type="button"
+                    disabled={exporting !== null || !servicio}
+                    onClick={() => void runExport('download')}
+                    className="flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-3 min-h-[48px] rounded-xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white text-sm font-bold shadow-[0_4px_16px_rgba(31,46,133,0.32)] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)] transition-shadow disabled:opacity-50 touch-manipulation"
+                    data-testid="ofrenda-plano-export-btn"
+                >
+                    {exporting === 'download' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    {t('ofrenda.planoExport.exportBtn')}
+                </button>
+                <button
+                    type="button"
+                    disabled={exporting !== null || !servicio}
+                    onClick={() => void runExport('share')}
+                    className="flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-3 min-h-[48px] rounded-xl border-[1.5px] border-[rgba(184,150,74,0.4)] bg-white text-[#1f2e85] text-sm font-bold hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors disabled:opacity-50 touch-manipulation"
+                    data-testid="ofrenda-plano-share-btn"
+                >
+                    {exporting === 'share' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+                    {t('ofrenda.pulpito.export.share')}
+                </button>
+            </div>
         </div>
     )
 }

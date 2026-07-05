@@ -14,6 +14,7 @@ import { useOfrendaToast } from './ofrendaFeedback'
 import { ExportLayout } from './ExportLayout'
 import { ExportPreviewViewer } from './ExportPreviewViewer'
 import { captureExportLayoutToPng } from './exportCapture'
+import { captureNodeToJpegDataUrl } from './exportImageShare'
 import { ExportScopeControls, type ExportScope } from './ExportScopeControls'
 import { ExportPeopleScopeControls } from './ExportPeopleScopeControls'
 import {
@@ -72,12 +73,17 @@ function hexToRgb(hex: string) {
 export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<ExportPanelProps>) {
     const { t, language } = useI18n()
     const feedback = useOfrendaToast()
-    const labels = getExportLabels(language)
+    const baseLabels = getExportLabels(language)
     const mesSlug = getMonthLabel(language, mes).toLowerCase().replace(/\s+/g, '-')
     const mesFileBase = `labor-ofrenda-${mesSlug}-${anio}`
     const dateLocale = getDateFnsLocale(language)
     const [exportScope, setExportScope] = useState<ExportScope>('month')
     const [peopleScope, setPeopleScope] = useState<ExportPeopleScope>('all')
+    // Solo colaboradores (G2) → documento «Labores Profecía»; G1/ambos → «Labor Ofrenda».
+    const labels =
+        peopleScope === 'g2'
+            ? { ...baseLabels, titleDoc: t('ofrenda.export.titleDocG2') }
+            : baseLabels
     const [extraRoles, setExtraRoles] = useState<string[]>([]) // roles G1 extra, desmarcados por defecto
     const [weekIndex, setWeekIndex] = useState(0)
 
@@ -182,7 +188,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
         return () => { cancelled = true }
     }, [previewOpen, plan, mes, anio, language, exportScope, peopleScope, extraRoles, weekIndex, activeServicios, layoutWidth, periodSubtitle])
 
-    // ── Helper: capturar el layout oculto como PNG data URL ──────────────────
+    // ── Helper: capturar el layout oculto como JPEG data URL (HD, ligero) ────
     const captureLayoutPNG = useCallback(async (): Promise<string | null> => {
         if (!layoutRef.current) return null
         setStep('rendering')
@@ -191,13 +197,14 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
         await new Promise(r => setTimeout(r, 120))
 
         setStep('encoding')
-        return captureExportLayoutToPng(layoutRef.current, {
-            pixelRatio: exportScope === 'week' ? 2 : 2.5,
+        return captureNodeToJpegDataUrl(layoutRef.current, {
+            pixelRatio: exportScope === 'week' ? 2.5 : 3,
+            quality: 0.92,
             layoutWidth,
         })
     }, [exportScope, layoutWidth])
 
-    // ── Exportar PNG (descarga directa) ──────────────────────────────────────
+    // ── Exportar JPG (descarga directa) ──────────────────────────────────────
     const handleExportPNG = useCallback(async () => {
         if (!plan) return
         setExportType('png')
@@ -207,7 +214,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
 
             setStep('downloading')
             const link = document.createElement('a')
-            link.download = `${fileBase}.png`
+            link.download = `${fileBase}.jpg`
             link.href = dataUrl
             document.body.appendChild(link)
             link.click()
@@ -589,8 +596,8 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             const blob = await res.blob()
             const file = new File(
                 [blob],
-                `${fileBase}.png`,
-                { type: 'image/png' }
+                `${fileBase}.jpg`,
+                { type: 'image/jpeg' }
             )
 
             if (!navigator.canShare({ files: [file] })) {
