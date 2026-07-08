@@ -49,6 +49,18 @@ describe('PWA config', () => {
             expect(sizes).toContain('192x192')
             expect(sizes).toContain('512x512')
         })
+
+        it('related_applications permite detectar la PWA instalada (getInstalledRelatedApps)', () => {
+            const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
+            const webapp = manifest.related_applications?.find(
+                (a: { platform: string }) => a.platform === 'webapp'
+            )
+            expect(webapp).toBeDefined()
+            expect(webapp.id).toBe(manifest.id)
+            expect(webapp.url).toMatch(/^https:\/\/.+\/manifest\.json$/)
+            // Nunca preferir apps nativas: instalación PWA siempre disponible
+            expect(manifest.prefer_related_applications).toBe(false)
+        })
     })
 
     describe('assets PWA', () => {
