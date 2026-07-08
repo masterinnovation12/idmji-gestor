@@ -26,8 +26,9 @@ import {
 import {
     exportPdfColumnLayout,
     exportPdfHeaderHeightMm,
-    exportLayoutWidthPx,
+    exportImageLayoutWidthPx,
 } from './exportLayoutMetrics'
+import { LABOR_EXPORT_MOBILE_SCALE } from './plano/laborExportResolution'
 import {
     buildWeekFileSlug,
     formatWeekRangeLabel,
@@ -133,8 +134,8 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
     }, [plan, exportScope, weeks, weekIndex])
 
     const layoutWidth = useMemo(
-        () => exportLayoutWidthPx(activeServicios.length),
-        [activeServicios.length],
+        () => exportImageLayoutWidthPx(activeServicios.length, exportScope),
+        [activeServicios.length, exportScope],
     )
 
     const periodSubtitle = useMemo(() => {
@@ -198,7 +199,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
 
         setStep('encoding')
         return captureNodeToJpegDataUrl(layoutRef.current, {
-            pixelRatio: exportScope === 'week' ? 2.5 : 3,
+            pixelRatio: exportScope === 'week' ? LABOR_EXPORT_MOBILE_SCALE : 3,
             quality: 0.92,
             layoutWidth,
         })
@@ -826,6 +827,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                                     <ExportPreviewViewer
                                         imageUrl={previewUrl}
                                         alt={t('ofrenda.export.preview')}
+                                        layoutWidth={layoutWidth}
                                     />
                                 )}
                                 {!previewLoading && !previewUrl && (
@@ -869,6 +871,8 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                         servicios={activeServicios}
                         periodSubtitle={periodSubtitle}
                         exportScope={exportScope}
+                        locale={language === 'ca-ES' ? 'ca-ES' : 'es-ES'}
+                        sectionLabel={exportScope === 'week' ? t('ofrenda.sections.general') : undefined}
                         peopleScope={peopleScope}
                         extraG1Roles={extraRoles}
                     />
