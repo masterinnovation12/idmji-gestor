@@ -1,6 +1,7 @@
 /**
  * Tests de configuración PWA: manifest, splash (marco dorado), iconos.
- * Verifica que la app instalable muestre fondo blanco + logo en marco dorado.
+ * Verifica que la app instalable muestre fondo navy + logo en marco dorado,
+ * idéntico en el splash del sistema y en el splash in-app.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync } from 'fs'
@@ -25,14 +26,14 @@ async function pixelAt(path: string, x: number, y: number): Promise<[number, num
 
 describe('PWA config', () => {
     describe('manifest.json', () => {
-        it('debe tener background_color blanco para splash', () => {
+        it('debe tener background_color navy para splash', () => {
             const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
-            expect(manifest.background_color).toBe('#ffffff')
+            expect(manifest.background_color).toBe('#1f2e85')
         })
 
-        it('debe tener theme_color blanco para splash', () => {
+        it('debe tener theme_color navy para splash', () => {
             const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
-            expect(manifest.theme_color).toBe('#ffffff')
+            expect(manifest.theme_color).toBe('#1f2e85')
         })
 
         it('debe listar icono 512x512 primero para splash más grande', () => {
@@ -98,19 +99,49 @@ describe('PWA config', () => {
         })
 
         it('la zona interior (aro entre marco y logo) es blanca', async () => {
-            const x = layout.left + layout.rim + 5
-            const y = layout.top + layout.rim + 5
+            // Centro superior del aro blanco (entre el rim dorado y el logo),
+            // lejos de las esquinas redondeadas del badge.
+            const x = Math.round(layout.left + layout.size / 2)
+            const y = layout.top + layout.rim + Math.round((layout.innerPad - layout.rim) / 2)
             const [r, g, b] = await pixelAt(SPLASH, x, y)
             expect(r).toBeGreaterThan(240)
             expect(g).toBeGreaterThan(240)
             expect(b).toBeGreaterThan(240)
         })
 
-        it('el fondo alrededor del badge es blanco', async () => {
+        it('el fondo alrededor del badge es navy', async () => {
+            // #1f2e85 → r=31 g=46 b=133
             const [r, g, b] = await pixelAt(SPLASH, 40, 40)
-            expect(r).toBeGreaterThan(245)
-            expect(g).toBeGreaterThan(245)
-            expect(b).toBeGreaterThan(245)
+            expect(r).toBeLessThan(60)
+            expect(g).toBeLessThan(80)
+            expect(b).toBeGreaterThan(100)
+        })
+    })
+
+    describe('iconos con marco dorado', () => {
+        it('icon-512 (any) tiene el marco dorado en el borde', async () => {
+            const icon = join(PUBLIC, 'icons', 'icon-512x512.png')
+            // Centro del borde superior: dentro del rim dorado
+            const [r, g, b] = await pixelAt(icon, 256, 6)
+            expect(r).toBeGreaterThan(150)
+            expect(g).toBeGreaterThan(110)
+            expect(r).toBeGreaterThan(b)
+        })
+
+        it('icon maskable tiene fondo navy full-bleed en las esquinas', async () => {
+            const icon = join(PUBLIC, 'icons', 'icon-maskable-512x512.png')
+            const [r, g, b] = await pixelAt(icon, 10, 10)
+            expect(r).toBeLessThan(60)
+            expect(g).toBeLessThan(80)
+            expect(b).toBeGreaterThan(100)
+        })
+
+        it('apple-touch-icon 180 es full-bleed dorado en el borde', async () => {
+            const icon = join(PUBLIC, 'icons', 'icon-180x180.png')
+            const [r, g, b] = await pixelAt(icon, 90, 3)
+            expect(r).toBeGreaterThan(150)
+            expect(g).toBeGreaterThan(110)
+            expect(r).toBeGreaterThan(b)
         })
     })
 })

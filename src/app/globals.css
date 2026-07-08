@@ -899,8 +899,9 @@ body {
 }
 
 /*
- * Splash in-app de marca (PWA). Fondo blanco + logo en marco dorado (mismo
- * lenguaje que el badge del PNG exportado). Solo visible en modo standalone
+ * Splash in-app de marca (PWA). Fondo navy + logo en marco dorado (idéntico
+ * al splash del sistema generado por el manifest, para que el arranque se
+ * perciba como una sola pantalla). Solo visible en modo standalone
  * (app instalada) o forzado con html.pwa-splash-force (tests/preview).
  */
 #app-splash {
@@ -928,7 +929,7 @@ html.pwa-splash-force #app-splash {
   z-index: 2147483000;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
+  background: #1f2e85;
   padding: env(safe-area-inset-top) env(safe-area-inset-right)
     env(safe-area-inset-bottom) env(safe-area-inset-left);
   opacity: 1;
@@ -954,8 +955,8 @@ html.pwa-splash-force #app-splash {
     #b68f2f 100%
   );
   box-shadow:
-    0 18px 48px rgba(184, 150, 74, 0.28),
-    0 2px 10px rgba(15, 23, 42, 0.08);
+    0 18px 48px rgba(0, 0, 0, 0.35),
+    0 2px 10px rgba(184, 150, 74, 0.25);
   animation: app-splash-pop 0.5s ease-out both;
 }
 
