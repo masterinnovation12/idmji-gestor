@@ -72,6 +72,9 @@ export function InstallPrompt() {
         return isPwaStandalone(window)
     }, [])
 
+    const showNoWebApkWarning =
+        platform?.name === 'android' && platform.supportsWebApk === false
+
     const canOfferInstallPrompt = useCallback(() => {
         if (typeof window === 'undefined') return false
         const storage = readInstallPromptStorage(window)
@@ -304,6 +307,17 @@ export function InstallPrompt() {
                                 </div>
                             </div>
 
+                            {showNoWebApkWarning && (
+                                <div
+                                    className="mt-4 p-3 bg-amber-400/15 border border-amber-300/30 rounded-xl"
+                                    data-testid="pwa-no-webapk-warning"
+                                >
+                                    <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider">
+                                        {t('pwa.noWebApkWarning')}
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="flex gap-3 mt-5">
                                 <button
                                     onClick={handleLater}
@@ -384,6 +398,17 @@ export function InstallPrompt() {
                                 </div>
                             )}
 
+                            {showNoWebApkWarning && (
+                                <div
+                                    className="mb-4 p-3 bg-amber-400/15 border border-amber-300/30 rounded-xl"
+                                    data-testid="pwa-no-webapk-warning"
+                                >
+                                    <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider">
+                                        {t('pwa.noWebApkWarning')}
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="space-y-4">
                                 <InstallStep icon={<MoreVertical className="w-5 h-5 text-[#e8d9a8]" />}>
                                     {t('pwa.manualStep1')}
@@ -397,16 +422,31 @@ export function InstallPrompt() {
                                 >
                                     {t('pwa.recentUninstallHint')}
                                 </InstallStep>
+                                <InstallStep
+                                    icon={<RefreshCw className="w-5 h-5 text-[#e8d9a8]" />}
+                                    testId="pwa-cooldown-hint"
+                                >
+                                    {t('pwa.cooldownHint')}
+                                </InstallStep>
                             </div>
 
-                            <button
-                                onClick={handleLater}
-                                className="w-full mt-5 h-11 rounded-xl font-bold text-sm text-[#1f2e85] shadow-lg hover:brightness-105 transition-all"
-                                style={{ background: 'linear-gradient(135deg, #d4b86a 0%, #e3cc92 50%, #b8964a 100%)' }}
-                                data-testid="pwa-manual-understood"
-                            >
-                                {t('pwa.understood')}
-                            </button>
+                            <div className="flex gap-3 mt-5">
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    className="flex-1 h-11 rounded-xl font-semibold text-sm text-white/85 border border-white/25 hover:bg-white/10 transition-colors"
+                                    data-testid="pwa-manual-retry"
+                                >
+                                    {t('pwa.retryInstall')}
+                                </button>
+                                <button
+                                    onClick={handleLater}
+                                    className="flex-1 h-11 rounded-xl font-bold text-sm text-[#1f2e85] shadow-lg hover:brightness-105 transition-all"
+                                    style={{ background: 'linear-gradient(135deg, #d4b86a 0%, #e3cc92 50%, #b8964a 100%)' }}
+                                    data-testid="pwa-manual-understood"
+                                >
+                                    {t('pwa.understood')}
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

@@ -37,6 +37,22 @@ async function flushInstallSync() {
     })
 }
 
+function stubBraveAndroid() {
+    Object.defineProperty(window.navigator, 'userAgent', {
+        configurable: true,
+        value:
+            'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Brave/1.73.89',
+    })
+    Object.defineProperty(window.navigator, 'maxTouchPoints', {
+        configurable: true,
+        value: 0,
+    })
+    Object.defineProperty(window.navigator, 'getInstalledRelatedApps', {
+        configurable: true,
+        value: vi.fn().mockResolvedValue([]),
+    })
+}
+
 function stubAndroidChrome() {
     Object.defineProperty(window.navigator, 'userAgent', {
         configurable: true,
@@ -175,6 +191,8 @@ describe('InstallPrompt', () => {
             expect(screen.getByTestId('pwa-android-manual')).toBeInTheDocument()
             expect(screen.getByText(/Instalar desde el navegador/i)).toBeInTheDocument()
             expect(screen.getByTestId('pwa-recent-uninstall-hint')).toBeInTheDocument()
+            expect(screen.getByTestId('pwa-cooldown-hint')).toBeInTheDocument()
+            expect(screen.getByTestId('pwa-manual-retry')).toBeInTheDocument()
             // Sin botón de instalación nativa: no hay BIP que lanzar
             expect(screen.queryByTestId('pwa-install-confirm')).not.toBeInTheDocument()
         })
@@ -213,6 +231,22 @@ describe('InstallPrompt', () => {
 
             expect(screen.getByTestId('pwa-android-manual')).toBeInTheDocument()
             expect(screen.getByText(/abre esta web en Chrome/i)).toBeInTheDocument()
+        })
+
+        it('Brave Android avisa que solo crea acceso directo (usar Chrome para WebAPK)', async () => {
+            stubBraveAndroid()
+
+            renderInstallPrompt()
+            await flushInstallSync()
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(ANDROID_MANUAL_FALLBACK_DELAY_MS)
+            })
+
+            expect(screen.getByTestId('pwa-android-manual')).toBeInTheDocument()
+            expect(screen.getByTestId('pwa-no-webapk-warning')).toBeInTheDocument()
+            expect(screen.getByText(/solo crean un acceso directo/i)).toBeInTheDocument()
+            expect(screen.getByText(/Google Chrome/i)).toBeInTheDocument()
         })
 
         it('«Entendido» oculta el fallback solo durante la sesión (sin dismissedAt)', async () => {
