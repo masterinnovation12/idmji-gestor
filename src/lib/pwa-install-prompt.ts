@@ -24,9 +24,16 @@ export const IOS_PROMPT_DELAY_MS = 4000
  */
 export const ANDROID_MANUAL_FALLBACK_DELAY_MS = 12000
 
+/** Tras el fallback, seguir escuchando BIP este tiempo (Chrome tarda tras cooldown) */
+export const CHROME_BIP_EXTENDED_WAIT_MS = 120_000
+
 export const PWA_SW_READY_EVENT = 'idmji-sw-ready'
 
+export const PWA_INSTALL_START_URL = '/dashboard?utm_source=pwa_install'
+
 export type PwaPlatform = 'ios' | 'android' | 'other'
+
+export type AndroidFallbackView = 'android-chrome-recovery' | 'android-manual'
 
 export interface PlatformInfo {
     name: PwaPlatform
@@ -56,6 +63,12 @@ export function detectPlatform(userAgent: string, maxTouchPoints = 0): PlatformI
  * WebAPK (app real en el cajón de Android) solo en Google Chrome.
  * Brave, Firefox, Edge, Opera y Samsung Internet solo crean acceso directo.
  */
+/** Google Chrome en Android (único navegador con WebAPK real) */
+export function isChromeAndroid(userAgent: string): boolean {
+    const ua = userAgent.toLowerCase()
+    return /android/.test(ua) && /chrome\//.test(ua) && supportsAndroidWebApk(userAgent)
+}
+
 export function supportsAndroidWebApk(userAgent: string): boolean {
     const ua = userAgent.toLowerCase()
     if (!/android/.test(ua)) return true
@@ -168,6 +181,33 @@ export function shouldShowManualFallback(input: ManualFallbackInput): boolean {
     if (input.isStandalone) return false
     if (input.relatedAppInstalled === true) return false
     return true
+}
+
+export interface ResolveAndroidFallbackInput extends ManualFallbackInput {
+    userAgent: string
+}
+
+/**
+ * Chrome Android sin BIP → guía de recuperación WebAPK (cooldown).
+ * Otros Android (Brave, etc.) → manual genérico + aviso de usar Chrome.
+ */
+export function resolveAndroidFallbackView(
+    input: ResolveAndroidFallbackInput
+): AndroidFallbackView | null {
+    if (!shouldShowManualFallback(input)) return null
+    if (isChromeAndroid(input.userAgent)) return 'android-chrome-recovery'
+    return 'android-manual'
+}
+
+/** Resetea marcas de sesión/cierre para que Reintentar vuelva a mostrar el prompt */
+export function resetInstallPromptForRetry(win: Window): void {
+    win.sessionStorage.removeItem(PWA_STORAGE_KEYS.SESSION_SHOWN)
+    win.localStorage.removeItem(PWA_STORAGE_KEYS.DISMISS_AT)
+}
+
+/** URL de arranque PWA con marcador de engagement para Chrome */
+export function buildPwaInstallStartUrl(origin: string): string {
+    return `${origin}${PWA_INSTALL_START_URL}`
 }
 
 export interface ShouldShowInstallPromptInput {

@@ -36,11 +36,16 @@ describe('PWA config', () => {
             expect(manifest.theme_color).toBe('#1f2e85')
         })
 
-        it('debe listar icono 512x512 primero para splash más grande', () => {
+        it('debe tener start_url con marcador de instalación PWA', () => {
+            const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
+            expect(manifest.start_url).toBe('/dashboard?utm_source=pwa_install')
+        })
+
+        it('debe listar icono 192x192 antes que 512 para Chrome Android', () => {
             const manifest = JSON.parse(readFileSync(join(PUBLIC, 'manifest.json'), 'utf-8'))
             const firstIcon = manifest.icons[0]
-            expect(firstIcon.sizes).toBe('512x512')
-            expect(firstIcon.src).toContain('icon-512x512')
+            expect(firstIcon.sizes).toBe('192x192')
+            expect(firstIcon.src).toContain('icon-192x192')
         })
 
         it('debe tener iconos requeridos para instalación', () => {
