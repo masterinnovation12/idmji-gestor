@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/Input'
 import { Calendar as CalendarIcon, CheckCircle, Clock, AlertCircle, Users, Search, X } from 'lucide-react'
 import { getCultoStatus } from '@/lib/utils/culto-helpers'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import BackButton from '@/components/BackButton'
+import PageHero from '@/components/PageHero'
 import { Culto } from '@/types/database'
 import type { HermanoData } from '../hermanos/actions'
 
@@ -173,28 +173,12 @@ export default function CultosPageClient({ initialCultos, initialDate }: CultosP
 
     return (
         <div className="ofrenda-liquid-scope max-w-7xl mx-auto space-y-10 pb-20 px-4 md:px-8 relative no-scrollbar">
-            {/* Header / Breadcrumb */}
+            {/* Header hero liquid (marino + dorado) */}
             <div className="space-y-6">
-                <BackButton fallbackUrl="/dashboard" />
-
-                {/* Hero liquid (marino + dorado) */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="relative overflow-hidden rounded-[2rem] md:rounded-[3rem] border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] p-6 md:p-10 shadow-2xl"
-                >
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-[#b8964a]/25 rounded-full blur-[110px] -translate-y-1/2 translate-x-1/4" />
-                    <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
-                    <div className="relative z-10 space-y-2">
-                        <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white">
-                            {t('calendar.title')}
-                        </h1>
-                        <div className="text-white/70 font-bold tracking-wide flex items-center gap-2.5 uppercase text-xs">
-                            <div className="w-2 h-2 rounded-full bg-[#e3cc92] animate-pulse" />
-                            {t('dashboard.calendarDesc')}
-                        </div>
-                    </div>
-                </motion.div>
+                <PageHero
+                    title={t('calendar.title')}
+                    subtitle={t('dashboard.calendarDesc')}
+                />
             </div>
 
             {/* Contenedor Principal: Calendario */}

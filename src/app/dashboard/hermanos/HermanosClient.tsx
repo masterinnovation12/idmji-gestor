@@ -19,7 +19,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Search, Users, ShieldCheck, Mail, Phone, Sparkles, Award, CheckCircle2, XCircle, X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import BackButton from '@/components/BackButton'
+import PageHero from '@/components/PageHero'
 import { Profile, UserRole } from '@/types/database'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -182,44 +182,13 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
 
     return (
         <div className="ofrenda-liquid-scope max-w-7xl mx-auto space-y-10 pb-32 px-4 md:px-6 no-scrollbar" data-page="hermanos">
-            {/* Breadcrumb Mejorado */}
-            <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center justify-between"
-            >
-                <BackButton fallbackUrl="/dashboard" />
-
-                <div className="hidden sm:flex items-center gap-2 text-xs font-black text-muted-foreground/40 uppercase tracking-[0.2em]">
-                    <Sparkles className="w-3 h-3 text-primary" />
-                    IDMJI Sabadell
-                </div>
-            </motion.div>
-
             {/* Header hero liquid (marino + dorado) */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-[2rem] md:rounded-[3rem] border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] p-6 md:p-10 shadow-2xl"
-            >
-                <div className="absolute top-0 right-0 w-96 h-96 bg-[#b8964a]/25 rounded-full blur-[110px] -translate-y-1/2 translate-x-1/4" />
-                <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
-
-                <div className="relative z-10 flex flex-col xl:flex-row gap-8 justify-between items-start xl:items-end">
-                    <div className="space-y-4 max-w-2xl">
-                        <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-none text-white">
-                            {t('hermanos.title').split(' ')[0]}
-                            <span className="block text-transparent bg-clip-text bg-linear-to-r from-[#e3cc92] via-[#d4b86a] to-[#e3cc92]">
-                                {t('hermanos.title').split(' ').slice(1).join(' ')}
-                            </span>
-                        </h1>
-                        <p className="text-lg md:text-xl text-white/70 font-medium flex items-center gap-3">
-                            <span className="w-10 h-[2px] bg-[#b8964a]/70 hidden sm:block" />
-                            {t('hermanos.desc')}
-                        </p>
-                    </div>
-
-                    {/* Buscador */}
+            <PageHero
+                title={t('hermanos.title').split(' ')[0]}
+                titleAccent={t('hermanos.title').split(' ').slice(1).join(' ')}
+                subtitle={t('hermanos.desc')}
+                subtitleVariant="line"
+                actions={
                     <div className="w-full xl:w-96 group">
                         <div className="relative bg-white rounded-2xl flex items-center px-5 h-16 shadow-2xl border-[1.5px] border-[rgba(184,150,74,0.45)] focus-within:border-[#b8964a] focus-within:ring-2 focus-within:ring-[rgba(184,150,74,0.25)] transition-all">
                             <Search className="w-5 h-5 text-[#b8964a] mr-3 shrink-0" />
@@ -232,8 +201,8 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                             />
                         </div>
                     </div>
-                </div>
-            </motion.div>
+                }
+            />
 
             {/* Listado con Animación Stagger */}
             <div className="space-y-6">

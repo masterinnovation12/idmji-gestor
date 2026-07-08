@@ -30,6 +30,7 @@ import AvailabilityManager from '@/components/AvailabilityManager'
 import { PushNotificationToggle } from '@/components/PushNotificationToggle'
 import { obtenerIniciales } from '@/lib/helpers'
 import SaveChangesBar from '@/app/dashboard/cultos/[id]/SaveChangesBar'
+import PageHero from '@/components/PageHero'
 import { LanguageMenu } from '@/components/language/LanguageMenu'
 import { FlagSpain } from '@/components/language/FlagSpain'
 import { FlagCatalonia } from '@/components/language/FlagCatalonia'
@@ -291,29 +292,11 @@ export default function ProfileClient({ profile, email }: ProfileClientProps) {
                 isDirty ? 'pb-32 sm:pb-28' : 'pb-12 sm:pb-12'
             )}
         >
-            <div className="space-y-2">
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3"
-                >
-                    <div className="p-2 bg-primary/10 rounded-xl">
-                        <UserCircle className="w-6 h-6 text-primary" />
-                    </div>
-                    <h1 className="text-4xl lg:text-5xl font-black bg-gradient-to-br from-primary via-accent to-primary bg-clip-text text-transparent tracking-tight">
-                        {t('profile.title')}
-                    </h1>
-                </motion.div>
-                <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="text-muted-foreground font-medium flex items-center gap-2"
-                >
-                    <Sparkles className="w-4 h-4 text-accent" />
-                    {t('profile.desc')}
-                </motion.p>
-            </div>
+            <PageHero
+                title={t('profile.title')}
+                subtitle={t('profile.desc')}
+                icon={UserCircle}
+            />
 
             <form
                 onSubmit={(e) => {

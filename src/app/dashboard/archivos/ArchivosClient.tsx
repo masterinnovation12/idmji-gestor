@@ -41,6 +41,7 @@ import { RowCard } from '@/components/archivos/RowCard'
 import { DataTable } from '@/components/archivos/DataTable'
 import { DetailModal } from '@/components/archivos/DetailModal'
 import type { TabConfig } from '@/components/archivos/types'
+import PageHero from '@/components/PageHero'
 
 /* ─── Constants ────────────────────────────────────────── */
 const POLLING_INTERVAL_MS = 45_000
@@ -300,59 +301,57 @@ export default function ArchivosClient({ initialData = {}, initialMeta, initialE
     <div className="ofrenda-liquid-scope space-y-4 sm:space-y-6 pb-6">
 
       {/* Header hero liquid (marino + dorado) */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] p-4 sm:p-6 shadow-xl">
-        <div className="absolute top-0 right-0 w-72 h-72 bg-[#b8964a]/25 rounded-full blur-[90px] -translate-y-1/2 translate-x-1/4" />
-        <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl bg-white border border-[rgba(227,204,146,0.5)] shadow-sm`}>
-              <activeTabConfig.icon className={`w-6 h-6 ${activeTabConfig.color}`} />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-white">{t('archivos.title')}</h1>
-              <p className="text-xs text-white/70 mt-0.5">
-                {staleInfo?.stale
-                  ? t('archivos.syncStaleHint' as Parameters<typeof t>[0])
-                  : t('archivos.syncSubtitle' as Parameters<typeof t>[0])}
-                {(refreshing || forceLoading) && (
-                  <span className="ml-2 inline-flex items-center gap-1 text-[#e3cc92]">
-                    <RefreshCw className="w-3 h-3 animate-spin" />
-                    <ForcingLabel forceLoading={forceLoading} forceAttempt={forceAttempt} />
-                  </span>
+      <PageHero
+        title={t('archivos.title')}
+        icon={activeTabConfig.icon}
+        animate={false}
+        subtitleVariant="none"
+        subtitle={
+          <>
+            {staleInfo?.stale
+              ? t('archivos.syncStaleHint' as Parameters<typeof t>[0])
+              : t('archivos.syncSubtitle' as Parameters<typeof t>[0])}
+            {(refreshing || forceLoading) && (
+              <span className="ml-2 inline-flex items-center gap-1 text-[#e3cc92]">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                <ForcingLabel forceLoading={forceLoading} forceAttempt={forceAttempt} />
+              </span>
+            )}
+          </>
+        }
+        actions={
+          <>
+            {/* Botón fuerza siempre visible cuando hay datos stale */}
+            {staleInfo?.stale && (
+              <button
+                onClick={() => forceRefresh(activeTab)}
+                disabled={forceLoading || refreshing}
+                title={t('archivos.refreshTitle')}
+                className={`
+                  hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+                  transition-all touch-manipulation shadow-sm
+                  ${forceLoading
+                    ? 'bg-white/10 text-[#e3cc92] border border-[rgba(227,204,146,0.4)] cursor-wait'
+                    : 'border-2 border-[#b8964a] bg-white text-[#1f2e85] hover:bg-[#f8f3e8]'}
+                  disabled:opacity-60
+                `}
+              >
+                {forceLoading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" />{t('archivos.trying')} {forceAttempt > 1 ? `(${forceAttempt})` : ''}</>
+                ) : (
+                  <><Zap className="w-4 h-4" />{t('archivos.getNewData')}</>
                 )}
-              </p>
-            </div>
-          </div>
-          {/* Botón fuerza siempre visible cuando hay datos stale */}
-          {staleInfo?.stale && (
-            <button
-              onClick={() => forceRefresh(activeTab)}
-              disabled={forceLoading || refreshing}
-              title={t('archivos.refreshTitle')}
-              className={`
-                hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-                transition-all touch-manipulation shadow-sm
-                ${forceLoading
-                  ? 'bg-white/10 text-[#e3cc92] border border-[rgba(227,204,146,0.4)] cursor-wait'
-                  : 'border-2 border-[#b8964a] bg-white text-[#1f2e85] hover:bg-[#f8f3e8]'}
-                disabled:opacity-60
-              `}
-            >
-              {forceLoading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" />{t('archivos.trying')} {forceAttempt > 1 ? `(${forceAttempt})` : ''}</>
-              ) : (
-                <><Zap className="w-4 h-4" />{t('archivos.getNewData')}</>
-              )}
-            </button>
-          )}
-          {!staleInfo?.stale && data && data.length > 0 && (
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-emerald-300 font-medium">
-              <CheckCircle2 className="w-4 h-4" />
-              <span suppressHydrationWarning>{t('archivos.liveData' as Parameters<typeof t>[0])}</span>
-            </span>
-          )}
-        </div>
-      </div>
+              </button>
+            )}
+            {!staleInfo?.stale && data && data.length > 0 && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-emerald-300 font-medium">
+                <CheckCircle2 className="w-4 h-4" />
+                <span suppressHydrationWarning>{t('archivos.liveData' as Parameters<typeof t>[0])}</span>
+              </span>
+            )}
+          </>
+        }
+      />
 
       {/* Stale banner */}
       {staleInfo?.stale && (
