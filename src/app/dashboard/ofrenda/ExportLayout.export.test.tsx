@@ -239,7 +239,7 @@ describe('ExportLayout export branding', () => {
         expect(screen.getByText(labels.secuencia)).toBeInTheDocument()
     })
 
-    it('modo semanal: usa layout vertical de tarjetas y subtitulo', () => {
+    it('modo semanal: misma tabla que el mensual en formato vertical compacto', () => {
         const week = servicios.slice(0, 3)
         const { container } = render(
             <ExportLayout
@@ -251,7 +251,6 @@ describe('ExportLayout export branding', () => {
                 servicios={week}
                 periodSubtitle="Semana 1 de 2 - 7 a 10 may"
                 exportScope="week"
-                sectionLabel="Labores generales"
             />,
         )
         expect(container.firstElementChild).toHaveStyle({
@@ -259,10 +258,14 @@ describe('ExportLayout export branding', () => {
             minWidth: `${EXPORT_WEEK_LAYOUT_WIDTH_PX}px`,
         })
         expect(screen.getByText('Semana 1 de 2 - 7 a 10 may')).toBeInTheDocument()
-        expect(screen.getByText('Labores generales')).toBeInTheDocument()
-        expect(screen.queryByRole('table')).not.toBeInTheDocument()
+        // Sin píldora de sección: el título del documento ya indica el alcance
+        expect(screen.queryByText('Labores generales')).not.toBeInTheDocument()
+        // Mismo diseño de tabla que el export mensual, compactado
+        expect(screen.getByRole('table')).toBeInTheDocument()
+        expect(screen.getByText(labels.rolFecha)).toBeInTheDocument()
         expect(screen.getAllByText('01 al 04')).toHaveLength(1)
-        expect(screen.getByText('Jueves 07-may')).toBeInTheDocument()
+        expect(screen.getAllByText('Jueves').length).toBeGreaterThanOrEqual(1)
+        expect(screen.getByText('07-may')).toBeInTheDocument()
         expect(screen.getByText('Ana Puig')).toBeInTheDocument()
         expect(screen.queryByText('idmji.org')).not.toBeInTheDocument()
         expect(screen.queryByText(/CGMJCI/)).not.toBeInTheDocument()
