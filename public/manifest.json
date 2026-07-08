@@ -49,6 +49,13 @@
     }
   ],
   "id": "idmji-sabadell-pwa",
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://idmji-gestor.vercel.app/manifest.json",
+      "id": "idmji-sabadell-pwa"
+    }
+  ],
   "prefer_related_applications": false,
   "launch_handler": {
     "client_mode": "navigate-existing"

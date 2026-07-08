@@ -822,6 +822,8 @@ export const translations = {
         'pwa.manualDesc': 'Si no aparece el botón automático, instala manualmente desde el menú del navegador.',
         'pwa.manualStep1': 'Abre el menú ⋮ (tres puntos) del navegador.',
         'pwa.manualStep2': 'Elige «Instalar aplicación» o «Añadir a pantalla de inicio».',
+        'pwa.recentUninstallHint': 'Si acabas de desinstalar la app, cierra Chrome por completo y vuelve a abrirlo: Android tarda unos minutos en permitir reinstalarla.',
+        'pwa.androidInAppWarning': 'Estás en un navegador limitado. Para instalar, abre esta web en Chrome.',
         'pwa.iosInAppWarning': 'Estás en un navegador limitado. Para instalar, abre esta web en Safari.',
         'notifications.prompt.title': '¿Activar notificaciones?',
         'notifications.prompt.desc': 'Recibe recordatorios de tus asignaciones directamente en tu móvil.',
@@ -1719,6 +1721,8 @@ export const translations = {
         'pwa.manualDesc': 'Si no apareix el botó automàtic, instal·la manualment des del menú del navegador.',
         'pwa.manualStep1': 'Obre el menú ⋮ (tres punts) del navegador.',
         'pwa.manualStep2': 'Tria «Instal·lar aplicació» o «Afegir a la pantalla d\'inici».',
+        'pwa.recentUninstallHint': 'Si acabes de desinstal·lar l\'app, tanca Chrome del tot i torna a obrir-lo: Android triga uns minuts a permetre reinstal·lar-la.',
+        'pwa.androidInAppWarning': 'Estàs en un navegador limitat. Per instal·lar, obre aquesta web a Chrome.',
         'pwa.iosInAppWarning': 'Estàs en un navegador limitat. Per instal·lar, obre aquesta web a Safari.',
 
         // Notifications

@@ -12,6 +12,7 @@ import {
     readInstallPromptStorage,
     markPromptShownThisSession,
     resetInstallPromptAfterUninstall,
+    shouldShowManualFallback,
     shouldUseNativeInstallFlow,
 } from './pwa-install-prompt'
 
@@ -93,6 +94,54 @@ describe('detectPlatform', () => {
         )
         expect(p.name).toBe('ios')
         expect(p.isSafari).toBe(false)
+    })
+
+    const IPAD_OS_UA =
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15'
+
+    it('detecta iPadOS 13+ (UA Macintosh) por soporte táctil', () => {
+        const p = detectPlatform(IPAD_OS_UA, 5)
+        expect(p.name).toBe('ios')
+        expect(p.isSafari).toBe(true)
+    })
+
+    it('Mac de escritorio (sin táctil) NO es iOS', () => {
+        const p = detectPlatform(IPAD_OS_UA, 0)
+        expect(p.name).toBe('other')
+    })
+})
+
+describe('shouldShowManualFallback', () => {
+    const base = {
+        platform: 'android' as const,
+        hasDeferredPrompt: false,
+        isStandalone: false,
+        relatedAppInstalled: null,
+    }
+
+    it('Android sin BIP → fallback manual (caso desinstalación reciente)', () => {
+        expect(shouldShowManualFallback(base)).toBe(true)
+    })
+
+    it('con beforeinstallprompt disponible NO hay fallback (flujo nativo)', () => {
+        expect(shouldShowManualFallback({ ...base, hasDeferredPrompt: true })).toBe(false)
+    })
+
+    it('en standalone NO hay fallback', () => {
+        expect(shouldShowManualFallback({ ...base, isStandalone: true })).toBe(false)
+    })
+
+    it('con app instalada confirmada NO hay fallback', () => {
+        expect(shouldShowManualFallback({ ...base, relatedAppInstalled: true })).toBe(false)
+    })
+
+    it('iOS y desktop NO usan el fallback de Android', () => {
+        expect(shouldShowManualFallback({ ...base, platform: 'ios' })).toBe(false)
+        expect(shouldShowManualFallback({ ...base, platform: 'other' })).toBe(false)
+    })
+
+    it('tras desinstalar (related=false) sí ofrece el fallback', () => {
+        expect(shouldShowManualFallback({ ...base, relatedAppInstalled: false })).toBe(true)
     })
 })
 

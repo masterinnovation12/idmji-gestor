@@ -17,6 +17,13 @@ export const REPROMPT_DAYS = 14
 export const INSTALL_PROMPT_DELAY_MS = 5000
 export const IOS_PROMPT_DELAY_MS = 4000
 
+/**
+ * Android sin beforeinstallprompt tras este tiempo → instrucciones manuales.
+ * Caso típico: WebAPK recién desinstalada (Chrome tarda en refrescar su
+ * registro interno y mientras tanto no dispara el evento).
+ */
+export const ANDROID_MANUAL_FALLBACK_DELAY_MS = 12000
+
 export const PWA_SW_READY_EVENT = 'idmji-sw-ready'
 
 export type PwaPlatform = 'ios' | 'android' | 'other'
@@ -27,9 +34,11 @@ export interface PlatformInfo {
     isSafari: boolean
 }
 
-export function detectPlatform(userAgent: string): PlatformInfo {
+export function detectPlatform(userAgent: string, maxTouchPoints = 0): PlatformInfo {
     const ua = userAgent.toLowerCase()
-    const isIOS = /iphone|ipad|ipod/.test(ua)
+    // iPadOS 13+ se anuncia como Macintosh; se distingue por el soporte táctil.
+    const isIPadOs = /macintosh/.test(ua) && maxTouchPoints > 1
+    const isIOS = /iphone|ipad|ipod/.test(ua) || isIPadOs
     const isAndroid = /android/.test(ua)
     const isInApp = /fbav|instagram|fb_iab|fban|messenger|whatsapp|fbss|line\/|micromessenger/i.test(ua)
 
@@ -117,6 +126,28 @@ export async function waitForInstallServiceWorker(
 /** Android/Chrome: solo banner si hay beforeinstallprompt (instalación nativa) */
 export function shouldUseNativeInstallFlow(platform: PwaPlatform): boolean {
     return platform === 'android' || platform === 'other'
+}
+
+export interface ManualFallbackInput {
+    platform: PwaPlatform
+    hasDeferredPrompt: boolean
+    isStandalone: boolean
+    relatedAppInstalled: RelatedAppInstallState
+}
+
+/**
+ * Android sin beforeinstallprompt → instrucciones manuales de instalación.
+ * Cubre el hueco en que Chrome no ofrece instalación nativa (p. ej. justo
+ * después de desinstalar la WebAPK, o navegadores Android sin soporte BIP).
+ * Solo Android: en desktop Firefox/Safari no existe instalación PWA real y
+ * en iOS el flujo ya son instrucciones.
+ */
+export function shouldShowManualFallback(input: ManualFallbackInput): boolean {
+    if (input.platform !== 'android') return false
+    if (input.hasDeferredPrompt) return false
+    if (input.isStandalone) return false
+    if (input.relatedAppInstalled === true) return false
+    return true
 }
 
 export interface ShouldShowInstallPromptInput {
