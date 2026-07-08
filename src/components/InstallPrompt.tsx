@@ -42,6 +42,7 @@ import {
     readInstallPromptStorage,
     resetInstallPromptForRetry,
     resolveAndroidFallbackView,
+    shouldOfferNativeInstallButton,
     shouldShowInstallPrompt,
     shouldUseNativeInstallFlow,
     syncPwaInstalledStorage,
@@ -101,7 +102,13 @@ export function InstallPrompt() {
 
         if (mode === 'banner') {
             const isNativeFlow = platform && shouldUseNativeInstallFlow(platform.name)
-            if (isNativeFlow && !deferredPromptRef.current) return
+            if (isNativeFlow && !deferredPromptRef.current) {
+                if (platform.supportsWebApk === false) {
+                    mode = 'android-manual'
+                } else {
+                    return
+                }
+            }
         }
 
         showScheduledRef.current = true
@@ -156,6 +163,18 @@ export function InstallPrompt() {
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault()
             const bip = e as BeforeInstallPromptEvent
+            const ua = window.navigator.userAgent
+            const p = detectPlatform(ua, window.navigator.maxTouchPoints ?? 0)
+
+            // Brave dispara BIP pero solo crea acceso directo — no guardar ni ofrecer Instalar
+            if (p.name === 'android' && !p.supportsWebApk) {
+                if (showTimer) clearTimeout(showTimer)
+                showTimer = setTimeout(() => {
+                    if (installReadyRef.current) revealPromptRef.current('android-manual')
+                }, INSTALL_PROMPT_DELAY_MS)
+                return
+            }
+
             deferredPromptRef.current = bip
             setDeferredPrompt(bip)
             setView((current) =>
@@ -185,7 +204,7 @@ export function InstallPrompt() {
         let iosTimer: ReturnType<typeof setTimeout> | null = null
         let fallbackTimer: ReturnType<typeof setTimeout> | null = null
 
-        if (deferredPrompt) {
+        if (deferredPrompt && platform?.supportsWebApk !== false) {
             showTimer = setTimeout(() => {
                 if (isMounted) revealPrompt('banner')
             }, INSTALL_PROMPT_DELAY_MS)
@@ -236,6 +255,8 @@ export function InstallPrompt() {
             setView('ios-steps')
             return
         }
+
+        if (!shouldOfferNativeInstallButton(platform, !!deferredPrompt)) return
 
         if (!deferredPrompt) return
 
@@ -293,16 +314,27 @@ export function InstallPrompt() {
 
     return (
         <AnimatePresence>
+            <motion.button
+                type="button"
+                key="install-prompt-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-40 bg-black/50 md:bg-black/40"
+                aria-label={t('common.close')}
+                onClick={handleLater}
+                data-testid="pwa-install-backdrop"
+            />
             <motion.div
                 key="install-prompt-modal"
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className="fixed bottom-4 left-3 right-3 z-50 md:left-auto md:right-6 md:w-[390px]"
+                className="fixed inset-x-0 bottom-0 z-50 md:inset-x-auto md:left-auto md:right-6 md:bottom-4 md:w-[390px] pb-[env(safe-area-inset-bottom)]"
                 data-testid="pwa-install-prompt"
             >
-                <div className="relative overflow-hidden rounded-2xl border border-[rgba(184,150,74,0.45)] shadow-2xl bg-gradient-to-b from-[#1f2e85] via-[#1b2a72] to-[#151f5c] backdrop-blur-xl max-h-[85vh] overflow-y-auto">
+                <div className="relative overflow-x-hidden rounded-t-2xl md:rounded-2xl border border-[rgba(184,150,74,0.45)] shadow-2xl bg-gradient-to-b from-[#1f2e85] via-[#1b2a72] to-[#151f5c] backdrop-blur-xl max-h-[min(85dvh,calc(100dvh-env(safe-area-inset-bottom)))] overflow-y-auto overscroll-y-contain touch-manipulation">
                     <div
                         aria-hidden
                         className="h-1 sticky top-0 z-10"
@@ -501,7 +533,7 @@ export function InstallPrompt() {
                                     data-testid="pwa-no-webapk-warning"
                                 >
                                     <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider" suppressHydrationWarning>
-                                        {t('pwa.noWebApkWarning')}
+                                        {t('pwa.braveShortcutOnly')}
                                     </p>
                                 </div>
                             )}
