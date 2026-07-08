@@ -1,6 +1,8 @@
 /**
- * Geometría y marca del splash PWA (pantalla de arranque: fondo blanco + logo
+ * Geometría y marca del splash PWA (pantalla de arranque: fondo navy + logo
  * dentro de un marco dorado, igual que el badge del logo en los PNG exportados).
+ * El splash del sistema (manifest) y el splash in-app usan el mismo diseño
+ * para que el arranque se perciba como una sola pantalla.
  *
  * Fuente única de verdad para:
  * - `scripts/generate-splash.js` (genera el PNG de iOS con la misma fórmula).
@@ -19,7 +21,11 @@ export const SPLASH_GOLD = {
     shine: '#e3cc92',
 } as const
 
-export const SPLASH_BG = '#ffffff'
+/** Fondo del splash: navy institucional (igual que manifest background_color). */
+export const SPLASH_BG = '#1f2e85'
+
+/** Interior del badge (aro entre marco dorado y logo). */
+export const SPLASH_BADGE_INNER = '#ffffff'
 
 /** Tamaño del PNG de iOS (iPhone Pro Max, cubre la mayoría por escalado). */
 export const SPLASH_IPHONE_WIDTH = 1290

@@ -1,11 +1,12 @@
 'use client'
 
 /**
- * Splash in-app de marca (fondo blanco + logo en marco dorado, igual que el
- * badge del PNG exportado). Se renderiza en el HTML inicial (SSR) para pintar
- * al instante y puentear el arranque de la PWA, y se desvanece cuando la app
- * está lista. Solo visible en modo standalone (PWA instalada) o con la clase
- * `pwa-splash-force` en <html> (para pruebas/preview).
+ * Splash in-app de marca (fondo navy + logo en marco dorado, idéntico al
+ * splash del sistema que genera el manifest). Se renderiza en el HTML inicial
+ * (SSR) para pintar al instante y puentear el arranque de la PWA, y se
+ * desvanece cuando la app está lista. Al ser igual que el splash del sistema,
+ * el usuario percibe una sola pantalla de arranque. Solo visible en modo
+ * standalone (PWA instalada) o con `pwa-splash-force` en <html> (pruebas).
  */
 
 import { useEffect, useRef, useState } from 'react'

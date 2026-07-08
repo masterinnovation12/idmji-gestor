@@ -1,5 +1,5 @@
 /**
- * E2E — splash in-app de marca (PWA): fondo blanco + logo en marco dorado.
+ * E2E — splash in-app de marca (PWA): fondo navy + logo en marco dorado.
  *
  * El splash solo se muestra en modo standalone. Como el navegador de pruebas no
  * está en standalone, usamos los hooks del componente:
@@ -22,11 +22,12 @@ test.describe('PWA splash de marca', () => {
         await expect(logo).toHaveAttribute('src', /logo\.jpg/)
     })
 
-    test('el fondo del splash es blanco', async ({ page }) => {
+    test('el fondo del splash es navy (igual que el splash del sistema)', async ({ page }) => {
         await page.goto('/?pwaSplashHold=1', { waitUntil: 'domcontentloaded' })
         const splash = page.getByTestId('app-splash')
         await expect(splash).toBeVisible()
-        await expect(splash).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+        // #1f2e85 — mismo color que manifest background_color
+        await expect(splash).toHaveCSS('background-color', 'rgb(31, 46, 133)')
     })
 
     test('el splash se desvanece cuando la app está lista', async ({ page }) => {

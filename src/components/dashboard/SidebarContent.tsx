@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Menu, Sun, Moon, ChevronRight, LogOut } from 'lucide-react'
 import NextImage from 'next/image'
+import { LogoBadge } from '@/components/LogoBadge'
 import { LanguageMenu } from '@/components/language/LanguageMenu'
 import type { TranslationKey, Language } from '@/lib/i18n/types'
 
@@ -71,13 +72,7 @@ export function SidebarContent({
                     >
                         <div className="relative w-12 h-12">
                             <div className="absolute inset-0 bg-[#b8964a]/35 blur-lg rounded-2xl animate-pulse" />
-                            <NextImage
-                                src="/logo.jpg"
-                                alt="IDMJI Logo"
-                                width={48}
-                                height={48}
-                                className="relative rounded-2xl shadow-2xl border-2 border-[#b8964a]/55"
-                            />
+                            <LogoBadge size={48} className="relative" />
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xl font-black tracking-tighter uppercase italic text-white leading-none">
@@ -89,14 +84,8 @@ export function SidebarContent({
                         </div>
                     </motion.button>
                 ) : (
-                    <button onClick={onLogoClick} className="cursor-pointer">
-                        <NextImage
-                            src="/logo.jpg"
-                            alt="IDMJI Logo"
-                            width={44}
-                            height={44}
-                            className="rounded-xl shadow-xl hover:scale-110 transition-transform cursor-pointer"
-                        />
+                    <button onClick={onLogoClick} className="cursor-pointer hover:scale-110 transition-transform">
+                        <LogoBadge size={44} />
                     </button>
                 )}
 

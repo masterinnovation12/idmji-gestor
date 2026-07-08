@@ -38,7 +38,7 @@ import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useTheme } from '@/lib/theme/ThemeProvider'
 
-import NextImage from 'next/image'
+import { LogoBadge } from '@/components/LogoBadge'
 import { LogoModal } from '@/components/LogoModal'
 
 import { NotificationPrompt } from '@/components/NotificationPrompt'
@@ -403,15 +403,7 @@ export default function DashboardLayout({
                             onClick={() => setIsLogoModalOpen(true)}
                             className="flex items-center gap-3 flex-1 justify-center pr-2 transition-transform active:scale-95 cursor-pointer"
                         >
-                            <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-2xl border-2 border-[rgba(184,150,74,0.5)] shrink-0 hover:scale-110 transition-transform">
-                                <NextImage
-                                    src="/logo.jpg"
-                                    alt="IDMJI Logo"
-                                    width={48}
-                                    height={48}
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
+                            <LogoBadge size={48} className="hover:scale-110 transition-transform" />
                             <div className="flex flex-col">
                                 <span className="font-black italic text-sm tracking-tighter text-[#1f2e85] dark:text-[#e8d9a8] leading-none">
                                     {t('common.appName')}
