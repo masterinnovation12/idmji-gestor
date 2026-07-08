@@ -156,7 +156,18 @@ export async function waitForInstallServiceWorker(
     }
 }
 
-/** Android/Chrome: solo banner si hay beforeinstallprompt (instalación nativa) */
+/** Android/Chrome: banner nativo solo si el navegador soporta WebAPK (no Brave/Edge) */
+export function shouldOfferNativeInstallButton(
+    platform: PlatformInfo | null,
+    hasDeferredPrompt: boolean
+): boolean {
+    if (!hasDeferredPrompt) return false
+    if (!platform) return false
+    if (platform.name === 'ios') return true
+    if (platform.name === 'android') return platform.supportsWebApk
+    return true
+}
+
 export function shouldUseNativeInstallFlow(platform: PwaPlatform): boolean {
     return platform === 'android' || platform === 'other'
 }

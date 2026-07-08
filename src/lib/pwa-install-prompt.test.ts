@@ -17,6 +17,7 @@ import {
     shouldShowManualFallback,
     shouldUseNativeInstallFlow,
     supportsAndroidWebApk,
+    shouldOfferNativeInstallButton,
     buildPwaInstallStartUrl,
     isChromeAndroid,
     PWA_INSTALL_START_URL,
@@ -396,6 +397,23 @@ describe('resetInstallPromptAfterUninstall', () => {
         expect(win.localStorage.getItem(PWA_STORAGE_KEYS.INSTALLED)).toBeNull()
         expect(win.localStorage.getItem(PWA_STORAGE_KEYS.DISMISS_AT)).toBeNull()
         expect(win.sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBeNull()
+    })
+})
+
+describe('shouldOfferNativeInstallButton', () => {
+    const chromeAndroid = detectPlatform(
+        'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
+    )
+    const braveAndroid = detectPlatform(
+        'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Brave/1.73.89'
+    )
+
+    it('Chrome Android con BIP → sí botón Instalar', () => {
+        expect(shouldOfferNativeInstallButton(chromeAndroid, true)).toBe(true)
+    })
+
+    it('Brave Android con BIP → NO botón Instalar (solo acceso directo)', () => {
+        expect(shouldOfferNativeInstallButton(braveAndroid, true)).toBe(false)
     })
 })
 

@@ -230,6 +230,22 @@ describe('InstallPrompt', () => {
             expect(screen.getByText(/abre esta web en Chrome/i)).toBeInTheDocument()
         })
 
+        it('Brave con beforeinstallprompt muestra manual, no banner Instalar', async () => {
+            stubBraveAndroid()
+
+            renderInstallPrompt()
+            await flushInstallSync()
+
+            await act(async () => {
+                window.dispatchEvent(createBipEvent())
+                await vi.advanceTimersByTimeAsync(INSTALL_PROMPT_DELAY_MS)
+            })
+
+            expect(screen.getByTestId('pwa-android-manual')).toBeInTheDocument()
+            expect(screen.getByText(/solo añade un acceso directo/i)).toBeInTheDocument()
+            expect(screen.queryByTestId('pwa-install-confirm')).not.toBeInTheDocument()
+        })
+
         it('Brave Android avisa que solo crea acceso directo (usar Chrome para WebAPK)', async () => {
             stubBraveAndroid()
 
@@ -243,7 +259,7 @@ describe('InstallPrompt', () => {
             expect(screen.getByTestId('pwa-android-manual')).toBeInTheDocument()
             expect(screen.queryByTestId('pwa-android-chrome-recovery')).not.toBeInTheDocument()
             expect(screen.getByTestId('pwa-no-webapk-warning')).toBeInTheDocument()
-            expect(screen.getByText(/solo crean un acceso directo/i)).toBeInTheDocument()
+            expect(screen.getByText(/solo añade un acceso directo/i)).toBeInTheDocument()
             expect(screen.getByText(/Google Chrome/i)).toBeInTheDocument()
         })
 
