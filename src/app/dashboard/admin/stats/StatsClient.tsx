@@ -25,7 +25,7 @@ import {
     Cell
 } from 'recharts'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import BackButton from '@/components/BackButton'
+import PageHero from '@/components/PageHero'
 
 interface StatsClientProps {
     readonly initialStats: UserStats[]
@@ -113,24 +113,13 @@ export default function StatsClient({
 
     return (
         <div className="ofrenda-liquid-scope space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <BackButton fallbackUrl="/dashboard/admin" />
-            </div>
-
             {/* Hero liquid (marino + dorado) */}
-            <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] p-4 sm:p-6 shadow-xl">
-                <div className="absolute top-0 right-0 w-72 h-72 bg-[#b8964a]/25 rounded-full blur-[90px] -translate-y-1/2 translate-x-1/4" />
-                <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
-                <div className="relative z-10 flex items-center gap-3 sm:gap-4">
-                    <div className="p-2 sm:p-3 bg-white border border-[rgba(227,204,146,0.5)] rounded-xl shrink-0 shadow-sm">
-                        <BarChart className="w-5 h-5 sm:w-6 sm:h-6 text-[#1f2e85]" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl sm:text-2xl font-bold text-white">{t('admin.stats.title')}</h1>
-                        <p className="text-white/70 text-sm">{t('admin.stats.subtitle')}</p>
-                    </div>
-                </div>
-            </div>
+            <PageHero
+                title={t('admin.stats.title')}
+                subtitle={t('admin.stats.subtitle')}
+                icon={BarChart}
+                animate={false}
+            />
 
             {/* Tabs - segmented liquid: activo navy+dorado */}
             <div className="inline-flex gap-1 p-1.5 rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] w-fit">

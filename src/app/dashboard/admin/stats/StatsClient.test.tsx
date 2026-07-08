@@ -16,10 +16,6 @@ vi.mock('./actions', () => ({
     getStatsSummary: vi.fn(),
 }))
 
-vi.mock('@/components/BackButton', () => ({
-    default: () => <button type="button">Volver</button>,
-}))
-
 const mockStats = [
     {
         userId: 'u1',
@@ -83,10 +79,13 @@ describe('StatsClient', () => {
         expect(screen.getAllByText('Salmos 23:1-6').length).toBeGreaterThan(0)
     })
 
-    it('muestra BackButton', () => {
+    it('muestra el encabezado hero (marino + dorado)', () => {
         render(<StatsClient {...defaultProps} />)
 
-        expect(screen.getByRole('button', { name: /volver/i })).toBeInTheDocument()
+        const hero = screen.getByTestId('page-hero')
+        expect(hero).toBeInTheDocument()
+        expect(hero.className).toContain('from-[#1f2e85]')
+        expect(screen.getByRole('heading', { name: 'admin.stats.title' })).toBeInTheDocument()
     })
 
     it('filtra por búsqueda', () => {

@@ -14,8 +14,3 @@ export function exportIncludesSacosRows(scope: ExportPeopleScope): boolean {
 export function exportIncludesGroup1(scope: ExportPeopleScope): boolean {
     return scope === 'all'
 }
-
-/** Sufijo de nombre de archivo (`-colaboradores`). */
-export function exportPeopleScopeFileSuffix(scope: ExportPeopleScope): string {
-    return scope === 'g2' ? '-colaboradores' : ''
-}

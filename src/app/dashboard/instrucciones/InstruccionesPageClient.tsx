@@ -10,6 +10,7 @@ import {
 import type { CultoInstrucciones, RolInfo } from './actions'
 import type { RolInstruccionCulto } from '@/types/database'
 import { useI18n } from '@/lib/i18n/I18nProvider'
+import PageHero from '@/components/PageHero'
 import { sortInstruccionRoles } from '@/lib/instrucciones/sortInstruccionRoles'
 
 /* ─── Config visual por tipo de culto ─────────────────────────
@@ -272,40 +273,27 @@ export default function InstruccionesPageClient({ cultos }: Props) {
     <div className="ofrenda-liquid-scope space-y-6 pb-8">
 
       {/* ── Header ─────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          {activeCulto && (() => {
-            const style = getCultoStyle(activeCulto.nombre)
-            const { icon: Icon } = style
-            return (
-              <div className={`p-2.5 rounded-xl ${style.accentBg}`}>
-                <Icon className={`w-6 h-6 ${style.accentText}`} />
-              </div>
-            )
-          })()}
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground" suppressHydrationWarning>
-              {t('nav.instrucciones')}
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5" suppressHydrationWarning>
-              {t('instrucciones.subtitle')}
-            </p>
+      <PageHero
+        title={t('nav.instrucciones')}
+        subtitle={t('instrucciones.subtitle')}
+        icon={activeCulto ? getCultoStyle(activeCulto.nombre).icon : BookMarked}
+        actions={
+          <div className="flex flex-wrap items-center gap-1.5 xl:justify-end">
+            {cultos.map((c) => {
+              const published = c.roles.filter((r) => r.publicado).length
+              return (
+                <div
+                  key={c.cultoTypeId}
+                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/10 border border-[rgba(227,204,146,0.3)] text-white/90"
+                >
+                  {c.nombre.split(' ')[0]}
+                  <span className="ml-1 text-[#e3cc92]">·{published}/{c.roles.length}</span>
+                </div>
+              )
+            })}
           </div>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          {cultos.map((c) => {
-            const style = getCultoStyle(c.nombre)
-            const published = c.roles.filter((r) => r.publicado).length
-            return (
-              <div key={c.cultoTypeId} className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${style.pill}`}>
-                {c.nombre.split(' ')[0]}
-                <span className="ml-1 opacity-60">·{published}/{c.roles.length}</span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+        }
+      />
 
       {/* ── Tabs ── Accesibilidad: Añadidos roles de pestañas ──────── */}
       <div className="flex flex-wrap gap-2" role="tablist" aria-label={t('instrucciones.cultoTypesAria')}>

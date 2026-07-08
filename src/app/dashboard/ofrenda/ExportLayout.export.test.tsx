@@ -10,6 +10,7 @@ import {
     EXPORT_HEADER_ROOT_TEST_ID,
     EXPORT_HEADER_TEXT_TEST_ID,
 } from './exportHeaderLayout'
+import { EXPORT_WEEK_LAYOUT_WIDTH_PX } from './exportLayoutMetrics'
 import type { PlanCompleto, OfrMiembro, OfrServicio } from './actions'
 import type { OfrendaExportLabels } from './ofrendaLocale'
 
@@ -26,15 +27,15 @@ const labels: OfrendaExportLabels = {
     colaborador1: 'Col. 1',
     colaborador2: 'Col. 2',
     colaborador3: 'Col. 3',
-    primeraVez: 'Colaborador 1ª vez',
-    segundaTerceraVez: 'Colaborador 2ª y 3ª vez',
-    imposicionManos: 'Imposición de manos',
+    primeraVez: 'Colaborador 1a vez',
+    segundaTerceraVez: 'Colaborador 2a y 3a vez',
+    imposicionManos: 'Imposicion de manos',
     jueves: 'Jueves',
     domingo: 'Domingo',
-    manana: 'Mañana',
+    manana: 'Manana',
     tarde: 'Tarde',
     legendJueves: 'Jueves',
-    legendDomManana: 'Dom. mañana',
+    legendDomManana: 'Dom. manana',
     legendDomTarde: 'Dom. tarde',
     officialSite: 'idmji.org',
     footer: 'Generado por Gestor',
@@ -88,6 +89,51 @@ const servicios: OfrServicio[] = [
     },
 ]
 
+const miembros: OfrMiembro[] = [
+    {
+        id: 'u1',
+        nombre: 'Ana Puig',
+        grupo: 1,
+        activo: true,
+        orden: 1,
+        puede_jueves: true,
+        puede_domingo_manana: true,
+        puede_domingo_tarde: true,
+        fijo_dia_tipo: null,
+        fijo_rol: null,
+        profile_id: null,
+        created_at: '',
+    },
+    {
+        id: 'u2',
+        nombre: 'Marc Vidal de la Fuente',
+        grupo: 1,
+        activo: true,
+        orden: 2,
+        puede_jueves: true,
+        puede_domingo_manana: true,
+        puede_domingo_tarde: true,
+        fijo_dia_tipo: null,
+        fijo_rol: null,
+        profile_id: null,
+        created_at: '',
+    },
+    {
+        id: 'u3',
+        nombre: 'Noelia Roca',
+        grupo: 2,
+        activo: true,
+        orden: 3,
+        puede_jueves: true,
+        puede_domingo_manana: true,
+        puede_domingo_tarde: true,
+        fijo_dia_tipo: null,
+        fijo_rol: null,
+        profile_id: null,
+        created_at: '',
+    },
+]
+
 const plan: PlanCompleto = {
     plan: {
         id: 'p1',
@@ -103,11 +149,13 @@ const plan: PlanCompleto = {
         created_at: '',
     },
     servicios,
-    asignaciones: [],
-    miembros: [],
+    asignaciones: [
+        { id: 'a1', servicio_id: 's1', rol: 'realiza', miembro_id: 'u1', es_override: false },
+        { id: 'a2', servicio_id: 's1', rol: 'apoyo', miembro_id: 'u2', es_override: false },
+        { id: 'a3', servicio_id: 's2', rol: 'colaborador_1', miembro_id: 'u3', es_override: false },
+    ],
+    miembros,
 }
-
-const miembros: OfrMiembro[] = []
 
 vi.mock('next/image', () => ({
     default: () => null,
@@ -129,7 +177,7 @@ describe('ExportLayout export branding', () => {
         expect(screen.getByText(/Generado por Gestor/)).toBeInTheDocument()
     })
 
-    it('título sin año duplicado', () => {
+    it('titulo sin anio duplicado', () => {
         render(
             <ExportHeaderBlock
                 labels={labels}
@@ -146,7 +194,7 @@ describe('ExportLayout export branding', () => {
             <ExportHeaderBlock
                 labels={labels}
                 periodLabel="Mayo 2026"
-                periodSubtitle="Semana 1 de 4 · 7 – 10 may"
+                periodSubtitle="Semana 1 de 4 - 7 a 10 may"
             />,
         )
         const root = screen.getByTestId(EXPORT_HEADER_ROOT_TEST_ID)
@@ -191,9 +239,9 @@ describe('ExportLayout export branding', () => {
         expect(screen.getByText(labels.secuencia)).toBeInTheDocument()
     })
 
-    it('modo semanal: solo 3 columnas de servicio y subtítulo', () => {
+    it('modo semanal: misma tabla que el mensual en formato vertical compacto', () => {
         const week = servicios.slice(0, 3)
-        render(
+        const { container } = render(
             <ExportLayout
                 plan={plan}
                 miembros={miembros}
@@ -201,13 +249,62 @@ describe('ExportLayout export branding', () => {
                 anio={2026}
                 labels={labels}
                 servicios={week}
-                periodSubtitle="Semana 1 de 2 · 7 – 10 may"
+                periodSubtitle="Semana 1 de 2 - 7 a 10 may"
                 exportScope="week"
             />,
         )
-        expect(screen.getByText('Semana 1 de 2 · 7 – 10 may')).toBeInTheDocument()
+        expect(container.firstElementChild).toHaveStyle({
+            width: `${EXPORT_WEEK_LAYOUT_WIDTH_PX}px`,
+            minWidth: `${EXPORT_WEEK_LAYOUT_WIDTH_PX}px`,
+        })
+        expect(screen.getByText('Semana 1 de 2 - 7 a 10 may')).toBeInTheDocument()
+        // Sin píldora de sección: el título del documento ya indica el alcance
+        expect(screen.queryByText('Labores generales')).not.toBeInTheDocument()
+        // Mismo diseño de tabla que el export mensual, compactado
+        expect(screen.getByRole('table')).toBeInTheDocument()
+        expect(screen.getByText(labels.rolFecha)).toBeInTheDocument()
         expect(screen.getAllByText('01 al 04')).toHaveLength(1)
+        expect(screen.getAllByText('Jueves').length).toBeGreaterThanOrEqual(1)
+        expect(screen.getByText('07-may')).toBeInTheDocument()
+        expect(screen.getByText('Ana Puig')).toBeInTheDocument()
         expect(screen.queryByText('idmji.org')).not.toBeInTheDocument()
         expect(screen.queryByText(/CGMJCI/)).not.toBeInTheDocument()
+    })
+
+    it('modo mensual conserva tabla horizontal', () => {
+        render(
+            <ExportLayout
+                plan={plan}
+                miembros={miembros}
+                mesTitulo="Mayo"
+                anio={2026}
+                labels={labels}
+                exportScope="month"
+            />,
+        )
+        expect(screen.getByRole('table')).toBeInTheDocument()
+        expect(screen.getByText(labels.rolFecha)).toBeInTheDocument()
+    })
+
+    it('formatea el pie con locale catalan cuando se indica', () => {
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2026-07-07T10:00:00'))
+        try {
+            render(
+                <ExportLayout
+                    plan={plan}
+                    miembros={miembros}
+                    mesTitulo="Juliol"
+                    anio={2026}
+                    labels={labels}
+                    locale="ca-ES"
+                    exportScope="week"
+                    servicios={servicios.slice(0, 1)}
+                />,
+            )
+            expect(screen.getAllByText(/juliol/i).length).toBeGreaterThanOrEqual(1)
+        } finally {
+            vi.useRealTimers()
+        }
     })
 })

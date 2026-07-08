@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import AvatarEditor from '@/components/AvatarEditor'
+import PageHero from '@/components/PageHero'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import NextImage from 'next/image'
@@ -211,27 +212,21 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
     return (
         <div className="ofrenda-liquid-scope space-y-8 animate-in fade-in duration-500 no-scrollbar" data-page="users">
             {/* Header hero liquid (marino + dorado) */}
-            <div className="relative overflow-hidden flex flex-col md:flex-row gap-4 justify-between items-start md:items-center p-6 rounded-3xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] shadow-xl">
-                <div className="absolute top-0 right-0 w-72 h-72 bg-[#b8964a]/25 rounded-full blur-[90px] -translate-y-1/2 translate-x-1/4" />
-                <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
-                <div className="relative z-10">
-                    <h1 className="text-3xl font-black tracking-tight flex items-center gap-3 text-white">
-                        <Users className="w-8 h-8 text-[#e3cc92]" />
-                        {t('users.title')}
-                    </h1>
-                    <p className="text-white/70 mt-1 font-medium">{t('users.desc')}</p>
-                </div>
-
-                <div className="relative z-10 flex items-center gap-3 w-full md:w-auto">
+            <PageHero
+                title={t('users.title')}
+                subtitle={t('users.desc')}
+                icon={Users}
+                animate={false}
+                actions={
                     <Button
                         onClick={() => { resetForm(); setIsCreateOpen(true) }}
-                        className="gap-2 rounded-xl font-bold border-2 border-[#b8964a] bg-white text-[#1f2e85] hover:bg-[#f8f3e8] shadow-lg"
+                        className="w-full lg:w-auto gap-2 rounded-xl font-bold border-2 border-[#b8964a] bg-white text-[#1f2e85] hover:bg-[#f8f3e8] shadow-lg"
                     >
                         <Plus className="w-5 h-5" />
                         {t('users.new')}
                     </Button>
-                </div>
-            </div>
+                }
+            />
 
             {/* Search & Stats Bar */}
             <div className="grid md:grid-cols-4 gap-4">

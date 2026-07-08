@@ -19,15 +19,15 @@ import { ExportScopeControls, type ExportScope } from './ExportScopeControls'
 import { ExportPeopleScopeControls } from './ExportPeopleScopeControls'
 import {
     type ExportPeopleScope,
-    exportPeopleScopeFileSuffix,
     exportIncludesGroup1,
     exportIncludesSacosRows,
 } from './exportPeopleScope'
 import {
     exportPdfColumnLayout,
     exportPdfHeaderHeightMm,
-    exportLayoutWidthPx,
+    exportImageLayoutWidthPx,
 } from './exportLayoutMetrics'
+import { LABOR_EXPORT_MOBILE_SCALE } from './plano/laborExportResolution'
 import {
     buildWeekFileSlug,
     formatWeekRangeLabel,
@@ -75,15 +75,19 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
     const feedback = useOfrendaToast()
     const baseLabels = getExportLabels(language)
     const mesSlug = getMonthLabel(language, mes).toLowerCase().replace(/\s+/g, '-')
-    const mesFileBase = `labor-ofrenda-${mesSlug}-${anio}`
     const dateLocale = getDateFnsLocale(language)
     const [exportScope, setExportScope] = useState<ExportScope>('month')
     const [peopleScope, setPeopleScope] = useState<ExportPeopleScope>('all')
-    // Solo colaboradores (G2) → documento «Labores Profecía»; G1/ambos → «Labor Ofrenda».
-    const labels =
-        peopleScope === 'g2'
-            ? { ...baseLabels, titleDoc: t('ofrenda.export.titleDocG2') }
-            : baseLabels
+    // Solo colaboradores (G2) → «Labores Profecía»; G1+G2 → «Labores Generales».
+    const labels = {
+        ...baseLabels,
+        titleDoc:
+            peopleScope === 'g2'
+                ? t('ofrenda.export.titleDocG2')
+                : t('ofrenda.export.titleDocGeneral'),
+    }
+    // El nombre de archivo refleja el documento: labores-profecia / labores-generales.
+    const mesFileBase = `${peopleScope === 'g2' ? 'labores-profecia' : 'labores-generales'}-${mesSlug}-${anio}`
     const [extraRoles, setExtraRoles] = useState<string[]>([]) // roles G1 extra, desmarcados por defecto
     const [weekIndex, setWeekIndex] = useState(0)
 
@@ -133,8 +137,8 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
     }, [plan, exportScope, weeks, weekIndex])
 
     const layoutWidth = useMemo(
-        () => exportLayoutWidthPx(activeServicios.length),
-        [activeServicios.length],
+        () => exportImageLayoutWidthPx(activeServicios.length, exportScope),
+        [activeServicios.length, exportScope],
     )
 
     const periodSubtitle = useMemo(() => {
@@ -148,11 +152,10 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
     }, [exportScope, weekIndex, weeks.length, weekRangeLabels, t])
 
     const fileBase = useMemo(() => {
-        const peopleSuffix = exportPeopleScopeFileSuffix(peopleScope)
-        if (exportScope === 'month') return `${mesFileBase}${peopleSuffix}`
+        if (exportScope === 'month') return mesFileBase
         const slug = buildWeekFileSlug(weekIndex, weekRangeLabels[weekIndex] ?? '')
-        return `${mesFileBase}-${slug}${peopleSuffix}`
-    }, [exportScope, peopleScope, mesFileBase, weekIndex, weekRangeLabels])
+        return `${mesFileBase}-${slug}`
+    }, [exportScope, mesFileBase, weekIndex, weekRangeLabels])
 
     // Detectar Web Share API con soporte de archivos
     useEffect(() => {
@@ -198,7 +201,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
 
         setStep('encoding')
         return captureNodeToJpegDataUrl(layoutRef.current, {
-            pixelRatio: exportScope === 'week' ? 2.5 : 3,
+            pixelRatio: exportScope === 'week' ? LABOR_EXPORT_MOBILE_SCALE : 3,
             quality: 0.92,
             layoutWidth,
         })
@@ -826,6 +829,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                                     <ExportPreviewViewer
                                         imageUrl={previewUrl}
                                         alt={t('ofrenda.export.preview')}
+                                        layoutWidth={layoutWidth}
                                     />
                                 )}
                                 {!previewLoading && !previewUrl && (
@@ -869,6 +873,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                         servicios={activeServicios}
                         periodSubtitle={periodSubtitle}
                         exportScope={exportScope}
+                        locale={language === 'ca-ES' ? 'ca-ES' : 'es-ES'}
                         peopleScope={peopleScope}
                         extraG1Roles={extraRoles}
                     />

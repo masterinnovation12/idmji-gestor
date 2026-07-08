@@ -28,6 +28,7 @@ import { createFestivo, deleteFestivo, seedRandomFestivos } from './actions'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { toast } from 'sonner'
 import { Festivo } from '@/types/database'
+import PageHero from '@/components/PageHero'
 
 interface FestivosPageClientProps {
     initialFestivos: Festivo[]
@@ -131,37 +132,27 @@ export default function FestivosPageClient({ initialFestivos }: FestivosPageClie
         <div className="ofrenda-liquid-scope max-w-7xl mx-auto space-y-8 pb-20 px-4 md:px-8 relative">
 
             {/* Hero liquid (marino + dorado) con selector de año */}
-            <div className="relative overflow-hidden rounded-[2rem] md:rounded-[3rem] border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] p-6 md:p-10 shadow-2xl">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-[#b8964a]/25 rounded-full blur-[110px] -translate-y-1/2 translate-x-1/4" />
-                <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
-                <div className="relative z-10 space-y-3">
-                    <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white">
-                        {t('festivos.title')}
-                    </h1>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <p className="text-white/70 font-bold tracking-wide flex items-center gap-2 uppercase text-xs" suppressHydrationWarning>
-                            <span className="w-2 h-2 rounded-full bg-[#e3cc92] animate-pulse" />
-                            {t('festivos.subtitle' as Parameters<typeof t>[0])}
-                        </p>
-
-                        {/* Selector de Año */}
-                        <div className="flex bg-white/10 border border-[rgba(227,204,146,0.35)] p-1 rounded-xl">
-                            {years.map(year => (
-                                <button
-                                    key={year}
-                                    onClick={() => setSelectedYear(year)}
-                                    className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all ${selectedYear === year
-                                        ? 'bg-white shadow-sm text-[#1f2e85]'
-                                        : 'text-white/60 hover:text-white'
-                                        }`}
-                                >
-                                    {year}
-                                </button>
-                            ))}
-                        </div>
+            <PageHero
+                title={t('festivos.title')}
+                subtitle={t('festivos.subtitle' as Parameters<typeof t>[0])}
+                animate={false}
+                actions={
+                    <div className="flex bg-white/10 border border-[rgba(227,204,146,0.35)] p-1 rounded-xl">
+                        {years.map(year => (
+                            <button
+                                key={year}
+                                onClick={() => setSelectedYear(year)}
+                                className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all ${selectedYear === year
+                                    ? 'bg-white shadow-sm text-[#1f2e85]'
+                                    : 'text-white/60 hover:text-white'
+                                    }`}
+                            >
+                                {year}
+                            </button>
+                        ))}
                     </div>
-                </div>
-            </div>
+                }
+            />
 
             {/* Intro Stats Visual */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

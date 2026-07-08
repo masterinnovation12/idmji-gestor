@@ -18,16 +18,17 @@ type InputMode = 'touch' | 'pointer'
 interface ExportPreviewViewerProps {
     imageUrl: string
     alt: string
+    layoutWidth?: number
 }
 
 function clampZoom(z: number) {
     return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z))
 }
 
-function computeFitZoom(containerWidth: number) {
+function computeFitZoom(containerWidth: number, layoutWidth = EXPORT_LAYOUT_WIDTH) {
     const padding = 32
     const available = Math.max(containerWidth - padding, 120)
-    return clampZoom(available / EXPORT_LAYOUT_WIDTH)
+    return clampZoom(available / layoutWidth)
 }
 
 function touchDistance(touches: TouchList) {
@@ -192,6 +193,7 @@ function PanDragOverlay({ label, onDismiss }: Readonly<PanDragOverlayProps>) {
 interface PreviewCanvasProps {
     imageUrl: string
     alt: string
+    layoutWidth: number
     zoom: number
     onZoomChange: (zoom: number, userInitiated?: boolean) => void
     scrollRef: React.RefObject<HTMLDivElement | null>
@@ -205,6 +207,7 @@ interface PreviewCanvasProps {
 function PreviewCanvas({
     imageUrl,
     alt,
+    layoutWidth,
     zoom,
     onZoomChange,
     scrollRef,
@@ -214,7 +217,7 @@ function PreviewCanvas({
     onPanDismiss,
     showPanOverlay,
 }: Readonly<PreviewCanvasProps>) {
-    const displayWidth = Math.round(EXPORT_LAYOUT_WIDTH * zoom)
+    const displayWidth = Math.round(layoutWidth * zoom)
     const inputMode = useInputMode()
     const zoomRef = useRef(zoom)
     const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null)
@@ -389,7 +392,7 @@ function PreviewCanvas({
     )
 }
 
-export function ExportPreviewViewer({ imageUrl, alt }: Readonly<ExportPreviewViewerProps>) {
+export function ExportPreviewViewer({ imageUrl, alt, layoutWidth = EXPORT_LAYOUT_WIDTH }: Readonly<ExportPreviewViewerProps>) {
     const { t } = useI18n()
     const inputMode = useInputMode()
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -417,8 +420,8 @@ export function ExportPreviewViewer({ imageUrl, alt }: Readonly<ExportPreviewVie
         const el = container ?? scrollRef.current
         if (!el || el.clientWidth < 40) return
         userAdjustedRef.current = false
-        setZoom(computeFitZoom(el.clientWidth))
-    }, [])
+        setZoom(computeFitZoom(el.clientWidth, layoutWidth))
+    }, [layoutWidth])
 
     const zoomIn = useCallback(() => {
         setZoom(z => clampZoom(z + ZOOM_STEP))
@@ -460,7 +463,7 @@ export function ExportPreviewViewer({ imageUrl, alt }: Readonly<ExportPreviewVie
             if (cancelled) return
             const el = fullscreenScrollRef.current
             const w = el && el.clientWidth > 40 ? el.clientWidth : window.innerWidth
-            const fitZoom = computeFitZoom(w)
+            const fitZoom = computeFitZoom(w, layoutWidth)
             setZoom(clampZoom(Math.max(fitZoom, FULLSCREEN_MIN_ZOOM)))
             userAdjustedRef.current = false
         }
@@ -471,7 +474,7 @@ export function ExportPreviewViewer({ imageUrl, alt }: Readonly<ExportPreviewVie
             cancelled = true
             cancelAnimationFrame(id)
         }
-    }, [fullscreenOpen, imageUrl])
+    }, [fullscreenOpen, imageUrl, layoutWidth])
 
     // Bloquear scroll del dashboard detrás del visor a pantalla completa
     useEffect(() => {
@@ -516,6 +519,7 @@ export function ExportPreviewViewer({ imageUrl, alt }: Readonly<ExportPreviewVie
     const canvasProps = {
         imageUrl,
         alt,
+        layoutWidth,
         zoom,
         onZoomChange: applyZoom,
         panOverlayLabel: labels.panOverlay,

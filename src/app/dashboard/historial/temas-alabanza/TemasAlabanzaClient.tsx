@@ -13,7 +13,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import BackButton from '@/components/BackButton'
+import PageHero from '@/components/PageHero'
+import HistorialTabs from '@/app/dashboard/historial/HistorialTabs'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -188,45 +189,43 @@ export default function TemasAlabanzaClient({
     return (
         <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pb-8 sm:pb-12">
             <div suppressHydrationWarning className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 space-y-4 sm:space-y-6 pt-4 sm:pt-6">
-                <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border/50 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <BackButton fallbackUrl="/dashboard" />
-                            <div>
-                                <h1 suppressHydrationWarning className="text-xl sm:text-2xl md:text-3xl font-black text-foreground tracking-tight">
-                                    {t('temasAlabanza.title')}
-                                </h1>
-                                <p suppressHydrationWarning className="text-xs sm:text-sm text-muted-foreground mt-1 hidden sm:block">
-                                    {t('temasAlabanza.desc')}
-                                </p>
-                            </div>
-                        </div>
+                <PageHero
+                    title={t('temasAlabanza.title')}
+                    subtitle={t('temasAlabanza.desc')}
+                    icon={Sparkles}
+                    actions={
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setShowStats(!showStats)}
                                 disabled={!stats}
-                                className="text-xs sm:text-sm px-3 sm:px-4"
+                                className="text-xs sm:text-sm px-3 sm:px-4 bg-white/10 text-white border-white/25 hover:bg-white/20 hover:text-white disabled:opacity-50"
                             >
                                 <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
                                 <span suppressHydrationWarning className="hidden sm:inline">{t('temasAlabanza.stats')}</span>
                             </Button>
                             <Button
-                                variant={showFilters ? 'primary' : 'outline'}
+                                variant="outline"
                                 size="sm"
                                 onClick={() => setShowFilters(!showFilters)}
                                 data-filter-button
-                                className={`text-xs sm:text-sm px-3 sm:px-4 ${showFilters ? 'bg-primary text-primary-foreground' : ''}`}
+                                className={`text-xs sm:text-sm px-3 sm:px-4 ${showFilters ? 'bg-white text-[#1f2e85] border-white hover:bg-white hover:text-[#1f2e85]' : 'bg-white/10 text-white border-white/25 hover:bg-white/20 hover:text-white'}`}
                             >
                                 <Filter className={`w-3 h-3 sm:w-4 sm:h-4 ${showFilters ? 'animate-pulse' : ''}`} />
                                 <span suppressHydrationWarning className="hidden sm:inline">{t('temasAlabanza.filters')}</span>
                                 {hasActiveFilters && (
-                                    <span className="ml-1 w-2 h-2 rounded-full bg-blue-500" />
+                                    <span className="ml-1 w-2 h-2 rounded-full bg-[#e3cc92]" />
                                 )}
                             </Button>
                         </div>
-                    </div>
+                    }
+                />
+
+                {/* Pestañas de la sección Historial (debajo del hero) */}
+                <HistorialTabs />
+
+                <div className="space-y-4">
 
                     <AnimatePresence>
                         {showFilters && (

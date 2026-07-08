@@ -4,7 +4,7 @@ import { forwardRef } from 'react'
 import type { PlanCompleto, OfrMiembro, OfrServicio } from './actions'
 import type { OfrendaExportLabels } from './ofrendaLocale'
 import { IDMJI_BRAND, SERVICE_EXPORT_COLORS, EXPORT_CELL } from './exportBrand'
-import { exportLayoutWidthPx } from './exportLayoutMetrics'
+import { exportImageLayoutWidthPx } from './exportLayoutMetrics'
 import { ExportHeaderBlock } from './ExportHeaderBlock'
 import { formatExportPeriodLabel } from './exportHeaderShared'
 import type { ExportPeopleScope } from './exportPeopleScope'
@@ -17,6 +17,7 @@ import { rolGrupo2AplicaEnTurno } from '@/lib/utils/ofrendaEngine'
 
 const ROLES_G1_KEYS = ['realiza', 'apoyo', 'vigilancia'] as const
 const ROLES_G2_KEYS = ['colaborador_1', 'colaborador_2', 'colaborador_3'] as const
+const EMPTY_ASSIGNMENT = '—'
 /** Roles extra de G1 (opcionales en el export); orden canónico. */
 const EXTRA_G1_ORDER = ['primera_vez', 'segunda_tercera_vez', 'imposicion_manos'] as const
 
@@ -31,6 +32,7 @@ interface ExportLayoutProps {
     /** Subtítulo bajo el título (p. ej. «Semana 2 de 4 · 14–17 may»). */
     periodSubtitle?: string
     exportScope?: 'month' | 'week'
+    locale?: 'es-ES' | 'ca-ES'
     /** Completo (G1+G2+sacos) o solo colaboradores sin sacos. */
     peopleScope?: ExportPeopleScope
     /** Roles extra de G1 a incluir (primera_vez, segunda_tercera_vez, imposicion_manos). */
@@ -41,11 +43,14 @@ function getDayShort(tipo: OfrServicio['dia_tipo'], labels: OfrendaExportLabels)
     return tipo === 'jueves' ? labels.jueves : labels.domingo
 }
 
-function getFechaLabel(fecha: string): string {
+function getFechaLabel(fecha: string, locale: 'es-ES' | 'ca-ES' = 'es-ES'): string {
     const d = new Date(fecha + 'T00:00:00')
     const dia = String(d.getDate()).padStart(2, '0')
-    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-    return `${dia}-${meses[d.getMonth()]}`
+    const mes = new Intl.DateTimeFormat(locale, { month: 'short' })
+        .format(d)
+        .replace('.', '')
+        .toLowerCase()
+    return `${dia}-${mes}`
 }
 
 function getMiembroNombre(
@@ -55,9 +60,9 @@ function getMiembroNombre(
     rol: string
 ): string {
     const asig = asignaciones.find(a => a.servicio_id === servicioId && a.rol === rol)
-    if (!asig?.miembro_id) return '—'
+    if (!asig?.miembro_id) return EMPTY_ASSIGNMENT
     const m = miembros.find(m => m.id === asig.miembro_id)
-    return m ? m.nombre : '—'
+    return m ? m.nombre : EMPTY_ASSIGNMENT
 }
 
 /**
@@ -75,12 +80,13 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
         labels,
         servicios: serviciosProp,
         periodSubtitle,
-        exportScope: exportScopeProp,
+        exportScope = 'month',
+        locale = 'es-ES',
         peopleScope = 'all',
         extraG1Roles = [],
     }, ref) {
         const servicios = serviciosProp ?? plan.servicios
-        void exportScopeProp
+        const isWeekExport = exportScope === 'week'
         const collaboratorsOnly = isCollaboratorsOnlyExport(peopleScope)
         const showSacos = exportIncludesSacosRows(peopleScope)
         const showG1 = exportIncludesGroup1(peopleScope)
@@ -99,17 +105,21 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
             ...EXTRA_G1_ORDER.filter(k => extraG1Roles.includes(k)),
         ]
 
-        const layoutWidth = exportLayoutWidthPx(servicios.length)
+        const layoutWidth = exportImageLayoutWidthPx(servicios.length, exportScope)
         const periodLabel = formatExportPeriodLabel(mesTitulo, anio)
 
-        const creationDate = new Date().toLocaleDateString('es-ES', {
+        const creationDate = new Date().toLocaleDateString(locale, {
             day: '2-digit', month: 'long', year: 'numeric',
         })
 
         const weekLeftBorder = (idx: number): React.CSSProperties =>
-            idx % 3 === 0 && idx > 0
+            !isWeekExport && idx % 3 === 0 && idx > 0
                 ? { borderLeft: `2px solid ${EXPORT_CELL.weekBorder}` }
                 : {}
+
+        // Semanal: misma tabla que el mensual, compactada a formato vertical (~1080px),
+        // con tipografías y paddings ampliados para lectura en móvil.
+        const wk = <T,>(weekVal: T, monthVal: T): T => (isWeekExport ? weekVal : monthVal)
 
         return (
             <div
@@ -119,7 +129,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                     minWidth: layoutWidth,
                     backgroundColor: IDMJI_BRAND.pageBg,
                     fontFamily: IDMJI_BRAND.fontFamily,
-                    padding: '28px 32px 32px',
+                    padding: isWeekExport ? '44px 46px 48px' : '28px 32px 32px',
                     boxSizing: 'border-box',
                     color: IDMJI_BRAND.text,
                 }}
@@ -127,7 +137,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                 <div
                     style={{
                         backgroundColor: IDMJI_BRAND.surface,
-                        borderRadius: 14,
+                        borderRadius: isWeekExport ? 16 : 14,
                         overflow: 'hidden',
                         boxShadow: '0 8px 32px rgba(31,46,133,0.10), 0 2px 8px rgba(0,0,0,0.05)',
                         border: `1px solid ${IDMJI_BRAND.borderLight}`,
@@ -148,7 +158,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                             style={{
                                 width: '100%',
                                 borderCollapse: 'collapse',
-                                fontSize: 11,
+                                fontSize: wk(16, 11),
                             }}
                         >
                             <thead>
@@ -157,13 +167,13 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                     <th
                                         style={{
                                             ...thBase,
-                                            width: 145,
+                                            width: wk(230, 145),
                                             backgroundColor: IDMJI_BRAND.tableMeta,
                                             color: '#fff',
                                             textAlign: 'left',
-                                            padding: '9px 14px',
+                                            padding: wk('14px 22px', '9px 14px'),
                                             fontWeight: 800,
-                                            fontSize: 10,
+                                            fontSize: wk(14, 10),
                                         }}
                                     >
                                         {labels.rolFecha}
@@ -177,27 +187,27 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                                     ...thBase,
                                                     backgroundColor: col.headerBg,
                                                     color: '#fff',
-                                                    padding: '7px 6px',
+                                                    padding: wk('12px 8px', '7px 6px'),
                                                     textAlign: 'center',
                                                     ...weekLeftBorder(idx),
                                                 }}
                                             >
-                                                <div style={{ fontWeight: 800, fontSize: 10 }}>
+                                                <div style={{ fontWeight: 800, fontSize: wk(14, 10) }}>
                                                     {getDayShort(srv.dia_tipo, labels)}
                                                 </div>
-                                                <div style={{ fontWeight: 700, fontSize: 11 }}>
-                                                    {getFechaLabel(srv.fecha)}
+                                                <div style={{ fontWeight: 700, fontSize: wk(18, 11) }}>
+                                                    {getFechaLabel(srv.fecha, locale)}
                                                 </div>
                                                 {col.badgeBg && (
                                                     <div
                                                         style={{
-                                                            fontSize: 9,
+                                                            fontSize: wk(12, 9),
                                                             fontWeight: 700,
                                                             backgroundColor: col.badgeBg,
                                                             color: col.seqText,
                                                             borderRadius: 10,
-                                                            padding: '2px 7px',
-                                                            marginTop: 3,
+                                                            padding: wk('3px 12px', '2px 7px'),
+                                                            marginTop: wk(5, 3),
                                                             display: 'inline-block',
                                                         }}
                                                     >
@@ -216,8 +226,8 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                                 ...tdBase,
                                                 backgroundColor: IDMJI_BRAND.goldPale,
                                                 fontWeight: 800,
-                                                fontSize: 10,
-                                                padding: '6px 14px',
+                                                fontSize: wk(14, 10),
+                                                padding: wk('11px 22px', '6px 14px'),
                                                 color: IDMJI_BRAND.navy,
                                             }}
                                         >
@@ -234,9 +244,9 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                                         textAlign: 'center',
                                                         fontWeight: 800,
                                                         fontFamily: 'ui-monospace, "Courier New", monospace',
-                                                        fontSize: 12,
+                                                        fontSize: wk(18, 12),
                                                         color: col.seqText,
-                                                        padding: '6px 4px',
+                                                        padding: wk('11px 6px', '6px 4px'),
                                                         ...weekLeftBorder(idx),
                                                     }}
                                                 >
@@ -259,8 +269,8 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                                     backgroundColor: rIdx % 2 === 0 ? sCol.labelBgEven : sCol.labelBgOdd,
                                                     fontWeight: 700,
                                                     color: sCol.labelText,
-                                                    padding: '8px 14px',
-                                                    fontSize: 10,
+                                                    padding: wk('13px 22px', '8px 14px'),
+                                                    fontSize: wk(14, 10),
                                                 }}
                                             >
                                                 {roleLabels[key]}
@@ -272,8 +282,8 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                                         ...tdBase,
                                                         backgroundColor: rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd,
                                                         textAlign: 'center',
-                                                        padding: '8px 4px',
-                                                        fontSize: 11,
+                                                        padding: wk('13px 8px', '8px 4px'),
+                                                        fontSize: wk(16, 11),
                                                         fontWeight: 600,
                                                         color: IDMJI_BRAND.text,
                                                         ...weekLeftBorder(idx),
@@ -290,7 +300,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                     <tr>
                                         <td
                                             colSpan={servicios.length + 1}
-                                            style={{ height: 3, backgroundColor: EXPORT_CELL.divider, padding: 0 }}
+                                            style={{ height: wk(4, 3), backgroundColor: EXPORT_CELL.divider, padding: 0 }}
                                         />
                                     </tr>
                                 ) : null}
@@ -306,8 +316,8 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                                     backgroundColor: rIdx % 2 === 0 ? sCol.labelBgEven : sCol.labelBgOdd,
                                                     fontWeight: 700,
                                                     color: sCol.labelText,
-                                                    padding: '8px 14px',
-                                                    fontSize: 10,
+                                                    padding: wk('13px 22px', '8px 14px'),
+                                                    fontSize: wk(14, 10),
                                                 }}
                                             >
                                                 {colLabel}
@@ -319,8 +329,8 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                                         ...tdBase,
                                                         backgroundColor: rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd,
                                                         textAlign: 'center',
-                                                        padding: '8px 4px',
-                                                        fontSize: 11,
+                                                        padding: wk('13px 8px', '8px 4px'),
+                                                        fontSize: wk(16, 11),
                                                         fontWeight: 600,
                                                         color: IDMJI_BRAND.text,
                                                         ...weekLeftBorder(idx),
@@ -328,7 +338,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                                 >
                                                     {rolGrupo2AplicaEnTurno(key, srv.dia_tipo)
                                                         ? getMiembroNombre(miembros, asignaciones, srv.id, key)
-                                                        : '—'}
+                                                        : EMPTY_ASSIGNMENT}
                                                 </td>
                                             ))}
                                         </tr>
@@ -344,8 +354,8 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                             backgroundColor: IDMJI_BRAND.tableMeta,
                                             color: '#b8c0cc',
                                             fontWeight: 700,
-                                            fontSize: 9,
-                                            padding: '6px 14px',
+                                            fontSize: wk(12, 9),
+                                            padding: wk('9px 22px', '6px 14px'),
                                         }}
                                     >
                                         {labels.semanaIso}
@@ -359,8 +369,8 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                                 color: '#e2e8f0',
                                                 textAlign: 'center',
                                                 fontWeight: 700,
-                                                fontSize: 10,
-                                                padding: '6px 4px',
+                                                fontSize: wk(13, 10),
+                                                padding: wk('9px 6px', '6px 4px'),
                                                 ...weekLeftBorder(idx),
                                             }}
                                         >
@@ -377,7 +387,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                         style={{
                             borderTop: `2px solid ${IDMJI_BRAND.goldPale}`,
                             backgroundColor: '#f7f8fa',
-                            padding: '11px 24px 13px',
+                            padding: isWeekExport ? '18px 36px 20px' : '11px 24px 13px',
                             display: 'flex',
                             justifyContent: collaboratorsOnly ? 'center' : 'space-between',
                             alignItems: 'center',
@@ -386,7 +396,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                     >
                         <div
                             style={{
-                                fontSize: 9,
+                                fontSize: isWeekExport ? 14 : 9,
                                 color: IDMJI_BRAND.textMuted,
                                 fontWeight: 600,
                                 textAlign: collaboratorsOnly ? 'center' : 'left',
@@ -395,7 +405,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                             {labels.footer}{' · '}{creationDate}
                         </div>
                         {!collaboratorsOnly ? (
-                            <div style={{ fontSize: 9, color: IDMJI_BRAND.textSecondary, fontWeight: 600, textAlign: 'right' }}>
+                            <div style={{ fontSize: isWeekExport ? 13 : 9, color: IDMJI_BRAND.textSecondary, fontWeight: 600, textAlign: 'right' }}>
                                 {labels.sacosMeta(
                                     (plan.plan.sacos_jueves ?? 4) + (plan.plan.sacos_domingo ?? 8) + (plan.plan.sacos_domingo_tarde ?? 4),
                                     plan.plan.sacos_jueves ?? 4,

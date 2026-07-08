@@ -39,7 +39,8 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { LecturaBiblica } from '@/types/database'
-import BackButton from '@/components/BackButton'
+import PageHero from '@/components/PageHero'
+import HistorialTabs from '@/app/dashboard/historial/HistorialTabs'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts'
@@ -685,23 +686,20 @@ export default function LecturasPageClient({
         <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pb-8 sm:pb-12">
             <div suppressHydrationWarning className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 space-y-4 sm:space-y-6 lg:space-y-8 pt-4 sm:pt-6">
 
-                {/* Header + Búsqueda sticky en móvil: evita solapamiento al hacer scroll */}
-                <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border/50 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-4 md:space-y-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <BackButton fallbackUrl="/dashboard" />
-                            <div>
-                                <h1 suppressHydrationWarning className="text-xl sm:text-2xl md:text-3xl font-black text-foreground tracking-tight">
-                                    {t('lecturas.title')}
-                                </h1>
-                                <p suppressHydrationWarning className="text-xs sm:text-sm text-muted-foreground mt-1 hidden sm:block">
-                                    {t('lecturas.desc')}
-                                </p>
-                            </div>
-                        </div>
+                {/* Hero liquid (marino + dorado) */}
+                <PageHero
+                    title={t('lecturas.title')}
+                    subtitle={t('lecturas.desc')}
+                    icon={BookOpen}
+                    animate={false}
+                />
 
-                        {/* Acciones rápidas - Responsive */}
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                {/* Pestañas de la sección Historial (debajo del hero) */}
+                <HistorialTabs />
+
+                {/* Toolbar + búsqueda sticky: evita solapamiento al hacer scroll */}
+                <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border/50 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8 py-4 space-y-4">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:justify-end">
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -795,7 +793,6 @@ export default function LecturasPageClient({
                                 <span suppressHydrationWarning className="hidden sm:inline">{t('lecturas.share')}</span>
                             </Button>
                         </div>
-                    </div>
 
                     {/* Búsqueda dentro del sticky: evita solapamiento con resultados al hacer scroll en móvil */}
                     <div className="relative group" data-testid="lecturas-search-wrap">

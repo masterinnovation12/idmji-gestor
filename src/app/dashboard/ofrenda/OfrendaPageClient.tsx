@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Gift, Users, Download, Map, RefreshCw, Plus, Trash2, Sparkles } from 'lucide-react'
-import BackButton from '@/components/BackButton'
+import PageHero from '@/components/PageHero'
 import { OfrendaFeedbackProvider, useOfrendaToast } from './ofrendaFeedback'
 import { MiembrosManager } from './MiembrosManager'
 import { PlanoPersonasManager } from './plano/PlanoPersonasManager'
@@ -208,31 +208,18 @@ function OfrendaPageClientInner({
 
     return (
         <div className="ofrenda-liquid-scope min-h-dvh bg-background">
-            {/* ── Header ──────────────────────────────────────────────────── */}
-            <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50">
-                <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-                    <BackButton />
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="p-1.5 bg-emerald-500/10 rounded-lg shrink-0">
-                            <Gift className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <div className="min-w-0">
-                            <h1
-                                className="font-black text-base sm:text-lg leading-tight truncate"
-                                suppressHydrationWarning
-                            >
-                                {t('ofrenda.title')}
-                            </h1>
-                            <p
-                                className="text-xs text-muted-foreground hidden sm:block"
-                                suppressHydrationWarning
-                            >
-                                {t('ofrenda.subtitle')}
-                            </p>
-                        </div>
-                    </div>
-                </div>
+            {/* ── Hero liquid (marino + dorado) ───────────────────────────── */}
+            <div className="max-w-5xl mx-auto px-4 pt-4 space-y-4">
+                <PageHero
+                    title={t('ofrenda.title')}
+                    subtitle={t('ofrenda.subtitle')}
+                    icon={Gift}
+                    animate={false}
+                />
+            </div>
 
+            {/* ── Nav (secciones + mes + sub-pestañas) ─────────────────────── */}
+            <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50 pt-3">
                 {/* ── Secciones + mes global ───────────────────────────── */}
                 <div className="max-w-5xl mx-auto px-4 pb-2 space-y-3">
                     <div

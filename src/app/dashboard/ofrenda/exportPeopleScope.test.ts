@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import {
     exportIncludesGroup1,
     exportIncludesSacosRows,
-    exportPeopleScopeFileSuffix,
     isCollaboratorsOnlyExport,
 } from './exportPeopleScope'
 
@@ -13,10 +12,5 @@ describe('exportPeopleScope', () => {
         expect(exportIncludesSacosRows('g2')).toBe(false)
         expect(exportIncludesGroup1('all')).toBe(true)
         expect(exportIncludesSacosRows('all')).toBe(true)
-    })
-
-    it('sufijo de archivo para colaboradores', () => {
-        expect(exportPeopleScopeFileSuffix('all')).toBe('')
-        expect(exportPeopleScopeFileSuffix('g2')).toBe('-colaboradores')
     })
 })

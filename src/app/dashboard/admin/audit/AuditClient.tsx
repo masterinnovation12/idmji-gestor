@@ -29,6 +29,7 @@ import type { Locale } from 'date-fns'
 import { motion } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Button } from '@/components/ui/Button'
+import PageHero from '@/components/PageHero'
 import { useDebounce } from '@/hooks/use-debounce'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
@@ -183,51 +184,36 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
     return (
         <div data-testid="audit-page" className="ofrenda-liquid-scope space-y-6 md:space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
             {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-2xl md:rounded-[2.5rem] border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] via-[#283593] to-[#151f5c] p-6 md:p-10 flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center shadow-xl"
-            >
-                <div className="absolute top-0 right-0 w-80 h-80 bg-[#b8964a]/25 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/4" />
-                <div className="absolute inset-x-[8%] top-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#b68f2f,#e3cc92 42%,#d4b86a 58%,#b68f2f)', boxShadow: '0 0 12px rgba(227,204,146,0.6)' }} />
-                <div className="relative z-10 flex items-center gap-4 md:gap-6">
-                    <div className="p-4 md:p-5 bg-white border border-[rgba(227,204,146,0.5)] rounded-xl md:rounded-[1.5rem] shadow-sm">
-                        <FileText className="w-6 h-6 md:w-8 md:h-8 text-[#1f2e85]" />
-                    </div>
-                    <div>
-                        <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white">
-                            {t('audit.title')}
-                        </h1>
-                        <p className="text-white/70 text-sm md:text-base mt-1">
-                            {t('audit.desc')}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="relative z-10 flex flex-wrap gap-2 w-full lg:w-auto">
-                    <Button
-                        onClick={() => exportToExcel(false)}
-                        disabled={isExporting || movimientos.length === 0}
-                        variant="outline"
-                        className="rounded-xl md:rounded-2xl h-12 px-4 md:px-6 font-bold text-xs border-[rgba(227,204,146,0.5)] bg-white/10 text-white hover:bg-white/20 hover:text-white"
-                    >
-                        <Download className="w-4 h-4 mr-2" />
-                        {t('audit.exportPage')}
-                    </Button>
-                    <Button
-                        onClick={() => exportToExcel(true)}
-                        disabled={isExporting}
-                        className="rounded-xl md:rounded-2xl h-12 px-4 md:px-6 font-black uppercase tracking-widest text-xs border-2 border-[#b8964a] bg-white text-[#1f2e85] hover:bg-[#f8f3e8]"
-                    >
-                        {isExporting ? (
-                            <RefreshCcw className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
+            <PageHero
+                title={t('audit.title')}
+                subtitle={t('audit.desc')}
+                icon={FileText}
+                actions={
+                    <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+                        <Button
+                            onClick={() => exportToExcel(false)}
+                            disabled={isExporting || movimientos.length === 0}
+                            variant="outline"
+                            className="rounded-xl md:rounded-2xl h-12 px-4 md:px-6 font-bold text-xs border-[rgba(227,204,146,0.5)] bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                        >
                             <Download className="w-4 h-4 mr-2" />
-                        )}
-                        {t('audit.exportAll')}
-                    </Button>
-                </div>
-            </motion.div>
+                            {t('audit.exportPage')}
+                        </Button>
+                        <Button
+                            onClick={() => exportToExcel(true)}
+                            disabled={isExporting}
+                            className="rounded-xl md:rounded-2xl h-12 px-4 md:px-6 font-black uppercase tracking-widest text-xs border-2 border-[#b8964a] bg-white text-[#1f2e85] hover:bg-[#f8f3e8]"
+                        >
+                            {isExporting ? (
+                                <RefreshCcw className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <Download className="w-4 h-4 mr-2" />
+                            )}
+                            {t('audit.exportAll')}
+                        </Button>
+                    </div>
+                }
+            />
 
             {/* Filtros */}
             <motion.div

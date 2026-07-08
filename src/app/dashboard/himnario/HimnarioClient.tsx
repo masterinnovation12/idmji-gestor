@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { getHimnos, getCoros } from './actions'
-import { Music, Search, Clock, Sparkles, AudioLines, Plus } from 'lucide-react'
+import { Music, Search, Clock, AudioLines, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import BackButton from '@/components/BackButton'
+import PageHero from '@/components/PageHero'
 import { Himno, Coro } from '@/types/database'
 import HimnoCoroSelector from '@/components/HimnoCoroSelector'
 
@@ -153,35 +153,29 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
 
     return (
         <div className="ofrenda-liquid-scope max-w-6xl mx-auto space-y-8 pb-12 px-4">
-            {/* Breadcrumb y Header */}
+            {/* Header hero liquid (marino + dorado) */}
             <div className="space-y-4">
-                <BackButton fallbackUrl="/dashboard" />
-
-                <div className="flex flex-col lg:flex-row gap-8 justify-between items-start lg:items-center">
-                    <div className="space-y-2">
-                        <h1 suppressHydrationWarning className="text-4xl lg:text-5xl font-black bg-linear-to-br from-primary via-accent to-primary bg-clip-text text-transparent tracking-tight">
-                            {t('himnario.title')}
-                        </h1>
-                        <p suppressHydrationWarning className="text-muted-foreground font-medium flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-accent" />
-                            {t('himnario.desc')}
-                        </p>
-                    </div>
-
-                    <div className="relative w-full lg:w-96 group">
-                        <div className="absolute inset-0 bg-[#b8964a]/15 rounded-2xl blur-xl group-focus-within:bg-[#b8964a]/25 transition-all opacity-0 group-focus-within:opacity-100" />
-                        <div className="relative bg-white border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-2xl flex items-center px-4 h-14 shadow-lg focus-within:ring-2 focus-within:ring-[#b8964a]/30 focus-within:border-[#b8964a] transition-all">
-                            <Search className="w-5 h-5 text-[#b68f2f] mr-3" />
-                            <input
-                                type="text"
-                                placeholder={t('himnario.searchPlaceholder')}
-                                className="w-full bg-transparent border-none outline-none font-bold placeholder:text-slate-400 text-[#0f172a]"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                <PageHero
+                    title={t('himnario.title')}
+                    subtitle={t('himnario.desc')}
+                    subtitleVariant="line"
+                    icon={Music}
+                    actions={
+                        <div className="relative w-full lg:w-96 group">
+                            <div className="absolute inset-0 bg-[#b8964a]/15 rounded-2xl blur-xl group-focus-within:bg-[#b8964a]/25 transition-all opacity-0 group-focus-within:opacity-100" />
+                            <div className="relative bg-white border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-2xl flex items-center px-4 h-14 shadow-lg focus-within:ring-2 focus-within:ring-[#b8964a]/30 focus-within:border-[#b8964a] transition-all">
+                                <Search className="w-5 h-5 text-[#b68f2f] mr-3" />
+                                <input
+                                    type="text"
+                                    placeholder={t('himnario.searchPlaceholder')}
+                                    className="w-full bg-transparent border-none outline-none font-bold placeholder:text-slate-400 text-[#0f172a]"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    }
+                />
             </div>
 
             <div className="flex gap-1 p-1.5 rounded-2xl w-fit mx-auto sm:mx-0 shadow-sm border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8]">
