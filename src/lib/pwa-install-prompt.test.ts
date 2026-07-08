@@ -14,6 +14,7 @@ import {
     resetInstallPromptAfterUninstall,
     shouldShowManualFallback,
     shouldUseNativeInstallFlow,
+    supportsAndroidWebApk,
 } from './pwa-install-prompt'
 
 function createStorage(): Storage {
@@ -81,6 +82,15 @@ describe('detectPlatform', () => {
         )
         expect(p.name).toBe('android')
         expect(p.isInApp).toBe(false)
+        expect(p.supportsWebApk).toBe(true)
+    })
+
+    it('detecta Brave Android sin soporte WebAPK', () => {
+        const p = detectPlatform(
+            'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Brave/1.73.89'
+        )
+        expect(p.name).toBe('android')
+        expect(p.supportsWebApk).toBe(false)
     })
 
     it('detecta WhatsApp in-app', () => {
@@ -108,6 +118,45 @@ describe('detectPlatform', () => {
     it('Mac de escritorio (sin táctil) NO es iOS', () => {
         const p = detectPlatform(IPAD_OS_UA, 0)
         expect(p.name).toBe('other')
+    })
+})
+
+describe('supportsAndroidWebApk', () => {
+    const CHROME_ANDROID =
+        'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
+    const BRAVE_ANDROID =
+        'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Brave/1.73.89'
+
+    it('Chrome Android sí soporta WebAPK', () => {
+        expect(supportsAndroidWebApk(CHROME_ANDROID)).toBe(true)
+    })
+
+    it('Brave Android no soporta WebAPK (solo acceso directo)', () => {
+        expect(supportsAndroidWebApk(BRAVE_ANDROID)).toBe(false)
+    })
+
+    it('Firefox Android no soporta WebAPK', () => {
+        expect(
+            supportsAndroidWebApk(
+                'Mozilla/5.0 (Android 14; Mobile; rv:128.0) Gecko/128.0 Firefox/128.0'
+            )
+        ).toBe(false)
+    })
+
+    it('Samsung Internet no soporta WebAPK', () => {
+        expect(
+            supportsAndroidWebApk(
+                'Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/25.0 Chrome/121.0.0.0 Mobile Safari/537.36'
+            )
+        ).toBe(false)
+    })
+
+    it('fuera de Android no aplica la restricción', () => {
+        expect(
+            supportsAndroidWebApk(
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            )
+        ).toBe(true)
     })
 })
 

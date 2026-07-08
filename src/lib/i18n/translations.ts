@@ -823,7 +823,10 @@ export const translations = {
         'pwa.manualStep1': 'Abre el menú ⋮ (tres puntos) del navegador.',
         'pwa.manualStep2': 'Elige «Instalar aplicación» o «Añadir a pantalla de inicio».',
         'pwa.recentUninstallHint': 'Si acabas de desinstalar la app, cierra Chrome por completo y vuelve a abrirlo: Android tarda unos minutos en permitir reinstalarla.',
+        'pwa.cooldownHint': 'Si tampoco ves «Instalar aplicación» en el menú ⋮, Chrome aún está en periodo de espera tras desinstalar. Fuerza el cierre de Chrome (apps recientes → Cerrar todo), espera 5–10 minutos y pulsa Reintentar.',
+        'pwa.retryInstall': 'Reintentar',
         'pwa.androidInAppWarning': 'Estás en un navegador limitado. Para instalar, abre esta web en Chrome.',
+        'pwa.noWebApkWarning': 'Brave y otros navegadores en Android solo crean un acceso directo, no una app instalada. Para la app completa (cajón de aplicaciones, sin barra del navegador y notificaciones), abre esta web en Google Chrome.',
         'pwa.iosInAppWarning': 'Estás en un navegador limitado. Para instalar, abre esta web en Safari.',
         'notifications.prompt.title': '¿Activar notificaciones?',
         'notifications.prompt.desc': 'Recibe recordatorios de tus asignaciones directamente en tu móvil.',
@@ -1722,7 +1725,10 @@ export const translations = {
         'pwa.manualStep1': 'Obre el menú ⋮ (tres punts) del navegador.',
         'pwa.manualStep2': 'Tria «Instal·lar aplicació» o «Afegir a la pantalla d\'inici».',
         'pwa.recentUninstallHint': 'Si acabes de desinstal·lar l\'app, tanca Chrome del tot i torna a obrir-lo: Android triga uns minuts a permetre reinstal·lar-la.',
+        'pwa.cooldownHint': 'Si tampoc veus «Instal·lar aplicació» al menú ⋮, Chrome encara està en període d\'espera després de desinstal·lar. Força el tancament de Chrome (apps recents → Tanca-ho tot), espera 5–10 minuts i prem Torna-ho a provar.',
+        'pwa.retryInstall': 'Torna-ho a provar',
         'pwa.androidInAppWarning': 'Estàs en un navegador limitat. Per instal·lar, obre aquesta web a Chrome.',
+        'pwa.noWebApkWarning': 'Brave i altres navegadors a Android només creen un accés directe, no una app instal·lada. Per a l\'app completa (calaix d\'aplicacions, sense barra del navegador i notificacions), obre aquesta web a Google Chrome.',
         'pwa.iosInAppWarning': 'Estàs en un navegador limitat. Per instal·lar, obre aquesta web a Safari.',
 
         // Notifications

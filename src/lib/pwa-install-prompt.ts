@@ -32,6 +32,8 @@ export interface PlatformInfo {
     name: PwaPlatform
     isInApp: boolean
     isSafari: boolean
+    /** Android: solo Chrome crea WebAPK real; Brave/Edge/Firefox solo acceso directo */
+    supportsWebApk: boolean
 }
 
 export function detectPlatform(userAgent: string, maxTouchPoints = 0): PlatformInfo {
@@ -46,7 +48,25 @@ export function detectPlatform(userAgent: string, maxTouchPoints = 0): PlatformI
         name: isIOS ? 'ios' : isAndroid ? 'android' : 'other',
         isInApp,
         isSafari: isIOS && /safari/.test(ua) && !/crios|fxios|opr|mercury|brave/i.test(ua),
+        supportsWebApk: supportsAndroidWebApk(userAgent),
     }
+}
+
+/**
+ * WebAPK (app real en el cajón de Android) solo en Google Chrome.
+ * Brave, Firefox, Edge, Opera y Samsung Internet solo crean acceso directo.
+ */
+export function supportsAndroidWebApk(userAgent: string): boolean {
+    const ua = userAgent.toLowerCase()
+    if (!/android/.test(ua)) return true
+
+    if (/brave\//.test(ua)) return false
+    if (/firefox\//.test(ua)) return false
+    if (/edga\//.test(ua)) return false
+    if (/opr\//.test(ua)) return false
+    if (/samsungbrowser\//.test(ua)) return false
+
+    return /chrome\//.test(ua)
 }
 
 export function isPwaStandalone(win: Window): boolean {
