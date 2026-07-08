@@ -12,9 +12,14 @@ import {
     readInstallPromptStorage,
     markPromptShownThisSession,
     resetInstallPromptAfterUninstall,
+    resetInstallPromptForRetry,
+    resolveAndroidFallbackView,
     shouldShowManualFallback,
     shouldUseNativeInstallFlow,
     supportsAndroidWebApk,
+    buildPwaInstallStartUrl,
+    isChromeAndroid,
+    PWA_INSTALL_START_URL,
 } from './pwa-install-prompt'
 
 function createStorage(): Storage {
@@ -157,6 +162,72 @@ describe('supportsAndroidWebApk', () => {
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             )
         ).toBe(true)
+    })
+})
+
+describe('resolveAndroidFallbackView', () => {
+    const CHROME_ANDROID =
+        'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
+    const BRAVE_ANDROID =
+        'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Brave/1.73.89'
+
+    const base = {
+        platform: 'android' as const,
+        hasDeferredPrompt: false,
+        isStandalone: false,
+        relatedAppInstalled: null as boolean | null,
+    }
+
+    it('Chrome Android sin BIP → guía de recuperación WebAPK', () => {
+        expect(
+            resolveAndroidFallbackView({ ...base, userAgent: CHROME_ANDROID })
+        ).toBe('android-chrome-recovery')
+    })
+
+    it('Brave Android → manual genérico', () => {
+        expect(
+            resolveAndroidFallbackView({ ...base, userAgent: BRAVE_ANDROID })
+        ).toBe('android-manual')
+    })
+
+    it('con BIP disponible → null', () => {
+        expect(
+            resolveAndroidFallbackView({ ...base, hasDeferredPrompt: true, userAgent: CHROME_ANDROID })
+        ).toBeNull()
+    })
+})
+
+describe('isChromeAndroid', () => {
+    it('true solo en Chrome Android', () => {
+        expect(
+            isChromeAndroid(
+                'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
+            )
+        ).toBe(true)
+        expect(
+            isChromeAndroid(
+                'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Brave/1.73.89'
+            )
+        ).toBe(false)
+    })
+})
+
+describe('resetInstallPromptForRetry', () => {
+    it('limpia sesión y dismissedAt para permitir reintentar', () => {
+        const win = createWindow()
+        win.sessionStorage.setItem(PWA_STORAGE_KEYS.SESSION_SHOWN, 'true')
+        win.localStorage.setItem(PWA_STORAGE_KEYS.DISMISS_AT, '999')
+        resetInstallPromptForRetry(win)
+        expect(win.sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBeNull()
+        expect(win.localStorage.getItem(PWA_STORAGE_KEYS.DISMISS_AT)).toBeNull()
+    })
+})
+
+describe('buildPwaInstallStartUrl', () => {
+    it('usa start_url con utm para engagement Chrome', () => {
+        expect(buildPwaInstallStartUrl('https://idmji-gestor.vercel.app')).toBe(
+            `https://idmji-gestor.vercel.app${PWA_INSTALL_START_URL}`
+        )
     })
 })
 

@@ -11,7 +11,7 @@
  * - Stale-while-revalidate: Para recursos que cambian ocasionalmente
  */
 
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const STATIC_CACHE = `idmji-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `idmji-dynamic-${CACHE_VERSION}`;
 
@@ -19,6 +19,7 @@ const DYNAMIC_CACHE = `idmji-dynamic-${CACHE_VERSION}`;
 const PRECACHE_ASSETS = [
     '/',
     '/dashboard',
+    '/dashboard?utm_source=pwa_install',
     '/login',
     '/manifest.json',
     '/logo.jpg',

@@ -173,11 +173,10 @@ describe('InstallPrompt', () => {
     })
 
     describe('Android sin beforeinstallprompt (p. ej. WebAPK recién desinstalada)', () => {
-        it('muestra el fallback manual con instrucciones y pista de reinstalación', async () => {
+        it('Chrome Android muestra guía de recuperación WebAPK', async () => {
             renderInstallPrompt()
             await flushInstallSync()
 
-            // Antes del timeout no molesta (BIP aún podría llegar)
             await act(async () => {
                 await vi.advanceTimersByTimeAsync(ANDROID_MANUAL_FALLBACK_DELAY_MS - 1000)
             })
@@ -188,30 +187,28 @@ describe('InstallPrompt', () => {
             })
 
             expect(screen.getByTestId('pwa-install-prompt')).toBeInTheDocument()
-            expect(screen.getByTestId('pwa-android-manual')).toBeInTheDocument()
-            expect(screen.getByText(/Instalar desde el navegador/i)).toBeInTheDocument()
-            expect(screen.getByTestId('pwa-recent-uninstall-hint')).toBeInTheDocument()
-            expect(screen.getByTestId('pwa-cooldown-hint')).toBeInTheDocument()
-            expect(screen.getByTestId('pwa-manual-retry')).toBeInTheDocument()
-            // Sin botón de instalación nativa: no hay BIP que lanzar
+            expect(screen.getByTestId('pwa-android-chrome-recovery')).toBeInTheDocument()
+            expect(screen.getByText(/Recuperar instalación de la app/i)).toBeInTheDocument()
+            expect(screen.getByTestId('pwa-recovery-shortcut-warning')).toBeInTheDocument()
+            expect(screen.getByTestId('pwa-recovery-step-5')).toBeInTheDocument()
             expect(screen.queryByTestId('pwa-install-confirm')).not.toBeInTheDocument()
         })
 
-        it('se mejora a flujo nativo si beforeinstallprompt llega con el fallback visible', async () => {
+        it('se mejora a flujo nativo si beforeinstallprompt llega con la recuperación visible', async () => {
             renderInstallPrompt()
             await flushInstallSync()
 
             await act(async () => {
                 await vi.advanceTimersByTimeAsync(ANDROID_MANUAL_FALLBACK_DELAY_MS)
             })
-            expect(screen.getByTestId('pwa-android-manual')).toBeInTheDocument()
+            expect(screen.getByTestId('pwa-android-chrome-recovery')).toBeInTheDocument()
 
             await act(async () => {
                 window.dispatchEvent(createBipEvent())
                 await Promise.resolve()
             })
 
-            expect(screen.queryByTestId('pwa-android-manual')).not.toBeInTheDocument()
+            expect(screen.queryByTestId('pwa-android-chrome-recovery')).not.toBeInTheDocument()
             expect(screen.getByTestId('pwa-install-confirm')).toBeInTheDocument()
         })
 
@@ -229,7 +226,7 @@ describe('InstallPrompt', () => {
                 await vi.advanceTimersByTimeAsync(ANDROID_MANUAL_FALLBACK_DELAY_MS)
             })
 
-            expect(screen.getByTestId('pwa-android-manual')).toBeInTheDocument()
+            expect(screen.getByTestId('pwa-android-chrome-recovery')).toBeInTheDocument()
             expect(screen.getByText(/abre esta web en Chrome/i)).toBeInTheDocument()
         })
 
@@ -244,9 +241,43 @@ describe('InstallPrompt', () => {
             })
 
             expect(screen.getByTestId('pwa-android-manual')).toBeInTheDocument()
+            expect(screen.queryByTestId('pwa-android-chrome-recovery')).not.toBeInTheDocument()
             expect(screen.getByTestId('pwa-no-webapk-warning')).toBeInTheDocument()
             expect(screen.getByText(/solo crean un acceso directo/i)).toBeInTheDocument()
             expect(screen.getByText(/Google Chrome/i)).toBeInTheDocument()
+        })
+
+        it('Reintentar limpia sesión y navega al start_url PWA', async () => {
+            let href = 'https://idmji-gestor.vercel.app/dashboard'
+            Object.defineProperty(window, 'location', {
+                configurable: true,
+                value: {
+                    ...window.location,
+                    origin: 'https://idmji-gestor.vercel.app',
+                    get href() {
+                        return href
+                    },
+                    set href(value: string) {
+                        href = value
+                    },
+                },
+            })
+
+            renderInstallPrompt()
+            await flushInstallSync()
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(ANDROID_MANUAL_FALLBACK_DELAY_MS)
+            })
+
+            sessionStorage.setItem(PWA_STORAGE_KEYS.SESSION_SHOWN, 'true')
+            localStorage.setItem(PWA_STORAGE_KEYS.DISMISS_AT, '123')
+
+            fireEvent.click(screen.getByTestId('pwa-manual-retry'))
+
+            expect(sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBeNull()
+            expect(localStorage.getItem(PWA_STORAGE_KEYS.DISMISS_AT)).toBeNull()
+            expect(href).toContain('/dashboard?utm_source=pwa_install')
         })
 
         it('«Entendido» oculta el fallback solo durante la sesión (sin dismissedAt)', async () => {

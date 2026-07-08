@@ -1,23 +1,29 @@
 /**
  * InstallPrompt - IDMJI Gestor de Púlpito
  *
- * Banner de instalación PWA con la identidad navy + dorado (LogoBadge).
- *
  * Flujos por plataforma:
- * - Android/desktop Chrome: si hay beforeinstallprompt → diálogo nativo al
- *   pulsar Instalar (WebAPK real en la galería de apps).
- * - Android SIN beforeinstallprompt (típico justo tras desinstalar la WebAPK:
- *   Chrome tarda en refrescar su registro interno): fallback con instrucciones
- *   del menú ⋮ y pista para cerrar Chrome por completo.
- * - iOS/iPadOS: instrucciones Compartir → Añadir a pantalla de inicio (no
- *   existe beforeinstallprompt en Safari).
+ * - Android Chrome + beforeinstallprompt → WebAPK real (botón Instalar).
+ * - Android Chrome SIN BIP (cooldown WebAPK) → guía de recuperación paso a paso.
+ * - Android Brave/Edge/etc. → manual + aviso de usar Chrome.
+ * - iOS/iPadOS → Compartir → Añadir a pantalla de inicio.
  */
 
 'use client'
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Download, Plus, Share, X, MoreVertical, RefreshCw } from 'lucide-react'
+import {
+    Download,
+    Plus,
+    Share,
+    X,
+    MoreVertical,
+    RefreshCw,
+    Trash2,
+    Settings,
+    Timer,
+    CheckCircle2,
+} from 'lucide-react'
 import { LogoBadge } from '@/components/LogoBadge'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { usePrompts } from '@/lib/PromptsContext'
@@ -26,6 +32,7 @@ import {
     IOS_PROMPT_DELAY_MS,
     INSTALL_PROMPT_DELAY_MS,
     PWA_SW_READY_EVENT,
+    buildPwaInstallStartUrl,
     dismissInstallPromptForSession,
     dismissInstallPromptLongTerm,
     detectPlatform,
@@ -33,11 +40,13 @@ import {
     markPromptShownThisSession,
     markPwaInstalled,
     readInstallPromptStorage,
+    resetInstallPromptForRetry,
+    resolveAndroidFallbackView,
     shouldShowInstallPrompt,
-    shouldShowManualFallback,
     shouldUseNativeInstallFlow,
     syncPwaInstalledStorage,
     waitForInstallServiceWorker,
+    type AndroidFallbackView,
     type RelatedAppInstallState,
 } from '@/lib/pwa-install-prompt'
 
@@ -46,7 +55,7 @@ interface BeforeInstallPromptEvent extends Event {
     userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
-type PromptView = 'banner' | 'ios-steps' | 'android-manual'
+type PromptView = 'banner' | 'ios-steps' | AndroidFallbackView
 
 export function InstallPrompt() {
     const [showPrompt, setShowPrompt] = useState(false)
@@ -131,7 +140,6 @@ export function InstallPrompt() {
         return () => window.removeEventListener(PWA_SW_READY_EVENT, onSwReady)
     }, [])
 
-    // Refs con los valores vigentes para el listener siempre-activo de abajo.
     useEffect(() => {
         revealPromptRef.current = revealPrompt
     }, [revealPrompt])
@@ -140,10 +148,6 @@ export function InstallPrompt() {
         installReadyRef.current = installCheckReady && swReady
     }, [installCheckReady, swReady])
 
-    // Captura de beforeinstallprompt SIEMPRE activa (independiente de las
-    // guardas de visibilidad): si llega tarde con el fallback manual visible,
-    // la vista se mejora al flujo nativo. Programa el banner en el momento de
-    // capturar el evento; las guardas se aplican dentro de revealPrompt.
     useEffect(() => {
         if (typeof window === 'undefined') return
 
@@ -154,7 +158,11 @@ export function InstallPrompt() {
             const bip = e as BeforeInstallPromptEvent
             deferredPromptRef.current = bip
             setDeferredPrompt(bip)
-            setView((current) => (current === 'android-manual' ? 'banner' : current))
+            setView((current) =>
+                current === 'android-manual' || current === 'android-chrome-recovery'
+                    ? 'banner'
+                    : current
+            )
 
             if (showTimer) clearTimeout(showTimer)
             showTimer = setTimeout(() => {
@@ -169,7 +177,6 @@ export function InstallPrompt() {
         }
     }, [])
 
-    // Programación del banner (con guardas: instalada, standalone, sesión…).
     useEffect(() => {
         if (!installCheckReady || !swReady || !canOfferInstallPrompt()) return
 
@@ -192,14 +199,15 @@ export function InstallPrompt() {
 
         if (platform?.name === 'android' && !deferredPrompt) {
             fallbackTimer = setTimeout(() => {
-                if (!isMounted) return
-                const showFallback = shouldShowManualFallback({
+                if (!isMounted || typeof window === 'undefined') return
+                const fallbackView = resolveAndroidFallbackView({
                     platform: platform.name,
                     hasDeferredPrompt: deferredPromptRef.current !== null,
                     isStandalone,
                     relatedAppInstalled,
+                    userAgent: window.navigator.userAgent,
                 })
-                if (showFallback) revealPrompt('android-manual')
+                if (fallbackView) revealPrompt(fallbackView)
             }, ANDROID_MANUAL_FALLBACK_DELAY_MS)
         }
 
@@ -249,6 +257,24 @@ export function InstallPrompt() {
         setDeferredPrompt(null)
     }
 
+    const handleRetryInstall = async () => {
+        if (typeof window === 'undefined') return
+
+        resetInstallPromptForRetry(window)
+        showScheduledRef.current = false
+
+        if ('serviceWorker' in navigator) {
+            try {
+                const reg = await navigator.serviceWorker.getRegistration('/')
+                await reg?.update()
+            } catch {
+                /* noop */
+            }
+        }
+
+        window.location.href = buildPwaInstallStartUrl(window.location.origin)
+    }
+
     const handleLater = () => {
         dismissInstallPromptForSession(window)
         setShowPrompt(false)
@@ -276,11 +302,10 @@ export function InstallPrompt() {
                 className="fixed bottom-4 left-3 right-3 z-50 md:left-auto md:right-6 md:w-[390px]"
                 data-testid="pwa-install-prompt"
             >
-                <div className="relative overflow-hidden rounded-2xl border border-[rgba(184,150,74,0.45)] shadow-2xl bg-gradient-to-b from-[#1f2e85] via-[#1b2a72] to-[#151f5c] backdrop-blur-xl">
-                    {/* Franja dorada superior de marca */}
+                <div className="relative overflow-hidden rounded-2xl border border-[rgba(184,150,74,0.45)] shadow-2xl bg-gradient-to-b from-[#1f2e85] via-[#1b2a72] to-[#151f5c] backdrop-blur-xl max-h-[85vh] overflow-y-auto">
                     <div
                         aria-hidden
-                        className="h-1"
+                        className="h-1 sticky top-0 z-10"
                         style={{ background: 'linear-gradient(90deg, #b68f2f 0%, #e3cc92 50%, #b68f2f 100%)' }}
                     />
 
@@ -298,10 +323,10 @@ export function InstallPrompt() {
                             <div className="flex items-start gap-4">
                                 <LogoBadge size={56} />
                                 <div className="flex-1 min-w-0 pr-6">
-                                    <h4 className="font-bold text-base text-white">
+                                    <h4 className="font-bold text-base text-white" suppressHydrationWarning>
                                         {t('pwa.installTitle')}
                                     </h4>
-                                    <p className="text-sm mt-1 text-[#c9d3ee]">
+                                    <p className="text-sm mt-1 text-[#c9d3ee]" suppressHydrationWarning>
                                         {t('pwa.installDesc')}
                                     </p>
                                 </div>
@@ -312,7 +337,7 @@ export function InstallPrompt() {
                                     className="mt-4 p-3 bg-amber-400/15 border border-amber-300/30 rounded-xl"
                                     data-testid="pwa-no-webapk-warning"
                                 >
-                                    <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider">
+                                    <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider" suppressHydrationWarning>
                                         {t('pwa.noWebApkWarning')}
                                     </p>
                                 </div>
@@ -324,7 +349,7 @@ export function InstallPrompt() {
                                     className="flex-1 h-11 rounded-xl font-semibold text-sm text-white/85 border border-white/25 hover:bg-white/10 transition-colors"
                                     data-testid="pwa-install-later"
                                 >
-                                    {t('pwa.later')}
+                                    <span suppressHydrationWarning>{t('pwa.later')}</span>
                                 </button>
                                 <button
                                     onClick={handleInstall}
@@ -333,7 +358,7 @@ export function InstallPrompt() {
                                     data-testid="pwa-install-confirm"
                                 >
                                     <Download className="w-4 h-4 mr-2" />
-                                    {t('pwa.install')}
+                                    <span suppressHydrationWarning>{t('pwa.install')}</span>
                                 </button>
                             </div>
                         </div>
@@ -341,13 +366,13 @@ export function InstallPrompt() {
 
                     {view === 'ios-steps' && (
                         <div className="p-5">
-                            <h4 className="font-bold text-base text-center mb-4 text-white">
+                            <h4 className="font-bold text-base text-center mb-4 text-white" suppressHydrationWarning>
                                 {t('pwa.iosTitle')}
                             </h4>
 
                             {platform?.isInApp && (
                                 <div className="mb-4 p-3 bg-amber-400/15 border border-amber-300/30 rounded-xl">
-                                    <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider">
+                                    <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider" suppressHydrationWarning>
                                         {t('pwa.iosInAppWarning')}
                                     </p>
                                 </div>
@@ -355,13 +380,19 @@ export function InstallPrompt() {
 
                             <div className="space-y-4">
                                 <InstallStep icon={<Share className="w-5 h-5 text-[#e8d9a8]" />}>
-                                    {t('pwa.iosStep1')} <strong>{t('pwa.share')}</strong> {t('pwa.inSafari')}
+                                    <span suppressHydrationWarning>
+                                        {t('pwa.iosStep1')} <strong>{t('pwa.share')}</strong> {t('pwa.inSafari')}
+                                    </span>
                                 </InstallStep>
                                 <InstallStep icon={<Plus className="w-5 h-5 text-[#e8d9a8]" />}>
-                                    {t('pwa.iosStep2')} <strong>&quot;{t('pwa.addToHome')}&quot;</strong>
+                                    <span suppressHydrationWarning>
+                                        {t('pwa.iosStep2')} <strong>&quot;{t('pwa.addToHome')}&quot;</strong>
+                                    </span>
                                 </InstallStep>
                                 <InstallStep icon={<Download className="w-5 h-5 text-[#e8d9a8]" />}>
-                                    {t('pwa.iosStep3')} <strong>&quot;{t('pwa.add')}&quot;</strong>
+                                    <span suppressHydrationWarning>
+                                        {t('pwa.iosStep3')} <strong>&quot;{t('pwa.add')}&quot;</strong>
+                                    </span>
                                 </InstallStep>
                             </div>
 
@@ -371,8 +402,74 @@ export function InstallPrompt() {
                                 style={{ background: 'linear-gradient(135deg, #d4b86a 0%, #e3cc92 50%, #b8964a 100%)' }}
                                 data-testid="pwa-ios-understood"
                             >
-                                {t('pwa.understood')}
+                                <span suppressHydrationWarning>{t('pwa.understood')}</span>
                             </button>
+                        </div>
+                    )}
+
+                    {view === 'android-chrome-recovery' && (
+                        <div className="p-5" data-testid="pwa-android-chrome-recovery">
+                            <div className="flex items-start gap-4 mb-4">
+                                <LogoBadge size={56} />
+                                <div className="flex-1 min-w-0 pr-6">
+                                    <h4 className="font-bold text-base text-white" suppressHydrationWarning>
+                                        {t('pwa.recoveryTitle')}
+                                    </h4>
+                                    <p className="text-sm mt-1 text-[#c9d3ee]" suppressHydrationWarning>
+                                        {t('pwa.recoveryDesc')}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {platform?.isInApp && (
+                                <div className="mb-4 p-3 bg-amber-400/15 border border-amber-300/30 rounded-xl">
+                                    <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider" suppressHydrationWarning>
+                                        {t('pwa.androidInAppWarning')}
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="mb-4 p-3 bg-amber-400/15 border border-amber-300/30 rounded-xl" data-testid="pwa-recovery-shortcut-warning">
+                                <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider" suppressHydrationWarning>
+                                    {t('pwa.recoveryShortcutWarning')}
+                                </p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <InstallStep icon={<Trash2 className="w-5 h-5 text-[#e8d9a8]" />} testId="pwa-recovery-step-1">
+                                    <span suppressHydrationWarning>{t('pwa.recoveryStep1')}</span>
+                                </InstallStep>
+                                <InstallStep icon={<Settings className="w-5 h-5 text-[#e8d9a8]" />} testId="pwa-recovery-step-2">
+                                    <span suppressHydrationWarning>{t('pwa.recoveryStep2')}</span>
+                                </InstallStep>
+                                <InstallStep icon={<MoreVertical className="w-5 h-5 text-[#e8d9a8]" />} testId="pwa-recovery-step-3">
+                                    <span suppressHydrationWarning>{t('pwa.recoveryStep3')}</span>
+                                </InstallStep>
+                                <InstallStep icon={<Timer className="w-5 h-5 text-[#e8d9a8]" />} testId="pwa-recovery-step-4">
+                                    <span suppressHydrationWarning>{t('pwa.recoveryStep4')}</span>
+                                </InstallStep>
+                                <InstallStep icon={<CheckCircle2 className="w-5 h-5 text-[#e8d9a8]" />} testId="pwa-recovery-step-5">
+                                    <span suppressHydrationWarning>{t('pwa.recoveryStep5')}</span>
+                                </InstallStep>
+                            </div>
+
+                            <div className="flex gap-3 mt-5">
+                                <button
+                                    onClick={handleRetryInstall}
+                                    className="flex-1 h-11 rounded-xl font-semibold text-sm text-white/85 border border-white/25 hover:bg-white/10 transition-colors"
+                                    data-testid="pwa-manual-retry"
+                                >
+                                    <span suppressHydrationWarning>{t('pwa.retryInstall')}</span>
+                                </button>
+                                <button
+                                    onClick={handleLater}
+                                    className="flex-1 h-11 rounded-xl font-bold text-sm text-[#1f2e85] shadow-lg hover:brightness-105 transition-all"
+                                    style={{ background: 'linear-gradient(135deg, #d4b86a 0%, #e3cc92 50%, #b8964a 100%)' }}
+                                    data-testid="pwa-manual-understood"
+                                >
+                                    <span suppressHydrationWarning>{t('pwa.understood')}</span>
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -381,10 +478,10 @@ export function InstallPrompt() {
                             <div className="flex items-start gap-4 mb-4">
                                 <LogoBadge size={56} />
                                 <div className="flex-1 min-w-0 pr-6">
-                                    <h4 className="font-bold text-base text-white">
+                                    <h4 className="font-bold text-base text-white" suppressHydrationWarning>
                                         {t('pwa.manualTitle')}
                                     </h4>
-                                    <p className="text-sm mt-1 text-[#c9d3ee]">
+                                    <p className="text-sm mt-1 text-[#c9d3ee]" suppressHydrationWarning>
                                         {t('pwa.manualDesc')}
                                     </p>
                                 </div>
@@ -392,7 +489,7 @@ export function InstallPrompt() {
 
                             {platform?.isInApp && (
                                 <div className="mb-4 p-3 bg-amber-400/15 border border-amber-300/30 rounded-xl">
-                                    <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider">
+                                    <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider" suppressHydrationWarning>
                                         {t('pwa.androidInAppWarning')}
                                     </p>
                                 </div>
@@ -403,7 +500,7 @@ export function InstallPrompt() {
                                     className="mb-4 p-3 bg-amber-400/15 border border-amber-300/30 rounded-xl"
                                     data-testid="pwa-no-webapk-warning"
                                 >
-                                    <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider">
+                                    <p className="text-[11px] font-bold text-amber-200 text-center uppercase tracking-wider" suppressHydrationWarning>
                                         {t('pwa.noWebApkWarning')}
                                     </p>
                                 </div>
@@ -411,32 +508,20 @@ export function InstallPrompt() {
 
                             <div className="space-y-4">
                                 <InstallStep icon={<MoreVertical className="w-5 h-5 text-[#e8d9a8]" />}>
-                                    {t('pwa.manualStep1')}
+                                    <span suppressHydrationWarning>{t('pwa.manualStep1')}</span>
                                 </InstallStep>
                                 <InstallStep icon={<Download className="w-5 h-5 text-[#e8d9a8]" />}>
-                                    {t('pwa.manualStep2')}
-                                </InstallStep>
-                                <InstallStep
-                                    icon={<RefreshCw className="w-5 h-5 text-[#e8d9a8]" />}
-                                    testId="pwa-recent-uninstall-hint"
-                                >
-                                    {t('pwa.recentUninstallHint')}
-                                </InstallStep>
-                                <InstallStep
-                                    icon={<RefreshCw className="w-5 h-5 text-[#e8d9a8]" />}
-                                    testId="pwa-cooldown-hint"
-                                >
-                                    {t('pwa.cooldownHint')}
+                                    <span suppressHydrationWarning>{t('pwa.manualStep2')}</span>
                                 </InstallStep>
                             </div>
 
                             <div className="flex gap-3 mt-5">
                                 <button
-                                    onClick={() => window.location.reload()}
+                                    onClick={handleRetryInstall}
                                     className="flex-1 h-11 rounded-xl font-semibold text-sm text-white/85 border border-white/25 hover:bg-white/10 transition-colors"
                                     data-testid="pwa-manual-retry"
                                 >
-                                    {t('pwa.retryInstall')}
+                                    <span suppressHydrationWarning>{t('pwa.retryInstall')}</span>
                                 </button>
                                 <button
                                     onClick={handleLater}
@@ -444,7 +529,7 @@ export function InstallPrompt() {
                                     style={{ background: 'linear-gradient(135deg, #d4b86a 0%, #e3cc92 50%, #b8964a 100%)' }}
                                     data-testid="pwa-manual-understood"
                                 >
-                                    {t('pwa.understood')}
+                                    <span suppressHydrationWarning>{t('pwa.understood')}</span>
                                 </button>
                             </div>
                         </div>
