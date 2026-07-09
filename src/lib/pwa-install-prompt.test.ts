@@ -284,7 +284,7 @@ describe('shouldShowInstallPrompt', () => {
     const base = {
         isStandalone: false,
         relatedAppInstalled: null as boolean | null,
-        sessionShown: false,
+        sessionShownKind: null as 'native' | 'manual' | null,
         dismissedAt: null as string | null,
     }
 
@@ -300,8 +300,23 @@ describe('shouldShowInstallPrompt', () => {
         expect(shouldShowInstallPrompt({ ...base, relatedAppInstalled: false })).toBe(true)
     })
 
-    it('no muestra si ya se mostró/cerró en esta sesión', () => {
-        expect(shouldShowInstallPrompt({ ...base, sessionShown: true })).toBe(false)
+    it('banner nativo ya mostrado bloquea todo el resto de la sesión', () => {
+        expect(shouldShowInstallPrompt({ ...base, sessionShownKind: 'native' })).toBe(false)
+        expect(
+            shouldShowInstallPrompt({ ...base, sessionShownKind: 'native', requestingNative: true })
+        ).toBe(false)
+    })
+
+    it('fallback manual mostrado NO bloquea la oferta nativa (caso pestaña dashboard)', () => {
+        // El caso real: fallback visto en el dashboard, BIP llega después en
+        // la misma pestaña → el banner nativo debe poder aparecer.
+        expect(
+            shouldShowInstallPrompt({ ...base, sessionShownKind: 'manual', requestingNative: true })
+        ).toBe(true)
+        // Pero otro fallback manual en la misma sesión sí queda vetado
+        expect(
+            shouldShowInstallPrompt({ ...base, sessionShownKind: 'manual', requestingNative: false })
+        ).toBe(false)
     })
 
     it('no muestra si cerró con X hace menos de REPROMPT_DAYS', () => {
@@ -313,7 +328,7 @@ describe('shouldShowInstallPrompt', () => {
     })
 
     it('muestra tras recargar si solo usó Más tarde (sin dismissedAt)', () => {
-        expect(shouldShowInstallPrompt({ ...base, sessionShown: false })).toBe(true)
+        expect(shouldShowInstallPrompt({ ...base, sessionShownKind: null })).toBe(true)
     })
 
     it('muestra tras expirar el cierre prolongado', () => {
@@ -434,14 +449,14 @@ describe('persistencia sesión vs prolongada', () => {
 
     it('Más tarde solo marca sesión, no dismissedAt', () => {
         dismissInstallPromptForSession(win)
-        expect(readInstallPromptStorage(win).sessionShown).toBe(true)
+        expect(readInstallPromptStorage(win).sessionShownKind).toBe('native')
         expect(readInstallPromptStorage(win).dismissedAt).toBeNull()
     })
 
     it('X marca sesión y dismissedAt', () => {
         const now = 1_700_000_000_000
         dismissInstallPromptLongTerm(win, now)
-        expect(readInstallPromptStorage(win).sessionShown).toBe(true)
+        expect(readInstallPromptStorage(win).sessionShownKind).toBe('native')
         expect(readInstallPromptStorage(win).dismissedAt).toBe(String(now))
     })
 
@@ -450,7 +465,7 @@ describe('persistencia sesión vs prolongada', () => {
         expect(shouldShowInstallPrompt({
             isStandalone: false,
             relatedAppInstalled: false,
-            sessionShown: readInstallPromptStorage(win).sessionShown,
+            sessionShownKind: readInstallPromptStorage(win).sessionShownKind,
             dismissedAt: readInstallPromptStorage(win).dismissedAt,
         })).toBe(false)
 
@@ -458,8 +473,24 @@ describe('persistencia sesión vs prolongada', () => {
         expect(shouldShowInstallPrompt({
             isStandalone: false,
             relatedAppInstalled: false,
-            sessionShown: readInstallPromptStorage(win).sessionShown,
+            sessionShownKind: readInstallPromptStorage(win).sessionShownKind,
             dismissedAt: readInstallPromptStorage(win).dismissedAt,
         })).toBe(true)
+    })
+
+    it('marca manual y luego nativa: la nativa nunca se degrada', () => {
+        markPromptShownThisSession(win, 'manual')
+        expect(readInstallPromptStorage(win).sessionShownKind).toBe('manual')
+
+        markPromptShownThisSession(win, 'native')
+        expect(readInstallPromptStorage(win).sessionShownKind).toBe('native')
+
+        markPromptShownThisSession(win, 'manual')
+        expect(readInstallPromptStorage(win).sessionShownKind).toBe('native')
+    })
+
+    it('compat: el valor histórico "true" se lee como banner nativo mostrado', () => {
+        win.sessionStorage.setItem('pwa_prompt_shown_this_session', 'true')
+        expect(readInstallPromptStorage(win).sessionShownKind).toBe('native')
     })
 })

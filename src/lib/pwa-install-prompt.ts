@@ -221,11 +221,23 @@ export function buildPwaInstallStartUrl(origin: string): string {
     return `${origin}${PWA_INSTALL_START_URL}`
 }
 
+/**
+ * Tipo de banner mostrado en la sesión:
+ * - 'native': oferta real de instalación (BIP) o instrucciones iOS.
+ * - 'manual': fallback Android sin BIP (solo instrucciones).
+ * El fallback manual NO bloquea la oferta nativa: si Chrome vuelve a permitir
+ * instalar (BIP tardío tras una desinstalación reciente), el banner nativo
+ * debe poder aparecer en la misma pestaña — es una oferta mejor, no un repe.
+ */
+export type InstallPromptShownKind = 'native' | 'manual'
+
 export interface ShouldShowInstallPromptInput {
     isStandalone: boolean
     relatedAppInstalled: RelatedAppInstallState
-    sessionShown: boolean
+    sessionShownKind: InstallPromptShownKind | null
     dismissedAt: string | null
+    /** true cuando lo que se quiere revelar es la oferta nativa/iOS */
+    requestingNative?: boolean
     now?: number
 }
 
@@ -234,7 +246,8 @@ export function shouldShowInstallPrompt(input: ShouldShowInstallPromptInput): bo
 
     if (input.relatedAppInstalled === true) return false
 
-    if (input.sessionShown) return false
+    if (input.sessionShownKind === 'native') return false
+    if (input.sessionShownKind === 'manual' && !input.requestingNative) return false
 
     if (input.dismissedAt) {
         const dismissDate = new Date(Number.parseInt(input.dismissedAt, 10))
@@ -249,22 +262,37 @@ export function shouldShowInstallPrompt(input: ShouldShowInstallPromptInput): bo
 }
 
 export function readInstallPromptStorage(win: Window): {
-    sessionShown: boolean
+    sessionShownKind: InstallPromptShownKind | null
     dismissedAt: string | null
 } {
+    const raw = win.sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)
+    // Compat: el valor histórico 'true' equivale a un banner nativo mostrado.
+    let sessionShownKind: InstallPromptShownKind | null = null
+    if (raw === 'manual') sessionShownKind = 'manual'
+    else if (raw === 'native' || raw === 'true') sessionShownKind = 'native'
+
     return {
-        sessionShown: win.sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN) === 'true',
+        sessionShownKind,
         dismissedAt: win.localStorage.getItem(PWA_STORAGE_KEYS.DISMISS_AT),
     }
 }
 
-export function markPromptShownThisSession(win: Window): void {
-    win.sessionStorage.setItem(PWA_STORAGE_KEYS.SESSION_SHOWN, 'true')
+export function markPromptShownThisSession(
+    win: Window,
+    kind: InstallPromptShownKind = 'native'
+): void {
+    const current = win.sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)
+    // 'native' nunca se degrada a 'manual'
+    if (current === 'native' || current === 'true') return
+    win.sessionStorage.setItem(PWA_STORAGE_KEYS.SESSION_SHOWN, kind)
 }
 
 /** "Más tarde" / "Entendido" — ocultar hasta recargar (solo sesión) */
-export function dismissInstallPromptForSession(win: Window): void {
-    markPromptShownThisSession(win)
+export function dismissInstallPromptForSession(
+    win: Window,
+    kind: InstallPromptShownKind = 'native'
+): void {
+    markPromptShownThisSession(win, kind)
 }
 
 /** Cerrar con X — no volver a mostrar durante REPROMPT_DAYS */

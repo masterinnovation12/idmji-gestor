@@ -48,6 +48,7 @@ import {
     syncPwaInstalledStorage,
     waitForInstallServiceWorker,
     type AndroidFallbackView,
+    type InstallPromptShownKind,
     type RelatedAppInstallState,
 } from '@/lib/pwa-install-prompt'
 
@@ -67,7 +68,7 @@ export function InstallPrompt() {
     const [swReady, setSwReady] = useState(false)
     const { t } = useI18n()
     const prompts = usePrompts()
-    const showScheduledRef = useRef(false)
+    const shownKindRef = useRef<InstallPromptShownKind | null>(null)
     const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null)
     const revealPromptRef = useRef<(mode?: PromptView) => void>(() => {})
     const installReadyRef = useRef(false)
@@ -85,19 +86,19 @@ export function InstallPrompt() {
     const showNoWebApkWarning =
         platform?.name === 'android' && platform.supportsWebApk === false
 
-    const canOfferInstallPrompt = useCallback(() => {
+    const canOfferInstallPrompt = useCallback((requestingNative: boolean) => {
         if (typeof window === 'undefined') return false
         const storage = readInstallPromptStorage(window)
         return shouldShowInstallPrompt({
             isStandalone,
             relatedAppInstalled,
-            sessionShown: storage.sessionShown,
+            sessionShownKind: storage.sessionShownKind,
             dismissedAt: storage.dismissedAt,
+            requestingNative,
         })
     }, [isStandalone, relatedAppInstalled])
 
     const revealPrompt = useCallback((mode: PromptView = 'banner') => {
-        if (!canOfferInstallPrompt() || showScheduledRef.current) return
         if (prompts && prompts.activePrompt !== null && prompts.activePrompt !== 'install') return
 
         if (mode === 'banner') {
@@ -111,8 +112,18 @@ export function InstallPrompt() {
             }
         }
 
-        showScheduledRef.current = true
-        markPromptShownThisSession(window)
+        // El fallback manual no bloquea la oferta nativa: si BIP llega más
+        // tarde en la misma pestaña (p. ej. tras una desinstalación reciente),
+        // el banner nativo puede aparecer aunque el manual ya se mostrara.
+        const requestingNative = mode === 'banner' || mode === 'ios-steps'
+        const kind: InstallPromptShownKind = requestingNative ? 'native' : 'manual'
+
+        if (shownKindRef.current === 'native') return
+        if (shownKindRef.current === 'manual' && !requestingNative) return
+        if (!canOfferInstallPrompt(requestingNative)) return
+
+        shownKindRef.current = kind
+        markPromptShownThisSession(window, kind)
         prompts?.setActivePrompt('install')
         setView(mode)
         setShowPrompt(true)
@@ -197,7 +208,8 @@ export function InstallPrompt() {
     }, [])
 
     useEffect(() => {
-        if (!installCheckReady || !swReady || !canOfferInstallPrompt()) return
+        // Las guardas finas (sesión, dismissed, instalada) viven en revealPrompt
+        if (!installCheckReady || !swReady) return
 
         let isMounted = true
         let showTimer: ReturnType<typeof setTimeout> | null = null
@@ -236,7 +248,7 @@ export function InstallPrompt() {
             if (iosTimer) clearTimeout(iosTimer)
             if (fallbackTimer) clearTimeout(fallbackTimer)
         }
-    }, [installCheckReady, swReady, canOfferInstallPrompt, deferredPrompt, platform, isStandalone, relatedAppInstalled, revealPrompt])
+    }, [installCheckReady, swReady, deferredPrompt, platform, isStandalone, relatedAppInstalled, revealPrompt])
 
     useEffect(() => {
         const handleAppInstalled = () => {
@@ -282,7 +294,7 @@ export function InstallPrompt() {
         if (typeof window === 'undefined') return
 
         resetInstallPromptForRetry(window)
-        showScheduledRef.current = false
+        shownKindRef.current = null
 
         if ('serviceWorker' in navigator) {
             try {
@@ -297,7 +309,10 @@ export function InstallPrompt() {
     }
 
     const handleLater = () => {
-        dismissInstallPromptForSession(window)
+        // Cerrar un fallback manual no veta la oferta nativa de esta sesión
+        const kind: InstallPromptShownKind =
+            view === 'android-manual' || view === 'android-chrome-recovery' ? 'manual' : 'native'
+        dismissInstallPromptForSession(window, kind)
         setShowPrompt(false)
         setView('banner')
         prompts?.onInstallPromptClosed()
