@@ -130,7 +130,7 @@ describe('InstallPrompt', () => {
         })
 
         expect(screen.getByTestId('pwa-install-prompt')).toBeInTheDocument()
-        expect(sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBe('true')
+        expect(sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBe('native')
     })
 
     it('instalación nativa completa: pulsar Instalar lanza el diálogo y cierra el banner', async () => {
@@ -307,8 +307,54 @@ describe('InstallPrompt', () => {
             fireEvent.click(screen.getByTestId('pwa-manual-understood'))
 
             expect(screen.queryByTestId('pwa-install-prompt')).not.toBeInTheDocument()
-            expect(sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBe('true')
+            expect(sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBe('manual')
             expect(localStorage.getItem(PWA_STORAGE_KEYS.DISMISS_AT)).toBeNull()
+        })
+
+        it('caso pestaña dashboard: fallback cerrado con «Entendido» y BIP tardío → banner nativo en la MISMA pestaña', async () => {
+            // Reproduce el caso real: en el dashboard salió la guía (sin BIP),
+            // el usuario la cerró, y minutos después Chrome volvió a permitir
+            // instalar. Antes: nada (sesión vetada) y había que abrir pestaña
+            // nueva. Ahora: la oferta nativa aparece igualmente.
+            renderInstallPrompt()
+            await flushInstallSync()
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(ANDROID_MANUAL_FALLBACK_DELAY_MS)
+            })
+            expect(screen.getByTestId('pwa-android-chrome-recovery')).toBeInTheDocument()
+
+            fireEvent.click(screen.getByTestId('pwa-manual-understood'))
+            expect(screen.queryByTestId('pwa-install-prompt')).not.toBeInTheDocument()
+
+            const bip = createBipEvent('accepted')
+            await act(async () => {
+                window.dispatchEvent(bip)
+                await vi.advanceTimersByTimeAsync(INSTALL_PROMPT_DELAY_MS)
+            })
+
+            expect(screen.getByTestId('pwa-install-prompt')).toBeInTheDocument()
+            expect(screen.getByTestId('pwa-install-confirm')).toBeInTheDocument()
+            expect(sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBe('native')
+        })
+
+        it('el banner nativo cerrado con «Más tarde» NO se reabre con otro BIP en la misma sesión', async () => {
+            renderInstallPrompt()
+            await flushInstallSync()
+
+            await act(async () => {
+                window.dispatchEvent(createBipEvent())
+                await vi.advanceTimersByTimeAsync(INSTALL_PROMPT_DELAY_MS)
+            })
+            fireEvent.click(screen.getByTestId('pwa-install-later'))
+            expect(screen.queryByTestId('pwa-install-prompt')).not.toBeInTheDocument()
+
+            await act(async () => {
+                window.dispatchEvent(createBipEvent())
+                await vi.advanceTimersByTimeAsync(INSTALL_PROMPT_DELAY_MS + ANDROID_MANUAL_FALLBACK_DELAY_MS)
+            })
+
+            expect(screen.queryByTestId('pwa-install-prompt')).not.toBeInTheDocument()
         })
 
         it('no muestra el fallback en standalone (ya abierta como PWA)', async () => {
@@ -347,7 +393,7 @@ describe('InstallPrompt', () => {
 
         expect(screen.queryByTestId('pwa-install-prompt')).not.toBeInTheDocument()
         expect(localStorage.getItem(PWA_STORAGE_KEYS.DISMISS_AT)).toBeNull()
-        expect(sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBe('true')
+        expect(sessionStorage.getItem(PWA_STORAGE_KEYS.SESSION_SHOWN)).toBe('native')
     })
 
     it('X guarda dismissedAt prolongado', async () => {
