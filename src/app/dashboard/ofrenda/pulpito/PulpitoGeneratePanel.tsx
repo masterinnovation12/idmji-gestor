@@ -6,7 +6,8 @@ import { Sparkles, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { useOfrendaToast } from '../ofrendaFeedback'
 import { interpolate } from '../ofrendaLocale'
-import { generarPulpito } from './actions'
+import { eliminarAsignacionesPulpito, generarPulpito } from './actions'
+import { OfrendaDangerConfirmButton } from '../OfrendaDangerConfirmButton'
 import type { ModoGeneracion } from '@/lib/utils/pulpitoEngine'
 import type { PulpitoRol } from '@/lib/utils/pulpitoAvailability'
 
@@ -54,6 +55,22 @@ export function PulpitoGeneratePanel({
         feedback.planSuccess(
             t('ofrenda.pulpito.generar.success'),
             interpolate(t('ofrenda.pulpito.generar.successDesc'), { n: String(result.actualizados ?? 0) }),
+        )
+        onGenerated()
+    }
+
+    const handleEliminar = async () => {
+        setIsLoading(true)
+        setProblemas([])
+        const result = await eliminarAsignacionesPulpito(fechaInicio, fechaFin)
+        setIsLoading(false)
+        if (result.error) {
+            feedback.planError(t('ofrenda.pulpito.generar.deleteError'), errorMsg(result.error))
+            return
+        }
+        feedback.planSuccess(
+            t('ofrenda.pulpito.generar.deleted'),
+            interpolate(t('ofrenda.pulpito.generar.deletedDesc'), { n: String(result.actualizados ?? 0) }),
         )
         onGenerated()
     }
@@ -116,6 +133,16 @@ export function PulpitoGeneratePanel({
                 {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {t('ofrenda.pulpito.generar.button')}
             </motion.button>
+
+            <div className="pt-4 border-t border-border/50">
+                <OfrendaDangerConfirmButton
+                    label={t('ofrenda.pulpito.generar.deleteBtn')}
+                    confirmText={t('ofrenda.pulpito.generar.deleteConfirm')}
+                    isLoading={isLoading}
+                    onConfirm={() => void handleEliminar()}
+                    testIdPrefix="pulpito-delete"
+                />
+            </div>
 
             {/* Puestos sin cubrir */}
             {problemas.length > 0 && (

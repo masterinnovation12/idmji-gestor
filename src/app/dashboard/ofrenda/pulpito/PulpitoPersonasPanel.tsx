@@ -27,13 +27,13 @@ interface Props {
 const DIA_ORDEN = [1, 2, 3, 4, 5, 6, 0]
 
 // Roles válidos por día (mismo criterio que el calendario de cultos):
-//  - Lun-Sáb: estudio/alabanza → introducción + finalización.
-//  - Dom: enseñanza → introducción + enseñanza + testimonios.
-const ROLES_POR_DIA: Record<number, PulpitoRol[]> = {
+//  - Lun-Mié, Vie-Sáb: estudio/alabanza → introducción + finalización.
+//  - Jue y Dom: enseñanza → introducción + enseñanza + testimonios.
+export const ROLES_POR_DIA: Record<number, PulpitoRol[]> = {
     1: ['introduccion', 'finalizacion'],
     2: ['introduccion', 'finalizacion'],
     3: ['introduccion', 'finalizacion'],
-    4: ['introduccion', 'finalizacion'],
+    4: ['introduccion', 'ensenanza', 'testimonios'],
     5: ['introduccion', 'finalizacion'],
     6: ['introduccion', 'finalizacion'],
     0: ['introduccion', 'ensenanza', 'testimonios'],

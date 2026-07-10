@@ -43,6 +43,7 @@ export function PulpitoExportPanel({ cultos, periodLabel, fileSlug, diaLabel, ro
             finalizacion: t('ofrenda.pulpito.roles.finalizacion'),
         },
         sinAsignar: t('ofrenda.pulpito.sinAsignar'),
+        rolFecha: t('ofrenda.table.rolFecha'),
         footer: t('ofrenda.pulpito.footer'),
     }), [t])
 
@@ -127,8 +128,6 @@ export function PulpitoExportPanel({ cultos, periodLabel, fileSlug, diaLabel, ro
                     </button>
                 ))}
             </div>
-            <p className="text-xs text-muted-foreground">{t('ofrenda.pulpito.export.orientationHint')}</p>
-
             <div className="flex flex-col sm:flex-row gap-2">
                 <button
                     type="button"

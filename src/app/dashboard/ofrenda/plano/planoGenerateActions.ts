@@ -23,7 +23,7 @@ import {
     type PlanoTurnoHistorial,
 } from './planoHistorial'
 
-export type PlanoGenerateScope = 'week' | 'month'
+export type PlanoGenerateScope = 'day' | 'week' | 'month'
 export type PlanoGenerateMode = 'generar' | 'regenerar' | 'rellenar'
 
 export interface PlanoGenerateOptions {
@@ -31,6 +31,7 @@ export interface PlanoGenerateOptions {
     mes: number
     alcance: PlanoGenerateScope
     semanaIso?: number
+    servicioId?: string
     modo: PlanoGenerateMode
 }
 
@@ -123,6 +124,60 @@ async function historialDesdeVecinos(
     return construirHistorialParaServicio(rolesAcumulado, asig ?? [])
 }
 
+/** Resuelve los servicios objetivo según el alcance (día / semana / mes). */
+function resolverServiciosObjetivo<T extends { id: string; semana_iso: number }>(
+    servicios: T[],
+    opts: Pick<PlanoGenerateOptions, 'alcance' | 'semanaIso' | 'servicioId'>,
+): T[] | null {
+    if (opts.alcance === 'week' && opts.semanaIso != null) {
+        return servicios.filter(s => s.semana_iso === opts.semanaIso)
+    }
+    if (opts.alcance === 'day') {
+        if (!opts.servicioId) return null
+        const target = servicios.filter(s => s.id === opts.servicioId)
+        return target.length ? target : null
+    }
+    return servicios
+}
+
+/**
+ * Elimina las asignaciones del plano para el alcance seleccionado
+ * (día, semana o mes). No toca el plan general ni sus servicios.
+ */
+export async function eliminarPlanoAsignaciones(
+    opts: Omit<PlanoGenerateOptions, 'modo'>,
+): Promise<{ ok: true; eliminados: number } | { ok: false; error: string }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { ok: false, error: authError ?? 'no_permission' }
+
+    const { data: planRow } = await supabase
+        .from('ofrenda_planes')
+        .select('id')
+        .eq('anio', opts.anio)
+        .eq('mes', opts.mes)
+        .maybeSingle()
+    if (!planRow) return { ok: false, error: 'NO_PLAN' }
+
+    const { data: servicios } = await supabase
+        .from('ofrenda_servicios')
+        .select('id, semana_iso')
+        .eq('plan_id', planRow.id)
+    if (!servicios?.length) return { ok: false, error: 'NO_SERVICIOS' }
+
+    const target = resolverServiciosObjetivo(servicios, opts)
+    if (!target) return { ok: false, error: 'NO_SERVICIO' }
+
+    const ids = target.map(s => s.id)
+    const { error, count } = await supabase
+        .from('ofrenda_plano_asignaciones')
+        .delete({ count: 'exact' })
+        .in('servicio_id', ids)
+    if (error) return { ok: false, error: error.message }
+
+    revalidatePath('/dashboard/ofrenda')
+    return { ok: true, eliminados: count ?? 0 }
+}
+
 export async function generarPlanoLabor(
     opts: PlanoGenerateOptions,
 ): Promise<{ ok: true; asignados: number } | { ok: false; error: string }> {
@@ -146,10 +201,8 @@ export async function generarPlanoLabor(
 
     if (!servicios?.length) return { ok: false, error: 'NO_SERVICIOS' }
 
-    let target = servicios
-    if (opts.alcance === 'week' && opts.semanaIso != null) {
-        target = servicios.filter(s => s.semana_iso === opts.semanaIso)
-    }
+    const target = resolverServiciosObjetivo(servicios, opts)
+    if (!target) return { ok: false, error: 'NO_SERVICIO' }
 
     const personas = await loadPersonasEngine(supabase)
     const parejas = await loadParejasEngine(supabase)

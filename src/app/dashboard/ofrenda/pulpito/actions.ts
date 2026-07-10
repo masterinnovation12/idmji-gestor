@@ -306,6 +306,37 @@ export async function generarPulpito(
 }
 
 /**
+ * Elimina todas las asignaciones de púlpito de los cultos del período
+ * (deja los cultos intactos; solo vacía los cuatro roles).
+ */
+export async function eliminarAsignacionesPulpito(
+    fechaInicio: string,
+    fechaFin: string,
+): Promise<{ error?: string; actualizados?: number }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    const { data: cultos, error: selErr } = await supabase
+        .from('cultos')
+        .select('id')
+        .gte('fecha', fechaInicio)
+        .lte('fecha', fechaFin)
+    if (selErr) return { error: selErr.message }
+    if (!cultos?.length) return { error: 'SIN_CULTOS' }
+
+    const vacio = Object.fromEntries(Object.values(ROL_FIELD).map(f => [f, null]))
+    const { error } = await supabase
+        .from('cultos')
+        .update(vacio)
+        .in('id', cultos.map(c => c.id))
+    if (error) return { error: error.message }
+
+    revalidatePath('/dashboard/ofrenda')
+    revalidatePath('/dashboard')
+    return { actualizados: cultos.length }
+}
+
+/**
  * Cambia manualmente la asignación de un rol en un culto desde la tabla del plan.
  */
 export async function updateAsignacionPulpito(

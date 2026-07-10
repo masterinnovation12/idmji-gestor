@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, Loader2, Share2 } from 'lucide-react'
-import { format } from 'date-fns'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { getDateFnsLocale } from '../ofrendaLocale'
 import { useOfrendaToast } from '../ofrendaFeedback'
@@ -18,23 +17,8 @@ import { invokePlanoAction } from './planoInvoke'
 import { formatLaborOfrendaExportSubtitle } from './planoExportFormat'
 import { resolverModo, sacosParaDia, type PlanoVista } from './planoTypes'
 
-const ACCENT = {
-    jueves: {
-        on: 'bg-linear-to-br from-emerald-500 to-emerald-700 text-white border-transparent shadow-md shadow-emerald-600/35',
-        off: 'border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:border-emerald-500/60 hover:bg-emerald-500/10',
-        dot: 'bg-emerald-500',
-    },
-    domingo: {
-        on: 'bg-linear-to-br from-sky-500 to-sky-700 text-white border-transparent shadow-md shadow-sky-600/35',
-        off: 'border-sky-500/30 text-sky-700 dark:text-sky-300 hover:border-sky-500/60 hover:bg-sky-500/10',
-        dot: 'bg-sky-500',
-    },
-    domingo_tarde: {
-        on: 'bg-linear-to-br from-violet-500 to-violet-700 text-white border-transparent shadow-md shadow-violet-600/35',
-        off: 'border-violet-500/30 text-violet-700 dark:text-violet-300 hover:border-violet-500/60 hover:bg-violet-500/10',
-        dot: 'bg-violet-500',
-    },
-} as const
+import { PLANO_SERVICE_ACCENT } from './planoServiceAccent'
+import { planoServicioChipLabel } from './planoChipLabel'
 
 type ExportFormat = 'plano' | 'lista'
 
@@ -68,12 +52,8 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
     const dateLocale = getDateFnsLocale(language)
 
     const diaLabel = useCallback(
-        (s: OfrServicio) => {
-            const d = new Date(`${s.fecha}T00:00:00`)
-            const dia = s.dia_tipo === 'jueves' ? t('ofrenda.days.jueShort') : t('ofrenda.days.domShort')
-            return `${dia} ${format(d, 'd MMM', { locale: dateLocale })}`
-        },
-        [t, dateLocale],
+        (s: OfrServicio) => planoServicioChipLabel(s, t),
+        [t],
     )
 
     const headerSubtitle = useMemo(() => {
@@ -221,7 +201,7 @@ export function PlanoExportPanel({ plan, tituloMes }: Readonly<Props>) {
             <PlanoServiceStrip
                 servicios={servicios}
                 activeId={servicio?.id ?? ''}
-                accent={ACCENT}
+                accent={PLANO_SERVICE_ACCENT}
                 diaLabel={diaLabel}
                 onSelect={setServicioId}
             />

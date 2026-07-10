@@ -39,6 +39,8 @@ import {
     type PlanoVista,
     type PlanoVistaResuelta,
 } from './planoTypes'
+import { PLANO_SERVICE_ACCENT as ACCENT } from './planoServiceAccent'
+import { planoServicioChipLabel } from './planoChipLabel'
 
 type ConfirmAction = 'clear' | 'reset'
 
@@ -47,24 +49,6 @@ interface Props {
     tituloMes: string
     canEdit: boolean
     onGoToPlan: () => void
-}
-
-const ACCENT: Record<OfrServicio['dia_tipo'], { on: string; off: string; dot: string }> = {
-    jueves: {
-        on: 'bg-linear-to-br from-emerald-500 to-emerald-700 text-white border-transparent shadow-md shadow-emerald-600/35',
-        off: 'border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:border-emerald-500/60 hover:bg-emerald-500/10',
-        dot: 'bg-emerald-500',
-    },
-    domingo: {
-        on: 'bg-linear-to-br from-sky-500 to-sky-700 text-white border-transparent shadow-md shadow-sky-600/35',
-        off: 'border-sky-500/30 text-sky-700 dark:text-sky-300 hover:border-sky-500/60 hover:bg-sky-500/10',
-        dot: 'bg-sky-500',
-    },
-    domingo_tarde: {
-        on: 'bg-linear-to-br from-violet-500 to-violet-700 text-white border-transparent shadow-md shadow-violet-600/35',
-        off: 'border-violet-500/30 text-violet-700 dark:text-violet-300 hover:border-violet-500/60 hover:bg-violet-500/10',
-        dot: 'bg-violet-500',
-    },
 }
 
 type LayoutStatus = 'idle' | 'saving' | 'saved'
@@ -406,12 +390,7 @@ export function PlanoTab({ plan, tituloMes, canEdit, onGoToPlan }: Readonly<Prop
             planoLoadedFor.vista === vista,
     )
 
-    const diaLabel = (s: OfrServicio) => {
-        const dayNum = Number(s.fecha.slice(8, 10))
-        if (s.dia_tipo === 'jueves') return `${t('ofrenda.days.jueShort')} ${dayNum}`
-        const turno = s.dia_tipo === 'domingo' ? t('ofrenda.days.manana') : t('ofrenda.days.tarde')
-        return `${t('ofrenda.days.domShort')} ${dayNum} · ${turno}`
-    }
+    const diaLabel = (s: OfrServicio) => planoServicioChipLabel(s, t)
 
     const rolLabel = (rol: 'ofrendario' | 'apoyo') =>
         rol === 'ofrendario' ? t('ofrenda.plano.rol.ofrendario') : t('ofrenda.plano.rol.apoyo')

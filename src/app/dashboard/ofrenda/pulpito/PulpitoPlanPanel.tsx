@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Pencil, Info, UserPlus, CheckCircle2 } from 'lucide-react'
+import { Pencil, Info, UserPlus, CheckCircle2, ListChecks } from 'lucide-react'
 import type { Profile } from '@/types/database'
 import UserSelector from '@/components/UserSelector'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -40,6 +40,10 @@ export function PulpitoPlanPanel({ cultos, canEdit, diaLabel, rolLabel, onChange
 
     return (
         <div className="space-y-3" data-testid="pulpito-plan">
+            <h3 className="text-base font-bold flex items-center gap-2">
+                <ListChecks className="w-4 h-4 text-blue-600" />
+                <span suppressHydrationWarning>{t('ofrenda.pulpito.plan.title')}</span>
+            </h3>
             {canEdit && (
                 <div className="flex items-start gap-2 rounded-xl border border-[rgba(184,150,74,0.28)] bg-[#f8f3e8]/60 px-3 py-2.5 text-xs text-[#7a5f1f]">
                     <Info className="w-4 h-4 shrink-0 mt-0.5" />

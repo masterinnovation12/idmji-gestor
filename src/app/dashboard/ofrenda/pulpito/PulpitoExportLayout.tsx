@@ -22,6 +22,7 @@ export interface PulpitoExportLabels {
     titleDoc: string
     roles: Record<PulpitoRol, string>
     sinAsignar: string
+    rolFecha: string
     footer: string
 }
 
@@ -250,7 +251,15 @@ function VerticalBody({ cultos, labels }: { cultos: PulpitoExportCulto[]; labels
 function HorizontalBody({ cultos, labels }: { cultos: PulpitoExportCulto[]; labels: PulpitoExportLabels }) {
     const cellBorder = '#eaecf2'
     return (
-        <div style={{ padding: '4px 0 0' }}>
+        <div style={{ padding: '18px 22px 22px' }}>
+            <div
+                style={{
+                    border: `1px solid ${IDMJI_BRAND.borderLight}`,
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    boxShadow: '0 2px 8px rgba(31,46,133,0.06)',
+                }}
+            >
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                 <thead>
                     <tr>
@@ -266,7 +275,7 @@ function HorizontalBody({ cultos, labels }: { cultos: PulpitoExportCulto[]; labe
                                 fontSize: 10,
                             }}
                         >
-                            {labels.titleDoc}
+                            {labels.rolFecha}
                         </th>
                         {cultos.map(culto => (
                             <th
@@ -335,6 +344,7 @@ function HorizontalBody({ cultos, labels }: { cultos: PulpitoExportCulto[]; labe
                     })}
                 </tbody>
             </table>
+            </div>
         </div>
     )
 }
@@ -346,7 +356,7 @@ export const PulpitoExportLayout = forwardRef<HTMLDivElement, Props>(
         const isVertical = orientation === 'vertical'
         const width = isVertical
             ? 620
-            : Math.max(900, 150 + cultos.length * 120)
+            : Math.max(900, 194 + cultos.length * 120)
 
         return (
             <div

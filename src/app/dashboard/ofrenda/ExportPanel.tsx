@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Download, Image as ImageIcon, FileText, Gift,
-    AlertCircle, Share2, CheckCircle2, Loader2,
+    Share2, CheckCircle2, Loader2,
     ChevronDown, Info
 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -628,19 +628,11 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
         }
     }, [plan, canShare, fileBase, tituloMes, anio, labels, captureLayoutPNG, t, feedback])
 
-    // ── Estado vacío ──────────────────────────────────────────────────────────
+    // ── Estado vacío (mismo patrón que Labor Ofrenda y Labor Púlpito) ────────
     if (!plan) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-center gap-5">
-                <div className="p-5 bg-muted rounded-3xl">
-                    <AlertCircle className="w-12 h-12 text-muted-foreground" />
-                </div>
-                <div>
-                    <h3 className="text-lg font-bold mb-1">{t('ofrenda.export.empty.title')}</h3>
-                    <p className="text-sm text-muted-foreground max-w-xs">
-                        {t('ofrenda.export.empty.desc')}
-                    </p>
-                </div>
+            <div className="rounded-2xl border-2 border-dashed border-[rgba(184,150,74,0.3)] p-8 text-center text-sm text-slate-500">
+                {t('ofrenda.export.empty.desc')}
             </div>
         )
     }
@@ -649,6 +641,11 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
 
     return (
         <div className="relative z-10 space-y-5 bg-background">
+            <h3 className="text-base font-bold flex items-center gap-2">
+                <Download className="w-4 h-4 text-emerald-600" />
+                <span suppressHydrationWarning>{t('ofrenda.export.panelTitle')}</span>
+            </h3>
+
             {/* ── Banner informativo ───────────────────────────────────── */}
             <div className="flex gap-3 p-3.5 bg-gradient-to-br from-[#f8f3e8] to-white border border-[rgba(184,150,74,0.35)] rounded-2xl">
                 <Gift className="w-4 h-4 text-[#b68f2f] mt-0.5 shrink-0" />
