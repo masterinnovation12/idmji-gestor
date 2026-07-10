@@ -6,13 +6,23 @@ import { useI18n } from '@/lib/i18n/I18nProvider'
 import { interpolate, getDateFnsLocale } from '../ofrendaLocale'
 import { useOfrendaToast } from '../ofrendaFeedback'
 import { invokePlanoAction } from './planoInvoke'
-import { generarPlanoLabor, type PlanoGenerateMode, type PlanoGenerateScope } from './planoGenerateActions'
+import {
+    eliminarPlanoAsignaciones,
+    generarPlanoLabor,
+    type PlanoGenerateMode,
+    type PlanoGenerateScope,
+} from './planoGenerateActions'
+import { OfrendaDangerConfirmButton } from '../OfrendaDangerConfirmButton'
 import { getPlanoAsignacionCountsForPlan } from './planoActions'
 import { PlanoGenerateRulesInfo } from './PlanoGenerateRulesInfo'
 import { PlanoGenerateActionInfo } from './PlanoGenerateActionInfo'
 import { PlanoGenerateWeekPicker } from './PlanoGenerateWeekPicker'
 import { buildWeekFillInfo } from './planoGenerateWeekStatus'
-import type { PlanCompleto } from '../actions'
+import { PlanoServiceStrip } from './PlanoServiceStrip'
+import { PLANO_SERVICE_ACCENT } from './planoServiceAccent'
+import { pickDefaultServicioId, todayIsoLocal } from './planoDefaultServicio'
+import { planoServicioChipLabel } from './planoChipLabel'
+import type { OfrServicio, PlanCompleto } from '../actions'
 import { formatWeekRangeLabel, groupServiciosByWeek } from '../exportWeekUtils'
 
 interface Props {
@@ -82,6 +92,27 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
     const [semanaIso, setSemanaIso] = useState<number | undefined>(undefined)
     const selectedSemana = semanaIso ?? weekOptions[0]?.semanaIso
 
+    // ── Selección de día (alcance «día») ─────────────────────────────────────
+    const servicios = plan?.servicios ?? []
+    const [servicioId, setServicioId] = useState<string | null>(null)
+    const servicio = servicios.find(s => s.id === servicioId) ?? servicios[0] ?? null
+
+    useEffect(() => {
+        if (!plan?.servicios.length) {
+            setServicioId(null)
+            return
+        }
+        setServicioId(prev => {
+            if (prev && plan.servicios.some(s => s.id === prev)) return prev
+            return pickDefaultServicioId(plan.servicios, todayIsoLocal())
+        })
+    }, [plan])
+
+    const diaLabel = useCallback(
+        (s: OfrServicio) => planoServicioChipLabel(s, t),
+        [t],
+    )
+
     const run = async (modo: PlanoGenerateMode) => {
         if (!plan || busy) return
         setBusy(true)
@@ -91,6 +122,7 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
                 mes,
                 alcance: scope,
                 semanaIso: scope === 'week' ? selectedSemana : undefined,
+                servicioId: scope === 'day' ? (servicio?.id ?? undefined) : undefined,
                 modo,
             }),
         )
@@ -103,6 +135,32 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
         quickSuccess(
             t('ofrenda.planoGenerate.success'),
             interpolate(t('ofrenda.planoGenerate.successDesc'), { n: String(res.asignados) }),
+        )
+        await loadCounts()
+        onGenerated()
+    }
+
+    const runEliminar = async () => {
+        if (!plan || busy) return
+        setBusy(true)
+        const res = await invokePlanoAction(() =>
+            eliminarPlanoAsignaciones({
+                anio,
+                mes,
+                alcance: scope,
+                semanaIso: scope === 'week' ? selectedSemana : undefined,
+                servicioId: scope === 'day' ? (servicio?.id ?? undefined) : undefined,
+            }),
+        )
+        setBusy(false)
+        if (!('ok' in res) || !res.ok) {
+            const err = 'error' in res ? res.error : ''
+            planError(t('ofrenda.planoGenerate.deleteError'), err ?? '')
+            return
+        }
+        quickSuccess(
+            t('ofrenda.planoGenerate.deleted'),
+            interpolate(t('ofrenda.planoGenerate.deletedDesc'), { n: String(res.eliminados) }),
         )
         await loadCounts()
         onGenerated()
@@ -139,19 +197,27 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
 
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <div className="inline-flex w-full sm:w-auto rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-1" role="group">
-                    {(['week', 'month'] as const).map(s => (
-                        <button
-                            key={s}
-                            type="button"
-                            data-testid={`ofrenda-plano-generate-scope-${s}`}
-                            onClick={() => setScope(s)}
-                            className={`flex-1 sm:flex-none px-4 py-2 min-h-[44px] rounded-[0.6rem] text-xs font-bold touch-manipulation transition-all ${
-                                scope === s ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]' : 'text-slate-500 hover:text-[#1f2e85]'
-                            }`}
-                        >
-                            {t(s === 'week' ? 'ofrenda.planoGenerate.scope.week' : 'ofrenda.planoGenerate.scope.month')}
-                        </button>
-                    ))}
+                    {(['day', 'week', 'month'] as const).map(s => {
+                        const scopeKey =
+                            s === 'day'
+                                ? 'ofrenda.planoGenerate.scope.day'
+                                : s === 'week'
+                                    ? 'ofrenda.planoGenerate.scope.week'
+                                    : 'ofrenda.planoGenerate.scope.month'
+                        return (
+                            <button
+                                key={s}
+                                type="button"
+                                data-testid={`ofrenda-plano-generate-scope-${s}`}
+                                onClick={() => setScope(s)}
+                                className={`flex-1 sm:flex-none px-4 py-2 min-h-[44px] rounded-[0.6rem] text-xs font-bold touch-manipulation transition-all ${
+                                    scope === s ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]' : 'text-slate-500 hover:text-[#1f2e85]'
+                                }`}
+                            >
+                                {t(scopeKey)}
+                            </button>
+                        )
+                    })}
                 </div>
 
                 {scope === 'week' && weekOptions.length > 0 && (
@@ -164,6 +230,16 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
                     />
                 )}
             </div>
+
+            {scope === 'day' && servicios.length > 0 && (
+                <PlanoServiceStrip
+                    servicios={servicios}
+                    activeId={servicio?.id ?? ''}
+                    accent={PLANO_SERVICE_ACCENT}
+                    diaLabel={diaLabel}
+                    onSelect={setServicioId}
+                />
+            )}
 
             {canEdit && (
                 <div className="flex flex-col gap-2">
@@ -182,6 +258,18 @@ export function PlanoGeneratePanel({ plan, anio, mes, canEdit, onGenerated }: Re
                             <PlanoGenerateActionInfo mode={m} />
                         </div>
                     ))}
+                </div>
+            )}
+
+            {canEdit && (
+                <div className="pt-4 border-t border-border/50">
+                    <OfrendaDangerConfirmButton
+                        label={t('ofrenda.planoGenerate.deleteBtn')}
+                        confirmText={t('ofrenda.planoGenerate.deleteConfirm')}
+                        isLoading={busy}
+                        onConfirm={() => void runEliminar()}
+                        testIdPrefix="ofrenda-plano-delete"
+                    />
                 </div>
             )}
         </div>

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Gift, Users, Download, Map, RefreshCw, Plus, Trash2, Sparkles } from 'lucide-react'
+import { Gift, Users, Download, Map, RefreshCw, Sparkles } from 'lucide-react'
 import PageHero from '@/components/PageHero'
 import { OfrendaFeedbackProvider, useOfrendaToast } from './ofrendaFeedback'
 import { MiembrosManager } from './MiembrosManager'
@@ -19,26 +19,30 @@ import { validarDisponibilidadParaGenerar } from './ofrendaMemberAvailability'
 import { formatDisponibilidadProblemas } from './ofrendaGeneracionValidation'
 import { getStaticI18n, useI18n } from '@/lib/i18n/I18nProvider'
 import type { TranslationKey } from '@/lib/i18n/types'
-import { getTituloMes, interpolate } from './ofrendaLocale'
+import { getDateFnsLocale, getTituloMes, interpolate } from './ofrendaLocale'
+import { formatWeekRangeLabel, groupServiciosByWeek } from './exportWeekUtils'
 import { SacosConfigPanel } from './SacosConfigPanel'
 import { PlanMonthNavigator } from './PlanMonthNavigator'
 import { formatOfrendaActionError, isOfrendaDbConstraintError } from './ofrendaDbErrors'
 import { PulpitoSection } from './pulpito/PulpitoSection'
+import { OfrendaDangerConfirmButton } from './OfrendaDangerConfirmButton'
 
 type Section = 'general' | 'laborOfrenda' | 'laborPulpito'
-type GeneralTab = 'plan' | 'personas' | 'exportar'
+type GeneralTab = 'plan' | 'personas' | 'generar' | 'exportar'
 type LaborTab = 'personas' | 'generar' | 'plano' | 'exportar'
 
+// Orden canónico compartido por las tres secciones: vista principal → Personas → Generar → Exportar
 const GENERAL_TAB_DEFS: { id: GeneralTab; labelKey: TranslationKey; icon: React.ElementType }[] = [
     { id: 'plan', labelKey: 'ofrenda.tabs.planGeneral', icon: Gift },
     { id: 'personas', labelKey: 'ofrenda.tabs.peopleGeneral', icon: Users },
+    { id: 'generar', labelKey: 'ofrenda.tabs.generateGeneral', icon: Sparkles },
     { id: 'exportar', labelKey: 'ofrenda.tabs.exportGeneral', icon: Download },
 ]
 
 const LABOR_TAB_DEFS: { id: LaborTab; labelKey: TranslationKey; icon: React.ElementType }[] = [
+    { id: 'plano', labelKey: 'ofrenda.tabs.planoMap', icon: Map },
     { id: 'personas', labelKey: 'ofrenda.tabs.planoPeople', icon: Users },
     { id: 'generar', labelKey: 'ofrenda.tabs.generatePlano', icon: Sparkles },
-    { id: 'plano', labelKey: 'ofrenda.tabs.planoMap', icon: Map },
     { id: 'exportar', labelKey: 'ofrenda.tabs.exportPlano', icon: Download },
 ]
 
@@ -174,6 +178,66 @@ function OfrendaPageClientInner({
     // ── Título del mes ───────────────────────────────────────────────────────
     const tituloMes = getTituloMes(language, mes, anio)
 
+    // ── Alcance Semana/Mes en Labores generales (como Labor Púlpito) ─────────
+    const [generalScope, setGeneralScope] = useState<'week' | 'month'>('month')
+    const [generalWeekIndex, setGeneralWeekIndex] = useState(0)
+    // Al retroceder de mes en modo semana: aterrizar en la ÚLTIMA semana del mes cargado.
+    const [pendingLastWeek, setPendingLastWeek] = useState(false)
+
+    const generalWeeks = useMemo(
+        () => (plan ? groupServiciosByWeek(plan.servicios) : []),
+        [plan],
+    )
+
+    useEffect(() => {
+        if (pendingLastWeek) {
+            if (generalWeeks.length > 0 && !isLoading) {
+                setGeneralWeekIndex(generalWeeks.length - 1)
+                setPendingLastWeek(false)
+            }
+            return
+        }
+        if (generalWeekIndex > Math.max(0, generalWeeks.length - 1)) {
+            setGeneralWeekIndex(Math.max(0, generalWeeks.length - 1))
+        }
+    }, [generalWeekIndex, generalWeeks.length, pendingLastWeek, isLoading, generalWeeks])
+
+    const weekModeActive = section === 'general' && generalScope === 'week' && generalWeeks.length > 0
+
+    const displayTitle = weekModeActive
+        ? `${interpolate(t('ofrenda.export.scope.weekChip'), {
+              n: Math.min(generalWeekIndex, generalWeeks.length - 1) + 1,
+              total: generalWeeks.length,
+          })} · ${formatWeekRangeLabel(generalWeeks[Math.min(generalWeekIndex, generalWeeks.length - 1)], getDateFnsLocale(language))}`
+        : tituloMes
+
+    const navigateDisplay = useCallback((delta: number) => {
+        if (!(section === 'general' && generalScope === 'week')) {
+            void navigate(delta)
+            return
+        }
+        const next = generalWeekIndex + delta
+        if (next < 0) {
+            setPendingLastWeek(true)
+            void navigate(-1)
+            return
+        }
+        if (next > generalWeeks.length - 1) {
+            setGeneralWeekIndex(0)
+            void navigate(1)
+            return
+        }
+        setGeneralWeekIndex(next)
+    }, [section, generalScope, generalWeekIndex, generalWeeks.length, navigate])
+
+    // Plan filtrado a la semana visible (solo tabla del Plan en modo semana)
+    const planForView = useMemo(() => {
+        if (!plan || !weekModeActive) return plan
+        const week = generalWeeks[Math.min(generalWeekIndex, generalWeeks.length - 1)] ?? []
+        const ids = new Set(week.map(s => s.id))
+        return { ...plan, servicios: week, asignaciones: plan.asignaciones.filter(a => ids.has(a.servicio_id)) }
+    }, [plan, weekModeActive, generalWeeks, generalWeekIndex])
+
     const handleSectionChange = useCallback((next: Section) => {
         feedback.dismiss()
         setSection(next)
@@ -259,14 +323,40 @@ function OfrendaPageClientInner({
                         })}
                     </div>
 
+                    {section === 'general' && (
+                        <div
+                            className="inline-flex w-full sm:w-auto rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-1"
+                            role="group"
+                            aria-label={t('ofrenda.sections.general')}
+                        >
+                            {(['week', 'month'] as const).map(s => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => setGeneralScope(s)}
+                                    data-testid={`ofrenda-general-scope-${s}`}
+                                    className={`flex-1 sm:flex-none px-5 py-2 min-h-[44px] rounded-[0.6rem] text-xs font-bold touch-manipulation transition-all ${
+                                        generalScope === s
+                                            ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow-[0_3px_12px_rgba(31,46,133,0.3)]'
+                                            : 'text-slate-500 hover:text-[#1f2e85]'
+                                    }`}
+                                >
+                                    <span suppressHydrationWarning>
+                                        {t(s === 'week' ? 'ofrenda.planoGenerate.scope.week' : 'ofrenda.planoGenerate.scope.month')}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     {section !== 'laborPulpito' && (
                         <PlanMonthNavigator
-                            title={tituloMes}
+                            title={displayTitle}
                             isLoading={isLoading}
-                            onPrev={() => navigate(-1)}
-                            onNext={() => navigate(1)}
-                            prevAriaLabel={t('ofrenda.month.prev')}
-                            nextAriaLabel={t('ofrenda.month.next')}
+                            onPrev={() => navigateDisplay(-1)}
+                            onNext={() => navigateDisplay(1)}
+                            prevAriaLabel={weekModeActive ? t('common.previous') : t('ofrenda.month.prev')}
+                            nextAriaLabel={weekModeActive ? t('common.next') : t('ofrenda.month.next')}
                         />
                     )}
                 </div>
@@ -325,45 +415,6 @@ function OfrendaPageClientInner({
                             transition={{ duration: 0.18 }}
                             className="min-w-0"
                         >
-                            <div className="mb-5 space-y-3" data-testid="ofrenda-plan-toolbar">
-                                {canEdit && (
-                                    <div
-                                        className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end"
-                                        data-testid="ofrenda-plan-actions"
-                                    >
-                                        {plan && (
-                                            <>
-                                                <RegenerateMenu
-                                                    onRegenerate={handleGenerar}
-                                                    isLoading={isLoading}
-                                                />
-                                                <DeletePlanButton
-                                                    tituloMes={tituloMes}
-                                                    isLoading={isLoading}
-                                                    onConfirm={handleEliminarPlan}
-                                                />
-                                            </>
-                                        )}
-                                        {!plan && (
-                                            <motion.button
-                                                whileTap={{ scale: 0.97 }}
-                                                type="button"
-                                                onClick={() => handleGenerar()}
-                                                disabled={isLoading}
-                                                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)] text-white text-sm font-bold rounded-xl shadow-[0_4px_16px_rgba(31,46,133,0.32)] transition-shadow disabled:opacity-50 touch-manipulation"
-                                            >
-                                                {isLoading ? (
-                                                    <RefreshCw className="w-4 h-4 animate-spin" />
-                                                ) : (
-                                                    <Plus className="w-4 h-4" />
-                                                )}
-                                                {t('ofrenda.generate')}
-                                            </motion.button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
                             {/* Configuración de sacos (solo editor, solo cuando hay plan) */}
                             {canEdit && plan && (
                                 <SacosConfigPanel
@@ -407,9 +458,9 @@ function OfrendaPageClientInner({
                             {/* Tabla del plan */}
                             {(() => {
                                 if (isLoading) return <PlanSkeleton />
-                                if (plan) return (
+                                if (planForView) return (
                                     <PlanTable
-                                        plan={plan}
+                                        plan={planForView}
                                         miembros={miembros}
                                         canEdit={canEdit}
                                         onAsignacionChange={handleAsignacionChange}
@@ -419,7 +470,7 @@ function OfrendaPageClientInner({
                                 <EmptyPlanState
                                     tituloMes={tituloMes}
                                     canEdit={canEdit}
-                                    onGenerar={() => handleGenerar()}
+                                    onGoToGenerate={() => handleGeneralTabChange('generar')}
                                     isLoading={isLoading}
                                 />
                                 )
@@ -439,6 +490,25 @@ function OfrendaPageClientInner({
                                 initialMiembros={miembros}
                                 canEdit={canEdit}
                                 onChange={handleMiembrosChange}
+                            />
+                        </motion.div>
+                    )}
+
+                    {section === 'general' && generalTab === 'generar' && (
+                        <motion.div
+                            key="general-generar"
+                            initial={false}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.18 }}
+                        >
+                            <GeneralGeneratePanel
+                                hasPlan={!!plan}
+                                tituloMes={tituloMes}
+                                isLoading={isLoading}
+                                canEdit={canEdit}
+                                onGenerar={handleGenerar}
+                                onEliminar={handleEliminarPlan}
                             />
                         </motion.div>
                     )}
@@ -561,117 +631,112 @@ export function DeletePlanButton({
     onConfirm: () => void
 }>) {
     const { t } = useI18n()
-    const [confirmOpen, setConfirmOpen] = useState(false)
+    return (
+        <OfrendaDangerConfirmButton
+            label={t('ofrenda.deletePlan')}
+            confirmText={interpolate(t('ofrenda.deletePlan.confirm'), { month: tituloMes })}
+            isLoading={isLoading}
+            onConfirm={onConfirm}
+            testIdPrefix="ofrenda-delete-plan"
+        />
+    )
+}
 
-    if (confirmOpen) {
+type GeneralGenerateGrupo = 'all' | 1 | 2
+
+// Panel Generar de Labores generales — mismo patrón que Labor Ofrenda y Labor Púlpito.
+function GeneralGeneratePanel({
+    hasPlan,
+    tituloMes,
+    isLoading,
+    canEdit,
+    onGenerar,
+    onEliminar,
+}: Readonly<{
+    hasPlan: boolean
+    tituloMes: string
+    isLoading: boolean
+    canEdit: boolean
+    onGenerar: (grupo?: 1 | 2) => void
+    onEliminar: () => void
+}>) {
+    const { t } = useI18n()
+    const [grupo, setGrupo] = useState<GeneralGenerateGrupo>('all')
+
+    if (!canEdit) {
         return (
-            <div
-                className="w-full rounded-2xl border border-red-500/30 bg-red-500/8 p-3 shadow-sm"
-                data-testid="ofrenda-delete-plan-confirm"
-                role="alertdialog"
-                aria-labelledby="ofrenda-delete-plan-confirm-text"
-            >
-                <p
-                    id="ofrenda-delete-plan-confirm-text"
-                    className="text-sm font-semibold text-red-700 dark:text-red-300 leading-snug mb-3"
-                >
-                    {interpolate(t('ofrenda.deletePlan.confirm'), { month: tituloMes })}
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                    <button
-                        type="button"
-                        onClick={() => { setConfirmOpen(false); onConfirm() }}
-                        disabled={isLoading}
-                        className="w-full px-3 py-3 min-h-[48px] text-sm font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl disabled:opacity-50 touch-manipulation order-1"
-                    >
-                        {t('ofrenda.deletePlan.yes')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setConfirmOpen(false)}
-                        disabled={isLoading}
-                        className="w-full px-3 py-3 min-h-[48px] text-sm font-semibold border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-[#1f2e85] rounded-xl hover:bg-[#f8f3e8] touch-manipulation order-2"
-                    >
-                        {t('ofrenda.deletePlan.no')}
-                    </button>
-                </div>
+            <div className="rounded-2xl border-2 border-dashed border-[rgba(184,150,74,0.3)] p-8 text-center text-sm text-slate-500">
+                <span suppressHydrationWarning>{t('ofrenda.generalGenerate.desc')}</span>
             </div>
         )
     }
 
-    return (
-        <motion.button
-            whileTap={{ scale: 0.97 }}
-            type="button"
-            onClick={() => setConfirmOpen(true)}
-            disabled={isLoading}
-            className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 text-red-700 dark:text-red-300 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 touch-manipulation"
-            data-testid="ofrenda-delete-plan-btn"
-        >
-            <Trash2 className="w-4 h-4" />
-            {t('ofrenda.deletePlan')}
-        </motion.button>
-    )
-}
-
-function RegenerateMenu({
-    onRegenerate,
-    isLoading,
-}: Readonly<{
-    onRegenerate: (grupo?: 1 | 2) => void
-    isLoading: boolean
-}>) {
-    const { t } = useI18n()
-    const [open, setOpen] = useState(false)
+    const modos: { id: GeneralGenerateGrupo; label: string; desc: string }[] = [
+        { id: 'all', label: t('ofrenda.regenerate.all'), desc: t('ofrenda.generalGenerate.modeAllDesc') },
+        { id: 1, label: t('ofrenda.regenerate.g1'), desc: t('ofrenda.generalGenerate.modeG1Desc') },
+        { id: 2, label: t('ofrenda.regenerate.g2'), desc: t('ofrenda.generalGenerate.modeG2Desc') },
+    ]
 
     return (
-        <div className="relative w-full sm:w-auto" data-testid="ofrenda-regenerate-menu">
+        <div className="ofrenda-liquid-card space-y-5 p-4 sm:p-5" data-testid="ofrenda-general-generate-panel">
+            <div>
+                <h3 className="text-base font-bold flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-600" />
+                    <span suppressHydrationWarning>{t('ofrenda.generalGenerate.title')}</span>
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground" suppressHydrationWarning>
+                    {t('ofrenda.generalGenerate.desc')}
+                </p>
+            </div>
+
+            {hasPlan && (
+                <div className="grid gap-2 sm:grid-cols-3">
+                    {modos.map(m => {
+                        const active = grupo === m.id
+                        return (
+                            <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => setGrupo(m.id)}
+                                aria-pressed={active}
+                                data-testid={`ofrenda-general-mode-${m.id === 'all' ? 'all' : `g${m.id}`}`}
+                                className={`text-left rounded-2xl border-[1.5px] p-3 min-h-[64px] transition-all touch-manipulation ${
+                                    active
+                                        ? 'border-[#b8964a] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] shadow-[0_3px_12px_rgba(31,46,133,0.16)]'
+                                        : 'border-[rgba(184,150,74,0.25)] hover:border-[#b8964a]/60 hover:bg-[#f8f3e8]/50'
+                                }`}
+                            >
+                                <span className={`block text-sm font-bold ${active ? 'text-[#1f2e85]' : 'text-foreground'}`}>
+                                    {m.label}
+                                </span>
+                                <span className="mt-0.5 block text-xs text-muted-foreground leading-snug">{m.desc}</span>
+                            </button>
+                        )
+                    })}
+                </div>
+            )}
+
             <motion.button
                 whileTap={{ scale: 0.97 }}
                 type="button"
-                onClick={() => setOpen(v => !v)}
+                onClick={() => onGenerar(hasPlan && grupo !== 'all' ? grupo : undefined)}
                 disabled={isLoading}
-                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white hover:bg-[#f8f3e8] hover:border-[#b8964a] text-[#1f2e85] text-sm font-bold rounded-xl transition-colors disabled:opacity-50 touch-manipulation"
-                data-testid="ofrenda-regenerate-btn"
+                data-testid="ofrenda-general-generate-btn"
+                className="flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-3 min-h-[48px] rounded-xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white text-sm font-bold shadow-[0_4px_16px_rgba(31,46,133,0.32)] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)] transition-shadow disabled:opacity-50 touch-manipulation"
             >
-                <RefreshCw className={`w-4 h-4 shrink-0 ${isLoading ? 'animate-spin' : ''}`} />
-                {t('ofrenda.regenerate')}
+                {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                <span suppressHydrationWarning>{hasPlan ? t('ofrenda.regenerate') : t('ofrenda.generate')}</span>
             </motion.button>
 
-            <AnimatePresence>
-                {open && (
-                    <>
-                        <button
-                            type="button"
-                            className="fixed inset-0 z-10 bg-transparent cursor-default"
-                            onClick={() => setOpen(false)}
-                            aria-label={t('ofrenda.closeMenu')}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                            className="ofrenda-liquid-card absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 z-20 overflow-hidden sm:min-w-[190px]"
-                        >
-                            {[
-                                { label: t('ofrenda.regenerate.all'), grupo: undefined, testId: 'ofrenda-regenerate-all' },
-                                { label: t('ofrenda.regenerate.g1'), grupo: 1 as const, testId: 'ofrenda-regenerate-g1' },
-                                { label: t('ofrenda.regenerate.g2'), grupo: 2 as const, testId: 'ofrenda-regenerate-g2' },
-                            ].map(item => (
-                                <button
-                                    key={item.label}
-                                    type="button"
-                                    data-testid={item.testId}
-                                    onClick={() => { onRegenerate(item.grupo); setOpen(false) }}
-                                    className="w-full text-left px-4 py-3 text-sm text-[#1f2e85] hover:bg-[#f8f3e8] transition-colors font-semibold"
-                                >
-                                    {item.label}
-                                </button>
-                            ))}
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
+            {hasPlan && (
+                <div className="pt-4 border-t border-border/50">
+                    <DeletePlanButton
+                        tituloMes={tituloMes}
+                        isLoading={isLoading}
+                        onConfirm={onEliminar}
+                    />
+                </div>
+            )}
         </div>
     )
 }
@@ -679,12 +744,12 @@ function RegenerateMenu({
 function EmptyPlanState({
     tituloMes,
     canEdit,
-    onGenerar,
+    onGoToGenerate,
     isLoading,
 }: Readonly<{
     tituloMes: string
     canEdit: boolean
-    onGenerar: () => void
+    onGoToGenerate: () => void
     isLoading: boolean
 }>) {
     const { t } = useI18n()
@@ -702,12 +767,13 @@ function EmptyPlanState({
             {canEdit && (
                 <motion.button
                     whileTap={{ scale: 0.97 }}
-                    onClick={onGenerar}
+                    onClick={onGoToGenerate}
                     disabled={isLoading}
+                    data-testid="ofrenda-empty-go-generate"
                     className="flex items-center gap-2 px-6 py-3 border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] hover:shadow-[0_6px_22px_rgba(31,46,133,0.42)] text-white font-bold rounded-2xl shadow-[0_4px_16px_rgba(31,46,133,0.32)] transition-shadow disabled:opacity-50 touch-manipulation min-h-[48px]"
                 >
-                    {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                    {t('ofrenda.generate')}
+                    {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                    {t('ofrenda.emptyPlan.goToGenerate')}
                 </motion.button>
             )}
         </div>

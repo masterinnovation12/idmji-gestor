@@ -59,11 +59,13 @@ test.describe('QA completo — 10 casos de uso Ofrenda', () => {
         expect(titleAfter).not.toBe(titleBefore)
     })
 
-    test('UC02 — Labores generales: regenerar plan y verificar tabla con asignaciones', async ({ page }) => {
-        await goGeneralTab(page, 'plan')
-        await page.getByTestId('ofrenda-regenerate-btn').click()
-        await page.getByTestId('ofrenda-regenerate-all').click()
+    test('UC02 — Labores generales: regenerar plan desde la pestaña Generar', async ({ page }) => {
+        await goGeneralTab(page, 'generar')
+        await expect(page.getByTestId('ofrenda-general-generate-panel')).toBeVisible({ timeout: 15_000 })
+        await page.getByTestId('ofrenda-general-mode-all').click()
+        await page.getByTestId('ofrenda-general-generate-btn').click()
         await waitFeedbackSuccess(page)
+        await goGeneralTab(page, 'plan')
         await expectPlanTableHasAssignments(page)
         const cells = page.locator('[data-testid="ofrenda-plan-desktop-table"] td, [data-testid="ofrenda-plan-sticky-role"]')
         expect(await cells.count()).toBeGreaterThan(4)

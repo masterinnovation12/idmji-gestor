@@ -117,7 +117,7 @@ describe('qualitat català — guarda de cadenes sense traduir', () => {
         'ofrenda.pulpito.tabs.generar', 'ofrenda.pulpito.tabs.exportar',
         'ofrenda.pulpito.generar.button', 'ofrenda.pulpito.export.orientationVertical',
         'ofrenda.pulpito.export.share',
-        'ofrenda.regenerate', 'ofrenda.tabs.export', 'ofrenda.week.short',
+        'ofrenda.regenerate', 'ofrenda.tabs.export', 'ofrenda.tabs.generateGeneral', 'ofrenda.week.short',
         'profile.draftBar.discard', 'profile.language',
         'pwa.iosStep2', 'pwa.share',
         'temasAlabanza.filtersTema', 'temasAlabanza.noLectura', 'temasAlabanza.previous', 'temasAlabanza.statsTotal',

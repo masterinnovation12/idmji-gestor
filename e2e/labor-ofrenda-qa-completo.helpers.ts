@@ -4,7 +4,7 @@
 import { expect, type Page } from '@playwright/test'
 import { gotoOfrendaWithPlan } from './ofrenda-sacos.helpers'
 
-export type GeneralTab = 'plan' | 'personas' | 'exportar'
+export type GeneralTab = 'plan' | 'personas' | 'generar' | 'exportar'
 export type LaborTab = 'personas' | 'generar' | 'plano' | 'exportar'
 
 export const FEEDBACK_DISMISS_MS = 90_000
@@ -46,7 +46,7 @@ export async function waitFeedbackSuccess(page: Page): Promise<void> {
 export async function clickPlanoAction(
     page: Page,
     modo: 'generar' | 'regenerar' | 'rellenar',
-    scope: 'week' | 'month' = 'month',
+    scope: 'day' | 'week' | 'month' = 'month',
 ): Promise<void> {
     await goLaborTab(page, 'generar')
     await page.getByTestId(`ofrenda-plano-generate-scope-${scope}`).click()

@@ -217,6 +217,11 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
 
     return (
         <div className="space-y-6">
+            <h3 className="text-base font-bold flex items-center gap-2">
+                <Users className="w-4 h-4 text-emerald-600" />
+                <span suppressHydrationWarning>{t('ofrenda.people.title')}</span>
+            </h3>
+
             <div className="flex gap-3 p-3.5 rounded-2xl border border-[#1f2e85]/15 bg-[#1f2e85]/5">
                 <Info className="w-4 h-4 text-[#1f2e85] dark:text-[#e8d9a8] mt-0.5 shrink-0" />
                 <p className="text-xs text-muted-foreground font-medium leading-relaxed">
