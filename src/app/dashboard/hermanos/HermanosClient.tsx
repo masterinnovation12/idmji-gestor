@@ -96,7 +96,7 @@ function HermanoAvatar({ hermano, size = "md" }: { hermano: Profile, size?: "sm"
     )
 }
 
-const ROLE_FILTERS: readonly ('ALL' | UserRole)[] = ['ALL', 'ADMIN', 'EDITOR', 'USER', 'SONIDO'] as const
+const ROLE_FILTERS: readonly ('ALL' | UserRole)[] = ['ALL', 'ADMIN', 'EDITOR', 'MIEMBRO', 'SONIDO'] as const
 type FilterRole = (typeof ROLE_FILTERS)[number]
 
 function getRoleLabelKey(role: string): TranslationKey {
@@ -104,7 +104,7 @@ function getRoleLabelKey(role: string): TranslationKey {
         ALL: 'hermanos.filterAll',
         ADMIN: 'hermanos.filterAdmin',
         EDITOR: 'hermanos.filterEditor',
-        USER: 'hermanos.filterUser',
+        MIEMBRO: 'hermanos.filterUser',
         SONIDO: 'hermanos.filterSonido',
     }
     return (map[role] || role) as TranslationKey
@@ -114,7 +114,7 @@ function getRoleStyles(rol: UserRole): { bg: string; border: string; text: strin
     switch (rol) {
         case 'ADMIN': return { bg: 'bg-red-500/10', border: 'border-red-500/20', text: 'text-red-500' }
         case 'EDITOR': return { bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-500' }
-        case 'USER': return { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-500' }
+        case 'MIEMBRO': return { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-500' }
         case 'SONIDO': return { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-500' }
         default: return { bg: 'bg-primary/10', border: 'border-primary/20', text: 'text-primary' }
     }
@@ -124,7 +124,7 @@ function getRoleGlowColor(rol: UserRole): string {
     switch (rol) {
         case 'ADMIN': return 'bg-red-500'
         case 'EDITOR': return 'bg-blue-500'
-        case 'USER': return 'bg-emerald-500'
+        case 'MIEMBRO': return 'bg-emerald-500'
         case 'SONIDO': return 'bg-amber-500'
         default: return 'bg-primary'
     }

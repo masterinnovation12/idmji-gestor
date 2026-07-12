@@ -73,6 +73,14 @@ interface Props {
     initialMes: number
     canEdit: boolean
     isAdmin: boolean
+    /** Permisos granulares por sección; si faltan, se usa canEdit como fallback. */
+    perms?: {
+        laborGeneral?: boolean
+        miembros?: boolean
+        plano?: boolean
+        planoPersonas?: boolean
+        pulpito?: boolean
+    }
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -92,7 +100,14 @@ function OfrendaPageClientInner({
     initialMes,
     canEdit,
     isAdmin,
+    perms,
 }: Readonly<Props>) {
+    // Permisos granulares con fallback al canEdit clásico (ADMIN/EDITOR)
+    const canLaborGeneral   = perms?.laborGeneral ?? canEdit
+    const canMiembros       = perms?.miembros ?? canEdit
+    const canPlano          = perms?.plano ?? canEdit
+    const canPlanoPersonas  = perms?.planoPersonas ?? canEdit
+    const canPulpito        = perms?.pulpito ?? canEdit
     const { t, language } = useI18n()
     const feedback = useOfrendaToast()
     const [section, setSection] = useState<Section>('general')
@@ -416,7 +431,7 @@ function OfrendaPageClientInner({
                             className="min-w-0"
                         >
                             {/* Configuración de sacos (solo editor, solo cuando hay plan) */}
-                            {canEdit && plan && (
+                            {canLaborGeneral && plan && (
                                 <SacosConfigPanel
                                     plan={plan.plan}
                                     isLoading={isLoading}
@@ -462,14 +477,14 @@ function OfrendaPageClientInner({
                                     <PlanTable
                                         plan={planForView}
                                         miembros={miembros}
-                                        canEdit={canEdit}
+                                        canEdit={canLaborGeneral}
                                         onAsignacionChange={handleAsignacionChange}
                                     />
                                 )
                                 return (
                                 <EmptyPlanState
                                     tituloMes={tituloMes}
-                                    canEdit={canEdit}
+                                    canEdit={canLaborGeneral}
                                     onGoToGenerate={() => handleGeneralTabChange('generar')}
                                     isLoading={isLoading}
                                 />
@@ -488,7 +503,7 @@ function OfrendaPageClientInner({
                         >
                             <MiembrosManager
                                 initialMiembros={miembros}
-                                canEdit={canEdit}
+                                canEdit={canMiembros}
                                 onChange={handleMiembrosChange}
                             />
                         </motion.div>
@@ -506,7 +521,7 @@ function OfrendaPageClientInner({
                                 hasPlan={!!plan}
                                 tituloMes={tituloMes}
                                 isLoading={isLoading}
-                                canEdit={canEdit}
+                                canEdit={canLaborGeneral}
                                 onGenerar={handleGenerar}
                                 onEliminar={handleEliminarPlan}
                             />
@@ -541,7 +556,7 @@ function OfrendaPageClientInner({
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.18 }}
                         >
-                            <PlanoPersonasManager canEdit={canEdit} />
+                            <PlanoPersonasManager canEdit={canPlanoPersonas} />
                         </motion.div>
                     )}
 
@@ -557,7 +572,7 @@ function OfrendaPageClientInner({
                                 plan={plan}
                                 anio={anio}
                                 mes={mes}
-                                canEdit={canEdit}
+                                canEdit={canPlano}
                                 onGenerated={handleAsignacionChange}
                             />
                         </motion.div>
@@ -575,7 +590,7 @@ function OfrendaPageClientInner({
                             <PlanoTab
                                 plan={plan}
                                 tituloMes={tituloMes}
-                                canEdit={canEdit}
+                                canEdit={canPlano}
                                 onGoToPlan={() => {
                                     setSection('general')
                                     setGeneralTab('plan')
@@ -610,7 +625,7 @@ function OfrendaPageClientInner({
                             transition={{ duration: 0.18 }}
                             className="min-w-0"
                         >
-                            <PulpitoSection canEdit={canEdit} isAdmin={isAdmin} />
+                            <PulpitoSection canEdit={canPulpito} isAdmin={isAdmin} />
                         </motion.div>
                     )}
                 </AnimatePresence>

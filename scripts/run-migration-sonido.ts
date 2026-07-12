@@ -1,35 +1,51 @@
 /**
- * Script para ejecutar la migración del enum y crear el usuario de sonido.
+ * OBSOLETO: el valor 'SONIDO' del enum user_role se añade en la migración
+ * 20260711120000_sedes_y_permisos.sql. Se conserva solo como utilidad para
+ * crear/reparar el perfil del usuario de sonido.
+ *
  * Ejecutar: npx tsx scripts/run-migration-sonido.ts
+ * Requiere NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en .env.local
+ * (nunca hardcodear claves en el repositorio).
  */
+import { readFileSync } from 'fs'
+import path from 'path'
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = 'https://dcjqjsmyydqpsmxbkhya.supabase.co'
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjanFqc215eWRxcHNteGJraHlhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDc3NDcxNSwiZXhwIjoyMDgwMzUwNzE1fQ.ZsO4uTR-dW7KMtI553zLUyQam1hRcAa5QJXRzox3qMo'
+function loadEnv(): Record<string, string> {
+    const out: Record<string, string> = {}
+    const content = readFileSync(path.join(process.cwd(), '.env.local'), 'utf-8')
+    for (const line of content.split(/\r?\n/)) {
+        const m = /^([A-Z0-9_]+)=(.*)$/.exec(line)
+        if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, '').trim()
+    }
+    return out
+}
+
+const env = loadEnv()
+const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL
+const SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    console.error('Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en .env.local')
+    process.exit(1)
+}
 
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false }
 })
 
 async function main() {
-    // 1. Añadir valor al enum
-    console.log('Añadiendo SONIDO al enum user_role...')
-    const { error: enumErr } = await admin.rpc('exec_sql' as any, {
-        sql: `ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'SONIDO';`
-    })
-    if (enumErr) {
-        // Intentar con pg directamente a través del cliente
-        console.log('RPC exec_sql no disponible, intentando directamente...')
-    } else {
-        console.log('✅ Enum actualizado')
-    }
-
-    // 2. Actualizar el perfil del usuario creado
-    const userId = '152755d6-45a9-4219-bbb7-fdbdefe3b0d7'
     const email = 'sonido@idmjisabadell.org'
 
+    const { data } = await admin.auth.admin.listUsers()
+    const user = data?.users?.find(u => u.email === email)
+    if (!user) {
+        console.error(`No existe el usuario ${email} en Auth; créalo primero.`)
+        process.exit(1)
+    }
+
     const { error: profileErr } = await admin.from('profiles').upsert({
-        id: userId,
+        id: user.id,
         nombre: 'Sonido',
         apellidos: 'IDMJI',
         email,
@@ -42,7 +58,7 @@ async function main() {
         process.exit(1)
     }
 
-    console.log(`✅ Perfil SONIDO creado para ${email}`)
+    console.log(`✅ Perfil SONIDO listo para ${email}`)
 }
 
 main().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1) })

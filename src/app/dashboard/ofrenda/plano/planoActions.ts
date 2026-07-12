@@ -18,6 +18,8 @@ import type {
     PlanoVistaResuelta,
 } from './planoTypes'
 import { requireEditor, type PlanoAuthError } from './planoAuth'
+import { requireUser } from '@/lib/auth/guards'
+import { resolveActiveSedeId } from '@/lib/sede/activeSede'
 import {
     readPlanoPersonaRow,
     type PlanoPersonaFull,
@@ -70,14 +72,25 @@ export interface PlanoDataResult {
 
 export type { PlanoAuthError }
 
-// ─── Seed layouts si la migración aún no los tiene ───────────────────────────
+// ─── Sede efectiva para lecturas (RLS refuerza; el filtro es para ADMIN) ──────
+
+async function resolveReadSedeId(): Promise<string | null> {
+    const { ctx, error } = await requireUser()
+    if (error || !ctx) return null
+    return resolveActiveSedeId(ctx)
+}
+
+// ─── Seed layouts si la sede aún no los tiene ─────────────────────────────────
 
 async function ensurePlanoLayoutsSeeded(
     supabase: Awaited<ReturnType<typeof createClient>>,
+    sedeId: string | null,
 ): Promise<void> {
-    const { count, error } = await supabase
+    let countQuery = supabase
         .from('ofrenda_plano_layouts')
         .select('*', { count: 'exact', head: true })
+    if (sedeId) countQuery = countQuery.eq('sede_id', sedeId)
+    const { count, error } = await countQuery
 
     if (error || (count ?? 0) >= 4) return
 
@@ -86,11 +99,12 @@ async function ensurePlanoLayoutsSeeded(
         vista: s.vista,
         fondo: s.fondo,
         elementos: s.elementos,
+        ...(sedeId ? { sede_id: sedeId } : {}),
     }))
 
     await supabase
         .from('ofrenda_plano_layouts')
-        .upsert(seeds, { onConflict: 'modo,vista' })
+        .upsert(seeds, { onConflict: 'sede_id,modo,vista' })
 }
 
 function elementosToVistaResuelta(
@@ -136,15 +150,17 @@ export async function getPlanoData(
     modo: PlanoModo,
 ): Promise<{ data?: PlanoDataResult; error?: string }> {
     const supabase = await createClient()
+    const sedeId = await resolveReadSedeId()
 
-    await ensurePlanoLayoutsSeeded(supabase)
+    await ensurePlanoLayoutsSeeded(supabase, sedeId)
 
-    const { data: layoutRow, error: layoutErr } = await supabase
+    let layoutQuery = supabase
         .from('ofrenda_plano_layouts')
         .select('elementos')
         .eq('modo', modo)
         .eq('vista', vista)
-        .maybeSingle()
+    if (sedeId) layoutQuery = layoutQuery.eq('sede_id', sedeId)
+    const { data: layoutRow, error: layoutErr } = await layoutQuery.maybeSingle()
 
     if (layoutErr) return { error: layoutErr.message }
 
@@ -194,20 +210,23 @@ export async function searchPlanoPersonas(
     const q = normalizePlanoPersonaNombre(query)
     if (q.length < 1) return { data: [] }
 
-    const { data, error } = await supabase
+    const sedeId = await resolveReadSedeId()
+    let searchQuery = supabase
         .from('ofrenda_plano_personas')
         .select('*')
         .eq('activo', true)
         .ilike('nombre_normalizado', `%${q}%`)
         .order('nombre')
         .limit(PLANO_PERSONA_SEARCH_LIMIT)
+    if (sedeId) searchQuery = searchQuery.eq('sede_id', sedeId)
+    const { data, error } = await searchQuery
 
     if (error) return { error: error.message }
     return { data: (data ?? []).map(toPlanoPersona) }
 }
 
 export async function createPlanoPersona(nombre: string): Promise<PlanoCreatePersonaResult> {
-    const { error: authError, supabase, userId } = await requireEditor()
+    const { error: authError, supabase, userId, sedeId } = await requireEditor()
     if (authError || !supabase) return { errorCode: 'no_permission' }
 
     const validation = validatePlanoPersonaNombre(nombre)
@@ -216,30 +235,40 @@ export async function createPlanoPersona(nombre: string): Promise<PlanoCreatePer
     const trimmed = nombre.trim().replace(/\s+/g, ' ')
     const nombre_normalizado = normalizePlanoPersonaNombre(trimmed)
 
-    // Sin duplicados: si ya existe, se reutiliza la persona existente.
-    const existing = await supabase
-        .from('ofrenda_plano_personas')
-        .select('*')
-        .eq('nombre_normalizado', nombre_normalizado)
-        .maybeSingle()
+    const bySede = <T extends { eq: (col: string, val: string) => T }>(q: T): T =>
+        sedeId ? q.eq('sede_id', sedeId) : q
+
+    // Sin duplicados (por sede): si ya existe, se reutiliza la persona existente.
+    const existing = await bySede(
+        supabase
+            .from('ofrenda_plano_personas')
+            .select('*')
+            .eq('nombre_normalizado', nombre_normalizado)
+    ).maybeSingle()
     if (existing.data) {
         return { data: toPlanoPersona(existing.data), alreadyExisted: true }
     }
 
     const { data, error } = await supabase
         .from('ofrenda_plano_personas')
-        .insert({ nombre: trimmed, nombre_normalizado, created_by: userId })
+        .insert({
+            nombre: trimmed,
+            nombre_normalizado,
+            created_by: userId,
+            ...(sedeId ? { sede_id: sedeId } : {}),
+        })
         .select('*')
         .single()
 
     if (error) {
         // Carrera: otro lo insertó entre el check y el insert → reutilizar.
         if (error.code === '23505') {
-            const again = await supabase
-                .from('ofrenda_plano_personas')
-                .select('*')
-                .eq('nombre_normalizado', nombre_normalizado)
-                .maybeSingle()
+            const again = await bySede(
+                supabase
+                    .from('ofrenda_plano_personas')
+                    .select('*')
+                    .eq('nombre_normalizado', nombre_normalizado)
+            ).maybeSingle()
             if (again.data) return { data: toPlanoPersona(again.data), alreadyExisted: true }
         }
         return { errorCode: 'unknown' }
@@ -338,7 +367,7 @@ export async function savePlanoLayout(
     modo: PlanoModo,
     elementos: PlanoLayoutElementos,
 ): Promise<{ error?: string }> {
-    const { error: authError, supabase, userId } = await requireEditor()
+    const { error: authError, supabase, userId, sedeId } = await requireEditor()
     if (authError || !supabase) return { error: authError ?? 'Error' }
 
     if (elementos.schemaVersion !== 3) {
@@ -356,8 +385,9 @@ export async function savePlanoLayout(
                 elementos,
                 updated_by: userId,
                 updated_at: new Date().toISOString(),
+                ...(sedeId ? { sede_id: sedeId } : {}),
             },
-            { onConflict: 'modo,vista' },
+            { onConflict: 'sede_id,modo,vista' },
         )
 
     if (error) return { error: error.message }
@@ -380,20 +410,25 @@ export type PlanoRenameError = 'too_short' | 'too_long' | 'duplicate'
 /** Lista completa del directorio (para la pantalla de gestión). Lectura: autenticado. */
 export async function listPlanoPersonas(): Promise<{ data?: PlanoPersonaFull[]; error?: string }> {
     const supabase = await createClient()
+    const sedeId = await resolveReadSedeId()
 
-    const { data, error } = await supabase
+    let personasQuery = supabase
         .from('ofrenda_plano_personas')
         .select('*')
         .order('nombre')
+    if (sedeId) personasQuery = personasQuery.eq('sede_id', sedeId)
+    const { data, error } = await personasQuery
     if (error) return { error: error.message }
 
     const { data: asig } = await supabase
         .from('ofrenda_plano_asignaciones')
         .select('persona_id, rol, servicio_id')
 
-    const { data: parejas } = await supabase
+    let parejasQuery = supabase
         .from('ofrenda_plano_parejas')
         .select('mujer_persona_id, hombre_persona_id')
+    if (sedeId) parejasQuery = parejasQuery.eq('sede_id', sedeId)
+    const { data: parejas } = await parejasQuery
 
     // Servicios dentro del histórico válido (a partir de PLANO_HISTORIAL_DESDE):
     // el recuento por rol (O/A) solo cuenta estos; el total (para el aviso de
@@ -508,7 +543,7 @@ export async function setPlanoPareja(
     mujerId: string,
     hombreId: string,
 ): Promise<{ error?: string }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase, sedeId } = await requireEditor()
     if (authError || !supabase) return { error: authError ?? 'Error' }
 
     await removeParejaForPersona(supabase, mujerId)
@@ -517,6 +552,7 @@ export async function setPlanoPareja(
     const { error } = await supabase.from('ofrenda_plano_parejas').insert({
         mujer_persona_id: mujerId,
         hombre_persona_id: hombreId,
+        ...(sedeId ? { sede_id: sedeId } : {}),
     })
 
     if (error) return { error: error.message }
@@ -538,7 +574,7 @@ export async function renamePlanoPersona(
     personaId: string,
     nombre: string,
 ): Promise<{ error?: string; errorCode?: PlanoRenameError }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase, sedeId } = await requireEditor()
     if (authError || !supabase) return { error: authError ?? 'no_auth' }
 
     const code = validatePlanoPersonaNombre(nombre)
@@ -547,12 +583,13 @@ export async function renamePlanoPersona(
     const trimmed = nombre.trim().replace(/\s+/g, ' ')
     const nombre_normalizado = normalizePlanoPersonaNombre(trimmed)
 
-    const { data: clash } = await supabase
+    let clashQuery = supabase
         .from('ofrenda_plano_personas')
         .select('id')
         .eq('nombre_normalizado', nombre_normalizado)
         .neq('id', personaId)
-        .maybeSingle()
+    if (sedeId) clashQuery = clashQuery.eq('sede_id', sedeId)
+    const { data: clash } = await clashQuery.maybeSingle()
     if (clash) return { errorCode: 'duplicate' }
 
     const { error } = await supabase

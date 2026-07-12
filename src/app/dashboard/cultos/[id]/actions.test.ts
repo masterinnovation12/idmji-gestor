@@ -19,6 +19,21 @@ vi.mock('@/lib/supabase/server', () => ({
   ),
 }))
 
+// El guard de permisos devuelve el mismo cliente mockeado con permisos plenos
+vi.mock('@/lib/auth/guards', () => ({
+  requirePermission: vi.fn(async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    return {
+      error: null,
+      ctx: {
+        supabase: await createClient(),
+        userId: 'test-admin-uuid',
+        profile: { id: 'test-admin-uuid', rol: 'ADMIN', permisos: {}, sede_id: null },
+      },
+    }
+  }),
+}))
+
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }))

@@ -1,8 +1,9 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { requirePermission, requireAdmin as requireAdminGuard } from '@/lib/auth/guards'
+import { createAdminClient } from '@/lib/supabase/admin'
 import {
     generarAsignacionesPulpito,
     rolesDelCulto,
@@ -47,57 +48,18 @@ const ROL_FIELD: Record<PulpitoRol, string> = {
     testimonios: 'id_usuario_testimonios',
 }
 
-// ─── Auth guard (mismo criterio que ofrenda) ──────────────────────────────────
+// ─── Auth guards (permiso granular: asignar hermanos al púlpito) ──────────────
 
 async function requireEditor() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'No autenticado', supabase: null }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('rol')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile || !['ADMIN', 'EDITOR'].includes(profile.rol)) {
-        return { error: 'Sin permisos', supabase: null }
-    }
-    return { error: null, supabase }
-}
-
-/**
- * Cliente con service-role (bypassa RLS). Necesario para que un ADMIN edite la
- * disponibilidad de OTRO hermano: la política RLS de `profiles` solo permite a
- * cada usuario actualizar su propia fila, así que sin esto el update afecta 0
- * filas sin devolver error.
- */
-function getSupabaseAdmin() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
-    if (!supabaseUrl || !serviceRoleKey) {
-        throw new Error('Falta configuración de Supabase (service role).')
-    }
-    return createAdminClient(supabaseUrl, serviceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-    })
+    const { ctx, error } = await requirePermission('cultos.asignarHermanos')
+    if (error || !ctx) return { error: error ?? 'Sin permisos', supabase: null }
+    return { error: null, supabase: ctx.supabase }
 }
 
 async function requireAdmin() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'No autenticado', supabase: null }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('rol')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile || profile.rol !== 'ADMIN') {
-        return { error: 'Sin permisos', supabase: null }
-    }
-    return { error: null, supabase }
+    const { ctx, error } = await requireAdminGuard()
+    if (error || !ctx) return { error: error ?? 'Sin permisos', supabase: null }
+    return { error: null, supabase: ctx.supabase }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -370,7 +332,7 @@ export async function updateHermanoAvailability(
     if (authError) return { error: authError }
 
     // Con service-role para saltar RLS (editar el perfil de OTRO hermano).
-    const admin = getSupabaseAdmin()
+    const admin = createAdminClient()
 
     const { data: current } = await admin
         .from('profiles')

@@ -8,7 +8,22 @@
  * @date 2024-12-18
  */
 
-export type UserRole = 'ADMIN' | 'EDITOR' | 'USER' | 'SONIDO'
+/** Roles reales del enum `user_role` en BD (MIEMBRO es el default). */
+export type UserRole = 'ADMIN' | 'EDITOR' | 'MIEMBRO' | 'SONIDO'
+
+/** Sede (congregación). Todas las tablas operativas se aíslan por sede_id. */
+export interface Sede {
+    id: string
+    nombre: string
+    slug: string
+    ciudad: string | null
+    direccion: string | null
+    email_dominio: string | null
+    activo: boolean
+    es_principal: boolean
+    created_at: string
+    updated_at: string
+}
 
 export interface Profile {
     id: string
@@ -20,6 +35,10 @@ export interface Profile {
     rol: UserRole
     avatar_url: string | null
     pulpito: boolean
+    /** Sede a la que pertenece el usuario */
+    sede_id?: string | null
+    /** Overrides de permisos granulares ({ 'cultos.editarDetalle': false, ... }) */
+    permisos?: Record<string, boolean> | null
     /** Preferencia de idioma en BD (nombre real de columna en Supabase) */
     idioma_preferido?: 'es-ES' | 'ca-ES' | string | null
     /** Alias usado en código antiguo; en producción suele mapearse desde idioma_preferido */

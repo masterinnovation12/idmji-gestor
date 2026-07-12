@@ -48,3 +48,14 @@ next-env.d.ts
 
 # GitHub CLI local al proyecto (binarios, no commitear)
 .tools/
+
+# Salidas de diagnóstico local (no commitear)
+lint_output.txt
+lint-output.txt
+diag_*.txt
+tsc_output*.txt
+eslint.json
+fix-tests.js
+exports/
+.qa-shots/
+.codex-remote-attachments/

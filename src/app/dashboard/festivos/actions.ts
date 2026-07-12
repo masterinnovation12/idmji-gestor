@@ -2,9 +2,14 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/auth/guards'
+import { resolveActiveSedeId } from '@/lib/sede/activeSede'
 
 export async function createFestivo(formData: FormData) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.gestionar')
+    if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
+    const sedeId = await resolveActiveSedeId(ctx)
 
     const fecha = formData.get('fecha') as string
     const tipo = formData.get('tipo') as string
@@ -15,6 +20,7 @@ export async function createFestivo(formData: FormData) {
         fecha,
         tipo,
         descripcion: descripcion || null,
+        ...(sedeId ? { sede_id: sedeId } : {}),
     })
 
     if (festivoError) {
@@ -51,7 +57,9 @@ export async function createFestivo(formData: FormData) {
 }
 
 export async function deleteFestivo(id: number) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.gestionar')
+    if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
 
     // 1. Obtener la fecha del festivo antes de borrarlo
     const { data: festivo } = await supabase
@@ -172,7 +180,9 @@ id,
 }
 
 export async function seedRandomFestivos(year: number) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.gestionar')
+    if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
 
     // Generar 5 fechas aleatorias
     const randomDays = Array.from({ length: 5 }, () => {

@@ -13,6 +13,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { eachDayOfInterval, endOfMonth, getDay, startOfMonth, format, startOfWeek, endOfWeek } from 'date-fns'
+import { requirePermission } from '@/lib/auth/guards'
+import { resolveActiveSedeId } from '@/lib/sede/activeSede'
 
 /**
  * Genera automáticamente los cultos de un mes basándose en el calendario semanal
@@ -21,26 +23,32 @@ import { eachDayOfInterval, endOfMonth, getDay, startOfMonth, format, startOfWee
  * @param date Fecha del mes a generar
  */
 export async function generateCultosForMonth(date: Date) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.gestionar')
+    if (authError || !ctx) return { success: false, error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
+    const sedeId = await resolveActiveSedeId(ctx)
 
     const start = startOfMonth(date)
     const end = endOfMonth(date)
     const days = eachDayOfInterval({ start, end })
 
-    // 1. Verificar si ya existen cultos generados para este mes para evitar duplicados
-    const { data: existingCultos } = await supabase
+    // 1. Verificar si ya existen cultos generados para este mes (en esta sede)
+    let existingQuery = supabase
         .from('cultos')
         .select('id')
         .gte('fecha', format(start, 'yyyy-MM-dd'))
         .lte('fecha', format(end, 'yyyy-MM-dd'))
-        .limit(1)
+    if (sedeId) existingQuery = existingQuery.eq('sede_id', sedeId)
+    const { data: existingCultos } = await existingQuery.limit(1)
 
     if (existingCultos && existingCultos.length > 0) {
         return { success: false, error: 'Ya existen cultos generados para este mes.' }
     }
 
-    // 2. Obtener configuraciones base agrupadas por día de la semana
-    const { data: schedules } = await supabase.from('culto_schedules').select('*')
+    // 2. Obtener configuraciones base agrupadas por día de la semana (de la sede)
+    let schedulesQuery = supabase.from('culto_schedules').select('*')
+    if (sedeId) schedulesQuery = schedulesQuery.eq('sede_id', sedeId)
+    const { data: schedules } = await schedulesQuery
     const schedulesByDay = new Map<number, Array<NonNullable<typeof schedules>[number]>>()
     
     if (schedules) {
@@ -52,12 +60,14 @@ export async function generateCultosForMonth(date: Date) {
     }
 
     // 3. Obtener festivos del mes para aplicar regla de horario (1h antes)
-    const { data: festivos } = await supabase
+    let festivosQuery = supabase
         .from('festivos')
         .select('fecha, tipo')
         .gte('fecha', format(start, 'yyyy-MM-dd'))
         .lte('fecha', format(end, 'yyyy-MM-dd'))
         .eq('tipo', 'laborable_festivo')
+    if (sedeId) festivosQuery = festivosQuery.eq('sede_id', sedeId)
+    const { data: festivos } = await festivosQuery
 
     const laborablesFestivos = new Set(festivos?.map(f => f.fecha))
 
@@ -84,7 +94,8 @@ export async function generateCultosForMonth(date: Date) {
                 hora_inicio: horaInicio,
                 tipo_culto_id: schedule.tipo_culto_id,
                 estado: 'planeado',
-                es_laborable_festivo: esLaborableFestivo
+                es_laborable_festivo: esLaborableFestivo,
+                ...(sedeId ? { sede_id: sedeId } : {})
             })
         }
     }
@@ -127,7 +138,10 @@ export async function generateYear(year: number) {
  * Crea un culto de forma manual (excepción)
  */
 export async function createCulto(formData: FormData) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.gestionar')
+    if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
+    const sedeId = await resolveActiveSedeId(ctx)
 
     const fecha = formData.get('fecha') as string
     const hora = formData.get('hora') as string
@@ -137,7 +151,8 @@ export async function createCulto(formData: FormData) {
         fecha,
         hora_inicio: hora,
         tipo_culto_id: tipoId,
-        estado: 'planeado'
+        estado: 'planeado',
+        ...(sedeId ? { sede_id: sedeId } : {})
     })
 
     if (error) return { error: error.message }

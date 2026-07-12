@@ -25,13 +25,11 @@ import {
     BookOpen,
     Music,
     Users,
-    BarChart,
     Menu,
-    FileText,
     FileSpreadsheet,
-    UserCog,
     BookMarked,
-    Gift
+    Gift,
+    ShieldCheck
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -44,6 +42,7 @@ import { LogoModal } from '@/components/LogoModal'
 import { NotificationPrompt } from '@/components/NotificationPrompt'
 import { isSonidoUser } from '@/lib/utils/isSonido'
 import { SidebarContent } from '@/components/dashboard/SidebarContent'
+import { AccessProvider } from '@/lib/auth/AccessProvider'
 
 export default function DashboardLayout({
     children,
@@ -179,13 +178,11 @@ export default function DashboardLayout({
         { icon: FileSpreadsheet, label: t('nav.archivos'), href: '/dashboard/archivos' },
         // Instrucciones: solo para usuarios de púlpito (no SONIDO)
         ...(!isSonido ? [{ icon: BookMarked, label: t('nav.instrucciones'), href: '/dashboard/instrucciones' }] : []),
-        // Items de administración (solo para ADMIN)
+        // Administración: hub único (usuarios, sedes, stats, auditoría) solo ADMIN
         ...(userProfile?.rol === 'ADMIN' ? [
-            { icon: BarChart, label: t('nav.stats'), href: '/dashboard/admin/stats' },
-            { icon: UserCog, label: t('nav.users'), href: '/dashboard/admin/users' },
-            { icon: FileText, label: t('nav.audit'), href: '/dashboard/admin/audit' },
+            { icon: ShieldCheck, label: t('nav.admin'), href: '/dashboard/admin' },
         ] : [])
-     
+
     ], [t, userProfile?.rol, isSonido])
 
     // Cerrar menú móvil al cambiar de ruta
@@ -421,7 +418,7 @@ export default function DashboardLayout({
 
                 {/* Page Content — entrance animation is handled by template.tsx */}
                 <div className={`px-3 py-4 md:p-10 lg:p-12 max-w-7xl mx-auto ${pathname?.includes('/admin/users') || pathname?.includes('/hermanos') ? 'no-scrollbar' : ''}`}>
-                    {children}
+                    <AccessProvider>{children}</AccessProvider>
                 </div>
             </main>
 

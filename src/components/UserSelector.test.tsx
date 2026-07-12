@@ -38,7 +38,7 @@ const mockProfiles: Profile[] = [
     email: 'andres@example.com',
     email_contacto: null,
     telefono: null,
-    rol: 'USER',
+    rol: 'MIEMBRO',
     avatar_url: null,
     pulpito: true,
     created_at: '2026-01-01T00:00:00Z',

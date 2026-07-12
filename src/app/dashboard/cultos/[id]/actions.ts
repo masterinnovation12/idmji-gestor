@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { resolveLecturaLectorFromCulto } from '@/lib/utils/resolveLecturaLectorFromCulto'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/auth/guards'
+import { can } from '@/lib/auth/permissions'
 import { sendNotificationToUser } from '@/app/actions/notifications'
 import { formatHoraNotificacion } from '@/lib/format-hora-notificacion'
 import { format } from 'date-fns'
@@ -30,7 +32,9 @@ export async function updateAssignment(
     tipoAsignacion: 'introduccion' | 'finalizacion' | 'ensenanza' | 'testimonios',
     userId: string | null
 ) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.asignarHermanos')
+    if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
 
     const fieldMap = {
         introduccion: 'id_usuario_intro',
@@ -100,7 +104,9 @@ export async function updateAssignment(
  * Toggle del estado festivo laborable con ajuste automático de horario
  */
 export async function toggleFestivo(cultoId: string, currentStatus: boolean, currentHora: string) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.editarDetalle')
+    if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
 
     // 1. Obtener la fecha del culto
     const { data: culto } = await supabase.from('cultos').select('fecha').eq('id', cultoId).single()
@@ -223,7 +229,9 @@ export async function updateCultoProtocol(
     cultoId: string,
     protocol: { oracion_inicio: boolean; congregacion_pie: boolean }
 ) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.editarDetalle')
+    if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
 
     // 1. Obtener metadata actual para no sobrescribir otros campos
     const { data: culto } = await supabase
@@ -259,7 +267,9 @@ export async function updateCultoProtocol(
  * Resetear protocolo del estudio bíblico a estado "Por definir"
  */
 export async function resetCultoProtocol(cultoId: string) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.editarDetalle')
+    if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
 
     const { data: culto } = await supabase
         .from('cultos')
@@ -298,7 +308,9 @@ export async function updateInicioAnticipado(
     cultoId: string,
     config: { activo: boolean; minutos: number; observaciones?: string }
 ) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.editarDetalle')
+    if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
 
     // 1. Obtener metadata actual para no sobrescribir otros campos
     const { data: culto } = await supabase
@@ -338,7 +350,9 @@ export async function updateInicioAnticipado(
  * Resetear inicio anticipado a estado "Por definir"
  */
 export async function resetInicioAnticipado(cultoId: string) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.editarDetalle')
+    if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
 
     const { data: culto } = await supabase
         .from('cultos')
@@ -376,7 +390,9 @@ export async function updateTemaIntroduccionAlabanza(
     cultoId: string,
     temaKey: string | null
 ) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.editarDetalle')
+    if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
 
     const { data: culto } = await supabase
         .from('cultos')
@@ -416,7 +432,9 @@ export async function updateCultoObservaciones(
     cultoId: string,
     observaciones: string
 ) {
-    const supabase = await createClient()
+    const { ctx, error: authError } = await requirePermission('cultos.editarDetalle')
+    if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
 
     // 1. Obtener metadata actual para no sobrescribir otros campos
     const { data: culto } = await supabase
@@ -483,7 +501,11 @@ interface CultoDraftPayload {
 }
 
 export async function saveCultoDraft(payload: CultoDraftPayload) {
-    const supabase = await createClient()
+    // Guardar el detalle del día exige el permiso granular de edición
+    const { ctx, error: authError } = await requirePermission('cultos.editarDetalle')
+    if (authError || !ctx) return { success: false, error: authError ?? 'Sin permisos' }
+    const supabase = ctx.supabase
+
     const { cultoId } = payload
     const { data: cultoActual, error: cultoError } = await supabase
         .from('cultos')
@@ -493,6 +515,26 @@ export async function saveCultoDraft(payload: CultoDraftPayload) {
 
     if (cultoError || !cultoActual) {
         return { success: false, error: cultoError?.message || 'Culto no encontrado' }
+    }
+
+    // Cambiar hermanos asignados exige además el permiso de asignación:
+    // si no lo tiene, solo se bloquea cuando intenta MODIFICAR una asignación.
+    if (!can(ctx.profile, 'cultos.asignarHermanos')) {
+        const camposAsignacion = {
+            introduccion: 'id_usuario_intro',
+            finalizacion: 'id_usuario_finalizacion',
+            ensenanza: 'id_usuario_ensenanza',
+            testimonios: 'id_usuario_testimonios',
+        } as const
+        for (const [rol, campo] of Object.entries(camposAsignacion)) {
+            const key = rol as keyof typeof camposAsignacion
+            if (!Object.hasOwn(payload.assignments, key)) continue
+            const nuevo = payload.assignments[key] ?? null
+            const actual = (cultoActual as Record<string, unknown>)[campo] ?? null
+            if (nuevo !== actual) {
+                return { success: false, error: 'Sin permisos para asignar hermanos' }
+            }
+        }
     }
 
     const currentMeta = (cultoActual.meta_data as Record<string, unknown>) || {}
