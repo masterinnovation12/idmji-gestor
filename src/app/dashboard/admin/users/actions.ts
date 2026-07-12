@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/auth/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { USER_ROLES, isValidRole } from '@/lib/auth/roles'
 import { parseOverrides, type PermisosOverrides } from '@/lib/auth/permissions'
+import { logMovimiento } from '@/lib/audit/logMovimiento'
 import { ActionResponse } from '@/types/database'
 
 export interface UserData {
@@ -136,8 +137,8 @@ function parsePermisosField(formData: FormData): PermisosOverrides {
 
 export async function createUser(formData: FormData): Promise<ActionResponse<void>> {
     try {
-        const { error: authError } = await requireAdmin()
-        if (authError) return { success: false, error: authError }
+        const { ctx, error: authError } = await requireAdmin()
+        if (authError || !ctx) return { success: false, error: authError ?? 'Sin permisos' }
 
         const sedeId = (formData.get('sede_id') as string) || ''
         const domain = await getSedeDomain(sedeId)
@@ -241,6 +242,13 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
 
         if (profileError) throw new Error(profileError.message || 'Error al guardar perfil')
 
+        await logMovimiento(
+            ctx.supabase,
+            ctx.userId,
+            'admin_usuarios',
+            `Usuario ${validatedEmail} creado (rol ${rol})`,
+        )
+
         revalidatePath('/dashboard/admin/users')
         revalidatePath('/dashboard/hermanos')
         return { success: true }
@@ -253,8 +261,8 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
 
 export async function updateUserFull(formData: FormData): Promise<ActionResponse<void>> {
     try {
-        const { error: authError } = await requireAdmin()
-        if (authError) return { success: false, error: authError }
+        const { ctx, error: authError } = await requireAdmin()
+        if (authError || !ctx) return { success: false, error: authError ?? 'Sin permisos' }
 
         const parsed = updateSchema.safeParse({
             id: formData.get('id'),
@@ -315,6 +323,14 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
             user_metadata: { nombre, apellidos },
         })
 
+        const cambioPermisos = Object.keys(permisos).length > 0 ? ' con permisos ajustados' : ''
+        await logMovimiento(
+            ctx.supabase,
+            ctx.userId,
+            'admin_usuarios',
+            `Usuario ${nombre} ${apellidos} actualizado (rol ${rol}${cambioPermisos})`,
+        )
+
         revalidatePath('/dashboard/admin/users')
         revalidatePath('/dashboard/hermanos')
         return { success: true }
@@ -327,15 +343,15 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
 
 export async function deleteUser(userId: string): Promise<ActionResponse<void>> {
     try {
-        const { error: authError } = await requireAdmin()
-        if (authError) return { success: false, error: authError }
+        const { ctx, error: authError } = await requireAdmin()
+        if (authError || !ctx) return { success: false, error: authError ?? 'Sin permisos' }
 
         const admin = createAdminClient()
 
         // 1. Avatar fuera de storage (no crítico si falla)
         const { data: profile } = await admin
             .from('profiles')
-            .select('avatar_url')
+            .select('avatar_url, email, nombre, apellidos')
             .eq('id', userId)
             .maybeSingle()
 
@@ -368,6 +384,13 @@ export async function deleteUser(userId: string): Promise<ActionResponse<void>> 
         if (remaining) {
             await admin.from('profiles').delete().eq('id', userId)
         }
+
+        await logMovimiento(
+            ctx.supabase,
+            ctx.userId,
+            'admin_usuarios',
+            `Usuario ${profile?.email ?? userId} eliminado`,
+        )
 
         revalidatePath('/dashboard/admin/users')
         revalidatePath('/dashboard/hermanos')

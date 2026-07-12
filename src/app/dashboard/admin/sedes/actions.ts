@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { requireAdmin, requireUser } from '@/lib/auth/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { logMovimiento } from '@/lib/audit/logMovimiento'
 import { ACTIVE_SEDE_COOKIE } from '@/lib/sede/activeSede'
 import type { ActionResponse, Sede } from '@/types/database'
 
@@ -98,6 +99,8 @@ export async function createSede(input: {
         return { success: false, error: insertError.message }
     }
 
+    await logMovimiento(ctx.supabase, ctx.userId, 'admin_sedes', `Sede «${parsed.data.nombre}» creada`)
+
     revalidatePath('/dashboard/admin/sedes')
     return { success: true, data: data as Sede }
 }
@@ -136,6 +139,8 @@ export async function updateSede(
 
     if (updateError) return { success: false, error: updateError.message }
 
+    await logMovimiento(ctx.supabase, ctx.userId, 'admin_sedes', `Sede «${parsed.data.nombre}» actualizada`)
+
     revalidatePath('/dashboard/admin/sedes')
     return { success: true, data: data as Sede }
 }
@@ -148,7 +153,7 @@ export async function deleteSede(id: string): Promise<ActionResponse<void>> {
     const { ctx, error } = await requireAdmin()
     if (error || !ctx) return { success: false, error: error ?? 'Sin permisos' }
 
-    const { data: sede } = await ctx.supabase.from('sedes').select('es_principal').eq('id', id).single()
+    const { data: sede } = await ctx.supabase.from('sedes').select('es_principal, nombre').eq('id', id).single()
     if (!sede) return { success: false, error: 'Sede no encontrada' }
     if (sede.es_principal) return { success: false, error: 'PRINCIPAL_NO_ELIMINABLE' }
 
@@ -158,6 +163,8 @@ export async function deleteSede(id: string): Promise<ActionResponse<void>> {
         if (deleteError.code === '23503') return { success: false, error: 'SEDE_CON_DATOS' }
         return { success: false, error: deleteError.message }
     }
+
+    await logMovimiento(ctx.supabase, ctx.userId, 'admin_sedes', `Sede «${sede.nombre}» eliminada`)
 
     // Si la sede eliminada era la activa del admin, limpiar cookie
     const cookieStore = await cookies()

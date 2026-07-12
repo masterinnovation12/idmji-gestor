@@ -75,6 +75,7 @@ describe('qualitat català — guarda de cadenes sense traduir', () => {
      * amb el castellà de manera intencionada, afegeix-la aquí; si no, tradueix-la.
      */
     const ALLOWED_IDENTICAL = new Set<string>([
+        'admin.himnario.campoNumero', // "Número" — idèntic en ambdues llengües
         'admin.permisos.titulo', // "Permisos" — idèntic en ambdues llengües
         'admin.sedes.inactiva', // "Inactiva" — idèntic en ambdues llengües
         'admin.stats.finalShort', 'admin.stats.introShort', 'admin.stats.testimoniesShort',

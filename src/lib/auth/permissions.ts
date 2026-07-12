@@ -16,6 +16,7 @@ export const PERMISSION_KEYS = [
     'cultos.asignarHermanos',
     'lecturas.gestionar',
     'himnos.gestionar',
+    'himnario.gestionar',
     'hermanos.gestionar',
     'laborGeneral.gestionar',
     'laborPlano.gestionar',
@@ -66,6 +67,12 @@ export const PERMISSION_DEFS: PermissionDef[] = [
         group: 'contenido',
         labelKey: 'admin.permisos.himnosGestionar',
         descriptionKey: 'admin.permisos.himnosGestionarDesc',
+    },
+    {
+        key: 'himnario.gestionar',
+        group: 'contenido',
+        labelKey: 'admin.permisos.himnarioGestionar',
+        descriptionKey: 'admin.permisos.himnarioGestionarDesc',
     },
     {
         key: 'hermanos.gestionar',

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ShieldCheck, UserCog, Building2, BarChart, FileText, ChevronRight, KeyRound } from 'lucide-react'
+import { ShieldCheck, UserCog, Building2, BarChart, FileText, ChevronRight, KeyRound, Music } from 'lucide-react'
 import PageHero from '@/components/PageHero'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import type { TranslationKey } from '@/lib/i18n/types'
@@ -29,6 +29,13 @@ const MODULES: AdminModule[] = [
         titleKey: 'admin.hub.sedesTitulo',
         descKey: 'admin.hub.sedesDesc',
         testId: 'admin-mod-sedes',
+    },
+    {
+        href: '/dashboard/admin/himnario',
+        icon: Music,
+        titleKey: 'admin.hub.himnarioTitulo',
+        descKey: 'admin.hub.himnarioDesc',
+        testId: 'admin-mod-himnario',
     },
     {
         href: '/dashboard/admin/stats',
@@ -59,7 +66,7 @@ export default function AdminHubClient() {
                 data-testid="admin-hub-hero"
             />
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {MODULES.map((mod, index) => {
                     const Icon = mod.icon
                     return (
