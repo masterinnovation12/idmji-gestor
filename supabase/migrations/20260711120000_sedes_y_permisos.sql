@@ -11,6 +11,10 @@
 -- los defaults rellenan sede_id en inserts del código ya desplegado.
 -- =============================================================================
 
+-- Las funciones de la sección 2 referencian profiles.sede_id, que se crea en la
+-- sección 3: desactivar la validación de cuerpos durante esta migración.
+SET check_function_bodies = off;
+
 -- 0. Rol SONIDO (la migración 20260311200000 nunca llegó a aplicarse en BD) ────
 ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'SONIDO';
 
