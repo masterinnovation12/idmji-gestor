@@ -96,13 +96,15 @@ test.describe('Admin: sedes y permisos granulares', () => {
         await loginAsAdmin(page)
 
         await page.goto('/dashboard')
-        const switcher = page.getByTestId('sede-switcher')
-        await expect(switcher).toBeVisible({ timeout: 15_000 })
+        // El sidebar se renderiza dos veces (off-canvas móvil oculto + desktop):
+        // el switcher visible es el del sidebar desktop (el último en el DOM).
+        const boton = page.getByTestId('sede-switcher-boton').last()
+        await expect(boton).toBeVisible({ timeout: 15_000 })
 
-        await page.getByTestId('sede-switcher-boton').click()
-        await expect(page.getByTestId(`sede-switcher-opcion-${E2E_SEDE.slug}`)).toBeVisible()
+        await boton.click()
+        await expect(page.getByTestId(`sede-switcher-opcion-${E2E_SEDE.slug}`).last()).toBeVisible()
         // Cerrar sin cambiar: la sede activa del admin sigue siendo la suya
-        await page.getByTestId('sede-switcher-opcion-sabadell').click()
+        await page.getByTestId('sede-switcher-opcion-sabadell').last().click()
     })
 
     test('4. El modal de usuarios muestra sede y matriz de permisos', async ({ page }) => {
@@ -113,8 +115,8 @@ test.describe('Admin: sedes y permisos granulares', () => {
 
         await expect(page.getByTestId('user-form-sede')).toBeVisible()
         await expect(page.getByTestId('permisos-editor')).toBeVisible()
-        // La matriz muestra el permiso de asignar hermanos
-        await expect(page.getByTestId('perm-switch-cultos.asignarHermanos')).toBeVisible()
+        // La matriz muestra el permiso de asignar hermanos (input sr-only del switch)
+        await expect(page.getByTestId('perm-switch-cultos.asignarHermanos')).toBeAttached()
     })
 
     test('5. El usuario de Barcelona no ve datos de Sabadell ni administración', async ({ browser }) => {

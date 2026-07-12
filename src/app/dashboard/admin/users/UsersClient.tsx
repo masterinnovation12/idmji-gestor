@@ -28,7 +28,8 @@ interface UsersClientProps {
 export default function UsersClient({ initialUsers, availableRoles, sedes }: UsersClientProps) {
     const { t } = useI18n()
     const [users, setUsers] = useState<UserData[]>(initialUsers)
-    const defaultRole = availableRoles[0] || 'MIEMBRO'
+    // Por defecto el rol menos privilegiado (nunca ADMIN por accidente)
+    const defaultRole = availableRoles.includes('MIEMBRO') ? 'MIEMBRO' : (availableRoles[0] || 'MIEMBRO')
     const defaultSedeId = sedes.find(s => s.es_principal)?.id ?? sedes[0]?.id ?? ''
     const [searchTerm, setSearchTerm] = useState('')
     const [isLoading, setIsLoading] = useState(false)

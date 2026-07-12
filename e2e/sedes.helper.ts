@@ -118,7 +118,7 @@ export async function createBarcelonaUser(sedeId: string): Promise<string> {
 export async function createBarcelonaCulto(sedeId: string): Promise<string> {
     const admin = serviceClient()
 
-    const { data: tipo } = await admin.from('culto_types').select('id').order('orden').limit(1).single()
+    const { data: tipo } = await admin.from('culto_types').select('id').order('nombre').limit(1).single()
     if (!tipo?.id) throw new Error('No hay tipos de culto en la BD')
 
     const fecha = new Date()

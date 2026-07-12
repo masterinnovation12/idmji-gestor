@@ -25,7 +25,11 @@ export function Select({ value, onValueChange, children }: { value: string, onVa
     )
 }
 
-export function SelectTrigger({ className, children }: { className?: string, children: React.ReactNode }) {
+export function SelectTrigger({
+    className,
+    children,
+    ...props
+}: { className?: string, children: React.ReactNode } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'type'>) {
     const context = React.useContext(SelectContext)
     const triggerRef = React.useRef<HTMLButtonElement>(null)
     if (!context) throw new Error("SelectTrigger must be used within Select")
@@ -40,6 +44,7 @@ export function SelectTrigger({ className, children }: { className?: string, chi
     return (
         <button
             ref={triggerRef}
+            {...props}
             type="button"
             onClick={handleOpen}
             className={cn(
