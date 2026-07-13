@@ -47,6 +47,14 @@ const GROUP_ACCENT = {
         legendTitle: 'text-blue-700 dark:text-blue-300',
         legendCount: 'text-blue-600 dark:text-blue-400',
     },
+    violet: {
+        sectionTitle: 'text-violet-600 dark:text-violet-400',
+        posNum: 'text-violet-600',
+        addBtn: 'bg-violet-600 hover:bg-violet-700',
+        legendBg: 'bg-violet-500/5 border-violet-500/20',
+        legendTitle: 'text-violet-700 dark:text-violet-300',
+        legendCount: 'text-violet-600 dark:text-violet-400',
+    },
 } as const
 
 type GroupColor = keyof typeof GROUP_ACCENT
@@ -60,6 +68,13 @@ function getRowClass(isPendingDelete: boolean, activo: boolean): string {
 function getCheckboxClass(yaEsta: boolean, isSel: boolean): string {
     if (yaEsta || isSel) return 'border-emerald-500 bg-emerald-500'
     return 'border-[rgba(184,150,74,0.4)] bg-white'
+}
+
+/** Etiqueta de sección del grupo (1/2/3). */
+function grupoSectionLabel(grupo: 1 | 2 | 3, t: OfrendaT): string {
+    if (grupo === 1) return t('ofrenda.people.g1.section')
+    if (grupo === 2) return t('ofrenda.people.g2.section')
+    return t('ofrenda.people.g3.section')
 }
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -81,7 +96,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
         setMiembros(initialMiembros)
     }, [initialMiembros])
     const [addModalOpen, setAddModalOpen] = useState(false)
-    const [addGrupo, setAddGrupo]         = useState<1 | 2>(1)
+    const [addGrupo, setAddGrupo]         = useState<1 | 2 | 3>(1)
     const [syncModalOpen, setSyncModalOpen] = useState(false)
     // id del miembro esperando confirmación de borrado
     const [pendingDelete, setPendingDelete] = useState<string | null>(null)
@@ -89,6 +104,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
 
     const g1 = miembros.filter(m => m.grupo === 1).sort((a, b) => a.orden - b.orden)
     const g2 = miembros.filter(m => m.grupo === 2).sort((a, b) => a.orden - b.orden)
+    const g3 = miembros.filter(m => m.grupo === 3).sort((a, b) => a.orden - b.orden)
 
     /** Actualiza estado local y padre sin llamar onChange dentro de un updater de setState. */
     const syncMiembros = useCallback((updated: OfrMiembro[]) => {
@@ -105,7 +121,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
     }, [syncMiembros])
 
     // ── Añadir persona ─────────────────────────────────────────────────────────
-    const handleAddClick = (grupo: 1 | 2) => {
+    const handleAddClick = (grupo: 1 | 2 | 3) => {
         setAddGrupo(grupo)
         setAddModalOpen(true)
     }
@@ -207,7 +223,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
     }
 
     // ── Reordenar (drag & drop) ────────────────────────────────────────────────
-    const handleReorder = async (grupo: 1 | 2, nuevaLista: OfrMiembro[]) => {
+    const handleReorder = async (grupo: 1 | 2 | 3, nuevaLista: OfrMiembro[]) => {
         const otros   = miembros.filter(m => m.grupo !== grupo)
         const updated = nuevaLista.map((m, i) => ({ ...m, orden: i }))
         syncMiembros([...otros, ...updated])
@@ -249,12 +265,22 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
                     active={g2.filter(m => m.activo).length}
                     t={t}
                 />
+                <LegendCard
+                    grupo={3}
+                    label={t('ofrenda.people.g3.legend')}
+                    description={t('ofrenda.people.g3.legendDesc')}
+                    color="violet"
+                    count={g3.length}
+                    active={g3.filter(m => m.activo).length}
+                    t={t}
+                />
             </div>
 
             {/* ── Grupos ───────────────────────────────────────────── */}
             {([
                 { grupo: 1 as const, lista: g1, color: 'emerald' as const, label: t('ofrenda.people.g1.section') },
                 { grupo: 2 as const, lista: g2, color: 'blue' as const,    label: t('ofrenda.people.g2.section') },
+                { grupo: 3 as const, lista: g3, color: 'violet' as const,  label: t('ofrenda.people.g3.section') },
             ] as const).map(({ grupo, lista, color, label }) => {
                 const accent = GROUP_ACCENT[color]
                 return (
@@ -382,7 +408,7 @@ export function MiembrosManager({ initialMiembros, canEdit, onChange }: Readonly
 interface MiembroRowProps {
     miembro: OfrMiembro
     posicion: number
-    color: string
+    color: GroupColor
     canEdit: boolean
     isPendingDelete: boolean
     onDeleteRequest: () => void
@@ -417,7 +443,7 @@ function MiembroRow({
     t,
 }: Readonly<MiembroRowProps>) {
     const Row = isDraggable ? Reorder.Item : motion.div
-    const accentKey: GroupColor = color === 'emerald' ? 'emerald' : 'blue'
+    const accentKey: GroupColor = color
     const accent = GROUP_ACCENT[accentKey]
     const turnColor = accentKey
     const disp = normalizeMiembroDisponibilidad(miembro)
@@ -742,7 +768,7 @@ function AddPersonaModal({
     t,
 }: Readonly<{
     isOpen: boolean
-    grupo: 1 | 2
+    grupo: 1 | 2 | 3
     onClose: () => void
     onSubmit: (nombre: string) => Promise<void>
     t: OfrendaT
@@ -764,7 +790,7 @@ function AddPersonaModal({
         setNombre('')
     }
 
-    const sectionLabel = grupo === 1 ? t('ofrenda.people.g1.section') : t('ofrenda.people.g2.section')
+    const sectionLabel = grupoSectionLabel(grupo, t)
 
     return (
         <OfrendaLiquidShell
@@ -773,8 +799,8 @@ function AddPersonaModal({
             ariaLabel={interpolate(t('ofrenda.people.addModal.title'), { grupo: String(grupo) })}
             title={interpolate(t('ofrenda.people.addModal.title'), { grupo: String(grupo) })}
             headline={sectionLabel}
-            subtitle={grupo === 1 ? t('ofrenda.people.addModal.descG1') : t('ofrenda.people.addModal.descG2')}
-            accent={grupo === 1 ? 'emerald' : 'blue'}
+            subtitle={grupo === 1 ? t('ofrenda.people.addModal.descG1') : grupo === 2 ? t('ofrenda.people.addModal.descG2') : t('ofrenda.people.addModal.descG3')}
+            accent={grupo === 1 ? 'emerald' : grupo === 2 ? 'blue' : 'violet'}
             panelSize="sm"
             testIdPrefix="ofrenda-add-miembro"
             closeLabel={t('common.close')}
@@ -829,7 +855,7 @@ function ImportDirectorioModal({
     t,
 }: Readonly<{
     isOpen: boolean
-    grupo: 1 | 2
+    grupo: 1 | 2 | 3
     miembrosExistentes: OfrMiembro[]
     onClose: () => void
     onSync: () => Promise<void>
@@ -898,7 +924,7 @@ function ImportDirectorioModal({
         }
     }
 
-    const grupoLabel = grupo === 1 ? t('ofrenda.people.g1.section') : t('ofrenda.people.g2.section')
+    const grupoLabel = grupoSectionLabel(grupo, t)
     const nuevosDisponibles = filtrados.filter(h => yaEnOfrenda.has(h.id) === false).length
 
     return (
@@ -909,7 +935,7 @@ function ImportDirectorioModal({
             title={t('ofrenda.people.importModal.title')}
             headline={grupoLabel}
             subtitle={interpolate(t('ofrenda.people.importModal.desc'), { section: grupoLabel })}
-            accent={grupo === 1 ? 'emerald' : 'blue'}
+            accent={grupo === 1 ? 'emerald' : grupo === 2 ? 'blue' : 'violet'}
             panelSize="md"
             testIdPrefix="ofrenda-import-miembro"
             closeLabel={t('common.close')}
@@ -1033,7 +1059,7 @@ function LegendCard({
     active,
     t,
 }: Readonly<{
-    grupo: 1 | 2
+    grupo: 1 | 2 | 3
     label: string
     description: string
     color: GroupColor

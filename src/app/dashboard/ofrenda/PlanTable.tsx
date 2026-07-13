@@ -162,6 +162,11 @@ function useRoleRows() {
             { key: 'colaborador_2' as const, label: `${t('ofrenda.roles.colaborador')} 2` },
             { key: 'colaborador_3' as const, label: `${t('ofrenda.roles.colaborador')} 3` },
         ],
+        // Testimonios: labor compartida — la puede hacer cualquier persona de G1 o G2.
+        testimonios: [
+            { key: 'testimonio_1' as const, label: t('ofrenda.roles.testimonio1') },
+            { key: 'testimonio_2' as const, label: t('ofrenda.roles.testimonio2') },
+        ],
     }), [t])
 }
 
@@ -461,6 +466,46 @@ export function PlanTable({ plan, miembros, canEdit, onAsignacionChange }: Reado
                             )
                         })}
 
+                        {/* Testimonios: pool combinado G1 + G2 — cierran el bloque G1 */}
+                        {roleRows.testimonios.map(({ key, label }, ri) => {
+                            const poolTst = miembros.filter(m => m.activo)
+                            return (
+                                <tr key={`tst-${key}`} className={ri % 2 === 0 ? 'bg-violet-500/2' : ''}>
+                                    <td
+                                        className={`${STICKY_ROLE_CELL_CLASS} text-violet-700`}
+                                        style={PLAN_ROLE_COL_STYLE}
+                                        data-testid="ofrenda-plan-sticky-role"
+                                    >
+                                        {label}
+                                    </td>
+                                    {servicios.map((srv, idx) => {
+                                        const asig = getAsig(asignaciones, srv.id, key)
+                                        const isWeekStart = idx % 3 === 0 && idx > 0
+                                        return (
+                                            <td
+                                                key={`${srv.id}-${key}`}
+                                                className={`px-1 py-1.5 text-center border-b border-black/10 align-middle ${isWeekStart ? 'border-l-2 border-l-black/10' : ''}`}
+                                                style={PLAN_SERVICE_COL_STYLE}
+                                            >
+                                                <AsignacionCell
+                                                    servicio={srv}
+                                                    rol={key}
+                                                    rolLabel={label}
+                                                    turnoLabel={srv.dia_tipo === 'domingo' ? t('ofrenda.days.manana') : srv.dia_tipo === 'domingo_tarde' ? t('ofrenda.days.tarde') : null}
+                                                    headerColorClass={TIPO_COLORS[srv.dia_tipo].label}
+                                                    miembroId={asig?.miembro_id ?? null}
+                                                    isOverride={asig?.es_override ?? false}
+                                                    miembros={poolTst}
+                                                    canEdit={canEdit}
+                                                    onChanged={onAsignacionChange}
+                                                />
+                                            </td>
+                                        )
+                                    })}
+                                </tr>
+                            )
+                        })}
+
                         {/* Divisor entre grupos */}
                         <tr>
                             <td colSpan={servicios.length + 1} className="h-0.5 bg-border/40" />
@@ -545,6 +590,7 @@ function ServicioCard({
     const col = TIPO_COLORS[servicio.dia_tipo]
     const g1Members = miembros.filter(m => m.grupo === 1 && m.activo)
     const g2Members = miembros.filter(m => m.grupo === 2 && m.activo)
+    const testimonioMembers = miembros.filter(m => m.activo)
 
     let turnoLabel: string | null = null
     if (servicio.dia_tipo === 'domingo') turnoLabel = t('ofrenda.days.manana')
@@ -594,6 +640,35 @@ function ServicioCard({
                                 miembroId={asig?.miembro_id ?? null}
                                 isOverride={asig?.es_override ?? false}
                                 miembros={g1Members}
+                                canEdit={canEdit}
+                                onChanged={onAsignacionChange}
+                            />
+                        </div>
+                    )
+                })}
+            </div>
+
+            {/* Separador */}
+            <div className="h-px bg-border/40" />
+
+            {/* Testimonios (G1 + G2) — cierran el bloque G1 */}
+            <div className="divide-y divide-[rgba(184,150,74,0.15)] bg-violet-500/[0.03]">
+                {roleRows.testimonios.map(({ key, label }) => {
+                    const asig = getAsig(asignaciones, servicio.id, key)
+                    return (
+                        <div key={key} className="flex items-center justify-between px-4 py-2 gap-2">
+                            <span className="text-sm font-semibold text-violet-700 shrink-0 w-32">
+                                {label}
+                            </span>
+                            <AsignacionCell
+                                servicio={servicio}
+                                rol={key}
+                                rolLabel={label}
+                                turnoLabel={turnoLabel}
+                                headerColorClass={col.label}
+                                miembroId={asig?.miembro_id ?? null}
+                                isOverride={asig?.es_override ?? false}
+                                miembros={testimonioMembers}
                                 canEdit={canEdit}
                                 onChanged={onAsignacionChange}
                             />

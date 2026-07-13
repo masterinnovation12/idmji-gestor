@@ -26,7 +26,9 @@ import {
     colaboradoresG2Requeridos,
     rolGrupo2AplicaEnTurno,
     g2CandidatoValido,
+    ROLES_GRUPO1,
     ROLES_GRUPO2,
+    ROLES_TESTIMONIOS,
     type OfrendaMiembro,
     type DiaTipo,
 } from './ofrendaEngine'
@@ -35,7 +37,7 @@ import {
 
 function makeMiembros(
     n: number,
-    grupo: 1 | 2,
+    grupo: 1 | 2 | 3,
     overrides?: Partial<Pick<OfrendaMiembro, 'puede_jueves' | 'puede_domingo_manana' | 'puede_domingo_tarde'>>,
 ): OfrendaMiembro[] {
     return Array.from({ length: n }, (_, i) => ({
@@ -762,5 +764,157 @@ describe('generarPlan — roles nuevos G1 (primera_vez, segunda_tercera_vez, imp
         const plan = generarPlan(2026, 1, 1, allMiembros)
         const g2 = plan.asignaciones.filter(a => a.rol.startsWith('colaborador'))
         expect(g2.every(a => a.miembroId.startsWith('m2-'))).toBe(true)
+    })
+})
+
+// ─── Testimonios (pool combinado G1 + G2) ─────────────────────────────────────
+
+describe('generarPlan — testimonios (testimonio_1, testimonio_2)', () => {
+    it('asigna ambos testimonios en todos los servicios', () => {
+        const plan = generarPlan(2026, 1, 1, allMiembros)
+        for (const srv of plan.servicios) {
+            for (const rol of ROLES_TESTIMONIOS) {
+                const asig = plan.asignaciones.find(
+                    a => a.servicioFecha === srv.fecha && a.servicioTipo === srv.diaTipo && a.rol === rol,
+                )
+                expect(asig, `${srv.fecha} ${srv.diaTipo} ${rol}`).toBeDefined()
+            }
+        }
+    })
+
+    it('el pool es combinado: con el tiempo participan personas de G1 y de G2', () => {
+        // Pool amplio: quedan personas libres en ambos grupos tras cubrir sus labores.
+        const amplio = [...makeMiembros(9, 1), ...makeMiembros(9, 2)]
+        const plan = generarPlan(2026, 1, 1, amplio)
+        const ids = plan.asignaciones
+            .filter(a => a.rol.startsWith('testimonio'))
+            .map(a => a.miembroId)
+        expect(ids.some(id => id.startsWith('m1-'))).toBe(true)
+        expect(ids.some(id => id.startsWith('m2-'))).toBe(true)
+    })
+
+    it('prefiere personas sin otra labor ese día cuando el pool lo permite', () => {
+        const plan = generarPlan(2026, 1, 1, allMiembros)
+        // Con 6 G1 (todos ocupados en los 6 roles G1) los testimonios salen de G2 libre.
+        const ids = plan.asignaciones
+            .filter(a => a.rol.startsWith('testimonio'))
+            .map(a => a.miembroId)
+        expect(ids.every(id => id.startsWith('m2-'))).toBe(true)
+    })
+
+    it('nunca repite la misma persona en testimonio_1 y testimonio_2 del mismo servicio', () => {
+        const plan = generarPlan(2026, 1, 1, allMiembros)
+        for (const srv of plan.servicios) {
+            const delDia = plan.asignaciones.filter(
+                a => a.servicioFecha === srv.fecha && a.servicioTipo === srv.diaTipo && a.rol.startsWith('testimonio'),
+            )
+            const ids = delDia.map(a => a.miembroId)
+            expect(new Set(ids).size).toBe(ids.length)
+        }
+    })
+
+    it('con pool amplio no repite entre servicios consecutivos', () => {
+        const amplio = [...makeMiembros(8, 1), ...makeMiembros(8, 2)]
+        const plan = generarPlan(2026, 1, 1, amplio)
+        for (let i = 1; i < plan.servicios.length; i++) {
+            const key = (s: { fecha: string; diaTipo: DiaTipo }) =>
+                plan.asignaciones
+                    .filter(a => a.servicioFecha === s.fecha && a.servicioTipo === s.diaTipo && a.rol.startsWith('testimonio'))
+                    .map(a => a.miembroId)
+            const prev = new Set(key(plan.servicios[i - 1]))
+            const hoy = key(plan.servicios[i])
+            for (const id of hoy) {
+                expect(prev.has(id), `servicio ${i} repite ${id} del servicio anterior`).toBe(false)
+            }
+        }
+    })
+
+    it('respeta overrides manuales de testimonios', () => {
+        const fechas = generarFechasDelPlan(2026, 1)
+        const primera = fechas[0]
+        const fechaStr = primera.fecha.toISOString().slice(0, 10)
+        const overrides = { [`${fechaStr}:${primera.diaTipo}:testimonio_1`]: 'm2-5' }
+        const plan = generarPlan(2026, 1, 1, allMiembros, overrides)
+        const asig = plan.asignaciones.find(
+            a => a.servicioFecha === fechaStr && a.servicioTipo === primera.diaTipo && a.rol === 'testimonio_1',
+        )
+        expect(asig?.miembroId).toBe('m2-5')
+    })
+
+    it('respeta la disponibilidad por turno del pool combinado', () => {
+        const soloJueves = { puede_jueves: true, puede_domingo_manana: false, puede_domingo_tarde: false }
+        const restringido = {
+            ...makeMiembros(1, 2, soloJueves)[0],
+            id: 'm2-solo-jueves',
+            orden: 99,
+        }
+        const plan = generarPlan(2026, 1, 1, [...allMiembros, restringido])
+        const enDomingo = plan.asignaciones.filter(
+            a => a.rol.startsWith('testimonio') && a.servicioTipo !== 'jueves' && a.miembroId === 'm2-solo-jueves',
+        )
+        expect(enDomingo).toHaveLength(0)
+    })
+
+    it('sin miembros no genera asignaciones de testimonios (no revienta)', () => {
+        const plan = generarPlan(2026, 1, 1, [])
+        expect(plan.asignaciones.filter(a => a.rol.startsWith('testimonio'))).toHaveLength(0)
+    })
+
+    it('con una sola persona en el pool asigna testimonio_1 y deja testimonio_2 sin duplicar', () => {
+        const solo = makeMiembros(1, 1)
+        const plan = generarPlan(2026, 1, 1, solo)
+        for (const srv of plan.servicios) {
+            const delDia = plan.asignaciones.filter(
+                a => a.servicioFecha === srv.fecha && a.servicioTipo === srv.diaTipo && a.rol.startsWith('testimonio'),
+            )
+            expect(delDia).toHaveLength(1)
+            expect(delDia[0].rol).toBe('testimonio_1')
+        }
+    })
+})
+
+// ─── Grupo 3 (solo testimonios) ───────────────────────────────────────────────
+
+describe('generarPlan — Grupo 3 (solo testimonios)', () => {
+    const g3 = makeMiembros(3, 3)
+    const conG3 = [...allMiembros, ...g3]
+
+    it('G3 entra en el pool de testimonios', () => {
+        const plan = generarPlan(2026, 1, 1, conG3)
+        const ids = plan.asignaciones
+            .filter(a => a.rol.startsWith('testimonio'))
+            .map(a => a.miembroId)
+        expect(ids.some(id => id.startsWith('m3-'))).toBe(true)
+    })
+
+    it('G3 NUNCA aparece en roles de G1 ni en colaboradores de G2', () => {
+        const plan = generarPlan(2026, 1, 1, conG3)
+        const g1Roles = new Set<string>(ROLES_GRUPO1)
+        const g2Roles = new Set<string>(ROLES_GRUPO2)
+        for (const a of plan.asignaciones) {
+            if (g1Roles.has(a.rol) || g2Roles.has(a.rol)) {
+                expect(a.miembroId.startsWith('m3-'), `${a.rol} asignó a ${a.miembroId} (G3)`).toBe(false)
+            }
+        }
+    })
+
+    it('sin G1 ni G2, los testimonios salen íntegros de G3', () => {
+        const plan = generarPlan(2026, 1, 1, g3)
+        const testimonios = plan.asignaciones.filter(a => a.rol.startsWith('testimonio'))
+        expect(testimonios.length).toBeGreaterThan(0)
+        expect(testimonios.every(a => a.miembroId.startsWith('m3-'))).toBe(true)
+        // Y no genera nada de G1/G2 porque no hay nadie de esos grupos
+        const otras = plan.asignaciones.filter(a => !a.rol.startsWith('testimonio'))
+        expect(otras).toHaveLength(0)
+    })
+
+    it('respeta la disponibilidad por turno de G3', () => {
+        const soloJueves = { puede_jueves: true, puede_domingo_manana: false, puede_domingo_tarde: false }
+        const restringido = { ...makeMiembros(1, 3, soloJueves)[0], id: 'm3-solo-jueves', orden: 99 }
+        const plan = generarPlan(2026, 1, 1, [...conG3, restringido])
+        const enDomingo = plan.asignaciones.filter(
+            a => a.rol.startsWith('testimonio') && a.servicioTipo !== 'jueves' && a.miembroId === 'm3-solo-jueves',
+        )
+        expect(enDomingo).toHaveLength(0)
     })
 })

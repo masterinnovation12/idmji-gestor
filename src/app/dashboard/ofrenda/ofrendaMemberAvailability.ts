@@ -100,7 +100,7 @@ export interface ValidacionGeneracionPlan {
     problemas: ValidacionGeneracionTurno[]
 }
 
-type MiembroGen = MiembroDisponibilidadTurnos & { grupo: 1 | 2; activo: boolean }
+type MiembroGen = MiembroDisponibilidadTurnos & { grupo: 1 | 2 | 3; activo: boolean }
 
 /**
  * Comprueba que cada turno del mes tenga miembros elegibles suficientes por grupo.

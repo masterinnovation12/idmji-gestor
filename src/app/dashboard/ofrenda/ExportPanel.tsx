@@ -17,11 +17,17 @@ import { captureExportLayoutToPng } from './exportCapture'
 import { captureNodeToJpegDataUrl } from './exportImageShare'
 import { ExportScopeControls, type ExportScope } from './ExportScopeControls'
 import { ExportPeopleScopeControls } from './ExportPeopleScopeControls'
+import { type ExportPeopleScope } from './exportPeopleScope'
 import {
-    type ExportPeopleScope,
-    exportIncludesGroup1,
-    exportIncludesSacosRows,
-} from './exportPeopleScope'
+    EXPORT_SECTIONS_ORDER,
+    defaultSectionsForScope,
+    g1RowsFromSections,
+    sectionsIncludeColaboradores,
+    sectionsIncludeSacos,
+    sectionsIncludeTestimonios,
+    toggleSection,
+    type ExportSectionKey,
+} from './exportSections'
 import {
     exportPdfColumnLayout,
     exportPdfHeaderHeightMm,
@@ -38,7 +44,7 @@ import { buildExportLegend, formatExportPeriodLabel } from './exportHeaderShared
 import { drawExportPdfHeader } from './drawExportPdfHeader'
 import { getDateFnsLocale, getExportLabels, getMonthLabel, interpolate } from './ofrendaLocale'
 import type { PlanCompleto, OfrMiembro, OfrServicio } from './actions'
-import { rolGrupo2AplicaEnTurno } from '@/lib/utils/ofrendaEngine'
+import { rolGrupo2AplicaEnTurno, ROLES_TESTIMONIOS } from '@/lib/utils/ofrendaEngine'
 
 // ─── Tipos y constantes ────────────────────────────────────────────────────────
 
@@ -78,27 +84,35 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
     const dateLocale = getDateFnsLocale(language)
     const [exportScope, setExportScope] = useState<ExportScope>('month')
     const [peopleScope, setPeopleScope] = useState<ExportPeopleScope>('all')
-    // Solo colaboradores (G2) → «Labores Profecía»; G1+G2 → «Labores Generales».
+    // Secciones seleccionables; el alcance (G1+G2 / G2) solo fija los defaults.
+    const [sections, setSections] = useState<ExportSectionKey[]>(() => defaultSectionsForScope('all'))
+    // El documento se llama «Labores Generales» en ambos alcances.
     const labels = {
         ...baseLabels,
-        titleDoc:
-            peopleScope === 'g2'
-                ? t('ofrenda.export.titleDocG2')
-                : t('ofrenda.export.titleDocGeneral'),
+        titleDoc: t('ofrenda.export.titleDocGeneral'),
     }
-    // El nombre de archivo refleja el documento: labores-profecia / labores-generales.
-    const mesFileBase = `${peopleScope === 'g2' ? 'labores-profecia' : 'labores-generales'}-${mesSlug}-${anio}`
-    const [extraRoles, setExtraRoles] = useState<string[]>([]) // roles G1 extra, desmarcados por defecto
+    const mesFileBase = `labores-generales-${mesSlug}-${anio}`
     const [weekIndex, setWeekIndex] = useState(0)
 
-    // Roles G1 opcionales para el export (orden canónico).
-    const EXTRA_G1_ROLES: { key: string; label: string }[] = [
-        { key: 'primera_vez', label: t('ofrenda.roles.colaborador1vez') },
-        { key: 'segunda_tercera_vez', label: t('ofrenda.roles.colaborador23vez') },
-        { key: 'imposicion_manos', label: t('ofrenda.roles.imposicionManos') },
-    ]
-    const toggleExtraRole = (key: string) =>
-        setExtraRoles(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]))
+    const handlePeopleScopeChange = (scope: ExportPeopleScope) => {
+        setPeopleScope(scope)
+        setSections(defaultSectionsForScope(scope))
+    }
+
+    // Checks de secciones exportables (orden canónico = orden de filas del documento).
+    const SECTION_LABELS: Record<ExportSectionKey, string> = {
+        sacos: t('ofrenda.export.sections.sacos'),
+        realiza: t('ofrenda.roles.realiza'),
+        apoyo: t('ofrenda.roles.apoyo'),
+        vigilancia: t('ofrenda.roles.vigilancia'),
+        primera_vez: t('ofrenda.roles.colaborador1vez'),
+        segunda_tercera_vez: t('ofrenda.roles.colaborador23vez'),
+        imposicion_manos: t('ofrenda.roles.imposicionManos'),
+        colaboradores: t('ofrenda.roles.colaboradores'),
+        testimonios: t('ofrenda.roles.testimonios'),
+    }
+    const handleToggleSection = (key: ExportSectionKey) =>
+        setSections(prev => toggleSection(prev, key))
     const stepLabels: Record<ExportStep, string> = {
         idle: '',
         rendering: t('ofrenda.export.step.rendering'),
@@ -189,7 +203,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             }
         })()
         return () => { cancelled = true }
-    }, [previewOpen, plan, mes, anio, language, exportScope, peopleScope, extraRoles, weekIndex, activeServicios, layoutWidth, periodSubtitle])
+    }, [previewOpen, plan, mes, anio, language, exportScope, sections, weekIndex, activeServicios, layoutWidth, periodSubtitle])
 
     // ── Helper: capturar el layout oculto como JPEG data URL (HD, ligero) ────
     const captureLayoutPNG = useCallback(async (): Promise<string | null> => {
@@ -453,8 +467,11 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 drawHeaderCell(srv, tableX + firstColW + idx * colW, startY, colW, headerH, isWeekStart)
             })
 
-            const showSacos = exportIncludesSacosRows(peopleScope)
-            const showG1 = exportIncludesGroup1(peopleScope)
+            const showSacos = sectionsIncludeSacos(sections)
+            const g1RowKeys = g1RowsFromSections(sections)
+            const showG1 = g1RowKeys.length > 0
+            const showColaboradores = sectionsIncludeColaboradores(sections)
+            const showTestimonios = sectionsIncludeTestimonios(sections)
 
             let nextY = startY + headerH
             if (showSacos) {
@@ -467,19 +484,29 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 nextY += seqH
             }
 
+            const tableW = firstColW + numCols * colW
+            const drawGroupDivider = () => {
+                drawCell('', tableX, nextY, tableW, dividerH, EXPORT_CELL.divider, EXPORT_CELL.divider)
+                nextY += dividerH
+            }
+
             if (showG1) {
                 const g1 = SERVICE_EXPORT_COLORS.jueves
-                const extraG1Defs = [
-                    { key: 'primera_vez', label: labels.primeraVez },
-                    { key: 'segunda_tercera_vez', label: labels.segundaTerceraVez },
-                    { key: 'imposicion_manos', label: labels.imposicionManos },
-                ].filter(r => extraRoles.includes(r.key))
-                const ROLES_G1: { key: string; label: string; bgEven: string; bgOdd: string; labelTxt: string }[] = [
-                    { key: 'realiza',    label: labels.realiza,    bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText },
-                    { key: 'apoyo',      label: labels.apoyo,      bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText },
-                    { key: 'vigilancia', label: labels.vigilancia, bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText },
-                    ...extraG1Defs.map(r => ({ key: r.key, label: r.label, bgEven: g1.labelBgEven, bgOdd: g1.labelBgOdd, labelTxt: g1.labelText })),
-                ]
+                const g1Labels: Record<string, string> = {
+                    realiza: labels.realiza,
+                    apoyo: labels.apoyo,
+                    vigilancia: labels.vigilancia,
+                    primera_vez: labels.primeraVez,
+                    segunda_tercera_vez: labels.segundaTerceraVez,
+                    imposicion_manos: labels.imposicionManos,
+                }
+                const ROLES_G1 = g1RowKeys.map(key => ({
+                    key,
+                    label: g1Labels[key],
+                    bgEven: g1.labelBgEven,
+                    bgOdd: g1.labelBgOdd,
+                    labelTxt: g1.labelText,
+                }))
 
                 ROLES_G1.forEach((rol, rIdx) => {
                     const rowY = nextY + rIdx * rowH
@@ -496,38 +523,66 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 })
 
                 nextY += ROLES_G1.length * rowH
-                const tableW = firstColW + numCols * colW
-                drawCell('', tableX, nextY, tableW, dividerH, EXPORT_CELL.divider, EXPORT_CELL.divider)
-                nextY += dividerH
             }
 
-            // Filas de Grupo 2 (Colaboradores)
-            const g2 = SERVICE_EXPORT_COLORS.domingo
-            const ROLES_G2 = [
-                { key: 'colaborador_1' as const, label: labels.colaborador1, bgEven: g2.labelBgEven, bgOdd: g2.labelBgOdd, labelTxt: g2.labelText },
-                { key: 'colaborador_2' as const, label: labels.colaborador2, bgEven: g2.labelBgEven, bgOdd: g2.labelBgOdd, labelTxt: g2.labelText },
-                { key: 'colaborador_3' as const, label: labels.colaborador3, bgEven: g2.labelBgEven, bgOdd: g2.labelBgOdd, labelTxt: g2.labelText },
-            ]
+            // Filas de Testimonios (pool G1+G2) — cierran el bloque G1
+            if (showTestimonios) {
+                const tst = SERVICE_EXPORT_COLORS.domingo_tarde
+                const ROLES_TST = ROLES_TESTIMONIOS.map((key, i) => ({
+                    key,
+                    label: [labels.testimonio1, labels.testimonio2][i],
+                }))
 
-            ROLES_G2.forEach((rol, rIdx) => {
-                const rowY = nextY + rIdx * rowH
-                const bgLabel = rIdx % 2 === 0 ? rol.bgEven : rol.bgOdd
-                drawCell(rol.label, tableX, rowY, firstColW, rowH, bgLabel, rol.labelTxt, 'bold', 8.5, 'left')
+                ROLES_TST.forEach((rol, rIdx) => {
+                    const rowY = nextY + rIdx * rowH
+                    const bgLabel = rIdx % 2 === 0 ? tst.labelBgEven : tst.labelBgOdd
+                    drawCell(rol.label, tableX, rowY, firstColW, rowH, bgLabel, tst.labelText, 'bold', 8.5, 'left')
 
-                servicios.forEach((srv, idx) => {
-                    const isWeekStart = idx % 3 === 0 && idx > 0
-                    const aplica = rolGrupo2AplicaEnTurno(rol.key, srv.dia_tipo)
-                    const asig = aplica
-                        ? asignaciones.find(a => a.servicio_id === srv.id && a.rol === rol.key)
-                        : null
-                    const nombre = aplica ? (asig?.miembro?.nombre ?? '—') : '—'
-                    const cellBg = rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd
-                    drawCell(nombre, tableX + firstColW + idx * colW, rowY, colW, rowH, cellBg, IDMJI_BRAND.text, 'bold', 7.2, 'center', isWeekStart)
+                    servicios.forEach((srv, idx) => {
+                        const isWeekStart = idx % 3 === 0 && idx > 0
+                        const asig = asignaciones.find(a => a.servicio_id === srv.id && a.rol === rol.key)
+                        const nombre = asig?.miembro?.nombre ?? '—'
+                        const cellBg = rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd
+                        drawCell(nombre, tableX + firstColW + idx * colW, rowY, colW, rowH, cellBg, IDMJI_BRAND.text, 'bold', 7.2, 'center', isWeekStart)
+                    })
                 })
-            })
+
+                nextY += ROLES_TST.length * rowH
+            }
+
+            // Divisor entre el bloque superior (G1 + Testimonios) y los colaboradores
+            if ((showG1 || showTestimonios) && showColaboradores) drawGroupDivider()
+
+            // Filas de Grupo 2 (Colaboradores)
+            if (showColaboradores) {
+                const g2 = SERVICE_EXPORT_COLORS.domingo
+                const ROLES_G2 = [
+                    { key: 'colaborador_1' as const, label: labels.colaborador1, bgEven: g2.labelBgEven, bgOdd: g2.labelBgOdd, labelTxt: g2.labelText },
+                    { key: 'colaborador_2' as const, label: labels.colaborador2, bgEven: g2.labelBgEven, bgOdd: g2.labelBgOdd, labelTxt: g2.labelText },
+                    { key: 'colaborador_3' as const, label: labels.colaborador3, bgEven: g2.labelBgEven, bgOdd: g2.labelBgOdd, labelTxt: g2.labelText },
+                ]
+
+                ROLES_G2.forEach((rol, rIdx) => {
+                    const rowY = nextY + rIdx * rowH
+                    const bgLabel = rIdx % 2 === 0 ? rol.bgEven : rol.bgOdd
+                    drawCell(rol.label, tableX, rowY, firstColW, rowH, bgLabel, rol.labelTxt, 'bold', 8.5, 'left')
+
+                    servicios.forEach((srv, idx) => {
+                        const isWeekStart = idx % 3 === 0 && idx > 0
+                        const aplica = rolGrupo2AplicaEnTurno(rol.key, srv.dia_tipo)
+                        const asig = aplica
+                            ? asignaciones.find(a => a.servicio_id === srv.id && a.rol === rol.key)
+                            : null
+                        const nombre = aplica ? (asig?.miembro?.nombre ?? '—') : '—'
+                        const cellBg = rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd
+                        drawCell(nombre, tableX + firstColW + idx * colW, rowY, colW, rowH, cellBg, IDMJI_BRAND.text, 'bold', 7.2, 'center', isWeekStart)
+                    })
+                })
+
+                nextY += ROLES_G2.length * rowH
+            }
 
             // Fila de Semana ISO
-            nextY += ROLES_G2.length * rowH
             drawCell(labels.semanaIso, tableX, nextY, firstColW, footerH, IDMJI_BRAND.tableMeta, '#b8c0cc', 'bold', 7.5, 'left')
             servicios.forEach((srv, idx) => {
                 const isWeekStart = idx % 3 === 0 && idx > 0
@@ -548,10 +603,10 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
             const creationDate = new Date().toLocaleDateString(localeTag, { day: '2-digit', month: 'long', year: 'numeric' })
             doc.setFont('helvetica', 'normal')
             doc.setTextColor(122, 122, 122)
-            const footerAlign = peopleScope === 'g2' ? 'center' : 'left'
-            doc.text(`${labels.footer} · ${creationDate}`, peopleScope === 'g2' ? pageW / 2 : tableX, footerY, { align: footerAlign })
+            const footerAlign = showSacos ? 'left' : 'center'
+            doc.text(`${labels.footer} · ${creationDate}`, showSacos ? tableX : pageW / 2, footerY, { align: footerAlign })
 
-            if (peopleScope === 'all') {
+            if (showSacos) {
                 const { sacos_jueves: sJ, sacos_domingo: sD, sacos_domingo_tarde: sDT } = plan.plan
                 const sSemana = (sJ ?? 4) + (sD ?? 8) + (sDT ?? 4)
                 doc.text(labels.sacosMeta(sSemana, sJ ?? 4, sD ?? 8, sDT ?? 4), pageW - marginX, footerY, { align: 'right' })
@@ -572,8 +627,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
         plan,
         activeServicios,
         exportScope,
-        peopleScope,
-        extraRoles,
+        sections,
         periodSubtitle,
         tituloMes,
         anio,
@@ -673,7 +727,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
 
             <ExportPeopleScopeControls
                 scope={peopleScope}
-                onScopeChange={setPeopleScope}
+                onScopeChange={handlePeopleScopeChange}
                 disabled={isExporting}
                 labels={{
                     label: t('ofrenda.export.people.label'),
@@ -682,49 +736,45 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                 }}
             />
 
-            {peopleScope === 'g2' ? (
-                <p className="text-[11px] text-slate-500 font-medium leading-relaxed px-0.5">
-                    {t('ofrenda.export.people.g2Hint')}
+            <div className="space-y-2" data-testid="ofrenda-export-sections">
+                <p className="text-xs font-semibold text-slate-500">
+                    {t('ofrenda.export.sections.label')}
                 </p>
-            ) : (
-                <div className="space-y-2" data-testid="ofrenda-export-extra-roles">
-                    <p className="text-xs font-semibold text-slate-500">
-                        {t('ofrenda.export.extraRoles.label')}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                        {EXTRA_G1_ROLES.map(({ key, label }) => {
-                            const on = extraRoles.includes(key)
-                            return (
-                                <button
-                                    key={key}
-                                    type="button"
-                                    aria-pressed={on}
-                                    disabled={isExporting}
-                                    data-testid={`ofrenda-export-extra-${key}`}
-                                    onClick={() => toggleExtraRole(key)}
-                                    className={`inline-flex items-center gap-1.5 min-h-[40px] rounded-xl border px-3 py-2 text-xs font-bold transition-colors touch-manipulation disabled:opacity-50 ${
-                                        on
-                                            ? 'bg-[#1f2e85] text-white border-[#b8964a] shadow-sm'
-                                            : 'bg-white border-[rgba(184,150,74,0.3)] text-slate-500 hover:bg-[#f8f3e8] hover:border-[#b8964a]'
+                <div className="flex flex-wrap gap-1.5">
+                    {EXPORT_SECTIONS_ORDER.map((key) => {
+                        const on = sections.includes(key)
+                        return (
+                            <button
+                                key={key}
+                                type="button"
+                                aria-pressed={on}
+                                disabled={isExporting}
+                                data-testid={`ofrenda-export-section-${key}`}
+                                onClick={() => handleToggleSection(key)}
+                                className={`inline-flex items-center gap-1.5 min-h-[40px] rounded-xl border px-3 py-2 text-xs font-bold transition-colors touch-manipulation disabled:opacity-50 ${
+                                    on
+                                        ? 'bg-[#1f2e85] text-white border-[#b8964a] shadow-sm'
+                                        : 'bg-white border-[rgba(184,150,74,0.3)] text-slate-500 hover:bg-[#f8f3e8] hover:border-[#b8964a]'
+                                }`}
+                            >
+                                <span
+                                    className={`flex h-4 w-4 items-center justify-center rounded-[5px] border ${
+                                        on ? 'border-white bg-white/20' : 'border-[rgba(184,150,74,0.4)]'
                                     }`}
                                 >
-                                    <span
-                                        className={`flex h-4 w-4 items-center justify-center rounded-[5px] border ${
-                                            on ? 'border-white bg-white/20' : 'border-[rgba(184,150,74,0.4)]'
-                                        }`}
-                                    >
-                                        {on && <CheckCircle2 className="h-3 w-3" />}
-                                    </span>
-                                    {label}
-                                </button>
-                            )
-                        })}
-                    </div>
-                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed px-0.5">
-                        {t('ofrenda.export.extraRoles.hint')}
-                    </p>
+                                    {on && <CheckCircle2 className="h-3 w-3" />}
+                                </span>
+                                {SECTION_LABELS[key]}
+                            </button>
+                        )
+                    })}
                 </div>
-            )}
+                <p className="text-[11px] text-slate-500 font-medium leading-relaxed px-0.5">
+                    {peopleScope === 'g2'
+                        ? t('ofrenda.export.people.g2Hint')
+                        : t('ofrenda.export.sections.hint')}
+                </p>
+            </div>
 
             {/* ── Lista de opciones de exportación (Premium y Justas) ────── */}
             <div className="space-y-3">
@@ -871,8 +921,7 @@ export function ExportPanel({ plan, miembros, tituloMes, anio, mes }: Readonly<E
                         periodSubtitle={periodSubtitle}
                         exportScope={exportScope}
                         locale={language === 'ca-ES' ? 'ca-ES' : 'es-ES'}
-                        peopleScope={peopleScope}
-                        extraG1Roles={extraRoles}
+                        sections={sections}
                     />
                 </div>,
                 document.body

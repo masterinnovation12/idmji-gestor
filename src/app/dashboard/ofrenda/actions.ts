@@ -41,7 +41,8 @@ export type { SecuenciaApplyScope } from '@/app/dashboard/ofrenda/secuenciaPropa
 export interface OfrMiembro {
     id: string
     nombre: string
-    grupo: 1 | 2
+    /** 1 = realiza la labor · 2 = colaboradores · 3 = solo testimonios. */
+    grupo: 1 | 2 | 3
     orden: number
     activo: boolean
     puede_jueves: boolean
@@ -63,7 +64,7 @@ function mapRowToOfrMiembro(row: Record<string, unknown>): OfrMiembro {
     return {
         id: row.id as string,
         nombre: row.nombre as string,
-        grupo: row.grupo as 1 | 2,
+        grupo: row.grupo as 1 | 2 | 3,
         orden: row.orden as number,
         activo: row.activo as boolean,
         ...disp,
@@ -160,7 +161,7 @@ export async function getMiembros(): Promise<{ data?: OfrMiembro[]; error?: stri
 }
 
 export async function upsertMiembro(
-    miembro: Partial<OfrMiembro> & { nombre: string; grupo: 1 | 2 }
+    miembro: Partial<OfrMiembro> & { nombre: string; grupo: 1 | 2 | 3 }
 ): Promise<{ data?: OfrMiembro; error?: string }> {
     const { error: authError, supabase, sedeId } = await requireLabor(PERMISOS_MIEMBROS)
     if (authError || !supabase) return { error: authError ?? 'Error' }
@@ -217,7 +218,7 @@ export async function reordenarMiembros(
 /** Importar hermanos del sistema como miembros de ofrenda. */
 export async function syncHermanos(
     profileIds: string[],
-    grupo: 1 | 2
+    grupo: 1 | 2 | 3
 ): Promise<{ importados: number; error?: string }> {
     const { error: authError, supabase, sedeId } = await requireLabor(PERMISOS_MIEMBROS)
     if (authError || !supabase) return { importados: 0, error: authError ?? 'Error' }
