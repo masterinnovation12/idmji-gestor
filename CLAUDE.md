@@ -54,6 +54,21 @@ node scripts/check-i18n-hardcoded.mjs   # detecta texto hardcodeado sin traducir
 ### Límite conocido
 Los **Server Components** (sin `'use client'`) no pueden usar `useI18n()` (el idioma vive en `localStorage`, lado cliente). Si necesitas texto traducido ahí, extrae la parte con texto a un componente cliente (patrón `PlanoLoadingSkeleton` en `OfrendaPageClient.tsx`). El fallback de error de `src/app/dashboard/page.tsx` es la única excepción aceptada por ahora.
 
+## 🔐 Autorización: sedes + permisos granulares
+
+La app es **multi-sede** (tabla `sedes`; todo dato operativo lleva `sede_id`) y tiene **permisos granulares por usuario** (`profiles.permisos`, jsonb de overrides). Defensa en 3 capas:
+
+1. **RLS** (migración `20260711120000_sedes_y_permisos.sql`): aislamiento por sede (`user_sede_id()`) + gate por permiso (`user_can('clave')`). ADMIN ve todas las sedes.
+2. **Guards en server actions** (`src/lib/auth/guards.ts`): `requireUser` / `requireAdmin` / `requirePermission` / `requireAnyPermission`. **Nunca** dupliques un `requireEditor` local ni un cliente service-role: usa estos guards y `createAdminClient()` de `src/lib/supabase/admin.ts`.
+3. **UI**: `useAccess()` (`src/lib/auth/AccessProvider.tsx`) en cliente, o `can(profile, 'clave')` de `src/lib/auth/permissions.ts` en server pages.
+
+Reglas:
+- El catálogo de permisos vive en `src/lib/auth/permissions.ts` (`PERMISSION_KEYS`) y debe mantenerse **en sintonía con `public.user_can()`** en BD. Resolución: ADMIN siempre; override en `permisos` gana; sin override EDITOR permite y el resto deniega.
+- Los roles válidos salen de `src/lib/auth/roles.ts` (enum `user_role` en BD: ADMIN, EDITOR, MIEMBRO, SONIDO). No derivar roles con SELECT DISTINCT.
+- La sede efectiva de una consulta se resuelve con `resolveActiveSedeId(ctx)` (`src/lib/sede/activeSede.ts`): los no-admin siempre operan en su sede; el ADMIN elige con el selector del sidebar (cookie `idmji-sede-activa`). Todo INSERT en tablas con `sede_id` debe fijarlo explícitamente con la sede resuelta.
+- Constraints únicos por sede: `ofrenda_planes (sede_id, anio, mes)`, `ofrenda_plano_personas (sede_id, nombre_normalizado)`, `ofrenda_plano_layouts (sede_id, modo, vista)`, `festivos (sede_id, fecha)`, `culto_schedules (sede_id, day_of_week, default_time)` — usa estos `onConflict`.
+- Administración: hub en `/dashboard/admin` (usuarios+permisos, sedes, stats, auditoría). La matriz de permisos se edita en el modal de usuario (`PermisosEditor`).
+
 ## Otros comandos útiles
 
 ```bash
@@ -61,6 +76,8 @@ npm run dev        # dev server (puerto 3004)
 npm run build      # build de producción
 npx tsc --noEmit   # typecheck
 npx vitest run     # toda la suite de tests
+node scripts/db-query.mjs "select 1"   # SQL contra la BD (Management API, token en .env.local)
 ```
 
 Despliegue: Vercel despliega desde `main`. No hacer push a `main` sin que el usuario lo pida.
+La base de datos de Supabase es **compartida con producción**: aplicar migraciones (`node scripts/db-query.mjs --file supabase/migrations/...`) requiere confirmación explícita del usuario.

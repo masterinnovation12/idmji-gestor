@@ -1,22 +1,23 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireAnyPermission } from '@/lib/auth/guards'
+import { resolveActiveSedeId } from '@/lib/sede/activeSede'
 
 export type PlanoAuthError = 'no_auth' | 'no_permission'
 
+/**
+ * Guard del plano del templo: permiso granular `laborPlano.gestionar`
+ * (o `hermanos.gestionar` para el directorio de personas).
+ * Devuelve además la sede efectiva para scoping de consultas.
+ */
 export async function requireEditor() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'no_auth' as PlanoAuthError, supabase: null, userId: null }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('rol')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile || !['ADMIN', 'EDITOR'].includes(profile.rol)) {
-        return { error: 'no_permission' as PlanoAuthError, supabase: null, userId: null }
+    const { ctx, error } = await requireAnyPermission(['laborPlano.gestionar', 'hermanos.gestionar'])
+    if (error === 'No autenticado') {
+        return { error: 'no_auth' as PlanoAuthError, supabase: null, userId: null, sedeId: null }
     }
-    return { error: null, supabase, userId: user.id }
+    if (error || !ctx) {
+        return { error: 'no_permission' as PlanoAuthError, supabase: null, userId: null, sedeId: null }
+    }
+    const sedeId = await resolveActiveSedeId(ctx)
+    return { error: null, supabase: ctx.supabase, userId: ctx.userId, sedeId }
 }

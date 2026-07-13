@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { getUsers, createUser, updateUserFull, deleteUser, UserData } from './actions'
-import { Users, Search, Trash2, Edit2, Plus, Camera, AlertCircle, X, Eye, EyeOff } from 'lucide-react'
+import { getUsers, createUser, updateUserFull, deleteUser, UserData, SedeOption } from './actions'
+import { Users, Search, Trash2, Edit2, Plus, Camera, AlertCircle, X, Eye, EyeOff, Building2 } from 'lucide-react'
+import PermisosEditor from './PermisosEditor'
+import type { PermisosOverrides } from '@/lib/auth/permissions'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/Dialog'
@@ -20,12 +22,15 @@ interface UsersClientProps {
     initialUsers: UserData[]
     counts: { total: number, pulpito: number, admins: number }
     availableRoles: string[]
+    sedes: SedeOption[]
 }
 
-export default function UsersClient({ initialUsers, availableRoles }: UsersClientProps) {
+export default function UsersClient({ initialUsers, availableRoles, sedes }: UsersClientProps) {
     const { t } = useI18n()
     const [users, setUsers] = useState<UserData[]>(initialUsers)
-    const defaultRole = availableRoles[0] || 'MIEMBRO'
+    // Por defecto el rol menos privilegiado (nunca ADMIN por accidente)
+    const defaultRole = availableRoles.includes('MIEMBRO') ? 'MIEMBRO' : (availableRoles[0] || 'MIEMBRO')
+    const defaultSedeId = sedes.find(s => s.es_principal)?.id ?? sedes[0]?.id ?? ''
     const [searchTerm, setSearchTerm] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -42,8 +47,10 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
         telefono: '',
         password: '',
         rol: defaultRole,
-        pulpito: false
+        pulpito: false,
+        sede_id: defaultSedeId
     })
+    const [permisos, setPermisos] = useState<PermisosOverrides>({})
     const [avatarFile, setAvatarFile] = useState<Blob | null>(null)
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
     const [isCropOpen, setIsCropOpen] = useState(false)
@@ -70,6 +77,10 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
         return fullName.includes(search) || email.includes(search)
     })
 
+    // Dominio de email según la sede elegida en el formulario
+    const selectedSedeDomain =
+        sedes.find(s => s.id === formData.sede_id)?.email_dominio || '@idmjisabadell.org'
+
     // Reset Form
     const resetForm = () => {
         setFormData({
@@ -80,8 +91,10 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
             telefono: '',
             password: '',
             rol: defaultRole,
-            pulpito: false
+            pulpito: false,
+            sede_id: defaultSedeId
         })
+        setPermisos({})
         setAvatarFile(null)
         setAvatarPreview(null)
         setTempImageSrc(null)
@@ -121,6 +134,8 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
             data.append('pulpito', String(formData.pulpito))
             data.append('email_contacto', (formDataFromDom.get('email_contacto') as string) || formData.email_contacto)
             data.append('telefono', (formDataFromDom.get('telefono') as string) || formData.telefono)
+            data.append('sede_id', formData.sede_id)
+            data.append('permisos', JSON.stringify(permisos))
             if (avatarFile) data.append('avatar', avatarFile, 'avatar.jpg')
 
             let result
@@ -130,13 +145,11 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                 data.append('currentAvatarUrl', selectedUser.avatar_url || '')
                 result = await updateUserFull(data)
             } else {
-                // Create Mode - Asegurar el dominio correcto
-                // Generar el email a partir del nombre para evitar problemas de sincronización de estado
+                // Create Mode - email generado desde el nombre con el dominio de la sede
                 const nombreDom = (formDataFromDom.get('nombre') as string) || formData.nombre
                 const emailPrefix = nombreDom.toLowerCase().trim().replace(/\s+/g, '.')
-                const fullEmail = `${emailPrefix}@idmjisabadell.org`
+                const fullEmail = `${emailPrefix}${selectedSedeDomain}`
 
-                console.log('Creating user with email:', fullEmail)
                 data.append('email', fullEmail)
                 data.append('password', (formDataFromDom.get('password') as string) || formData.password)
                 result = await createUser(data)
@@ -162,30 +175,21 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
     }
 
     const handleDelete = async () => {
-        if (!selectedUser) {
-            console.error('No user selected for deletion')
-            return
-        }
-
-        console.log('handleDelete called for user:', selectedUser.id, selectedUser.email)
+        if (!selectedUser) return
         setIsLoading(true)
 
         try {
             const result = await deleteUser(selectedUser.id)
-            console.log('deleteUser result:', result)
 
             if (result.success) {
-                console.log('User deleted successfully, updating UI')
                 toast.success(t('users.toast.deleted'))
                 setUsers(users.filter(u => u.id !== selectedUser.id))
                 setIsDeleteOpen(false)
                 setSelectedUser(null)
             } else {
-                console.error('deleteUser failed:', result.error)
                 toast.error(result.error || t('users.error.deleteFailed'))
             }
         } catch (error: unknown) {
-            console.error('Exception in handleDelete:', error)
             const errorMessage = error instanceof Error ? error.message : String(error)
             toast.error(errorMessage || t('users.error.unexpectedDelete'))
         } finally {
@@ -203,8 +207,10 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
             telefono: user.telefono || '',
             password: '',
             rol: user.rol,
-            pulpito: user.pulpito
+            pulpito: user.pulpito,
+            sede_id: user.sede_id || defaultSedeId
         })
+        setPermisos(user.permisos || {})
         setAvatarPreview(user.avatar_url)
         setIsEditOpen(true)
     }
@@ -292,6 +298,12 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                                 <div className="space-y-1 w-full">
                                     <h3 className="font-bold text-lg leading-tight truncate px-2 text-slate-900">{user.nombre} {user.apellidos}</h3>
                                     <p className="text-xs text-slate-500 truncate px-2">{user.email}</p>
+                                    {user.sede_nombre && (
+                                        <p className="flex items-center justify-center gap-1 text-[11px] font-bold text-[#b68f2f] truncate px-2">
+                                            <Building2 className="w-3 h-3 shrink-0" />
+                                            {user.sede_nombre}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="flex items-center gap-2 pt-2 w-full">
@@ -428,7 +440,7 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                                                 className="bg-zinc-50 border-zinc-300 text-zinc-500 rounded-xl rounded-r-none cursor-not-allowed focus:ring-0 focus:border-zinc-300 placeholder:text-zinc-400"
                                             />
                                             <div className="bg-zinc-100 border border-l-0 border-zinc-300 rounded-r-xl px-4 py-2 text-zinc-600 font-medium flex items-center h-11">
-                                                {t('users.form.emailDomain')}
+                                                {selectedSedeDomain}
                                             </div>
                                         </div>
                                     ) : (
@@ -539,8 +551,38 @@ export default function UsersClient({ initialUsers, availableRoles }: UsersClien
                                         />
                                     </div>
                                 </div>
+
+                                {/* Sede del usuario */}
+                                <div className="space-y-2">
+                                    <Label className="text-zinc-700">
+                                        <span suppressHydrationWarning>{t('users.form.sede')}</span>
+                                    </Label>
+                                    <Select
+                                        value={formData.sede_id}
+                                        onValueChange={(val) => setFormData({ ...formData, sede_id: val })}
+                                    >
+                                        <SelectTrigger
+                                            className="h-11 rounded-xl bg-white border-zinc-300 text-zinc-900 focus:ring-blue-500 focus:border-blue-500"
+                                            data-testid="user-form-sede"
+                                        >
+                                            <SelectValue placeholder={t('users.form.selectSede')} />
+                                        </SelectTrigger>
+                                        <SelectContent className="min-w-[200px]">
+                                            {sedes
+                                                .filter((sede) => sede.activo || sede.id === formData.sede_id)
+                                                .map((sede) => (
+                                                    <SelectItem key={sede.id} value={sede.id}>
+                                                        {sede.nombre}
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Permisos granulares */}
+                        <PermisosEditor rol={formData.rol} value={permisos} onChange={setPermisos} />
 
                         <DialogFooter className="pt-4 border-t border-[rgba(184,150,74,0.25)]">
                             <Button variant="ghost" type="button" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false) }} className="text-[#1f2e85] border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white hover:bg-[#f8f3e8] hover:border-[#b8964a] rounded-xl">

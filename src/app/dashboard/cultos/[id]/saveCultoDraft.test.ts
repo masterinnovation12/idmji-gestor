@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const revalidatePathMock = vi.fn()
 let lastLecturasInsert: Record<string, unknown>[] | null = null
@@ -15,6 +15,21 @@ const cultoSelectData = {
 
 vi.mock('next/cache', () => ({
   revalidatePath: revalidatePathMock,
+}))
+
+// El guard de permisos devuelve el mismo cliente mockeado con permisos plenos
+vi.mock('@/lib/auth/guards', () => ({
+  requirePermission: vi.fn(async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    return {
+      error: null,
+      ctx: {
+        supabase: await createClient(),
+        userId: 'test-admin-uuid',
+        profile: { id: 'test-admin-uuid', rol: 'ADMIN', permisos: {}, sede_id: null },
+      },
+    }
+  }),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -70,6 +85,14 @@ const basePayload = {
 }
 
 describe('saveCultoDraft — lecturas e id_usuario_lector', () => {
+  // Importar una sola vez fuera del timeout de cada test (el primer import
+  // paga la transformación de todo el grafo de actions.ts).
+  let saveCultoDraft: typeof import('./actions')['saveCultoDraft']
+
+  beforeAll(async () => {
+    ({ saveCultoDraft } = await import('./actions'))
+  }, 30_000)
+
   beforeEach(() => {
     vi.clearAllMocks()
     lastLecturasInsert = null
@@ -79,7 +102,6 @@ describe('saveCultoDraft — lecturas e id_usuario_lector', () => {
   })
 
   it('corrige id_usuario_lector al intro efectivo del culto al persistir borrador', async () => {
-    const { saveCultoDraft } = await import('./actions')
     const result = await saveCultoDraft({
       ...basePayload,
       lecturas: [
@@ -102,7 +124,6 @@ describe('saveCultoDraft — lecturas e id_usuario_lector', () => {
   it('si en el mismo guardado se asigna un nuevo intro, las lecturas usan ese id', async () => {
     cultoSelectData.id_usuario_intro = 'intro-anterior'
     const nuevoIntro = 'nuevo-intro-uuid'
-    const { saveCultoDraft } = await import('./actions')
     await saveCultoDraft({
       ...basePayload,
       assignments: { introduccion: nuevoIntro },
@@ -124,7 +145,6 @@ describe('saveCultoDraft — lecturas e id_usuario_lector', () => {
   it('lectura de finalización usa id_usuario_finalizacion tras merge', async () => {
     cultoSelectData.id_usuario_intro = 'intro-a'
     cultoSelectData.id_usuario_finalizacion = 'final-b'
-    const { saveCultoDraft } = await import('./actions')
     await saveCultoDraft({
       ...basePayload,
       lecturas: [
@@ -143,7 +163,6 @@ describe('saveCultoDraft — lecturas e id_usuario_lector', () => {
   })
 
   it('con configuración activada persiste protocolo e inicio_anticipado como definidos', async () => {
-    const { saveCultoDraft } = await import('./actions')
     const result = await saveCultoDraft({
       ...basePayload,
       protocoloDefinido: true,
@@ -162,7 +181,6 @@ describe('saveCultoDraft — lecturas e id_usuario_lector', () => {
   })
 
   it('persiste oración no y congregación sentada para el dashboard', async () => {
-    const { saveCultoDraft } = await import('./actions')
     await saveCultoDraft({
       ...basePayload,
       protocoloDefinido: true,

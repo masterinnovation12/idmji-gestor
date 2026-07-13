@@ -7,19 +7,18 @@ import { IDMJI_BRAND, SERVICE_EXPORT_COLORS, EXPORT_CELL } from './exportBrand'
 import { exportImageLayoutWidthPx } from './exportLayoutMetrics'
 import { ExportHeaderBlock } from './ExportHeaderBlock'
 import { formatExportPeriodLabel } from './exportHeaderShared'
-import type { ExportPeopleScope } from './exportPeopleScope'
 import {
-    exportIncludesGroup1,
-    exportIncludesSacosRows,
-    isCollaboratorsOnlyExport,
-} from './exportPeopleScope'
-import { rolGrupo2AplicaEnTurno } from '@/lib/utils/ofrendaEngine'
+    EXPORT_SECTIONS_ORDER,
+    g1RowsFromSections,
+    sectionsIncludeColaboradores,
+    sectionsIncludeSacos,
+    sectionsIncludeTestimonios,
+    type ExportSectionKey,
+} from './exportSections'
+import { rolGrupo2AplicaEnTurno, ROLES_TESTIMONIOS } from '@/lib/utils/ofrendaEngine'
 
-const ROLES_G1_KEYS = ['realiza', 'apoyo', 'vigilancia'] as const
 const ROLES_G2_KEYS = ['colaborador_1', 'colaborador_2', 'colaborador_3'] as const
 const EMPTY_ASSIGNMENT = '—'
-/** Roles extra de G1 (opcionales en el export); orden canónico. */
-const EXTRA_G1_ORDER = ['primera_vez', 'segunda_tercera_vez', 'imposicion_manos'] as const
 
 interface ExportLayoutProps {
     plan: PlanCompleto
@@ -33,10 +32,8 @@ interface ExportLayoutProps {
     periodSubtitle?: string
     exportScope?: 'month' | 'week'
     locale?: 'es-ES' | 'ca-ES'
-    /** Completo (G1+G2+sacos) o solo colaboradores sin sacos. */
-    peopleScope?: ExportPeopleScope
-    /** Roles extra de G1 a incluir (primera_vez, segunda_tercera_vez, imposicion_manos). */
-    extraG1Roles?: string[]
+    /** Secciones a pintar (por defecto todas). Ver `exportSections.ts`. */
+    sections?: readonly ExportSectionKey[]
 }
 
 function getDayShort(tipo: OfrServicio['dia_tipo'], labels: OfrendaExportLabels): string {
@@ -82,14 +79,13 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
         periodSubtitle,
         exportScope = 'month',
         locale = 'es-ES',
-        peopleScope = 'all',
-        extraG1Roles = [],
+        sections = EXPORT_SECTIONS_ORDER,
     }, ref) {
         const servicios = serviciosProp ?? plan.servicios
         const isWeekExport = exportScope === 'week'
-        const collaboratorsOnly = isCollaboratorsOnlyExport(peopleScope)
-        const showSacos = exportIncludesSacosRows(peopleScope)
-        const showG1 = exportIncludesGroup1(peopleScope)
+        const showSacos = sectionsIncludeSacos(sections)
+        const showColaboradores = sectionsIncludeColaboradores(sections)
+        const showTestimonios = sectionsIncludeTestimonios(sections)
         const { asignaciones } = plan
         const roleLabels: Record<string, string> = {
             realiza: labels.realiza,
@@ -99,11 +95,11 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
             segunda_tercera_vez: labels.segundaTerceraVez,
             imposicion_manos: labels.imposicionManos,
         }
-        // Roles G1 a pintar: los 3 clásicos + los extra seleccionados (en orden canónico).
-        const g1Keys: string[] = [
-            ...ROLES_G1_KEYS,
-            ...EXTRA_G1_ORDER.filter(k => extraG1Roles.includes(k)),
-        ]
+        // Filas de roles G1 según las secciones seleccionadas (orden canónico).
+        const g1Keys: string[] = g1RowsFromSections(sections)
+        const showG1 = g1Keys.length > 0
+        // Pie centrado cuando no hay metadatos de sacos que mostrar a la derecha.
+        const collaboratorsOnly = !showSacos
 
         const layoutWidth = exportImageLayoutWidthPx(servicios.length, exportScope)
         const periodLabel = formatExportPeriodLabel(mesTitulo, anio)
@@ -296,7 +292,46 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                     )
                                 }) : null}
 
-                                {showG1 ? (
+                                {/* Testimonios: cierran el bloque G1 (labor compartida G1+G2). */}
+                                {showTestimonios ? ROLES_TESTIMONIOS.map((key, rIdx) => {
+                                    const testLabel = [labels.testimonio1, labels.testimonio2][rIdx]
+                                    const sCol = SERVICE_EXPORT_COLORS.domingo_tarde
+                                    return (
+                                        <tr key={key}>
+                                            <td
+                                                style={{
+                                                    ...tdBase,
+                                                    backgroundColor: rIdx % 2 === 0 ? sCol.labelBgEven : sCol.labelBgOdd,
+                                                    fontWeight: 700,
+                                                    color: sCol.labelText,
+                                                    padding: wk('13px 22px', '8px 14px'),
+                                                    fontSize: wk(14, 10),
+                                                }}
+                                            >
+                                                {testLabel}
+                                            </td>
+                                            {servicios.map((srv, idx) => (
+                                                <td
+                                                    key={srv.id}
+                                                    style={{
+                                                        ...tdBase,
+                                                        backgroundColor: rIdx % 2 === 0 ? EXPORT_CELL.bodyEven : EXPORT_CELL.bodyOdd,
+                                                        textAlign: 'center',
+                                                        padding: wk('13px 8px', '8px 4px'),
+                                                        fontSize: wk(16, 11),
+                                                        fontWeight: 600,
+                                                        color: IDMJI_BRAND.text,
+                                                        ...weekLeftBorder(idx),
+                                                    }}
+                                                >
+                                                    {getMiembroNombre(miembros, asignaciones, srv.id, key)}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    )
+                                }) : null}
+
+                                {(showG1 || showTestimonios) && showColaboradores ? (
                                     <tr>
                                         <td
                                             colSpan={servicios.length + 1}
@@ -305,7 +340,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                     </tr>
                                 ) : null}
 
-                                {ROLES_G2_KEYS.map((key, rIdx) => {
+                                {showColaboradores ? ROLES_G2_KEYS.map((key, rIdx) => {
                                     const colLabel = [labels.colaborador1, labels.colaborador2, labels.colaborador3][rIdx]
                                     const sCol = SERVICE_EXPORT_COLORS.domingo
                                     return (
@@ -343,7 +378,7 @@ export const ExportLayout = forwardRef<HTMLDivElement, ExportLayoutProps>(
                                             ))}
                                         </tr>
                                     )
-                                })}
+                                }) : null}
                             </tbody>
 
                             <tfoot>

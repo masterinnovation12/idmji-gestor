@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import CultoDetailClient from './CultoDetailClient'
 import { createClient } from '@/lib/supabase/server'
 import { isSonidoUser } from '@/lib/utils/isSonido'
+import { can } from '@/lib/auth/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,11 +23,22 @@ export default async function CultoDetailPage({ params }: PageProps) {
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('rol, availability')
+        .select('rol, permisos, availability')
         .eq('id', user?.id || '')
         .single()
 
     const isSonido = isSonidoUser(profile ?? {})
 
-    return <CultoDetailClient culto={culto} userId={user?.id || ''} readOnlyAssignments={isSonido} />
+    // Permisos granulares: asignar hermanos y editar el detalle del día
+    const puedeAsignar = can(profile, 'cultos.asignarHermanos')
+    const puedeEditarDetalle = can(profile, 'cultos.editarDetalle')
+
+    return (
+        <CultoDetailClient
+            culto={culto}
+            userId={user?.id || ''}
+            readOnlyAssignments={isSonido || !puedeAsignar}
+            readOnlyDetail={isSonido || !puedeEditarDetalle}
+        />
+    )
 }

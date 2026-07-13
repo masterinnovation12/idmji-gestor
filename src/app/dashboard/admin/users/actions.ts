@@ -1,35 +1,13 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { z } from 'zod'
-import { ActionResponse } from '@/types/database'
 import { revalidatePath } from 'next/cache'
-
-// Función para obtener cliente ADMIN (lazy initialization)
-function getSupabaseAdmin() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
-
-    if (!supabaseUrl || !serviceRoleKey) {
-        const missing = []
-        if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL')
-        if (!serviceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY')
-        console.error(`Missing env vars: ${missing.join(', ')}`)
-        throw new Error(`Supabase configuration is missing: ${missing.join(', ')}. Please check .env.local`)
-    }
-
-    return createAdminClient(
-        supabaseUrl,
-        serviceRoleKey,
-        {
-            auth: {
-                autoRefreshToken: false,
-                persistSession: false
-            }
-        }
-    )
-}
+import { requireAdmin } from '@/lib/auth/guards'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { USER_ROLES, isValidRole } from '@/lib/auth/roles'
+import { parseOverrides, type PermisosOverrides } from '@/lib/auth/permissions'
+import { logMovimiento } from '@/lib/audit/logMovimiento'
+import { ActionResponse } from '@/types/database'
 
 export interface UserData {
     id: string
@@ -42,138 +20,133 @@ export interface UserData {
     pulpito: boolean
     avatar_url: string | null
     created_at: string
+    sede_id: string | null
+    sede_nombre: string | null
+    permisos: PermisosOverrides
 }
 
-const VALID_DOMAIN = '@idmjisabadell.org'
-const FALLBACK_ROLES = ['ADMIN', 'EDITOR', 'MIEMBRO', 'SONIDO'] as const
+export interface SedeOption {
+    id: string
+    nombre: string
+    email_dominio: string | null
+    es_principal: boolean
+    activo: boolean
+}
 
-const createSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
+const DEFAULT_DOMAIN = '@idmjisabadell.org'
+
+const baseSchema = {
     nombre: z.string().min(1),
     apellidos: z.string().min(1),
     rol: z.string().min(1),
     pulpito: z.boolean().optional().default(false),
     email_contacto: z.string().email().optional().or(z.literal('')),
-    telefono: z.string().optional().or(z.literal(''))
+    telefono: z.string().optional().or(z.literal('')),
+    sede_id: z.string().uuid().optional().or(z.literal('')),
+}
+
+const createSchema = z.object({
+    ...baseSchema,
+    email: z.string().email(),
+    password: z.string().min(6),
 })
 
 const updateSchema = z.object({
+    ...baseSchema,
     id: z.string().uuid(),
-    nombre: z.string().min(1),
-    apellidos: z.string().min(1),
-    rol: z.string().min(1),
-    pulpito: z.boolean().optional().default(false),
     currentAvatarUrl: z.string().optional(),
-    email_contacto: z.string().email().optional().or(z.literal('')),
-    telefono: z.string().optional().or(z.literal(''))
 })
 
 export async function getRoles(): Promise<ActionResponse<string[]>> {
-    try {
-        if (!await isAdmin()) return { success: false, error: 'No autorizado' }
-
-        const { data, error } = await getSupabaseAdmin()
-            .from('profiles')
-            .select('rol', { count: 'exact', head: false })
-            .not('rol', 'is', null)
-
-        if (error) throw error
-
-        const distinct = Array.from(new Set((data || []).map((r: { rol: string }) => r.rol).filter(Boolean)))
-        const roles = distinct.length > 0 ? distinct : [...FALLBACK_ROLES]
-
-        return { success: true, data: roles }
-    } catch (error: unknown) {
-        console.error('Error fetching roles:', error)
-        return { success: false, error: 'Error al cargar roles' }
-    }
+    const { error } = await requireAdmin()
+    if (error) return { success: false, error }
+    return { success: true, data: [...USER_ROLES] }
 }
 
-async function ensureRoleAllowed(rol: string) {
-    const rolesResult = await getRoles()
-    const allowedRoles = rolesResult.success && rolesResult.data && rolesResult.data.length > 0
-        ? rolesResult.data
-        : [...FALLBACK_ROLES]
+/** Sedes disponibles para asignar usuarios (solo ADMIN). */
+export async function getSedesOptions(): Promise<ActionResponse<SedeOption[]>> {
+    const { ctx, error } = await requireAdmin()
+    if (error || !ctx) return { success: false, error: error ?? 'Sin permisos' }
 
-    if (!allowedRoles.includes(rol)) {
-        throw new Error('Rol inválido')
-    }
-}
+    const { data, error: sedesError } = await ctx.supabase
+        .from('sedes')
+        .select('id, nombre, email_dominio, es_principal, activo')
+        .order('es_principal', { ascending: false })
+        .order('nombre')
 
-// Verificar si el usuario actual es ADMIN
-async function isAdmin(): Promise<boolean> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return false
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('rol')
-        .eq('id', user.id)
-        .single()
-
-    return profile?.rol === 'ADMIN'
+    if (sedesError) return { success: false, error: sedesError.message }
+    return { success: true, data: (data ?? []) as SedeOption[] }
 }
 
 export async function getUsers(): Promise<ActionResponse<UserData[]>> {
+    const { ctx, error } = await requireAdmin()
+    if (error || !ctx) return { success: false, error: error ?? 'Sin permisos' }
+
+    const { data: profiles, error: profileError } = await ctx.supabase
+        .from('profiles')
+        .select('*, sede:sedes(nombre)')
+        .order('created_at', { ascending: false })
+
+    if (profileError) {
+        console.error('Error al obtener perfiles:', profileError)
+        return { success: false, error: `Error al obtener perfiles: ${profileError.message}` }
+    }
+
+    const users: UserData[] = (profiles || []).map(profile => ({
+        id: profile.id,
+        email: profile.email || null,
+        email_contacto: profile.email_contacto || null,
+        telefono: profile.telefono || null,
+        nombre: profile.nombre || 'Sin nombre',
+        apellidos: profile.apellidos || 'Sin apellidos',
+        rol: profile.rol || 'MIEMBRO',
+        pulpito: profile.pulpito || false,
+        avatar_url: profile.avatar_url || null,
+        created_at: profile.created_at || new Date().toISOString(),
+        sede_id: (profile.sede_id as string | null) ?? null,
+        sede_nombre: (profile.sede as { nombre?: string } | null)?.nombre ?? null,
+        permisos: parseOverrides(profile.permisos),
+    }))
+
+    users.sort((a, b) => {
+        const nameA = a.nombre !== 'Sin nombre' ? a.nombre : a.email || ''
+        const nameB = b.nombre !== 'Sin nombre' ? b.nombre : b.email || ''
+        return nameA.localeCompare(nameB)
+    })
+
+    return { success: true, data: users }
+}
+
+/** Dominio de email exigido según la sede elegida (fallback al dominio por defecto). */
+async function getSedeDomain(sedeId: string | undefined | null): Promise<string> {
+    if (!sedeId) return DEFAULT_DOMAIN
+    const admin = createAdminClient()
+    const { data } = await admin.from('sedes').select('email_dominio').eq('id', sedeId).maybeSingle()
+    return data?.email_dominio || DEFAULT_DOMAIN
+}
+
+function parsePermisosField(formData: FormData): PermisosOverrides {
+    const raw = formData.get('permisos')
+    if (typeof raw !== 'string' || !raw) return {}
     try {
-        if (!await isAdmin()) {
-            return { success: false, error: 'No autorizado' }
-        }
-
-        const supabase = await createClient()
-
-        // Obtener perfiles existentes (incluyen email de la tabla profiles)
-        const { data: profiles, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .order('created_at', { ascending: false })
-
-        if (profileError) {
-            console.error('Profile error:', profileError)
-            throw new Error(`Error al obtener perfiles: ${profileError.message}`)
-        }
-
-        // Mapear perfiles a UserData
-        const enrichedUsers: UserData[] = (profiles || []).map(profile => ({
-            id: profile.id,
-            email: profile.email || null,
-            email_contacto: profile.email_contacto || null,
-            telefono: profile.telefono || null,
-            nombre: profile.nombre || 'Sin nombre',
-            apellidos: profile.apellidos || 'Sin apellidos',
-            rol: profile.rol || 'MIEMBRO',
-            pulpito: profile.pulpito || false,
-            avatar_url: profile.avatar_url || null,
-            created_at: profile.created_at || new Date().toISOString()
-        }))
-
-        // Ordenar por nombre (o email si no nombre)
-        enrichedUsers.sort((a, b) => {
-            const nameA = a.nombre !== 'Sin nombre' ? a.nombre : a.email || ''
-            const nameB = b.nombre !== 'Sin nombre' ? b.nombre : b.email || ''
-            return nameA.localeCompare(nameB)
-        })
-
-        return { success: true, data: enrichedUsers }
-    } catch (error: unknown) {
-        console.error('Error fetching users:', error)
-        const errorMessage = error instanceof Error ? error.message : 'Error al cargar usuarios'
-        return { success: false, error: errorMessage }
+        return parseOverrides(JSON.parse(raw))
+    } catch {
+        return {}
     }
 }
 
 export async function createUser(formData: FormData): Promise<ActionResponse<void>> {
     try {
-        if (!await isAdmin()) return { success: false, error: 'No autorizado' }
+        const { ctx, error: authError } = await requireAdmin()
+        if (authError || !ctx) return { success: false, error: authError ?? 'Sin permisos' }
+
+        const sedeId = (formData.get('sede_id') as string) || ''
+        const domain = await getSedeDomain(sedeId)
 
         let email = formData.get('email') as string
         if (email && !email.includes('@')) {
-            email = `${email}${VALID_DOMAIN}`
+            email = `${email}${domain}`
         }
-        console.log('--- DEBUG CREATE USER ---')
-        console.log('Final email for validation:', email)
 
         const parsed = createSchema.safeParse({
             email,
@@ -183,112 +156,75 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
             rol: formData.get('rol'),
             pulpito: formData.get('pulpito') === 'true',
             email_contacto: formData.get('email_contacto'),
-            telefono: formData.get('telefono')
+            telefono: formData.get('telefono'),
+            sede_id: sedeId,
         })
 
-        if (!parsed.success) {
-            console.error('Validation error createUser:', parsed.error.flatten().fieldErrors)
-            return { success: false, error: 'Datos inválidos' }
-        }
+        if (!parsed.success) return { success: false, error: 'Datos inválidos' }
 
         const { email: validatedEmail, password, nombre, apellidos, rol, pulpito, email_contacto, telefono } = parsed.data
-        console.log('DEBUG: Parsed data successfully', validatedEmail)
-
+        const permisos = parsePermisosField(formData)
         const avatarFile = formData.get('avatar') as File | null
 
-        if (!validatedEmail.endsWith(VALID_DOMAIN)) {
-            console.error('DEBUG: Invalid domain', validatedEmail)
-            return { success: false, error: `El email debe terminar en ${VALID_DOMAIN}` }
+        if (!validatedEmail.endsWith(domain)) {
+            return { success: false, error: `El email debe terminar en ${domain}` }
         }
+        if (!isValidRole(rol)) return { success: false, error: 'Rol inválido' }
 
-        await ensureRoleAllowed(rol)
-        console.log('DEBUG: Role allowed', rol)
+        const admin = createAdminClient()
 
-        // Verificar si el email ya existe en profiles
-        const { data: existingProfile } = await getSupabaseAdmin()
+        // Email único (profiles + auth)
+        const { data: existingProfile } = await admin
             .from('profiles')
-            .select('id, email')
+            .select('id')
             .eq('email', validatedEmail)
             .maybeSingle()
-
         if (existingProfile) {
-            console.error('DEBUG: Profile exists', validatedEmail)
+            return { success: false, error: 'Este email ya está registrado. No se pueden duplicar emails.' }
+        }
+        const { data: { users: existingUsers } } = await admin.auth.admin.listUsers()
+        if (existingUsers?.some(u => u.email === validatedEmail)) {
             return { success: false, error: 'Este email ya está registrado. No se pueden duplicar emails.' }
         }
 
-        // Verificar también en auth.users usando listUsers
-        const { data: { users: existingUsers } } = await getSupabaseAdmin().auth.admin.listUsers()
-        const emailExists = existingUsers?.some(u => u.email === validatedEmail)
-
-        if (emailExists) {
-            console.error('DEBUG: Auth user exists', validatedEmail)
-            return { success: false, error: 'Este email ya está registrado. No se pueden duplicar emails.' }
-        }
-
-        console.log('DEBUG: Proceeding to create auth user...')
-        // Crear display_name con nombre y apellidos
         const displayName = `${nombre} ${apellidos}`.trim()
-        const fullName = displayName // Para compatibilidad
 
-        // 1. Crear usuario en Auth
-        const { data: authUser, error: createError } = await getSupabaseAdmin().auth.admin.createUser({
+        // 1. Usuario en Auth
+        const { data: authUser, error: createError } = await admin.auth.admin.createUser({
             email: validatedEmail,
             password,
             email_confirm: true,
             user_metadata: {
                 nombre,
                 apellidos,
-                full_name: fullName,
-                display_name: displayName
-            }
+                full_name: displayName,
+                display_name: displayName,
+            },
         })
 
-        if (createError) {
-            console.error('Supabase auth.admin.createUser error:', createError)
-            throw new Error(createError.message || 'No se pudo crear el usuario (Auth)')
-        }
+        if (createError) throw new Error(createError.message || 'No se pudo crear el usuario (Auth)')
         if (!authUser.user) throw new Error('No se pudo crear el usuario')
 
         const userId = authUser.user.id
-        console.log('DEBUG: Auth user created successfully', userId)
-        let avatarUrl = null
+        let avatarUrl: string | null = null
 
-        // Actualizar user_metadata para asegurar que display_name y full_name estén correctos
-        try {
-            await getSupabaseAdmin().auth.admin.updateUserById(userId, {
-                user_metadata: {
-                    nombre,
-                    apellidos,
-                    full_name: fullName,
-                    display_name: displayName
-                }
-            })
-            console.log('Display name actualizado correctamente:', displayName)
-        } catch (updateError) {
-            console.warn('No se pudo actualizar display_name, continuando...', updateError)
-        }
-
-        // 2. Subir avatar si existe
+        // 2. Avatar (opcional)
         if (avatarFile && avatarFile.size > 0) {
             const fileExt = avatarFile.name.split('.').pop()
             const fileName = `${userId}-${Date.now()}.${fileExt}`
-
-            const { error: uploadError } = await getSupabaseAdmin().storage
+            const { error: uploadError } = await admin.storage
                 .from('avatars')
                 .upload(fileName, avatarFile, { contentType: avatarFile.type })
 
             if (uploadError) {
-                console.error('Error uploading avatar:', uploadError)
+                console.error('Error subiendo avatar:', uploadError)
             } else {
-                const { data: publicUrl } = getSupabaseAdmin().storage
-                    .from('avatars')
-                    .getPublicUrl(fileName)
-                avatarUrl = publicUrl.publicUrl
+                avatarUrl = admin.storage.from('avatars').getPublicUrl(fileName).data.publicUrl
             }
         }
 
-        // 3. Insertar/actualizar perfil (garantizar existencia)
-        const { error: profileError } = await getSupabaseAdmin()
+        // 3. Perfil (el trigger handle_new_user ya creó una fila base)
+        const { error: profileError } = await admin
             .from('profiles')
             .upsert({
                 id: userId,
@@ -299,19 +235,25 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
                 pulpito,
                 avatar_url: avatarUrl,
                 email_contacto: email_contacto || null,
-                telefono: telefono || null
+                telefono: telefono || null,
+                ...(sedeId ? { sede_id: sedeId } : {}),
+                permisos,
             }, { onConflict: 'id' })
 
-        if (profileError) {
-            console.error('Supabase upsert profile error:', profileError)
-            throw new Error(profileError.message || 'Error al guardar perfil')
-        }
+        if (profileError) throw new Error(profileError.message || 'Error al guardar perfil')
+
+        await logMovimiento(
+            ctx.supabase,
+            ctx.userId,
+            'admin_usuarios',
+            `Usuario ${validatedEmail} creado (rol ${rol})`,
+        )
 
         revalidatePath('/dashboard/admin/users')
         revalidatePath('/dashboard/hermanos')
         return { success: true }
     } catch (error: unknown) {
-        console.error('Error creating user:', error)
+        console.error('Error creando usuario:', error)
         const errorMessage = error instanceof Error ? error.message : 'Error al crear usuario'
         return { success: false, error: errorMessage }
     }
@@ -319,7 +261,8 @@ export async function createUser(formData: FormData): Promise<ActionResponse<voi
 
 export async function updateUserFull(formData: FormData): Promise<ActionResponse<void>> {
     try {
-        if (!await isAdmin()) return { success: false, error: 'No autorizado' }
+        const { ctx, error: authError } = await requireAdmin()
+        if (authError || !ctx) return { success: false, error: authError ?? 'Sin permisos' }
 
         const parsed = updateSchema.safeParse({
             id: formData.get('id'),
@@ -329,48 +272,37 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
             pulpito: formData.get('pulpito') === 'true',
             currentAvatarUrl: formData.get('currentAvatarUrl') as string | undefined,
             email_contacto: formData.get('email_contacto'),
-            telefono: formData.get('telefono')
+            telefono: formData.get('telefono'),
+            sede_id: (formData.get('sede_id') as string) || '',
         })
 
-        if (!parsed.success) {
-            return { success: false, error: 'Datos inválidos' }
-        }
+        if (!parsed.success) return { success: false, error: 'Datos inválidos' }
 
-        const { id: userId, nombre, apellidos, rol, pulpito, currentAvatarUrl, email_contacto, telefono } = parsed.data
+        const { id: userId, nombre, apellidos, rol, pulpito, currentAvatarUrl, email_contacto, telefono, sede_id } = parsed.data
+        const permisos = parsePermisosField(formData)
         const avatarFile = formData.get('avatar') as File | null
 
-        await ensureRoleAllowed(rol)
+        if (!isValidRole(rol)) return { success: false, error: 'Rol inválido' }
 
+        const admin = createAdminClient()
         let newAvatarUrl = currentAvatarUrl
 
-        // Gestionar Avatar
         if (avatarFile && avatarFile.size > 0) {
-            // 1. Borrar anterior si existe
             if (currentAvatarUrl) {
-                const parts = currentAvatarUrl.split('/')
-                const fileName = parts[parts.length - 1]
-                await getSupabaseAdmin().storage.from('avatars').remove([fileName])
+                const fileName = currentAvatarUrl.split('/').pop()
+                if (fileName) await admin.storage.from('avatars').remove([fileName])
             }
-
-            // 2. Subir nuevo
             const fileExt = avatarFile.name.split('.').pop()
             const fileName = `${userId}-${Date.now()}.${fileExt}`
-
-            const { error: uploadError } = await getSupabaseAdmin().storage
+            const { error: uploadError } = await admin.storage
                 .from('avatars')
                 .upload(fileName, avatarFile, { contentType: avatarFile.type, upsert: true })
 
             if (uploadError) throw uploadError
-
-            const { data: publicUrl } = getSupabaseAdmin().storage
-                .from('avatars')
-                .getPublicUrl(fileName)
-
-            newAvatarUrl = publicUrl.publicUrl
+            newAvatarUrl = admin.storage.from('avatars').getPublicUrl(fileName).data.publicUrl
         }
 
-        // Actualizar tabla Profiles
-        const { error: updateError } = await getSupabaseAdmin()
+        const { error: updateError } = await admin
             .from('profiles')
             .update({
                 nombre,
@@ -379,22 +311,31 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
                 pulpito,
                 avatar_url: newAvatarUrl,
                 email_contacto: email_contacto || null,
-                telefono: telefono || null
+                telefono: telefono || null,
+                ...(sede_id ? { sede_id } : {}),
+                permisos,
             })
             .eq('id', userId)
 
         if (updateError) throw updateError
 
-        // Actualizar metadatos de usuario (opcional pero recomendado)
-        await getSupabaseAdmin().auth.admin.updateUserById(userId, {
-            user_metadata: { nombre, apellidos }
+        await admin.auth.admin.updateUserById(userId, {
+            user_metadata: { nombre, apellidos },
         })
+
+        const cambioPermisos = Object.keys(permisos).length > 0 ? ' con permisos ajustados' : ''
+        await logMovimiento(
+            ctx.supabase,
+            ctx.userId,
+            'admin_usuarios',
+            `Usuario ${nombre} ${apellidos} actualizado (rol ${rol}${cambioPermisos})`,
+        )
 
         revalidatePath('/dashboard/admin/users')
         revalidatePath('/dashboard/hermanos')
         return { success: true }
     } catch (error: unknown) {
-        console.error('Error updating user:', error)
+        console.error('Error actualizando usuario:', error)
         const errorMessage = error instanceof Error ? error.message : 'Error al actualizar usuario'
         return { success: false, error: errorMessage }
     }
@@ -402,172 +343,87 @@ export async function updateUserFull(formData: FormData): Promise<ActionResponse
 
 export async function deleteUser(userId: string): Promise<ActionResponse<void>> {
     try {
-        console.log('deleteUser started for ID:', userId)
-        if (!await isAdmin()) {
-            console.error('User is not admin')
-            return { success: false, error: 'No autorizado' }
-        }
+        const { ctx, error: authError } = await requireAdmin()
+        if (authError || !ctx) return { success: false, error: authError ?? 'Sin permisos' }
 
-        const supabaseAdmin = getSupabaseAdmin()
-        if (!supabaseAdmin) {
-            console.error('Supabase admin client not initialized')
-            return { success: false, error: 'Error interno: cliente Supabase no inicializado' }
-        }
+        const admin = createAdminClient()
 
-        // 1. Obtener info de avatar ANTES de eliminar cualquier cosa
-        let avatarUrl: string | null = null
-        try {
-            const { data: profile, error: profileFetchError } = await supabaseAdmin
-                .from('profiles')
-                .select('avatar_url')
-                .eq('id', userId)
-                .single()
+        // 1. Avatar fuera de storage (no crítico si falla)
+        const { data: profile } = await admin
+            .from('profiles')
+            .select('avatar_url, email, nombre, apellidos')
+            .eq('id', userId)
+            .maybeSingle()
 
-            if (profileFetchError && profileFetchError.code !== 'PGRST116') {
-                console.warn('Error fetching profile for avatar cleanup (continuing anyway):', profileFetchError.message)
-            } else if (profile?.avatar_url) {
-                avatarUrl = profile.avatar_url
-            }
-        } catch (err) {
-            console.warn('Failed to fetch profile for avatar cleanup (continuing anyway):', err)
-        }
-
-        // 2. Eliminar avatar de storage ANTES de eliminar el usuario/perfil
-        if (avatarUrl) {
-            try {
-                const parts = avatarUrl.split('/')
-                const fileName = parts[parts.length - 1]
-                const { error: storageError } = await supabaseAdmin.storage.from('avatars').remove([fileName])
-
-                if (storageError) {
-                    console.warn('Failed to delete avatar from storage (non-critical):', storageError.message)
-                } else {
-                    console.log('Avatar deleted successfully for user:', userId)
-                }
-            } catch (err) {
-                console.warn('Exception deleting avatar (non-critical):', err)
+        if (profile?.avatar_url) {
+            const fileName = profile.avatar_url.split('/').pop()
+            if (fileName) {
+                const { error: storageError } = await admin.storage.from('avatars').remove([fileName])
+                if (storageError) console.error('No se pudo borrar el avatar:', storageError.message)
             }
         }
 
-        // 3. Eliminar usuario de Auth PRIMERO (el perfil se eliminará automáticamente por CASCADE)
-        console.log('Deleting auth user first for:', userId)
-        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+        // 2. Usuario de Auth (profiles cae por CASCADE)
+        const { error: authDeleteError } = await admin.auth.admin.deleteUser(userId)
 
-        if (authError) {
-            console.error('Supabase auth.admin.deleteUser error:', authError)
-
-            // Si el error indica que el usuario no existe, verificar si el perfil también se eliminó
-            if (authError.message?.includes('not found') || authError.message?.includes('does not exist')) {
-                const { data: remainingProfile } = await supabaseAdmin
-                    .from('profiles')
-                    .select('id')
-                    .eq('id', userId)
-                    .single()
-
-                if (!remainingProfile) {
-                    console.log('User and profile already deleted')
-                    revalidatePath('/dashboard/admin/users')
-                    revalidatePath('/dashboard/hermanos')
-                    return { success: true }
-                }
-            }
-
-            // Si hay un error de base de datos, puede ser por claves foráneas
-            // Intentar eliminar el perfil manualmente primero y luego Auth
-            if (authError.message?.includes('Database error')) {
-                console.log('Database error detected, trying to delete profile first, then auth')
-
-                const { error: profileDeleteError } = await supabaseAdmin
-                    .from('profiles')
-                    .delete()
-                    .eq('id', userId)
-
-                if (profileDeleteError && profileDeleteError.code !== 'PGRST116') {
-                    console.error('Error deleting profile:', profileDeleteError)
-                } else {
-                    console.log('Profile deleted manually, retrying auth delete')
-                }
-
-                // Reintentar eliminar de Auth después de eliminar el perfil
-                const { error: retryAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
-
-                if (retryAuthError) {
-                    // Verificar si el perfil se eliminó al menos
-                    const { data: remainingProfile } = await supabaseAdmin
-                        .from('profiles')
-                        .select('id')
-                        .eq('id', userId)
-                        .single()
-
-                    if (!remainingProfile) {
-                        console.warn('Profile deleted but auth user deletion failed:', retryAuthError.message)
-                        // Considerar éxito parcial - el perfil se eliminó
-                        revalidatePath('/dashboard/admin/users')
-                        revalidatePath('/dashboard/hermanos')
-                        return { success: true, error: `Perfil eliminado pero error al eliminar de Auth: ${retryAuthError.message}` }
-                    }
-
-                    throw new Error(`Error al eliminar usuario de Auth: ${retryAuthError.message}`)
-                } else {
-                    console.log('Auth user deleted successfully on retry')
-                }
-            } else {
-                // Otro tipo de error
-                throw new Error(`Error al eliminar usuario de Auth: ${authError.message}`)
+        if (authDeleteError) {
+            // Si Auth falla por FKs, borrar perfil primero y reintentar
+            await admin.from('profiles').delete().eq('id', userId)
+            const { error: retryError } = await admin.auth.admin.deleteUser(userId)
+            if (retryError && !retryError.message?.includes('not found')) {
+                throw new Error(`Error al eliminar usuario de Auth: ${retryError.message}`)
             }
         }
 
-        // 4. Verificar que el perfil se eliminó automáticamente (debería por CASCADE)
-        console.log('Verifying profile was deleted by CASCADE')
-        const { data: remainingProfile } = await supabaseAdmin
+        // 3. Verificar que el perfil no quedó huérfano
+        const { data: remaining } = await admin
             .from('profiles')
             .select('id')
             .eq('id', userId)
-            .single()
-
-        if (remainingProfile) {
-            // Si el perfil aún existe, eliminarlo manualmente
-            console.log('Profile still exists, deleting manually')
-            const { error: profileDeleteError } = await supabaseAdmin
-                .from('profiles')
-                .delete()
-                .eq('id', userId)
-
-            if (profileDeleteError && profileDeleteError.code !== 'PGRST116') {
-                console.error('Error deleting remaining profile:', profileDeleteError)
-                throw new Error(`Usuario eliminado de Auth pero error al eliminar perfil: ${profileDeleteError.message}`)
-            }
+            .maybeSingle()
+        if (remaining) {
+            await admin.from('profiles').delete().eq('id', userId)
         }
 
-        console.log('User deleted successfully from both Auth and Profiles:', userId)
+        await logMovimiento(
+            ctx.supabase,
+            ctx.userId,
+            'admin_usuarios',
+            `Usuario ${profile?.email ?? userId} eliminado`,
+        )
+
         revalidatePath('/dashboard/admin/users')
         revalidatePath('/dashboard/hermanos')
         return { success: true }
     } catch (error: unknown) {
-        console.error('Error in deleteUser action:', error)
+        console.error('Error eliminando usuario:', error)
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido al eliminar usuario'
         return { success: false, error: errorMessage }
     }
 }
 
 export async function getUserCounts(): Promise<ActionResponse<{ total: number, pulpito: number, admins: number }>> {
-    try {
-        if (!await isAdmin()) return { success: false, error: 'No autorizado' }
+    const { error } = await requireAdmin()
+    if (error) return { success: false, error }
 
-        const { count: total } = await getSupabaseAdmin().from('profiles').select('*', { count: 'exact', head: true })
-        const { count: pulpito } = await getSupabaseAdmin().from('profiles').select('*', { count: 'exact', head: true }).eq('pulpito', true)
-        const { count: admins } = await getSupabaseAdmin().from('profiles').select('*', { count: 'exact', head: true }).eq('rol', 'ADMIN')
+    try {
+        const admin = createAdminClient()
+        const [total, pulpito, admins] = await Promise.all([
+            admin.from('profiles').select('*', { count: 'exact', head: true }),
+            admin.from('profiles').select('*', { count: 'exact', head: true }).eq('pulpito', true),
+            admin.from('profiles').select('*', { count: 'exact', head: true }).eq('rol', 'ADMIN'),
+        ])
 
         return {
             success: true,
             data: {
-                total: total || 0,
-                pulpito: pulpito || 0,
-                admins: admins || 0
-            }
+                total: total.count || 0,
+                pulpito: pulpito.count || 0,
+                admins: admins.count || 0,
+            },
         }
     } catch (error) {
-        console.error('Error getting counts:', error)
+        console.error('Error obteniendo conteos:', error)
         return { success: false, error: 'Error al obtener conteos' }
     }
 }

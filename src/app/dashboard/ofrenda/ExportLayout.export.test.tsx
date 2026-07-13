@@ -11,6 +11,7 @@ import {
     EXPORT_HEADER_TEXT_TEST_ID,
 } from './exportHeaderLayout'
 import { EXPORT_WEEK_LAYOUT_WIDTH_PX } from './exportLayoutMetrics'
+import { defaultSectionsForScope } from './exportSections'
 import type { PlanCompleto, OfrMiembro, OfrServicio } from './actions'
 import type { OfrendaExportLabels } from './ofrendaLocale'
 
@@ -30,6 +31,9 @@ const labels: OfrendaExportLabels = {
     primeraVez: 'Colaborador 1a vez',
     segundaTerceraVez: 'Colaborador 2a y 3a vez',
     imposicionManos: 'Imposicion de manos',
+    testimonio1: 'Testimonios 1',
+    testimonio2: 'Testimonios 2',
+    testimonios: 'Testimonios',
     jueves: 'Jueves',
     domingo: 'Domingo',
     manana: 'Manana',
@@ -204,7 +208,7 @@ describe('ExportLayout export branding', () => {
         expect(screen.getByTestId(EXPORT_HEADER_CLUSTER_TEST_ID)).toBeInTheDocument()
     })
 
-    it('solo colaboradores: sin G1, secuencia ni meta de sacos en pie', () => {
+    it('solo colaboradores (defaults G2): colaboradores + testimonios, sin G1 ni sacos', () => {
         const week = servicios.slice(0, 3)
         render(
             <ExportLayout
@@ -214,17 +218,19 @@ describe('ExportLayout export branding', () => {
                 anio={2026}
                 labels={labels}
                 servicios={week}
-                peopleScope="g2"
+                sections={defaultSectionsForScope('g2')}
             />,
         )
         expect(screen.getByText('Col. 1')).toBeInTheDocument()
+        expect(screen.getByText('Testimonios 1')).toBeInTheDocument()
+        expect(screen.getByText('Testimonios 2')).toBeInTheDocument()
         expect(screen.queryByText(labels.realiza)).not.toBeInTheDocument()
         expect(screen.queryByText(labels.secuencia)).not.toBeInTheDocument()
         expect(screen.queryByText(/sacos\/semana/i)).not.toBeInTheDocument()
         expect(screen.queryByText(/01 al 04/)).not.toBeInTheDocument()
     })
 
-    it('completo: incluye G1 y secuencia', () => {
+    it('completo (defaults G1+G2): incluye G1, secuencia, extras y testimonios', () => {
         render(
             <ExportLayout
                 plan={plan}
@@ -232,11 +238,55 @@ describe('ExportLayout export branding', () => {
                 mesTitulo="Mayo"
                 anio={2026}
                 labels={labels}
-                peopleScope="all"
             />,
         )
         expect(screen.getByText(labels.realiza)).toBeInTheDocument()
         expect(screen.getByText(labels.secuencia)).toBeInTheDocument()
+        expect(screen.getByText(labels.primeraVez)).toBeInTheDocument()
+        expect(screen.getByText(labels.imposicionManos)).toBeInTheDocument()
+        expect(screen.getByText('Testimonios 1')).toBeInTheDocument()
+        expect(screen.getByText('Testimonios 2')).toBeInTheDocument()
+    })
+
+    it('secciones personalizadas: solo pinta lo seleccionado', () => {
+        render(
+            <ExportLayout
+                plan={plan}
+                miembros={miembros}
+                mesTitulo="Mayo"
+                anio={2026}
+                labels={labels}
+                sections={['realiza', 'colaboradores']}
+            />,
+        )
+        expect(screen.getByText(labels.realiza)).toBeInTheDocument()
+        expect(screen.getByText('Col. 1')).toBeInTheDocument()
+        expect(screen.queryByText(labels.apoyo)).not.toBeInTheDocument()
+        expect(screen.queryByText(labels.secuencia)).not.toBeInTheDocument()
+        expect(screen.queryByText('Testimonios 1')).not.toBeInTheDocument()
+        // Sin sacos seleccionados el pie no muestra los totales
+        expect(screen.queryByText('meta sacos')).not.toBeInTheDocument()
+    })
+
+    it('muestra el nombre asignado en la fila de testimonios', () => {
+        const planConTestimonio: PlanCompleto = {
+            ...plan,
+            asignaciones: [
+                ...plan.asignaciones,
+                { id: 'a4', servicio_id: 's1', rol: 'testimonio_1', miembro_id: 'u3', es_override: false },
+            ],
+        }
+        render(
+            <ExportLayout
+                plan={planConTestimonio}
+                miembros={miembros}
+                mesTitulo="Mayo"
+                anio={2026}
+                labels={labels}
+                sections={['testimonios']}
+            />,
+        )
+        expect(screen.getByText('Noelia Roca')).toBeInTheDocument()
     })
 
     it('modo semanal: misma tabla que el mensual en formato vertical compacto', () => {

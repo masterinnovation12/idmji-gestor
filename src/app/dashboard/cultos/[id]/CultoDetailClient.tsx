@@ -47,8 +47,11 @@ import { BinarySegmentedControl } from '@/components/ui/BinarySegmentedControl'
 interface CultoDetailClientProps {
     culto: Culto
     userId: string
-    /** Si es true (rol SONIDO), puede ver asignaciones pero no editarlas. Sí puede añadir lecturas e himnos/coros. */
+    /** Si es true (rol SONIDO o sin permiso `cultos.asignarHermanos`), puede ver asignaciones pero no editarlas. */
     readOnlyAssignments?: boolean
+    /** Si es true (sin permiso `cultos.editarDetalle`), bloquea la edición del detalle del día
+     *  (observaciones, protocolo, festivo, tema, modo enseñanza). Por defecto sigue a readOnlyAssignments. */
+    readOnlyDetail?: boolean
 }
 
 /**
@@ -353,7 +356,10 @@ function AssignmentSection({
     )
 }
 
-export default function CultoDetailClient({ culto, readOnlyAssignments = false }: CultoDetailClientProps) {
+export default function CultoDetailClient({ culto, readOnlyAssignments = false, readOnlyDetail }: CultoDetailClientProps) {
+    // Permiso granular de edición del detalle del día. Si no llega la prop,
+    // se comporta como antes (SONIDO bloquea también el detalle).
+    const detailReadOnly = readOnlyDetail ?? readOnlyAssignments
     const router = useRouter()
     const { t, language } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
@@ -744,8 +750,8 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                             {t('culto.detail.meta.workdayStatus' as TranslationKey)}
                                         </p>
                                         <button
-                                            onClick={readOnlyAssignments ? undefined : handleToggleFestivo}
-                                            disabled={isUpdating || readOnlyAssignments}
+                                            onClick={detailReadOnly ? undefined : handleToggleFestivo}
+                                            disabled={isUpdating || detailReadOnly}
                                             className={`flex items-center gap-3 px-4 md:px-8 py-2.5 md:py-4 rounded-2xl md:rounded-3xl border transition-all font-black group relative overflow-hidden h-full ${draftFestivo
                                                 ? 'bg-amber-500 text-white border-amber-600 shadow-xl shadow-amber-500/30 scale-105'
                                                 : 'bg-white/10 backdrop-blur-md text-white/80 border-[rgba(227,204,146,0.35)] hover:border-amber-400/70 hover:bg-white/15'
@@ -822,12 +828,12 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                             <textarea
                                 placeholder={t('culto.obs.generalPlaceholder')}
                                 value={draftObservaciones}
-                                readOnly={readOnlyAssignments}
-                                onChange={readOnlyAssignments ? undefined : (e) => {
+                                readOnly={detailReadOnly}
+                                onChange={detailReadOnly ? undefined : (e) => {
                                     setDraftObservaciones(e.target.value)
                                     setIsDirty(true)
                                 }}
-                                className={`w-full px-4 py-3 bg-white/70 text-slate-800 border border-[rgba(184,150,74,0.32)] rounded-2xl text-sm outline-none focus:ring-2 focus:ring-amber-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                className={`w-full px-4 py-3 bg-white/70 text-slate-800 border border-[rgba(184,150,74,0.32)] rounded-2xl text-sm outline-none focus:ring-2 focus:ring-amber-500/50 resize-none placeholder:text-slate-400 ${detailReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
                                 rows={2}
                             />
                         </div>
@@ -844,12 +850,12 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 <textarea
                                     placeholder={t('culto.obs.introPlaceholder')}
                                     value={draftObsIntro}
-                                    readOnly={readOnlyAssignments}
-                                    onChange={readOnlyAssignments ? undefined : (e) => {
+                                    readOnly={detailReadOnly}
+                                    onChange={detailReadOnly ? undefined : (e) => {
                                         setDraftObsIntro(e.target.value)
                                         setIsDirty(true)
                                     }}
-                                    className={`w-full px-4 py-3 bg-blue-50/60 text-slate-800 border border-blue-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                    className={`w-full px-4 py-3 bg-blue-50/60 text-slate-800 border border-blue-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500/50 resize-none placeholder:text-slate-400 ${detailReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
                                     rows={3}
                                 />
                             </div>
@@ -867,12 +873,12 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 <textarea
                                     placeholder={t('culto.obs.finalPlaceholder')}
                                     value={draftObsFinal}
-                                    readOnly={readOnlyAssignments}
-                                    onChange={readOnlyAssignments ? undefined : (e) => {
+                                    readOnly={detailReadOnly}
+                                    onChange={detailReadOnly ? undefined : (e) => {
                                         setDraftObsFinal(e.target.value)
                                         setIsDirty(true)
                                     }}
-                                    className={`w-full px-4 py-3 bg-orange-50/60 text-slate-800 border border-orange-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-orange-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                    className={`w-full px-4 py-3 bg-orange-50/60 text-slate-800 border border-orange-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-orange-500/50 resize-none placeholder:text-slate-400 ${detailReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
                                     rows={3}
                                 />
                             </div>
@@ -890,12 +896,12 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 <textarea
                                     placeholder={t('culto.obs.ensenanzaPlaceholder')}
                                     value={draftObsEnsenanza}
-                                    readOnly={readOnlyAssignments}
-                                    onChange={readOnlyAssignments ? undefined : (e) => {
+                                    readOnly={detailReadOnly}
+                                    onChange={detailReadOnly ? undefined : (e) => {
                                         setDraftObsEnsenanza(e.target.value)
                                         setIsDirty(true)
                                     }}
-                                    className={`w-full px-4 py-3 bg-purple-50/60 text-slate-800 border border-purple-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-purple-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                    className={`w-full px-4 py-3 bg-purple-50/60 text-slate-800 border border-purple-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-purple-500/50 resize-none placeholder:text-slate-400 ${detailReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
                                     rows={3}
                                 />
                             </div>
@@ -913,12 +919,12 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 <textarea
                                     placeholder={t('culto.obs.testimoniosPlaceholder')}
                                     value={draftObsTestimonios}
-                                    readOnly={readOnlyAssignments}
-                                    onChange={readOnlyAssignments ? undefined : (e) => {
+                                    readOnly={detailReadOnly}
+                                    onChange={detailReadOnly ? undefined : (e) => {
                                         setDraftObsTestimonios(e.target.value)
                                         setIsDirty(true)
                                     }}
-                                    className={`w-full px-4 py-3 bg-emerald-50/60 text-slate-800 border border-emerald-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none placeholder:text-slate-400 ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : ''}`}
+                                    className={`w-full px-4 py-3 bg-emerald-50/60 text-slate-800 border border-emerald-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none placeholder:text-slate-400 ${detailReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
                                     rows={3}
                                 />
                             </div>
@@ -956,15 +962,15 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     data-testid="tema-introduccion-trigger"
                                     type="button"
                                     onClick={() => {
-                                        if (readOnlyAssignments) return
+                                        if (detailReadOnly) return
                                         if (temaTriggerRef.current) setTemaTriggerRect(temaTriggerRef.current.getBoundingClientRect())
                                         setTemaDropdownOpen((o) => !o)
                                     }}
-                                    disabled={readOnlyAssignments}
+                                    disabled={detailReadOnly}
                                     className={`flex w-full min-h-[44px] items-center justify-between gap-3 px-4 py-3 rounded-2xl border-2 transition-all touch-manipulation text-left ${draftTema
                                         ? 'bg-blue-500/10 border-blue-500/20 text-blue-700'
                                         : 'bg-white/70 border-[rgba(184,150,74,0.32)] text-slate-600'
-                                        } ${readOnlyAssignments ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-blue-300'}`}
+                                        } ${detailReadOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-blue-300'}`}
                                 >
                                     <span className="text-sm font-bold truncate">
                                         {draftTema
@@ -974,7 +980,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                     <ChevronDown className={`w-5 h-5 shrink-0 transition-transform ${temaDropdownOpen ? 'rotate-180' : ''}`} />
                                 </button>
 
-                                {temaDropdownOpen && !readOnlyAssignments && temaTriggerRect && createPortal(
+                                {temaDropdownOpen && !detailReadOnly && temaTriggerRect && createPortal(
                                     <>
                                         <div className="fixed inset-0 z-[9998]" onClick={() => setTemaDropdownOpen(false)} />
                                         {(() => {
@@ -1102,7 +1108,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-2xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-1.5">
                                 <button
                                     type="button"
-                                    disabled={readOnlyAssignments}
+                                    disabled={detailReadOnly}
                                     onClick={() => {
                                         setDraftEnsenanzaModo('hermano')
                                         setIsDirty(true)
@@ -1115,7 +1121,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                 </button>
                                 <button
                                     type="button"
-                                    disabled={readOnlyAssignments}
+                                    disabled={detailReadOnly}
                                     onClick={() => {
                                         setDraftEnsenanzaModo('video_hna_maria_luisa')
                                         setDraftAssignments((prev) => ({ ...prev, ensenanza: null }))
@@ -1134,7 +1140,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                                         type="text"
                                         placeholder={t('culto.detail.videoTitlePlaceholder')}
                                         value={draftEnsenanzaVideoTitulo}
-                                        readOnly={readOnlyAssignments}
+                                        readOnly={detailReadOnly}
                                         onChange={(e) => {
                                             setDraftEnsenanzaVideoTitulo(e.target.value)
                                             setIsDirty(true)
@@ -1149,7 +1155,7 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
             )}
 
             {/* Configuración del culto: protocolo + inicio anticipado (Estudio Bíblico) */}
-            {!readOnlyAssignments && (tipoCulto.toLowerCase().includes('estudio') || tipoCulto.toLowerCase().includes('biblico')) && (
+            {!detailReadOnly && (tipoCulto.toLowerCase().includes('estudio') || tipoCulto.toLowerCase().includes('biblico')) && (
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1623,14 +1629,17 @@ export default function CultoDetailClient({ culto, readOnlyAssignments = false }
                 </div>
             </div>
 
-            <SaveChangesBar
-                isDirty={isDirty}
-                isSaving={isUpdating}
-                pendingCount={pendingCount}
-                onSave={handleSaveDraft}
-                onDiscard={handleDiscardDraft}
-                labels={saveChangesLabels}
-            />
+            {/* Guardar exige el permiso `cultos.editarDetalle` (el server action lo refuerza) */}
+            {!detailReadOnly && (
+                <SaveChangesBar
+                    isDirty={isDirty}
+                    isSaving={isUpdating}
+                    pendingCount={pendingCount}
+                    onSave={handleSaveDraft}
+                    onDiscard={handleDiscardDraft}
+                    labels={saveChangesLabels}
+                />
+            )}
 
             <InstruccionesCultoModal
                 isOpen={!!instruccionesModalRol}

@@ -40,7 +40,8 @@ export type RolGrupo1 =
     | 'segunda_tercera_vez'
     | 'imposicion_manos'
 export type RolGrupo2 = 'colaborador_1' | 'colaborador_2' | 'colaborador_3'
-export type Rol = RolGrupo1 | RolGrupo2
+export type RolTestimonio = 'testimonio_1' | 'testimonio_2'
+export type Rol = RolGrupo1 | RolGrupo2 | RolTestimonio
 
 export const ROLES_GRUPO1: RolGrupo1[] = [
     'realiza',
@@ -51,6 +52,9 @@ export const ROLES_GRUPO1: RolGrupo1[] = [
     'imposicion_manos',
 ]
 export const ROLES_GRUPO2: RolGrupo2[] = ['colaborador_1', 'colaborador_2', 'colaborador_3']
+
+/** Testimonios: labor compartida — la pueden hacer personas de Grupo 1 y Grupo 2. */
+export const ROLES_TESTIMONIOS: RolTestimonio[] = ['testimonio_1', 'testimonio_2']
 
 /** Colaboradores G2 por turno (regla fija Labores generales). */
 export const COLABORADORES_G2_POR_TURNO: Readonly<Record<DiaTipo, number>> = {
@@ -112,7 +116,8 @@ export const ROLES_GRUPO1_FIJABLES: RolGrupo1[] = ['realiza', 'apoyo']
 export interface OfrendaMiembro {
     id: string
     nombre: string
-    grupo: 1 | 2
+    /** 1 = realiza la labor · 2 = colaboradores · 3 = solo testimonios. */
+    grupo: 1 | 2 | 3
     orden: number
     activo: boolean
     puede_jueves: boolean
@@ -374,6 +379,52 @@ function asignarGrupo2(
     return { punteroG2: ptr, asignadosHoy: new Set(g2Hoy) }
 }
 
+function asignarTestimonios(
+    fecha: string,
+    tipo: DiaTipo,
+    pool: OfrendaMiembro[],
+    getOverride: (rol: RolTestimonio) => string | undefined,
+    punteroTestimonios: number,
+    prevInmediato: Set<string>,
+    ocupadosHoy: Set<string>,
+    out: AsignacionCalculada[]
+): { punteroTestimonios: number; asignadosHoy: Set<string> } {
+    const hoy: string[] = []
+    let ptr = punteroTestimonios
+
+    // Capas de relajación: 1) ni inmediato ni ocupado hoy · 2) permite inmediato · 3) solo no duplicar hoy
+    const capaValida = (m: OfrendaMiembro, capa: 1 | 2 | 3): boolean => {
+        if (hoy.includes(m.id)) return false
+        if (capa >= 3) return true
+        if (ocupadosHoy.has(m.id)) return false
+        if (capa >= 2) return true
+        return !prevInmediato.has(m.id)
+    }
+
+    for (const rol of ROLES_TESTIMONIOS) {
+        const overrideId = getOverride(rol)
+        if (overrideId) {
+            out.push({ servicioFecha: fecha, servicioTipo: tipo, rol, miembroId: overrideId })
+            hoy.push(overrideId)
+            continue
+        }
+
+        let elegido: { item: OfrendaMiembro; nextIdx: number } | null = null
+        for (const capa of [1, 2, 3] as const) {
+            elegido = findNextCyclical(pool, ptr, (m) => capaValida(m, capa))
+            if (elegido) break
+        }
+
+        if (elegido) {
+            ptr = elegido.nextIdx
+            hoy.push(elegido.item.id)
+            out.push({ servicioFecha: fecha, servicioTipo: tipo, rol, miembroId: elegido.item.id })
+        }
+    }
+
+    return { punteroTestimonios: ptr, asignadosHoy: new Set(hoy) }
+}
+
 // ─── Generación completa del plan ─────────────────────────────────────────────
 
 /**
@@ -443,6 +494,8 @@ export function generarPlan(
 
     const g1 = miembros.filter(m => m.grupo === 1 && participa(m)).sort((a, b) => a.orden - b.orden)
     const g2 = miembros.filter(m => m.grupo === 2 && participa(m)).sort((a, b) => a.orden - b.orden)
+    // Grupo 3: solo testimonios (no entra en roles de G1 ni en colaboradores de G2).
+    const g3 = miembros.filter(m => m.grupo === 3 && participa(m)).sort((a, b) => a.orden - b.orden)
 
     // Puestos fijos (coordinador/apoyo siempre la misma persona ese día_tipo).
     // Clave `${diaTipo}:${rol}` → miembroId. Tienen precedencia sobre los overrides.
@@ -465,6 +518,11 @@ export function generarPlan(
     const prevG2MismoTurno = crearG2AntiRepeticionVacio()
     let prevG2Inmediato: Set<string> = new Set()
 
+    // Testimonios: pool combinado G1 + G2 + G3 (en orden de grupo y orden interno)
+    const poolTestimonios = [...g1, ...g2, ...g3]
+    let punteroTestimonios = 0
+    let prevTestimoniosInmediato: Set<string> = new Set()
+
     for (const srv of servicios) {
         // La clave del override incluye fecha + tipo para distinguir Dom M vs Dom T
         const key = (rol: Rol) => `${srv.fecha}:${srv.diaTipo}:${rol}`
@@ -482,6 +540,7 @@ export function generarPlan(
         }
 
         // ── Grupo 2 ────────────────────────────────────────────────────────
+        let g2Hoy: Set<string> = new Set()
         if (regenerarGrupo !== 1 && g2.length > 0) {
             const g2Turno = miembrosElegiblesParaTurno(g2, srv.diaTipo)
             const result = asignarGrupo2(
@@ -499,6 +558,25 @@ export function generarPlan(
             punteroG2 = result.punteroG2
             prevG2MismoTurno[srv.diaTipo] = result.asignadosHoy
             prevG2Inmediato = result.asignadosHoy
+            g2Hoy = result.asignadosHoy
+        }
+
+        // ── Testimonios (pool G1+G2, siempre se generan) ───────────────────
+        if (poolTestimonios.length > 0) {
+            const poolTurno = miembrosElegiblesParaTurno(poolTestimonios, srv.diaTipo)
+            const ocupadosHoy = new Set([...usadosHoy, ...g2Hoy])
+            const result = asignarTestimonios(
+                srv.fecha,
+                srv.diaTipo,
+                poolTurno,
+                rol => overrides[key(rol)],
+                punteroTestimonios,
+                prevTestimoniosInmediato,
+                ocupadosHoy,
+                asignaciones,
+            )
+            punteroTestimonios = result.punteroTestimonios
+            prevTestimoniosInmediato = result.asignadosHoy
         }
     }
 

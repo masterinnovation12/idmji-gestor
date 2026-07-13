@@ -1,7 +1,9 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireUser, requireAnyPermission } from '@/lib/auth/guards'
+import { resolveActiveSedeId } from '@/lib/sede/activeSede'
+import type { PermissionKey } from '@/lib/auth/permissions'
 import {
     generarPlan,
     generarFechasDelPlan,
@@ -39,7 +41,8 @@ export type { SecuenciaApplyScope } from '@/app/dashboard/ofrenda/secuenciaPropa
 export interface OfrMiembro {
     id: string
     nombre: string
-    grupo: 1 | 2
+    /** 1 = realiza la labor · 2 = colaboradores · 3 = solo testimonios. */
+    grupo: 1 | 2 | 3
     orden: number
     activo: boolean
     puede_jueves: boolean
@@ -61,7 +64,7 @@ function mapRowToOfrMiembro(row: Record<string, unknown>): OfrMiembro {
     return {
         id: row.id as string,
         nombre: row.nombre as string,
-        grupo: row.grupo as 1 | 2,
+        grupo: row.grupo as 1 | 2 | 3,
         orden: row.orden as number,
         activo: row.activo as boolean,
         ...disp,
@@ -114,43 +117,53 @@ export interface PlanCompleto {
     miembros: OfrMiembro[]
 }
 
-// ─── Auth guard ───────────────────────────────────────────────────────────────
+// ─── Auth guards (permisos granulares + sede activa) ─────────────────────────
 
-async function requireEditor() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'No autenticado', supabase: null, userId: null }
+type LaborGuard =
+    | { error: string; supabase: null; userId: null; sedeId: null }
+    | { error: null; supabase: SupabaseClient; userId: string; sedeId: string | null }
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('rol')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile || !['ADMIN', 'EDITOR'].includes(profile.rol)) {
-        return { error: 'Sin permisos', supabase: null, userId: null }
-    }
-    return { error: null, supabase, userId: user.id }
+/** Escritura: exige alguno de los permisos y resuelve la sede efectiva. */
+async function requireLabor(perms: readonly PermissionKey[]): Promise<LaborGuard> {
+    const { ctx, error } = await requireAnyPermission(perms)
+    if (error || !ctx) return { error: error ?? 'Sin permisos', supabase: null, userId: null, sedeId: null }
+    const sedeId = await resolveActiveSedeId(ctx)
+    return { error: null, supabase: ctx.supabase, userId: ctx.userId, sedeId }
 }
+
+/** Lectura: usuario autenticado + sede efectiva (RLS refuerza el aislamiento). */
+async function scopedRead(): Promise<LaborGuard> {
+    const { ctx, error } = await requireUser()
+    if (error || !ctx) return { error: error ?? 'No autenticado', supabase: null, userId: null, sedeId: null }
+    const sedeId = await resolveActiveSedeId(ctx)
+    return { error: null, supabase: ctx.supabase, userId: ctx.userId, sedeId }
+}
+
+const PERMISOS_MIEMBROS = ['hermanos.gestionar', 'laborGeneral.gestionar'] as const
+const PERMISOS_PLAN = ['laborGeneral.gestionar'] as const
 
 // ─── Miembros ─────────────────────────────────────────────────────────────────
 
 export async function getMiembros(): Promise<{ data?: OfrMiembro[]; error?: string }> {
-    const supabase = await createClient()
-    const { data, error } = await supabase
+    const { error: authError, supabase, sedeId } = await scopedRead()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    let query = supabase
         .from('ofrenda_miembros')
         .select('*')
         .order('grupo')
         .order('orden')
+    if (sedeId) query = query.eq('sede_id', sedeId)
 
+    const { data, error } = await query
     if (error) return { error: error.message }
     return { data: (data ?? []).map(row => mapRowToOfrMiembro(row as Record<string, unknown>)) }
 }
 
 export async function upsertMiembro(
-    miembro: Partial<OfrMiembro> & { nombre: string; grupo: 1 | 2 }
+    miembro: Partial<OfrMiembro> & { nombre: string; grupo: 1 | 2 | 3 }
 ): Promise<{ data?: OfrMiembro; error?: string }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase, sedeId } = await requireLabor(PERMISOS_MIEMBROS)
     if (authError || !supabase) return { error: authError ?? 'Error' }
 
     const disp = normalizeMiembroDisponibilidad(miembro)
@@ -165,6 +178,7 @@ export async function upsertMiembro(
             activo: miembro.activo ?? true,
             ...disp,
             profile_id: miembro.profile_id ?? null,
+            ...(sedeId ? { sede_id: sedeId } : {}),
         })
         .select()
         .single()
@@ -175,7 +189,7 @@ export async function upsertMiembro(
 }
 
 export async function deleteMiembro(id: string): Promise<{ error?: string }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase } = await requireLabor(PERMISOS_MIEMBROS)
     if (authError || !supabase) return { error: authError ?? 'Error' }
 
     const { error } = await supabase.from('ofrenda_miembros').delete().eq('id', id)
@@ -187,7 +201,7 @@ export async function deleteMiembro(id: string): Promise<{ error?: string }> {
 export async function reordenarMiembros(
     items: { id: string; orden: number }[]
 ): Promise<{ error?: string }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase } = await requireLabor(PERMISOS_MIEMBROS)
     if (authError || !supabase) return { error: authError ?? 'Error' }
 
     const updates = items.map(({ id, orden }) =>
@@ -204,9 +218,9 @@ export async function reordenarMiembros(
 /** Importar hermanos del sistema como miembros de ofrenda. */
 export async function syncHermanos(
     profileIds: string[],
-    grupo: 1 | 2
+    grupo: 1 | 2 | 3
 ): Promise<{ importados: number; error?: string }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase, sedeId } = await requireLabor(PERMISOS_MIEMBROS)
     if (authError || !supabase) return { importados: 0, error: authError ?? 'Error' }
 
     const { data: profiles, error } = await supabase
@@ -227,6 +241,7 @@ export async function syncHermanos(
             puede_domingo_manana: true,
             puede_domingo_tarde: true,
             profile_id: p.id,
+            ...(sedeId ? { sede_id: sedeId } : {}),
         }, { onConflict: 'profile_id' })
         if (!upsertErr) importados++
     }
@@ -238,15 +253,17 @@ export async function syncHermanos(
 // ─── Plan ─────────────────────────────────────────────────────────────────────
 
 export async function getPlan(anio: number, mes: number): Promise<{ data?: PlanCompleto; error?: string }> {
-    const supabase = await createClient()
+    const { error: authError, supabase, sedeId } = await scopedRead()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
 
     // 1. Plan (incluye columnas de sacos configurables)
-    const { data: plan, error: planErr } = await supabase
+    let planQuery = supabase
         .from('ofrenda_planes')
         .select('*')
         .eq('anio', anio)
         .eq('mes', mes)
-        .maybeSingle()
+    if (sedeId) planQuery = planQuery.eq('sede_id', sedeId)
+    const { data: plan, error: planErr } = await planQuery.maybeSingle()
 
     if (planErr) return { error: planErr.message }
     if (!plan) return {}  // plan no existe todavía
@@ -272,11 +289,13 @@ export async function getPlan(anio: number, mes: number): Promise<{ data?: PlanC
     if (asigErr) return { error: asigErr.message }
 
     // 4. Miembros
-    const { data: miembros } = await supabase
+    let miembrosQuery = supabase
         .from('ofrenda_miembros')
         .select('*')
         .order('grupo')
         .order('orden')
+    if (sedeId) miembrosQuery = miembrosQuery.eq('sede_id', sedeId)
+    const { data: miembros } = await miembrosQuery
 
     return {
         data: {
@@ -292,13 +311,15 @@ export async function getPlan(anio: number, mes: number): Promise<{ data?: PlanC
 
 type SupabaseClient = Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>
 
-async function fetchMiembrosActivos(supabase: SupabaseClient): Promise<OfrendaMiembro[]> {
-    const { data } = await supabase
+async function fetchMiembrosActivos(supabase: SupabaseClient, sedeId: string | null): Promise<OfrendaMiembro[]> {
+    let query = supabase
         .from('ofrenda_miembros')
         .select('*')
         .eq('activo', true)
         .order('grupo')
         .order('orden')
+    if (sedeId) query = query.eq('sede_id', sedeId)
+    const { data } = await query
     return (data ?? []).map(m => {
         const row = m as Record<string, unknown>
         const base = mapRowToOfrMiembro(row)
@@ -316,20 +337,22 @@ export async function setMiembroFijo(
     fijoDiaTipo: DiaTipo | null,
     fijoRol: 'realiza' | 'apoyo' | null,
 ): Promise<{ error?: string }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase, sedeId } = await requireLabor(PERMISOS_PLAN)
     if (authError || !supabase) return { error: authError ?? 'Error' }
 
     // Ambos o ninguno: no se permite un fijo a medias.
     const dia = fijoDiaTipo && fijoRol ? fijoDiaTipo : null
     const rol = fijoDiaTipo && fijoRol ? fijoRol : null
 
-    // Un mismo (día, rol) solo puede tener un titular: liberar al anterior.
+    // Un mismo (día, rol) solo puede tener un titular: liberar al anterior (misma sede).
     if (dia && rol) {
-        await supabase
+        let release = supabase
             .from('ofrenda_miembros')
             .update({ fijo_dia_tipo: null, fijo_rol: null })
             .eq('fijo_dia_tipo', dia)
             .eq('fijo_rol', rol)
+        if (sedeId) release = release.eq('sede_id', sedeId)
+        await release
     }
 
     const { error } = await supabase
@@ -347,18 +370,20 @@ async function resolvePunteroInicio(
     planExistente: { secuencia_puntero?: number } | null,
     punteroManual: number | undefined,
     anio: number,
-    mes: number
+    mes: number,
+    sedeId: string | null
 ): Promise<number> {
     if (punteroManual) return punteroManual
     if (planExistente?.secuencia_puntero) return planExistente.secuencia_puntero
     const mesAnt  = mes === 1 ? 12 : mes - 1
     const anioAnt = mes === 1 ? anio - 1 : anio
-    const { data } = await supabase
+    let query = supabase
         .from('ofrenda_planes')
         .select('secuencia_puntero_fin')
         .eq('anio', anioAnt)
         .eq('mes', mesAnt)
-        .maybeSingle()
+    if (sedeId) query = query.eq('sede_id', sedeId)
+    const { data } = await query.maybeSingle()
     return data?.secuencia_puntero_fin ?? 1
 }
 
@@ -478,10 +503,10 @@ export async function generarORegenerarPlan(
     regenerarGrupo?: 1 | 2 | null,
     sacosOverride?: Partial<SacosConfig>
 ): Promise<{ error?: string; problemas?: import('./ofrendaMemberAvailability').ValidacionGeneracionTurno[] }> {
-    const { error: authError, supabase, userId } = await requireEditor()
+    const { error: authError, supabase, userId, sedeId } = await requireLabor(PERMISOS_PLAN)
     if (authError || !supabase || !userId) return { error: authError ?? 'Error' }
 
-    const miembros = await fetchMiembrosActivos(supabase)
+    const miembros = await fetchMiembrosActivos(supabase, sedeId)
 
     const fechasPlan = generarFechasDelPlan(anio, mes)
     const validacion = validarDisponibilidadParaGenerar(
@@ -496,12 +521,14 @@ export async function generarORegenerarPlan(
         }
     }
 
-    const { data: planExistente } = await supabase
+    let planExistenteQuery = supabase
         .from('ofrenda_planes')
         .select('id, secuencia_puntero, sacos_jueves, sacos_domingo, sacos_domingo_tarde, secuencia_maximo')
-        .eq('anio', anio).eq('mes', mes).maybeSingle()
+        .eq('anio', anio).eq('mes', mes)
+    if (sedeId) planExistenteQuery = planExistenteQuery.eq('sede_id', sedeId)
+    const { data: planExistente } = await planExistenteQuery.maybeSingle()
 
-    const punteroInicio = await resolvePunteroInicio(supabase, planExistente, punteroManual, anio, mes)
+    const punteroInicio = await resolvePunteroInicio(supabase, planExistente, punteroManual, anio, mes, sedeId)
 
     const sacosConfig: SacosConfig = {
         jueves:       sacosOverride?.jueves       ?? planExistente?.sacos_jueves        ?? 4,
@@ -527,7 +554,8 @@ export async function generarORegenerarPlan(
             sacos_domingo_tarde:   sacosConfig.domingoTarde,
             secuencia_maximo:      secuenciaMax,
             created_by: userId,
-        }, { onConflict: 'anio,mes' })
+            ...(sedeId ? { sede_id: sedeId } : {}),
+        }, { onConflict: 'sede_id,anio,mes' })
         .select().single()
 
     if (planErr || !plan) return { error: planErr?.message ?? 'Error al crear plan' }
@@ -547,7 +575,7 @@ export async function updateAsignacion(
     rol: string,
     miembroId: string | null
 ): Promise<{ error?: string }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase } = await requireLabor(PERMISOS_PLAN)
     if (authError || !supabase) return { error: authError ?? 'Error' }
 
     const { error } = await supabase
@@ -577,7 +605,7 @@ export async function updateSecuenciaServicio(
     code?: 'limit' | 'too_few' | 'too_many' | 'bounds'
     updatedCount?: number
 }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase } = await requireLabor(PERMISOS_PLAN)
     if (authError || !supabase) return { error: authError ?? 'Error' }
 
     const { data: servicio, error: srvErr } = await supabase
@@ -725,7 +753,7 @@ export async function updateSacosConfig(
     sacosDomingoTarde: number,
     secuenciaMaximo: number,
 ): Promise<{ error?: string }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase } = await requireLabor(PERMISOS_PLAN)
     if (authError || !supabase) return { error: authError ?? 'Error' }
 
     // Obtener anio/mes del plan para regenerar
@@ -759,14 +787,16 @@ export async function updateSacosConfig(
  * Elimina el plan de un mes (servicios y asignaciones en cascada).
  */
 export async function eliminarPlan(anio: number, mes: number): Promise<{ error?: string }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase, sedeId } = await requireLabor(PERMISOS_PLAN)
     if (authError || !supabase) return { error: authError ?? 'Error' }
 
-    const { error } = await supabase
+    let query = supabase
         .from('ofrenda_planes')
         .delete()
         .eq('anio', anio)
         .eq('mes', mes)
+    if (sedeId) query = query.eq('sede_id', sedeId)
+    const { error } = await query
 
     if (error) return { error: error.message }
     revalidatePath('/dashboard/ofrenda')
@@ -774,12 +804,16 @@ export async function eliminarPlan(anio: number, mes: number): Promise<{ error?:
 }
 
 export async function getPlanesList(): Promise<{ data?: { anio: number; mes: number }[]; error?: string }> {
-    const supabase = await createClient()
-    const { data, error } = await supabase
+    const { error: authError, supabase, sedeId } = await scopedRead()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    let query = supabase
         .from('ofrenda_planes')
         .select('anio, mes')
         .order('anio', { ascending: false })
         .order('mes', { ascending: false })
+    if (sedeId) query = query.eq('sede_id', sedeId)
+    const { data, error } = await query
 
     if (error) return { error: error.message }
     return { data: data as { anio: number; mes: number }[] }

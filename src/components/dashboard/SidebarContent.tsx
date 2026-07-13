@@ -7,6 +7,7 @@ import { Menu, Sun, Moon, ChevronRight, LogOut } from 'lucide-react'
 import NextImage from 'next/image'
 import { LogoBadge } from '@/components/LogoBadge'
 import { LanguageMenu } from '@/components/language/LanguageMenu'
+import { SedeSwitcher } from '@/components/dashboard/SedeSwitcher'
 import type { TranslationKey, Language } from '@/lib/i18n/types'
 
 export interface NavItem {
@@ -124,6 +125,9 @@ export function SidebarContent({
                     </div>
                 )}
 
+                {/* Selector de sede activa (solo ADMIN con varias sedes) */}
+                {!isSidebarCollapsed && <SedeSwitcher t={t} />}
+
                 {/* Collapsed state controls */}
                 {isSidebarCollapsed && (
                     <div className="flex flex-col gap-4 items-center">
@@ -141,6 +145,7 @@ export function SidebarContent({
                             variant="sidebarCollapsed"
                             className="shrink-0"
                         />
+                        <SedeSwitcher t={t} collapsed />
                     </div>
                 )}
             </div>

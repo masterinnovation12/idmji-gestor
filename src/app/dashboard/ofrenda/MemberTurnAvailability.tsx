@@ -7,7 +7,7 @@ export interface MemberTurnAvailabilityProps {
     value: MiembroDisponibilidadTurnos
     onChange: (next: MiembroDisponibilidadTurnos) => void
     disabled?: boolean
-    color: 'emerald' | 'blue'
+    color: 'emerald' | 'blue' | 'violet'
     labels: {
         jueves: string
         domManana: string
@@ -23,14 +23,16 @@ export function TurnAvailabilityDots({
     compact = false,
 }: Readonly<{
     value: MiembroDisponibilidadTurnos
-    color: 'emerald' | 'blue'
+    color: 'emerald' | 'blue' | 'violet'
     testIdPrefix?: string
     compact?: boolean
 }>) {
     const onClass =
         color === 'emerald'
             ? 'bg-emerald-500 ring-emerald-500/30'
-            : 'bg-[#1f2e85] ring-[#1f2e85]/30'
+            : color === 'violet'
+                ? 'bg-violet-600 ring-violet-600/30'
+                : 'bg-[#1f2e85] ring-[#1f2e85]/30'
     const offClass = 'bg-slate-300 ring-transparent'
 
     const dots = [
@@ -73,10 +75,15 @@ export function MemberTurnAvailability({
                   chipOn: 'bg-emerald-600 text-white border-emerald-600',
                   chipOff: 'bg-white border-black/15 text-slate-500 hover:bg-[#f8f3e8]',
               }
-            : {
-                  chipOn: 'bg-[#1f2e85] text-white border-[#1f2e85]',
-                  chipOff: 'bg-white border-black/15 text-slate-500 hover:bg-[#f8f3e8]',
-              }
+            : color === 'violet'
+                ? {
+                      chipOn: 'bg-violet-600 text-white border-violet-600',
+                      chipOff: 'bg-white border-black/15 text-slate-500 hover:bg-[#f8f3e8]',
+                  }
+                : {
+                      chipOn: 'bg-[#1f2e85] text-white border-[#1f2e85]',
+                      chipOff: 'bg-white border-black/15 text-slate-500 hover:bg-[#f8f3e8]',
+                  }
 
     const toggle = (key: keyof MiembroDisponibilidadTurnos) => {
         onChange({ ...value, [key]: !value[key] })
