@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getMovimientos, getMovimientosTipos } from './actions'
+import { getAuditSedes, getMovimientos, getMovimientosTipos } from './actions'
 import AuditClient from './AuditClient'
 
 export const dynamic = 'force-dynamic'
@@ -19,9 +19,10 @@ export default async function AuditPage() {
 
     if (profile?.rol !== 'ADMIN') redirect('/dashboard')
 
-    const [movimientosResult, tiposResult] = await Promise.all([
+    const [movimientosResult, tiposResult, sedesResult] = await Promise.all([
         getMovimientos(1, 20),
-        getMovimientosTipos()
+        getMovimientosTipos(),
+        getAuditSedes()
     ])
 
     return (
@@ -29,6 +30,7 @@ export default async function AuditPage() {
             initialData={movimientosResult.data?.data || []}
             initialTotal={movimientosResult.data?.total || 0}
             initialTipos={tiposResult.data || []}
+            initialSedes={sedesResult.data || []}
         />
     )
 }

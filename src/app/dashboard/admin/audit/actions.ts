@@ -10,6 +10,10 @@ export interface MovimientoData {
     tipo: string
     descripcion: string | null
     culto_id: string | null
+    sede_id: string | null
+    sede?: {
+        nombre: string
+    }
     usuario?: {
         nombre: string
         apellidos: string
@@ -27,8 +31,17 @@ type RawRow = {
     tipo: string
     descripcion: string | null
     culto_id: string | null
+    sede_id: string | null
+    sedes: { nombre: string } | { nombre: string }[] | null
     profiles: { nombre: string; apellidos: string } | { nombre: string; apellidos: string }[] | null
     cultos: { id?: string; fecha: string } | { id?: string; fecha: string }[] | null
+}
+
+function normalizeSede(s: RawRow['sedes']): MovimientoData['sede'] {
+    if (!s) return undefined
+    const obj = Array.isArray(s) ? s[0] : s
+    if (!obj?.nombre) return undefined
+    return { nombre: obj.nombre }
 }
 
 function normalizeProfile(p: RawRow['profiles']): MovimientoData['usuario'] {
@@ -62,7 +75,8 @@ export async function getMovimientos(
     tipo?: string,
     search?: string,
     dateFrom?: string,
-    dateTo?: string
+    dateTo?: string,
+    sedeId?: string
 ): Promise<ActionResponse<{ data: MovimientoData[]; total: number }>> {
     try {
         const supabase = await createClient()
@@ -78,6 +92,8 @@ export async function getMovimientos(
                 tipo,
                 descripcion,
                 culto_id,
+                sede_id,
+                sedes!movimientos_sede_id_fkey(nombre),
                 profiles!movimientos_id_usuario_fkey(nombre, apellidos),
                 cultos!movimientos_culto_id_fkey(id, fecha)
             `,
@@ -85,6 +101,7 @@ export async function getMovimientos(
             )
 
         if (tipo) query = query.eq('tipo', tipo)
+        if (sedeId) query = query.eq('sede_id', sedeId)
         if (dateFrom) query = query.gte('fecha_hora', dateFrom)
         if (dateTo) query = query.lte('fecha_hora', `${dateTo}T23:59:59.999Z`)
 
@@ -111,6 +128,8 @@ export async function getMovimientos(
             tipo: m.tipo,
             descripcion: m.descripcion,
             culto_id: m.culto_id,
+            sede_id: m.sede_id,
+            sede: normalizeSede(m.sedes),
             usuario: normalizeProfile(m.profiles),
             culto: normalizeCulto(m.cultos)
         }))
@@ -133,15 +152,33 @@ export async function getMovimientosForExport(
     tipo?: string,
     search?: string,
     dateFrom?: string,
-    dateTo?: string
+    dateTo?: string,
+    sedeId?: string
 ): Promise<ActionResponse<MovimientoData[]>> {
     try {
-        const result = await getMovimientos(1, 5000, tipo, search, dateFrom, dateTo)
+        const result = await getMovimientos(1, 5000, tipo, search, dateFrom, dateTo, sedeId)
         if (!result.success || !result.data) return { success: false, error: result.error || 'Error' }
         return { success: true, data: result.data.data }
     } catch (error) {
         console.error('Error exporting movimientos:', error)
         return { success: false, error: 'Error al exportar' }
+    }
+}
+
+/** Sedes para el filtro de auditoría. */
+export async function getAuditSedes(): Promise<ActionResponse<{ id: string; nombre: string }[]>> {
+    try {
+        const supabase = await createClient()
+        const { data, error } = await supabase
+            .from('sedes')
+            .select('id, nombre')
+            .order('es_principal', { ascending: false })
+            .order('nombre')
+        if (error) throw error
+        return { success: true, data: data || [] }
+    } catch (error) {
+        console.error('Error fetching sedes:', error)
+        return { success: false, error: 'Error al cargar sedes' }
     }
 }
 

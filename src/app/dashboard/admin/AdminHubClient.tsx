@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ShieldCheck, UserCog, Building2, BarChart, FileText, ChevronRight, KeyRound, Music } from 'lucide-react'
+import { ShieldCheck, UserCog, Building2, BarChart, FileText, ChevronRight, KeyRound, Music, LayoutDashboard, CalendarClock, MapPin, UsersRound, GitCompareArrows } from 'lucide-react'
 import PageHero from '@/components/PageHero'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import type { TranslationKey } from '@/lib/i18n/types'
@@ -17,6 +17,13 @@ interface AdminModule {
 
 const MODULES: AdminModule[] = [
     {
+        href: '/dashboard/admin/control',
+        icon: LayoutDashboard,
+        titleKey: 'admin.hub.controlTitulo',
+        descKey: 'admin.hub.controlDesc',
+        testId: 'admin-mod-control',
+    },
+    {
         href: '/dashboard/admin/users',
         icon: UserCog,
         titleKey: 'admin.hub.usuariosTitulo',
@@ -29,6 +36,34 @@ const MODULES: AdminModule[] = [
         titleKey: 'admin.hub.sedesTitulo',
         descKey: 'admin.hub.sedesDesc',
         testId: 'admin-mod-sedes',
+    },
+    {
+        href: '/dashboard/admin/horarios',
+        icon: CalendarClock,
+        titleKey: 'admin.hub.horariosTitulo',
+        descKey: 'admin.hub.horariosDesc',
+        testId: 'admin-mod-horarios',
+    },
+    {
+        href: '/dashboard/admin/comparador',
+        icon: GitCompareArrows,
+        titleKey: 'admin.hub.comparadorTitulo',
+        descKey: 'admin.hub.comparadorDesc',
+        testId: 'admin-mod-comparador',
+    },
+    {
+        href: '/dashboard/admin/mapa',
+        icon: MapPin,
+        titleKey: 'admin.hub.mapaTitulo',
+        descKey: 'admin.hub.mapaDesc',
+        testId: 'admin-mod-mapa',
+    },
+    {
+        href: '/dashboard/admin/personas',
+        icon: UsersRound,
+        titleKey: 'admin.hub.personasTitulo',
+        descKey: 'admin.hub.personasDesc',
+        testId: 'admin-mod-personas',
     },
     {
         href: '/dashboard/admin/himnario',

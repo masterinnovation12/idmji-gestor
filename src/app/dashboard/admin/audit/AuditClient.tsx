@@ -21,7 +21,8 @@ import {
     Download,
     RefreshCcw,
     Filter,
-    ExternalLink
+    ExternalLink,
+    Building2
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
@@ -43,7 +44,12 @@ const TIPO_TO_KEY: Record<string, string> = {
     lectura: 'audit.type.reading',
     himno: 'audit.type.hymn',
     coro: 'audit.type.chorus',
-    culto: 'audit.type.culto'
+    culto: 'audit.type.culto',
+    admin_usuarios: 'audit.type.admin_usuarios',
+    admin_sedes: 'audit.type.admin_sedes',
+    admin_himnario: 'audit.type.admin_himnario',
+    admin_horarios: 'audit.type.admin_horarios',
+    admin_personas: 'audit.type.admin_personas'
 }
 
 // Colores de identidad por tipo, siempre claros: se pintan dentro de cards
@@ -63,15 +69,17 @@ interface AuditClientProps {
     initialData: MovimientoData[]
     initialTotal: number
     initialTipos: string[]
+    initialSedes: { id: string; nombre: string }[]
 }
 
-export default function AuditClient({ initialData, initialTotal, initialTipos }: AuditClientProps) {
+export default function AuditClient({ initialData, initialTotal, initialTipos, initialSedes }: AuditClientProps) {
     const { t, language } = useI18n()
     const [movimientos, setMovimientos] = useState<MovimientoData[]>(initialData)
     const [total, setTotal] = useState(initialTotal)
     const [tipos] = useState<string[]>(initialTipos)
     const [page, setPage] = useState(1)
     const [tipoFilter, setTipoFilter] = useState<string>('')
+    const [sedeFilter, setSedeFilter] = useState<string>('')
     const [searchQuery, setSearchQuery] = useState('')
     const [dateFrom, setDateFrom] = useState('')
     const [dateTo, setDateTo] = useState('')
@@ -93,7 +101,8 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                 tipoFilter || undefined,
                 debouncedSearch || undefined,
                 dateFrom || undefined,
-                dateTo || undefined
+                dateTo || undefined,
+                sedeFilter || undefined
             )
             if (result.success && result.data) {
                 setMovimientos(result.data.data)
@@ -103,7 +112,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
             }
             setIsLoading(false)
         },
-        [page, limit, tipoFilter, debouncedSearch, dateFrom, dateTo, t]
+        [page, limit, tipoFilter, debouncedSearch, dateFrom, dateTo, sedeFilter, t]
     )
 
     useEffect(() => {
@@ -112,6 +121,11 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
 
     const handleFilterChange = useCallback((newTipo: string) => {
         setTipoFilter(newTipo)
+        setPage(1)
+    }, [])
+
+    const handleSedeChange = useCallback((newSede: string) => {
+        setSedeFilter(newSede)
         setPage(1)
     }, [])
 
@@ -142,7 +156,8 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                         tipoFilter || undefined,
                         debouncedSearch || undefined,
                         dateFrom || undefined,
-                        dateTo || undefined
+                        dateTo || undefined,
+                        sedeFilter || undefined
                     )
                     if (!result.success || !result.data) {
                         toast.error(result.error || t('audit.errorLoad'))
@@ -155,6 +170,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                 const headers = [
                     t('audit.tableDate'),
                     t('audit.tableUser'),
+                    t('audit.tableSede'),
                     t('audit.tableType'),
                     t('audit.tableDescription'),
                     t('audit.tableCulto')
@@ -162,6 +178,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                 const dataRows = rows.map((m) => [
                     format(new Date(m.fecha_hora), 'dd/MM/yyyy HH:mm'),
                     m.usuario ? `${m.usuario.nombre} ${m.usuario.apellidos}` : t('audit.system'),
+                    m.sede?.nombre || '',
                     getTipoLabel(m.tipo),
                     m.descripcion || '',
                     m.culto ? format(new Date(m.culto.fecha), 'dd/MM/yyyy') : ''
@@ -169,7 +186,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                 const worksheet = XLSX.utils.aoa_to_sheet([headers, ...dataRows])
                 const workbook = XLSX.utils.book_new()
                 XLSX.utils.book_append_sheet(workbook, worksheet, 'Auditoría')
-                worksheet['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 18 }, { wch: 50 }, { wch: 15 }]
+                worksheet['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 16 }, { wch: 18 }, { wch: 50 }, { wch: 15 }]
                 XLSX.writeFile(workbook, `auditoria_idmji_${format(new Date(), 'yyyyMMdd')}.xlsx`)
                 toast.success(exportAll ? t('audit.exportAll') : t('audit.exportPage'))
             } catch {
@@ -178,7 +195,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                 setIsExporting(false)
             }
         },
-        [movimientos, tipoFilter, debouncedSearch, dateFrom, dateTo, t, getTipoLabel]
+        [movimientos, tipoFilter, debouncedSearch, dateFrom, dateTo, sedeFilter, t, getTipoLabel]
     )
 
     return (
@@ -222,7 +239,7 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                 transition={{ delay: 0.05 }}
                 className="ofrenda-liquid-card rounded-2xl p-4 md:p-6 space-y-4"
             >
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div className="relative">
                         <Search
                             className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b8964a] w-4 h-4"
@@ -252,6 +269,25 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                             {tipos.map((tipo) => (
                                 <option key={tipo} value={tipo}>
                                     {getTipoLabel(tipo)}
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90 pointer-events-none" />
+                    </div>
+
+                    <div className="relative">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b8964a] w-4 h-4" aria-hidden />
+                        <select
+                            data-testid="audit-filter-sede"
+                            value={sedeFilter}
+                            onChange={(e) => handleSedeChange(e.target.value)}
+                            aria-label={t('audit.filterSede')}
+                            className="w-full pl-10 pr-10 h-12 rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-white text-slate-800 text-sm font-bold appearance-none cursor-pointer outline-none hover:bg-[#f8f3e8] hover:border-[#b8964a] transition-colors"
+                        >
+                            <option value="">{t('audit.filterSede')}</option>
+                            {initialSedes.map((sede) => (
+                                <option key={sede.id} value={sede.id}>
+                                    {sede.nombre}
                                 </option>
                             ))}
                         </select>
@@ -327,6 +363,9 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                                             {t('audit.tableUser')}
                                         </th>
                                         <th scope="col" className="p-4 lg:p-6 text-left text-[10px] font-black uppercase tracking-widest text-[#1f2e85]">
+                                            {t('audit.tableSede')}
+                                        </th>
+                                        <th scope="col" className="p-4 lg:p-6 text-left text-[10px] font-black uppercase tracking-widest text-[#1f2e85]">
                                             {t('audit.tableType')}
                                         </th>
                                         <th scope="col" className="p-4 lg:p-6 text-left text-[10px] font-black uppercase tracking-widest text-[#1f2e85]">
@@ -372,6 +411,16 @@ export default function AuditClient({ initialData, initialTotal, initialTipos }:
                                                     </div>
                                                 ) : (
                                                     <span className="text-sm italic text-slate-500">{t('audit.system')}</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4 lg:p-6">
+                                                {m.sede ? (
+                                                    <span className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-700">
+                                                        <Building2 className="w-3.5 h-3.5 text-[#b8964a]" />
+                                                        {m.sede.nombre}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400">—</span>
                                                 )}
                                             </td>
                                             <td className="p-4 lg:p-6">
@@ -487,6 +536,12 @@ function AuditCard({
             <p className="text-sm font-medium mb-1 text-slate-800">
                 {m.usuario ? `${m.usuario.nombre} ${m.usuario.apellidos}` : t('audit.system')}
             </p>
+            {m.sede && (
+                <p className="text-[11px] font-bold text-slate-500 mb-1 inline-flex items-center gap-1">
+                    <Building2 className="w-3 h-3 text-[#b8964a]" />
+                    {m.sede.nombre}
+                </p>
+            )}
             <p className="text-xs text-slate-500 line-clamp-2 mb-2">{m.descripcion || '—'}</p>
             {m.culto && (
                 <div className="flex items-center gap-1">

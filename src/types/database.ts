@@ -21,6 +21,9 @@ export interface Sede {
     email_dominio: string | null
     activo: boolean
     es_principal: boolean
+    /** Coordenadas para el mapa de sedes (admin) */
+    lat: number | null
+    lng: number | null
     created_at: string
     updated_at: string
 }
