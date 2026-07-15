@@ -13,7 +13,12 @@ import PageHero from '@/components/PageHero'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import { getSedes, createSede, updateSede, deleteSede, type SedeConStats } from './actions'
 
-const emptyForm = { nombre: '', ciudad: '', direccion: '', email_dominio: '', activo: true }
+const emptyForm = { nombre: '', ciudad: '', direccion: '', email_dominio: '', activo: true, lat: '', lng: '' }
+
+function parseCoord(value: string): number | null {
+    const n = Number.parseFloat(value.replace(',', '.'))
+    return Number.isFinite(n) ? n : null
+}
 
 export default function SedesClient({ initialSedes }: Readonly<{ initialSedes: SedeConStats[] }>) {
     const { t } = useI18n()
@@ -43,6 +48,8 @@ export default function SedesClient({ initialSedes }: Readonly<{ initialSedes: S
             direccion: sede.direccion ?? '',
             email_dominio: sede.email_dominio ?? '',
             activo: sede.activo,
+            lat: sede.lat != null ? String(sede.lat) : '',
+            lng: sede.lng != null ? String(sede.lng) : '',
         })
         setIsFormOpen(true)
     }
@@ -66,6 +73,8 @@ export default function SedesClient({ initialSedes }: Readonly<{ initialSedes: S
                 ciudad: form.ciudad,
                 direccion: form.direccion,
                 email_dominio: form.email_dominio,
+                lat: parseCoord(form.lat),
+                lng: parseCoord(form.lng),
             }
             const result = selected
                 ? await updateSede(selected.id, { ...payload, activo: form.activo })
@@ -280,6 +289,36 @@ export default function SedesClient({ initialSedes }: Readonly<{ initialSedes: S
                                 className="bg-white border-zinc-300 text-zinc-900 rounded-xl"
                             />
                         </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="sede-lat" className="text-zinc-700">{t('admin.sedes.campoLat')}</Label>
+                                <Input
+                                    id="sede-lat"
+                                    data-testid="sede-form-lat"
+                                    value={form.lat}
+                                    onChange={(e) => setForm({ ...form, lat: e.target.value })}
+                                    inputMode="decimal"
+                                    placeholder="41.5433" // i18n-ignore — coordenada de ejemplo, no traducible
+                                    className="bg-white border-zinc-300 text-zinc-900 rounded-xl"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="sede-lng" className="text-zinc-700">{t('admin.sedes.campoLng')}</Label>
+                                <Input
+                                    id="sede-lng"
+                                    data-testid="sede-form-lng"
+                                    value={form.lng}
+                                    onChange={(e) => setForm({ ...form, lng: e.target.value })}
+                                    inputMode="decimal"
+                                    placeholder="2.1094" // i18n-ignore — coordenada de ejemplo, no traducible
+                                    className="bg-white border-zinc-300 text-zinc-900 rounded-xl"
+                                />
+                            </div>
+                        </div>
+                        <p className="text-xs text-slate-500 -mt-2" suppressHydrationWarning>
+                            {t('admin.sedes.coordsAyuda')}
+                        </p>
 
                         {selected && !selected.es_principal && (
                             <div className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${form.activo ? 'border-blue-500/50 bg-blue-50' : 'border-zinc-200 bg-zinc-50'}`}>

@@ -21,6 +21,9 @@ export interface Sede {
     email_dominio: string | null
     activo: boolean
     es_principal: boolean
+    /** Coordenadas para el mapa de sedes (admin) */
+    lat: number | null
+    lng: number | null
     created_at: string
     updated_at: string
 }
@@ -86,6 +89,8 @@ export interface Culto {
     id_usuario_finalizacion: string | null
     id_usuario_ensenanza: string | null
     id_usuario_testimonios: string | null
+    /** Personas asistentes al culto (null = sin registrar) */
+    asistencia?: number | null
     created_at: string
 
     // Relaciones (Join)

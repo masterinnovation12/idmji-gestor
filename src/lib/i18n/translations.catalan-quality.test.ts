@@ -126,6 +126,17 @@ describe('qualitat català — guarda de cadenes sense traduir', () => {
         'temasAlabanza.filtersTema', 'temasAlabanza.noLectura', 'temasAlabanza.previous', 'temasAlabanza.statsTotal',
         'temasAlabanza.tableLectura', 'temasAlabanza.tableTema',
         'users.admins', 'users.form.email', 'users.form.emailDomain', 'users.form.role', 'users.form.selectRole',
+        // Admin enterprise — cognats/marques/abreviatures idèntiques en ambdues llengües
+        'admin.sedes.campoLat', // "Latitud" — idèntic
+        'admin.sedes.campoLng', // "Longitud" — idèntic
+        'admin.control.sedeActiva', // "Activa" — idèntic
+        'admin.control.colHora', // "Hora" — idèntic
+        'admin.control.colActiva', // "Activa" — idèntic
+        'admin.control.colParticipacionesShort', // "Partic." — abreviatura idèntica
+        'admin.personas.tabLabor', // "Labor general" — idèntic en ambdues llengües
+        'admin.comparador.cobertura', // "Cobertura" — cognat idèntic
+        'common.yes', // "Sí" — idèntic
+        'common.no', // "No" — idèntic
     ])
 
     it('no hi ha cadenes ca-ES sense traduir fora de l\'allowlist', () => {

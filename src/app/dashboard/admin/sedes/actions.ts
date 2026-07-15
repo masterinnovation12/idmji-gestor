@@ -24,6 +24,8 @@ const sedeSchema = z.object({
         .regex(/^@[a-z0-9.-]+\.[a-z]{2,}$/i, 'Dominio inválido')
         .optional()
         .or(z.literal('')),
+    lat: z.number().min(-90).max(90).nullable().optional(),
+    lng: z.number().min(-180).max(180).nullable().optional(),
 })
 
 function slugify(nombre: string): string {
@@ -72,6 +74,8 @@ export async function createSede(input: {
     ciudad?: string
     direccion?: string
     email_dominio?: string
+    lat?: number | null
+    lng?: number | null
 }): Promise<ActionResponse<Sede>> {
     const { ctx, error } = await requireAdmin()
     if (error || !ctx) return { success: false, error: error ?? 'Sin permisos' }
@@ -90,6 +94,8 @@ export async function createSede(input: {
             ciudad: parsed.data.ciudad || null,
             direccion: parsed.data.direccion || null,
             email_dominio: parsed.data.email_dominio?.toLowerCase() || null,
+            lat: parsed.data.lat ?? null,
+            lng: parsed.data.lng ?? null,
         })
         .select()
         .single()
@@ -108,7 +114,15 @@ export async function createSede(input: {
 /** Actualiza datos de una sede (solo ADMIN). */
 export async function updateSede(
     id: string,
-    input: { nombre: string; ciudad?: string; direccion?: string; email_dominio?: string; activo?: boolean },
+    input: {
+        nombre: string
+        ciudad?: string
+        direccion?: string
+        email_dominio?: string
+        activo?: boolean
+        lat?: number | null
+        lng?: number | null
+    },
 ): Promise<ActionResponse<Sede>> {
     const { ctx, error } = await requireAdmin()
     if (error || !ctx) return { success: false, error: error ?? 'Sin permisos' }
@@ -131,6 +145,8 @@ export async function updateSede(
             ciudad: parsed.data.ciudad || null,
             direccion: parsed.data.direccion || null,
             email_dominio: parsed.data.email_dominio?.toLowerCase() || null,
+            lat: parsed.data.lat ?? null,
+            lng: parsed.data.lng ?? null,
             ...(typeof input.activo === 'boolean' ? { activo: input.activo } : {}),
         })
         .eq('id', id)

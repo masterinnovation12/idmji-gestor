@@ -17,6 +17,16 @@ vi.mock('next/cache', () => ({
   revalidatePath: revalidatePathMock,
 }))
 
+// Push de asignaciones: se conserva el diff real y solo se mockea el envío
+const notifyAsignacionesCultoMock = vi.fn().mockResolvedValue(undefined)
+vi.mock('@/lib/notifications/asignacionPush', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/notifications/asignacionPush')>()
+  return {
+    ...actual,
+    notifyAsignacionesCulto: notifyAsignacionesCultoMock,
+  }
+})
+
 // El guard de permisos devuelve el mismo cliente mockeado con permisos plenos
 vi.mock('@/lib/auth/guards', () => ({
   requirePermission: vi.fn(async () => {
@@ -190,5 +200,57 @@ describe('saveCultoDraft — lecturas e id_usuario_lector', () => {
     })
     const meta = lastCultoUpdate?.meta_data as Record<string, unknown>
     expect(meta.protocolo).toEqual({ oracion_inicio: false, congregacion_pie: false })
+  })
+})
+
+describe('saveCultoDraft — push de asignaciones nuevas', () => {
+  let saveCultoDraft: typeof import('./actions')['saveCultoDraft']
+
+  beforeAll(async () => {
+    ({ saveCultoDraft } = await import('./actions'))
+  }, 30_000)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    cultoSelectData.id_usuario_intro = 'andres-intro-uuid'
+    cultoSelectData.id_usuario_finalizacion = null
+    cultoSelectData.id_usuario_ensenanza = null
+    cultoSelectData.id_usuario_testimonios = null
+  })
+
+  it('asignar dos roles nuevos notifica exactamente esos roles', async () => {
+    const result = await saveCultoDraft({
+      ...basePayload,
+      assignments: { finalizacion: 'nuevo-final-uuid', testimonios: 'nuevo-test-uuid' },
+    })
+    expect(result).toEqual({ success: true })
+    expect(notifyAsignacionesCultoMock).toHaveBeenCalledTimes(1)
+    const [cambios, culto] = notifyAsignacionesCultoMock.mock.calls[0] as [
+      Array<{ rol: string; userId: string }>,
+      { id: string; horaInicio: string },
+    ]
+    expect(cambios).toEqual([
+      { rol: 'finalizacion', userId: 'nuevo-final-uuid' },
+      { rol: 'testimonios', userId: 'nuevo-test-uuid' },
+    ])
+    expect(culto.id).toBe('culto-x')
+    expect(culto.horaInicio).toBe('19:00')
+  })
+
+  it('guardar sin cambios de asignación no notifica', async () => {
+    await saveCultoDraft({ ...basePayload, observaciones: 'solo una nota' })
+    expect(notifyAsignacionesCultoMock).not.toHaveBeenCalled()
+  })
+
+  it('desasignar (intro → null) no notifica', async () => {
+    await saveCultoDraft({ ...basePayload, assignments: { introduccion: null } })
+    expect(notifyAsignacionesCultoMock).not.toHaveBeenCalled()
+  })
+
+  it('reasignar intro a otro hermano notifica solo al nuevo', async () => {
+    await saveCultoDraft({ ...basePayload, assignments: { introduccion: 'otro-uuid' } })
+    expect(notifyAsignacionesCultoMock).toHaveBeenCalledTimes(1)
+    const [cambios] = notifyAsignacionesCultoMock.mock.calls[0] as [Array<{ rol: string; userId: string }>]
+    expect(cambios).toEqual([{ rol: 'introduccion', userId: 'otro-uuid' }])
   })
 })

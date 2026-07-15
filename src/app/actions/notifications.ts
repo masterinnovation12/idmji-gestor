@@ -172,51 +172,8 @@ export async function sendTestNotification(): Promise<ActionResponse<void>> {
     }
 }
 
-export async function sendNotificationToUser(
-    userId: string,
-    title: string,
-    body: string,
-    url?: string
-): Promise<ActionResponse<void>> {
-    try {
-        const webpush = await getWebPush()
-        if (!webpush) {
-            return { success: false, error: 'VAPID keys no configuradas' }
-        }
-
-        const supabase = await createClient()
-
-        const { data: subscriptions, error } = await supabase
-            .from('user_subscriptions')
-            .select('*')
-            .eq('user_id', userId)
-
-        if (error) throw error
-
-        const toSend = selectSubscriptionsForSend(subscriptions ?? [])
-
-        if (toSend.length === 0) {
-            return { success: false, error: 'Usuario sin suscripciones' }
-        }
-
-        const payload = JSON.stringify({ title, body, url })
-
-        const promises = toSend.map(sub => {
-            const pushSubscription = {
-                endpoint: sub.endpoint,
-                keys: {
-                    p256dh: sub.p256dh,
-                    auth: sub.auth
-                }
-            }
-            return webpush.sendNotification(pushSubscription, payload)
-        })
-
-        await Promise.all(promises)
-
-        return { success: true }
-    } catch (error) {
-        console.error('Error sending notification:', error)
-        return { success: false, error: 'Error al enviar notificación' }
-    }
-}
+// NOTA: el envío de asignaciones de púlpito vive en
+// src/lib/notifications/asignacionPush.ts (usa service-role: la RLS de
+// user_subscriptions impide leer suscripciones ajenas con el cliente de
+// sesión, por lo que un `sendNotificationToUser` de sesión nunca funcionó
+// para notificar a otros usuarios).

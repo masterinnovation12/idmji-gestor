@@ -5,20 +5,7 @@ import { resolveLecturaLectorFromCulto } from '@/lib/utils/resolveLecturaLectorF
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/auth/guards'
 import { can } from '@/lib/auth/permissions'
-import { sendNotificationToUser } from '@/app/actions/notifications'
-import { formatHoraNotificacion } from '@/lib/format-hora-notificacion'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
-
-/**
- * Mapeo de tipos de asignación a nombres legibles
- */
-const tipoAsignacionLabels: Record<string, string> = {
-    introduccion: 'Introducción',
-    finalizacion: 'Finalización',
-    ensenanza: 'Enseñanza',
-    testimonios: 'Testimonios',
-}
+import { diffAsignacionesNuevas, notifyAsignacionesCulto } from '@/lib/notifications/asignacionPush'
 
 /**
  * Actualizar asignación de hermano en un culto
@@ -65,34 +52,24 @@ export async function updateAssignment(
         })
     }
 
-    // ========== ENVIAR NOTIFICACIÓN AL USUARIO ASIGNADO ==========
+    // Notificar al hermano recién asignado (best-effort, en su idioma)
     if (userId) {
-        try {
-            // Obtener datos del culto para el mensaje
-            const { data: culto } = await supabase
-                .from('cultos')
-                .select('fecha, hora_inicio, tipo_culto:culto_types(nombre)')
-                .eq('id', cultoId)
-                .single()
+        const { data: culto } = await supabase
+            .from('cultos')
+            .select('fecha, hora_inicio, tipo_culto:culto_types(nombre)')
+            .eq('id', cultoId)
+            .single()
 
-            if (culto) {
-                const fechaFormateada = format(new Date(culto.fecha), "EEEE d 'de' MMMM", { locale: es })
-                const tipoCulto = (culto.tipo_culto as unknown as { nombre: string })?.nombre || 'Culto'
-                const tipoLabel = tipoAsignacionLabels[tipoAsignacion] || tipoAsignacion
-
-                const notifResult = await sendNotificationToUser(
-                    userId,
-                    '¡Nueva Asignación!',
-                    `${tipoLabel} - ${tipoCulto} del ${fechaFormateada} a las ${formatHoraNotificacion(culto.hora_inicio)}`,
-                    `/dashboard/cultos/${cultoId}`
-                )
-                if (!notifResult.success) {
-                    console.error('Notificación de asignación no enviada:', notifResult.error, { userId })
-                }
-            }
-        } catch (notifError) {
-            // No bloquear si falla la notificación
-            console.error('Error enviando notificación de asignación:', notifError)
+        if (culto) {
+            await notifyAsignacionesCulto(
+                [{ rol: tipoAsignacion, userId }],
+                {
+                    id: cultoId,
+                    fecha: culto.fecha as string,
+                    horaInicio: culto.hora_inicio as string,
+                    tipoNombre: (culto.tipo_culto as unknown as { nombre?: string })?.nombre ?? '',
+                },
+            )
         }
     }
 
@@ -509,7 +486,7 @@ export async function saveCultoDraft(payload: CultoDraftPayload) {
     const { cultoId } = payload
     const { data: cultoActual, error: cultoError } = await supabase
         .from('cultos')
-        .select('meta_data, id_usuario_intro, id_usuario_finalizacion, id_usuario_ensenanza, id_usuario_testimonios')
+        .select('meta_data, fecha, id_usuario_intro, id_usuario_finalizacion, id_usuario_ensenanza, id_usuario_testimonios, tipo_culto:culto_types(nombre)')
         .eq('id', cultoId)
         .single()
 
@@ -688,6 +665,26 @@ export async function saveCultoDraft(payload: CultoDraftPayload) {
                 return { success: false, error: insertLecturasError.message }
             }
         }
+    }
+
+    // Notificar a los hermanos RECIÉN asignados en este guardado (best-effort:
+    // nunca bloquea ni rompe el guardado; desasignar no notifica).
+    const cambios = diffAsignacionesNuevas(
+        {
+            id_usuario_intro: cultoActual.id_usuario_intro ?? null,
+            id_usuario_finalizacion: cultoActual.id_usuario_finalizacion ?? null,
+            id_usuario_ensenanza: cultoActual.id_usuario_ensenanza ?? null,
+            id_usuario_testimonios: cultoActual.id_usuario_testimonios ?? null,
+        },
+        updateData,
+    )
+    if (cambios.length > 0) {
+        await notifyAsignacionesCulto(cambios, {
+            id: cultoId,
+            fecha: (cultoActual.fecha as string | undefined) ?? '',
+            horaInicio: payload.horaInicio,
+            tipoNombre: (cultoActual.tipo_culto as unknown as { nombre?: string })?.nombre ?? '',
+        })
     }
 
     revalidatePath(`/dashboard/cultos/${cultoId}`)
