@@ -17,7 +17,7 @@ import PageHero from '@/components/PageHero'
 import { Button } from '@/components/ui/Button'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import type { Sede } from '@/types/database'
-import { getControlData, getDataHealth, getTendencias, type ControlData, type HealthAlert, type TendenciaMes } from './actions'
+import { getControlData, getDataHealth, getTendencias, updateAsistenciaCulto, type ControlData, type HealthAlert, type TendenciaMes } from './actions'
 import { exportControlExcel, type ExcelLabels } from './excel'
 import { buildControlPdf, type PdfLabels } from './pdfExport'
 
@@ -50,6 +50,7 @@ export default function ControlClient({ sedes, initialData, initialAlerts, initi
     const [isExportingPdf, setIsExportingPdf] = useState(false)
     const [tendencias, setTendencias] = useState<{ meses: TendenciaMes[]; sedes: string[] } | null>(initialTendencias)
     const [metricaTendencia, setMetricaTendencia] = useState<'participaciones' | 'cultos'>('participaciones')
+    const [asistenciaEdit, setAsistenciaEdit] = useState<{ id: string; value: string } | null>(null)
     const isFirst = useRef(true)
 
     const loadData = useCallback(async (silent = false) => {
@@ -130,6 +131,7 @@ export default function ControlClient({ sedes, initialData, initialAlerts, initi
                 colTestimonios: t('admin.stats.testimonies'),
                 colFinalizacion: t('admin.stats.final'),
                 colLecturas: t('admin.control.kpiLecturas'),
+                colAsistencia: t('admin.control.colAsistencia'),
                 colHermano: t('admin.control.colHermano'),
                 colTotal: t('common.total'),
                 colTurno: t('admin.control.colTurno'),
@@ -240,6 +242,27 @@ export default function ControlClient({ sedes, initialData, initialAlerts, initi
         } finally {
             setIsExportingPdf(false)
         }
+    }
+
+    const saveAsistencia = async () => {
+        if (!asistenciaEdit) return
+        const trimmed = asistenciaEdit.value.trim()
+        const parsed = trimmed === '' ? null : Number.parseInt(trimmed, 10)
+        if (parsed != null && (!Number.isInteger(parsed) || parsed < 0)) {
+            toast.error(t('common.error'))
+            return
+        }
+        const res = await updateAsistenciaCulto(asistenciaEdit.id, parsed)
+        if (res.success) {
+            setData(prev => ({
+                ...prev,
+                cultos: prev.cultos.map(c => (c.id === asistenciaEdit.id ? { ...c, asistencia: parsed } : c)),
+            }))
+            toast.success(t('admin.control.asistenciaGuardada'))
+        } else {
+            toast.error(res.error ?? t('common.error'))
+        }
+        setAsistenciaEdit(null)
     }
 
     const kpiCards = [
@@ -643,7 +666,20 @@ export default function ControlClient({ sedes, initialData, initialAlerts, initi
 
             {/* Detalle de cultos */}
             <div className="ofrenda-liquid-card rounded-3xl p-5" data-testid="control-tabla-cultos">
-                <h3 className="font-black text-slate-900 mb-4" suppressHydrationWarning>{t('admin.control.tablaCultos')}</h3>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <h3 className="font-black text-slate-900" suppressHydrationWarning>{t('admin.control.tablaCultos')}</h3>
+                    {data.kpis.asistenciaTotal > 0 && (
+                        <span
+                            data-testid="control-asistencia-resumen"
+                            className="px-3 py-1 rounded-full text-xs font-bold bg-[#f8f3e8] border border-[rgba(184,150,74,0.35)] text-[#1f2e85]"
+                            suppressHydrationWarning
+                        >
+                            {t('admin.control.asistenciaResumen')
+                                .replace('{total}', String(data.kpis.asistenciaTotal))
+                                .replace('{media}', String(data.kpis.asistenciaMedia))}
+                        </span>
+                    )}
+                </div>
                 <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
                     <table className="w-full text-sm min-w-[880px]">
                         <thead className="sticky top-0 bg-white z-10">
@@ -657,6 +693,7 @@ export default function ControlClient({ sedes, initialData, initialAlerts, initi
                                 <th className="py-2 pr-3" suppressHydrationWarning>{t('admin.stats.teaching')}</th>
                                 <th className="py-2 pr-3" suppressHydrationWarning>{t('admin.stats.testimonies')}</th>
                                 <th className="py-2 pr-3" suppressHydrationWarning>{t('admin.stats.final')}</th>
+                                <th className="py-2 pr-3 text-center" suppressHydrationWarning>{t('admin.control.colAsistencia')}</th>
                                 <th className="py-2" suppressHydrationWarning>{t('admin.control.kpiLecturas')}</th>
                             </tr>
                         </thead>
@@ -687,6 +724,37 @@ export default function ControlClient({ sedes, initialData, initialAlerts, initi
                                     <td className="py-2 pr-3 text-slate-600">{c.ensenanza ?? '—'}</td>
                                     <td className="py-2 pr-3 text-slate-600">{c.testimonios ?? '—'}</td>
                                     <td className="py-2 pr-3 text-slate-600">{c.finalizacion ?? '—'}</td>
+                                    <td className="py-2 pr-3 text-center">
+                                        {asistenciaEdit?.id === c.id ? (
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                autoFocus
+                                                value={asistenciaEdit.value}
+                                                onChange={(e) => setAsistenciaEdit({ id: c.id, value: e.target.value })}
+                                                onBlur={() => void saveAsistencia()}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') void saveAsistencia()
+                                                    if (e.key === 'Escape') setAsistenciaEdit(null)
+                                                }}
+                                                aria-label={t('admin.control.colAsistencia')}
+                                                data-testid={`control-asistencia-input-${c.id}`}
+                                                className="w-16 px-1 py-0.5 rounded-lg border-[1.5px] border-[#b8964a] bg-white text-center text-sm font-bold text-[#1f2e85] outline-none"
+                                            />
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => setAsistenciaEdit({ id: c.id, value: c.asistencia != null ? String(c.asistencia) : '' })}
+                                                title={t('admin.control.asistenciaEditar')}
+                                                data-testid={`control-asistencia-${c.id}`}
+                                                className={`px-2 py-0.5 rounded-lg text-sm font-black transition-colors hover:bg-[#f8f3e8] ${
+                                                    c.asistencia != null ? 'text-[#1f2e85]' : 'text-slate-300'
+                                                }`}
+                                            >
+                                                {c.asistencia ?? '—'}
+                                            </button>
+                                        )}
+                                    </td>
                                     <td className="py-2 text-slate-500 text-xs">{c.lecturas.join(' · ') || '—'}</td>
                                 </tr>
                             ))}

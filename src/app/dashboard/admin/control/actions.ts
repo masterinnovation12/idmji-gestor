@@ -2,6 +2,7 @@
 
 import { requireAdmin } from '@/lib/auth/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { logMovimiento } from '@/lib/audit/logMovimiento'
 import type { ActionResponse, Sede } from '@/types/database'
 
 /**
@@ -22,6 +23,10 @@ export interface ControlKpis {
     miembrosLabor: number
     personasPlano: number
     serviciosLabores: number
+    /** Suma de asistentes registrados en el mes (0 si no hay registros). */
+    asistenciaTotal: number
+    /** Media de asistentes de los cultos con registro (0 si no hay). */
+    asistenciaMedia: number
 }
 
 export interface HermanoParticipacion {
@@ -48,6 +53,7 @@ export interface CultoDetalle {
     testimonios: string | null
     finalizacion: string | null
     lecturas: string[]
+    asistencia: number | null
 }
 
 export interface SedeResumen {
@@ -82,6 +88,7 @@ interface CultoRaw {
     hora_inicio: string
     estado: string
     sede_id: string
+    asistencia: number | null
     id_usuario_intro: string | null
     id_usuario_finalizacion: string | null
     id_usuario_ensenanza: string | null
@@ -134,7 +141,7 @@ export async function getControlData(
         // Cultos del mes (con tipo)
         const { data: cultosRaw, error: cultosError } = await admin
             .from('cultos')
-            .select('id, fecha, hora_inicio, estado, sede_id, id_usuario_intro, id_usuario_finalizacion, id_usuario_ensenanza, id_usuario_testimonios, tipo_culto:culto_types(nombre, color)')
+            .select('id, fecha, hora_inicio, estado, sede_id, asistencia, id_usuario_intro, id_usuario_finalizacion, id_usuario_ensenanza, id_usuario_testimonios, tipo_culto:culto_types(nombre, color)')
             .in('sede_id', sedeIds)
             .gte('fecha', desde)
             .lte('fecha', hasta)
@@ -235,8 +242,12 @@ export async function getControlData(
                 testimonios: c.id_usuario_testimonios ? nombrePorId.get(c.id_usuario_testimonios) ?? null : null,
                 finalizacion: c.id_usuario_finalizacion ? nombrePorId.get(c.id_usuario_finalizacion) ?? null : null,
                 lecturas: lecturasPorCulto.get(c.id) ?? [],
+                asistencia: c.asistencia,
             }
         })
+
+        const conAsistencia = cultos.filter(c => c.asistencia != null)
+        const asistenciaTotal = conAsistencia.reduce((n, c) => n + (c.asistencia ?? 0), 0)
 
         // Labores y personas
         const [miembros, personas, planes, usuariosCount] = await Promise.all([
@@ -287,6 +298,8 @@ export async function getControlData(
                     miembrosLabor: miembros.count ?? 0,
                     personasPlano: personas.count ?? 0,
                     serviciosLabores,
+                    asistenciaTotal,
+                    asistenciaMedia: conAsistencia.length > 0 ? Math.round(asistenciaTotal / conAsistencia.length) : 0,
                 },
                 hermanos,
                 cultos: cultosDetalle,
@@ -388,6 +401,44 @@ export async function getTendencias(
         console.error('getTendencias:', e)
         return { success: false, error: 'Error al cargar tendencias' }
     }
+}
+
+/**
+ * Registra la asistencia de un culto (solo ADMIN). `asistencia` null borra el
+ * registro. Queda trazado en auditoría con la sede del culto.
+ */
+export async function updateAsistenciaCulto(
+    cultoId: string,
+    asistencia: number | null,
+): Promise<ActionResponse<void>> {
+    const { ctx, error } = await requireAdmin()
+    if (error || !ctx) return { success: false, error: error ?? 'Sin permisos' }
+
+    if (asistencia != null && (!Number.isInteger(asistencia) || asistencia < 0 || asistencia > 100000)) {
+        return { success: false, error: 'Valor inválido' }
+    }
+
+    const { data: culto } = await ctx.supabase
+        .from('cultos')
+        .select('id, fecha, hora_inicio, sede_id')
+        .eq('id', cultoId)
+        .maybeSingle()
+    if (!culto) return { success: false, error: 'Culto no encontrado' }
+
+    const { error: updateError } = await ctx.supabase
+        .from('cultos')
+        .update({ asistencia })
+        .eq('id', cultoId)
+    if (updateError) return { success: false, error: updateError.message }
+
+    await logMovimiento(
+        ctx.supabase,
+        ctx.userId,
+        'admin_asistencia',
+        `Asistencia del culto ${culto.fecha} ${(culto.hora_inicio as string).slice(0, 5)} → ${asistencia ?? '—'}`,
+        culto.sede_id as string,
+    )
+    return { success: true }
 }
 
 export type HealthSeverity = 'warning' | 'info'

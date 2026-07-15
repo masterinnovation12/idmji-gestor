@@ -34,6 +34,8 @@ interface SedeSeed {
     email_dominio: string
     lat: number
     lng: number
+    /** Rango de asistencia [min, max) para cultos realizados. */
+    asistencia: [number, number]
     /** [day_of_week, 'HH:MM', tipo_culto_id, affected_by_laborable_festivo] */
     horarios: Array<[number, string, number, boolean]>
     pulpito: Array<{ nombre: string; apellidos: string }>
@@ -61,6 +63,7 @@ const SEDES: SedeSeed[] = [
         email_dominio: '@idmjibarcelona.org',
         lat: 41.3874,
         lng: 2.1686,
+        asistencia: [80, 140],
         horarios: [
             ...HORARIO_BASE,
             [0, '08:00', TIPO_ENSENANZA, false],
@@ -101,6 +104,7 @@ const SEDES: SedeSeed[] = [
         email_dominio: '@idmjiterrassa.org',
         lat: 41.561,
         lng: 2.0089,
+        asistencia: [50, 90],
         horarios: [...HORARIO_BASE, [0, '10:00', TIPO_ENSENANZA, false]],
         pulpito: [
             { nombre: 'Miquel', apellidos: 'Font' },
@@ -136,6 +140,7 @@ const SEDES: SedeSeed[] = [
         email_dominio: '@idmjibadalona.org',
         lat: 41.45,
         lng: 2.2474,
+        asistencia: [55, 95],
         horarios: [...HORARIO_BASE, [0, '10:00', TIPO_ENSENANZA, false]],
         pulpito: [
             { nombre: 'Victor', apellidos: 'Sala' },
@@ -364,11 +369,14 @@ async function seedCultosJulio(sedeId: string, seed: SedeSeed, pulpitoIds: strin
             const fin = flags.fin ? pulpitoIds[(idx + 2) % n] : null
             const ens = flags.ens ? pulpitoIds[(idx + 4) % n] : null
             const test = flags.ens ? pulpitoIds[(idx + 6) % n] : null
+            const realizado = fechaStr < HOY
+            const [asisMin, asisMax] = seed.asistencia
             cultos.push({
                 fecha: fechaStr,
                 hora_inicio: hora,
                 tipo_culto_id: tipoId,
-                estado: fechaStr < HOY ? 'realizado' : 'planeado',
+                estado: realizado ? 'realizado' : 'planeado',
+                asistencia: realizado ? asisMin + Math.floor(Math.random() * (asisMax - asisMin)) : null,
                 es_laborable_festivo: false,
                 id_usuario_intro: intro,
                 id_usuario_finalizacion: fin,

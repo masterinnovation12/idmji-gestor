@@ -13,6 +13,7 @@ export type MovimientoTipo =
     | 'admin_himnario'
     | 'admin_horarios'
     | 'admin_personas'
+    | 'admin_asistencia'
 
 /**
  * Registra un movimiento de auditoría. Best-effort: nunca rompe la acción

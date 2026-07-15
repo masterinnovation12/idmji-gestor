@@ -89,6 +89,8 @@ export interface Culto {
     id_usuario_finalizacion: string | null
     id_usuario_ensenanza: string | null
     id_usuario_testimonios: string | null
+    /** Personas asistentes al culto (null = sin registrar) */
+    asistencia?: number | null
     created_at: string
 
     // Relaciones (Join)

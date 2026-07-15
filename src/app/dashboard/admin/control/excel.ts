@@ -42,6 +42,7 @@ export interface ExcelLabels {
     colTestimonios: string
     colFinalizacion: string
     colLecturas: string
+    colAsistencia: string
     colHermano: string
     colTotal: string
     colTurno: string
@@ -192,11 +193,12 @@ export async function exportControlExcel(
         const cultosWs = wb.addWorksheet(labels.cultosSheet)
         const cultosCols = [
             labels.colFecha, labels.colHora, labels.colSede, labels.colTipo, labels.colEstado,
-            labels.colIntro, labels.colEnsenanza, labels.colTestimonios, labels.colFinalizacion, labels.colLecturas,
+            labels.colIntro, labels.colEnsenanza, labels.colTestimonios, labels.colFinalizacion,
+            labels.colAsistencia, labels.colLecturas,
         ]
         cultosWs.columns = [
             { width: 12 }, { width: 8 }, { width: 14 }, { width: 16 }, { width: 12 },
-            { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 34 },
+            { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 11 }, { width: 34 },
         ]
         addBrandHeader(cultosWs, labels.cultosSheet, subtitulo, cultosCols.length)
         styleHeaderRow(cultosWs.addRow(cultosCols))
@@ -204,6 +206,7 @@ export async function exportControlExcel(
             const row = cultosWs.addRow([
                 c.fecha, c.hora, c.sede, c.tipoNombre, labels.estados[c.estado] ?? c.estado,
                 c.intro ?? '—', c.ensenanza ?? '—', c.testimonios ?? '—', c.finalizacion ?? '—',
+                c.asistencia ?? '—',
                 c.lecturas.join(' · ') || '—',
             ])
             styleDataRow(row, i % 2 === 1)

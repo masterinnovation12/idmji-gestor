@@ -49,7 +49,8 @@ const TIPO_TO_KEY: Record<string, string> = {
     admin_sedes: 'audit.type.admin_sedes',
     admin_himnario: 'audit.type.admin_himnario',
     admin_horarios: 'audit.type.admin_horarios',
-    admin_personas: 'audit.type.admin_personas'
+    admin_personas: 'audit.type.admin_personas',
+    admin_asistencia: 'audit.type.admin_asistencia'
 }
 
 // Colores de identidad por tipo, siempre claros: se pintan dentro de cards

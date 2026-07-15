@@ -1084,6 +1084,10 @@ export const translations = {
         'admin.control.health.sinCoords': 'Sedes sin ubicación en el mapa',
         'admin.control.tendenciasTitulo': 'Tendencias · últimos 6 meses',
         'admin.control.tendenciasNota': 'Evolución mensual por sede. Los meses sin cultos generados aparecen a cero.',
+        'admin.control.colAsistencia': 'Asistencia',
+        'admin.control.asistenciaResumen': 'Asistencia: {total} personas · media {media} por culto',
+        'admin.control.asistenciaGuardada': 'Asistencia guardada',
+        'admin.control.asistenciaEditar': 'Registrar asistencia',
 
         // Administración → Perfil 360° del hermano
         'admin.hermano.subtitle': 'Perfil completo de participación en púlpito',
@@ -1151,6 +1155,7 @@ export const translations = {
         'audit.type.admin_himnario': 'Admin · Himnario',
         'audit.type.admin_horarios': 'Admin · Horarios',
         'audit.type.admin_personas': 'Admin · Personas',
+        'audit.type.admin_asistencia': 'Admin · Asistencia',
 
         // Genéricos
         'common.yes': 'Sí',
@@ -2274,6 +2279,10 @@ export const translations = {
         'admin.control.health.sinCoords': 'Seus sense ubicació al mapa',
         'admin.control.tendenciasTitulo': 'Tendències · darrers 6 mesos',
         'admin.control.tendenciasNota': 'Evolució mensual per seu. Els mesos sense cultes generats apareixen a zero.',
+        'admin.control.colAsistencia': 'Assistència',
+        'admin.control.asistenciaResumen': 'Assistència: {total} persones · mitjana {media} per culte',
+        'admin.control.asistenciaGuardada': 'Assistència desada',
+        'admin.control.asistenciaEditar': 'Registra l\'assistència',
 
         // Administració → Perfil 360° del germà
         'admin.hermano.subtitle': 'Perfil complet de participació al púlpit',
@@ -2341,6 +2350,7 @@ export const translations = {
         'audit.type.admin_himnario': 'Admin · Himnari',
         'audit.type.admin_horarios': 'Admin · Horaris',
         'audit.type.admin_personas': 'Admin · Persones',
+        'audit.type.admin_asistencia': 'Admin · Assistència',
 
         // Genèrics
         'common.yes': 'Sí',

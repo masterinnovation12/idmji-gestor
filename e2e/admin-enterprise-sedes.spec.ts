@@ -222,6 +222,45 @@ test.describe('Admin enterprise · sedes demo', () => {
         await page.screenshot({ path: 'qa-admin-tendencias.png', fullPage: true })
     })
 
+    test('13. Asistencia por culto: edición inline y persistencia', async ({ page }) => {
+        const admin = serviceClient()
+        const { data: sede } = await admin.from('sedes').select('id').eq('slug', 'badalona').single()
+        const { data: culto } = await admin
+            .from('cultos')
+            .select('id, asistencia')
+            .eq('sede_id', sede!.id)
+            .eq('estado', 'realizado')
+            .gte('fecha', '2026-07-01')
+            .lte('fecha', '2026-07-31')
+            .order('fecha')
+            .limit(1)
+            .single()
+        const original = culto!.asistencia as number | null
+
+        await loginAsAdmin(page)
+        await page.goto('/dashboard/admin/control')
+        await page.getByTestId('control-sede-badalona').click()
+        await expect(page.getByTestId('control-tabla-cultos')).toBeVisible()
+
+        // Resumen de asistencia visible (hay registros del seed)
+        await expect(page.getByTestId('control-asistencia-resumen')).toBeVisible()
+
+        try {
+            // Edición inline: fijar 99 y comprobar persistencia en BD
+            await page.getByTestId(`control-asistencia-${culto!.id}`).click()
+            const input = page.getByTestId(`control-asistencia-input-${culto!.id}`)
+            await input.fill('99')
+            await input.press('Enter')
+            await expect(page.getByTestId(`control-asistencia-${culto!.id}`)).toHaveText('99', { timeout: 10_000 })
+
+            const { data: after } = await admin.from('cultos').select('asistencia').eq('id', culto!.id).single()
+            expect(after!.asistencia).toBe(99)
+            await page.screenshot({ path: 'qa-admin-asistencia.png', fullPage: true })
+        } finally {
+            await admin.from('cultos').update({ asistencia: original }).eq('id', culto!.id)
+        }
+    })
+
     test('11. Export PDF ejecutivo descarga un .pdf', async ({ page }) => {
         await loginAsAdmin(page)
         await page.goto('/dashboard/admin/control')
