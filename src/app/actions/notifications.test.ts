@@ -7,7 +7,6 @@ import {
     subscribeToPush,
     unsubscribeFromPush,
     sendTestNotification,
-    sendNotificationToUser,
 } from './notifications'
 import { selectSubscriptionsForSend } from './notifications-subscriptions'
 
@@ -292,77 +291,5 @@ describe('sendTestNotification', () => {
     })
 })
 
-describe('sendNotificationToUser', () => {
-    beforeEach(() => {
-        vi.clearAllMocks()
-        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY = 'x'.repeat(60)
-        process.env.VAPID_PRIVATE_KEY = 'y'
-        mockSendNotification.mockResolvedValue(undefined)
-    })
-
-    it('devuelve error cuando el usuario no tiene suscripciones', async () => {
-        const { createClient } = await import('@/lib/supabase/server')
-        ;(createClient as ReturnType<typeof vi.fn>).mockResolvedValue({
-            from: (t: string) => mockFrom(t, { subscriptions: [] }),
-        })
-        const result = await sendNotificationToUser('user-1', 'Título', 'Cuerpo', '/url')
-        expect(result.success).toBe(false)
-        expect(result.error).toContain('suscripciones')
-    })
-
-    it('con mix browser+pwa solo envía a PWA', async () => {
-        const { createClient } = await import('@/lib/supabase/server')
-        ;(createClient as ReturnType<typeof vi.fn>).mockResolvedValue({
-            from: (t: string) =>
-                mockFrom(t, {
-                    subscriptions: [
-                        {
-                            client_type: 'browser',
-                            endpoint: 'https://b',
-                            p256dh: 'pb',
-                            auth: 'ab',
-                        },
-                        {
-                            client_type: 'pwa',
-                            endpoint: 'https://p',
-                            p256dh: 'pp',
-                            auth: 'ap',
-                        },
-                    ],
-                }),
-        })
-        const result = await sendNotificationToUser('user-1', 'T', 'B', '/u')
-        expect(result.success).toBe(true)
-        expect(mockSendNotification).toHaveBeenCalledTimes(1)
-        expect(mockSendNotification).toHaveBeenCalledWith(
-            expect.objectContaining({ endpoint: 'https://p' }),
-            expect.any(String)
-        )
-    })
-
-    it('solo pwa envía a todas las pwa', async () => {
-        const { createClient } = await import('@/lib/supabase/server')
-        ;(createClient as ReturnType<typeof vi.fn>).mockResolvedValue({
-            from: (t: string) =>
-                mockFrom(t, {
-                    subscriptions: [
-                        {
-                            client_type: 'pwa',
-                            endpoint: 'https://p1',
-                            p256dh: 'p1',
-                            auth: 'a1',
-                        },
-                        {
-                            client_type: 'pwa',
-                            endpoint: 'https://p2',
-                            p256dh: 'p2',
-                            auth: 'a2',
-                        },
-                    ],
-                }),
-        })
-        const result = await sendNotificationToUser('user-1', 'T', 'B')
-        expect(result.success).toBe(true)
-        expect(mockSendNotification).toHaveBeenCalledTimes(2)
-    })
-})
+// El envío de asignaciones (antes sendNotificationToUser) se testea en
+// src/lib/notifications/asignacionPush.test.ts
