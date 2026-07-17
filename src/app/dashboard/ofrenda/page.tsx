@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getActiveSedeIdForCurrentUser } from '@/lib/sede/activeSede'
 import { getMiembros, getPlan } from './actions'
 import { can } from '@/lib/auth/permissions'
 import OfrendaPageClient from './OfrendaPageClient'
@@ -35,13 +36,17 @@ export default async function OfrendaPage() {
     const anioActual = now.getFullYear()
     const mesActual = now.getMonth() + 1
 
-    const [miembrosResult, planResult] = await Promise.all([
+    const [miembrosResult, planResult, sedeId] = await Promise.all([
         getMiembros(),
         getPlan(anioActual, mesActual),
+        getActiveSedeIdForCurrentUser(),
     ])
 
     return (
+        // key por sede: al cambiar de sede desde el sidebar todas las labores
+        // (generales, ofrenda y púlpito) se remontan con datos de la sede nueva.
         <OfrendaPageClient
+            key={sedeId ?? 'propia'}
             initialMiembros={miembrosResult.data ?? []}
             initialPlan={planResult.data ?? null}
             initialAnio={anioActual}

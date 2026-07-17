@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission, requireAdmin as requireAdminGuard } from '@/lib/auth/guards'
+import { getActiveSedeIdForCurrentUser } from '@/lib/sede/activeSede'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
     generarAsignacionesPulpito,
@@ -135,22 +136,28 @@ export async function getPulpitoData(
     fechaFin: string,
 ): Promise<{ data?: PulpitoData; error?: string }> {
     const supabase = await createClient()
+    // El ADMIN ve todas las sedes por RLS: acotar SIEMPRE a la sede activa
+    // para que el plan de púlpito y sus hermanos sean solo de una sede.
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
-    const [cultosRes, hermanosRes] = await Promise.all([
-        supabase
-            .from('cultos')
-            .select(CULTO_SELECT)
-            .gte('fecha', fechaInicio)
-            .lte('fecha', fechaFin)
-            .neq('estado', 'cancelado')
-            .order('fecha')
-            .order('hora_inicio'),
-        supabase
-            .from('profiles')
-            .select('id, nombre, apellidos, availability')
-            .eq('pulpito', true)
-            .order('nombre'),
-    ])
+    let cultosQuery = supabase
+        .from('cultos')
+        .select(CULTO_SELECT)
+        .gte('fecha', fechaInicio)
+        .lte('fecha', fechaFin)
+        .neq('estado', 'cancelado')
+        .order('fecha')
+        .order('hora_inicio')
+    if (sedeId) cultosQuery = cultosQuery.eq('sede_id', sedeId)
+
+    let hermanosQuery = supabase
+        .from('profiles')
+        .select('id, nombre, apellidos, availability')
+        .eq('pulpito', true)
+        .order('nombre')
+    if (sedeId) hermanosQuery = hermanosQuery.eq('sede_id', sedeId)
+
+    const [cultosRes, hermanosRes] = await Promise.all([cultosQuery, hermanosQuery])
 
     if (cultosRes.error) return { error: cultosRes.error.message }
     if (hermanosRes.error) return { error: hermanosRes.error.message }
@@ -170,16 +177,20 @@ export async function getPulpitoData(
 async function fetchCargaHistorica(
     supabase: NonNullable<Awaited<ReturnType<typeof requireEditor>>['supabase']>,
     fechaInicio: string,
+    sedeId: string | null,
 ): Promise<CargaHistorica> {
     const desde = new Date(`${fechaInicio}T00:00:00`)
     desde.setDate(desde.getDate() - DIAS_HISTORIAL)
     const desdeStr = desde.toISOString().slice(0, 10)
 
-    const { data } = await supabase
+    let query = supabase
         .from('cultos')
         .select('id_usuario_intro, id_usuario_finalizacion, id_usuario_ensenanza, id_usuario_testimonios')
         .gte('fecha', desdeStr)
         .lt('fecha', fechaInicio)
+    if (sedeId) query = query.eq('sede_id', sedeId)
+
+    const { data } = await query
 
     const carga: CargaHistorica = { total: {}, porRol: {} }
     const add = (userId: string | null, rol: PulpitoRol) => {
@@ -229,7 +240,7 @@ export async function generarPulpito(
     const cultosConRoles = cultos.filter(c => c.roles.length > 0)
     if (cultosConRoles.length === 0) return { error: 'SIN_CULTOS' }
 
-    const historial = await fetchCargaHistorica(supabase, fechaInicio)
+    const historial = await fetchCargaHistorica(supabase, fechaInicio, await getActiveSedeIdForCurrentUser())
 
     const entrada: CultoParaAsignar[] = cultosConRoles.map(c => ({
         id: c.id,
@@ -278,11 +289,17 @@ export async function eliminarAsignacionesPulpito(
     const { error: authError, supabase } = await requireEditor()
     if (authError || !supabase) return { error: authError ?? 'Error' }
 
-    const { data: cultos, error: selErr } = await supabase
+    // Acotar a la sede activa: sin esto un ADMIN vaciaría las asignaciones
+    // de TODAS las sedes en el rango.
+    const sedeId = await getActiveSedeIdForCurrentUser()
+    let selQuery = supabase
         .from('cultos')
         .select('id')
         .gte('fecha', fechaInicio)
         .lte('fecha', fechaFin)
+    if (sedeId) selQuery = selQuery.eq('sede_id', sedeId)
+
+    const { data: cultos, error: selErr } = await selQuery
     if (selErr) return { error: selErr.message }
     if (!cultos?.length) return { error: 'SIN_CULTOS' }
 

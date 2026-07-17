@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import { redirect, unstable_rethrow } from 'next/navigation'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
 import { getUserAssignments } from './cultos/actions'
+import { getActiveSedeIdForCurrentUser } from '@/lib/sede/activeSede'
 import DashboardClient from './DashboardClient'
 
 // Revalidation trigger
@@ -22,17 +23,11 @@ export default async function DashboardPage() {
         const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }) // Monday start
         const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
 
-        // 1. DISPATCH CONCURRENT REQUESTS (Paralelización de llamadas para reducir TTFB)
-        const [
-            profileRes,
-            cultosDataRes,
-            initialAssignmentsRes
-        ] = await Promise.all([
-            // Get user profile
-            supabase.from('profiles').select('*').eq('id', user.id).single(),
+        // Sede activa: el ADMIN ve todas las sedes por RLS, así que el
+        // dashboard debe acotar a la sede elegida en el sidebar.
+        const sedeId = await getActiveSedeIdForCurrentUser()
 
-            // Get today's cultos
-            supabase.from('cultos').select(`
+        const cultosHoyQuery = supabase.from('cultos').select(`
                 *,
                 lecturas:lecturas_biblicas(*),
                 plan_himnos_coros(
@@ -45,7 +40,19 @@ export default async function DashboardPage() {
                 usuario_finalizacion:profiles!id_usuario_finalizacion(nombre, apellidos, avatar_url),
                 usuario_ensenanza:profiles!id_usuario_ensenanza(nombre, apellidos, avatar_url),
                 usuario_testimonios:profiles!id_usuario_testimonios(nombre, apellidos, avatar_url)
-            `).eq('fecha', today).order('hora_inicio', { ascending: true }),
+            `).eq('fecha', today).order('hora_inicio', { ascending: true })
+
+        // 1. DISPATCH CONCURRENT REQUESTS (Paralelización de llamadas para reducir TTFB)
+        const [
+            profileRes,
+            cultosDataRes,
+            initialAssignmentsRes
+        ] = await Promise.all([
+            // Get user profile
+            supabase.from('profiles').select('*').eq('id', user.id).single(),
+
+            // Get today's cultos (solo de la sede activa)
+            sedeId ? cultosHoyQuery.eq('sede_id', sedeId) : cultosHoyQuery,
 
             // Get user assignments for current week
             getUserAssignments(user.id, format(weekStart, 'yyyy-MM-dd'), format(weekEnd, 'yyyy-MM-dd')),
@@ -81,9 +88,9 @@ export default async function DashboardPage() {
             }
         }
 
-        // Si no hay culto hoy, buscar el PRÓXIMO disponible
+        // Si no hay culto hoy, buscar el PRÓXIMO disponible (de la sede activa)
         if (!cultoMostrado) {
-            const { data: nextCultos } = await supabase
+            let nextQuery = supabase
                 .from('cultos')
                 .select(`
                 *,
@@ -98,6 +105,9 @@ export default async function DashboardPage() {
                 .order('fecha', { ascending: true })
                 .order('hora_inicio', { ascending: true })
                 .limit(1)
+            if (sedeId) nextQuery = nextQuery.eq('sede_id', sedeId)
+
+            const { data: nextCultos } = await nextQuery
 
             if (nextCultos && nextCultos.length > 0) {
                 cultoMostrado = nextCultos[0]
@@ -107,7 +117,11 @@ export default async function DashboardPage() {
 
         return (
             <Suspense fallback={<div className="p-4 md:p-8 animate-pulse rounded-2xl bg-muted/30 h-[220px]" />}>
+                {/* key por sede: al cambiar de sede en el sidebar los componentes
+                    cliente (CultoNavigator, MyAssignmentsPanel) se remontan y no
+                    conservan datos de la sede anterior en su estado local. */}
                 <DashboardClient
+                    key={sedeId ?? 'propia'}
                     user={{ ...profile, id: user.id }}
                     culto={cultoMostrado}
                     esHoy={esCultoHoy}

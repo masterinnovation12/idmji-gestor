@@ -93,8 +93,19 @@ test.describe('Sunday Dual Services (10:00 and 17:00)', () => {
         const loader = page.locator('[class*="animate-spin"]').first()
         await loader.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {})
 
-        // Debe cargar el título o lista de lecturas
-        const title = page.getByRole('heading', { name: /historial/i })
-        await expect(title).toBeVisible({ timeout: 10000 })
+        // Debe cargar el título o lista de lecturas. Redirige a
+        // /dashboard/historial/lecturas; el dev server puede devolver un 404
+        // transitorio mientras compila la ruta en el primer acceso, así que
+        // recargamos si aparece y reintentamos.
+        await expect(async () => {
+            const es404 = await page
+                .getByRole('heading', { name: '404' })
+                .isVisible()
+                .catch(() => false)
+            if (es404) await page.reload()
+            await expect(
+                page.getByRole('heading', { name: /historial/i }).first(),
+            ).toBeVisible({ timeout: 8000 })
+        }).toPass({ timeout: 45000 })
     })
 })

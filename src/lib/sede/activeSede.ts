@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import type { SessionContext } from '@/lib/auth/guards'
+import { requireUser, type SessionContext } from '@/lib/auth/guards'
 
 /**
  * Sede activa del ADMIN (cookie). Los usuarios no-admin están siempre
@@ -26,4 +26,17 @@ export async function resolveActiveSedeId(ctx: SessionContext): Promise<string |
         if (data?.id) return data.id
     }
     return ctx.profile.sede_id
+}
+
+/**
+ * Sede activa del usuario actual para filtrar LECTURAS de datos operativos.
+ * Para un ADMIN la RLS devuelve todas las sedes, así que las consultas de
+ * vistas (dashboard, calendario, detalle del día…) deben acotar con este
+ * filtro para mostrar solo la sede elegida en el sidebar. Devuelve null si
+ * no hay sesión (la RLS sigue protegiendo).
+ */
+export async function getActiveSedeIdForCurrentUser(): Promise<string | null> {
+    const { ctx } = await requireUser()
+    if (!ctx) return null
+    return resolveActiveSedeId(ctx)
 }

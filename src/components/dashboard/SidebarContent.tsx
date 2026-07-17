@@ -126,7 +126,7 @@ export function SidebarContent({
                 )}
 
                 {/* Selector de sede activa (solo ADMIN con varias sedes) */}
-                {!isSidebarCollapsed && <SedeSwitcher t={t} />}
+                {!isSidebarCollapsed && <SedeSwitcher t={t} onSedeChanged={onMobileNav} />}
 
                 {/* Collapsed state controls */}
                 {isSidebarCollapsed && (
