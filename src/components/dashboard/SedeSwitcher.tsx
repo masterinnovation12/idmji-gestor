@@ -10,6 +10,8 @@ import type { TranslationKey } from '@/lib/i18n/types'
 interface SedeSwitcherProps {
     t: (key: TranslationKey) => string
     collapsed?: boolean
+    /** En móvil cierra el drawer tras confirmar el cambio de sede. */
+    onSedeChanged?: () => void
 }
 
 interface SwitcherSede {
@@ -23,7 +25,7 @@ interface SwitcherSede {
  * Selector de sede activa. Solo visible para ADMIN con más de una sede:
  * el resto de usuarios trabaja siempre sobre su propia sede (RLS).
  */
-export function SedeSwitcher({ t, collapsed = false }: Readonly<SedeSwitcherProps>) {
+export function SedeSwitcher({ t, collapsed = false, onSedeChanged }: Readonly<SedeSwitcherProps>) {
     const router = useRouter()
     const [sedes, setSedes] = useState<SwitcherSede[]>([])
     const [activeId, setActiveId] = useState<string | null>(null)
@@ -53,6 +55,11 @@ export function SedeSwitcher({ t, collapsed = false }: Readonly<SedeSwitcherProp
             if (res.success) {
                 setActiveId(sede.id)
                 toast.success(`${t('sede.cambiada')}: ${sede.nombre}`)
+                // Cerrar el drawer móvil y llevar al dashboard con los datos
+                // de la sede recién elegida (el push + refresh remonta las
+                // páginas server, que llevan key por sede).
+                onSedeChanged?.()
+                router.push('/dashboard')
                 router.refresh()
             } else {
                 toast.error(res.error || t('common.error'))
@@ -74,7 +81,7 @@ export function SedeSwitcher({ t, collapsed = false }: Readonly<SedeSwitcherProp
     }
 
     return (
-        <div className="relative" data-testid="sede-switcher">
+        <div data-testid="sede-switcher">
             <button
                 onClick={() => setIsOpen(o => !o)}
                 disabled={isPending}
@@ -89,8 +96,14 @@ export function SedeSwitcher({ t, collapsed = false }: Readonly<SedeSwitcherProp
                 <ChevronDown size={14} className={`shrink-0 text-white/60 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
+            {/* Lista EN FLUJO (no absolute): dentro del drawer móvil los
+                overlays absolutos quedaban recortados/tapados por el propio
+                menú; al expandirse en flujo siempre es visible y clicable. */}
             {isOpen && (
-                <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl bg-[#1b2a72] border border-[rgba(184,150,74,0.4)] shadow-2xl overflow-hidden">
+                <div
+                    data-testid="sede-switcher-lista"
+                    className="mt-2 rounded-2xl bg-[#141f56] border border-[rgba(184,150,74,0.4)] shadow-2xl overflow-y-auto max-h-56 no-scrollbar"
+                >
                     {sedes.map(sede => (
                         <button
                             key={sede.id}

@@ -391,6 +391,8 @@ export default function DashboardLayout({
                     <div className="glass rounded-[2.5rem] border-[1.5px] border-[rgba(184,150,74,0.35)] p-2 flex items-center justify-between shadow-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
                         <button
                             onClick={() => setIsMobileMenuOpen(true)}
+                            aria-label={t('common.openMenu')}
+                            data-testid="mobile-menu-abrir"
                             className="w-12 h-12 flex items-center justify-center bg-[#1f2e85]/10 border border-[rgba(184,150,74,0.35)] rounded-2xl text-[#1f2e85] dark:text-[#e8d9a8] shrink-0 transition-transform active:scale-90"
                         >
                             <Menu size={22} />

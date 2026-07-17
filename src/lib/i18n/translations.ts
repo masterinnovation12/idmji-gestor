@@ -1162,6 +1162,7 @@ export const translations = {
         // Genéricos
         'common.yes': 'Sí',
         'common.no': 'No',
+        'common.openMenu': 'Abrir menú',
 
         // Administración → Himnario (catálogo)
         'admin.hub.himnarioTitulo': 'Himnario',
@@ -2359,6 +2360,7 @@ export const translations = {
         // Genèrics
         'common.yes': 'Sí',
         'common.no': 'No',
+        'common.openMenu': 'Obre el menú',
 
         // Administració → Himnari (catàleg)
         'admin.hub.himnarioTitulo': 'Himnari',

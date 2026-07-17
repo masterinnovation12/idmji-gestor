@@ -14,7 +14,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { eachDayOfInterval, endOfMonth, getDay, startOfMonth, format, startOfWeek, endOfWeek } from 'date-fns'
 import { requirePermission } from '@/lib/auth/guards'
-import { resolveActiveSedeId } from '@/lib/sede/activeSede'
+import { getActiveSedeIdForCurrentUser, resolveActiveSedeId } from '@/lib/sede/activeSede'
 
 /**
  * Genera automáticamente los cultos de un mes basándose en el calendario semanal
@@ -166,12 +166,13 @@ export async function createCulto(formData: FormData) {
  */
 export async function getCultosForMonth(year: number, month: number) {
     const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
     const monthDate = new Date(year, month, 1)
     const start = format(startOfWeek(startOfMonth(monthDate), { weekStartsOn: 1 }), 'yyyy-MM-dd')
     const end = format(endOfWeek(endOfMonth(monthDate), { weekStartsOn: 1 }), 'yyyy-MM-dd')
 
-    const { data, error } = await supabase
+    let query = supabase
         .from('cultos')
         .select(`
             *,
@@ -184,6 +185,9 @@ export async function getCultosForMonth(year: number, month: number) {
         .gte('fecha', start)
         .lte('fecha', end)
         .order('fecha', { ascending: true })
+    if (sedeId) query = query.eq('sede_id', sedeId)
+
+    const { data, error } = await query
 
     if (error) {
         console.error('Error fetching cultos:', error)
@@ -198,8 +202,9 @@ export async function getCultosForMonth(year: number, month: number) {
  */
 export async function getUserAssignments(userId: string, startStr: string, endStr: string) {
     const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
-    const { data, error } = await supabase
+    let query = supabase
         .from('cultos')
         .select(`
             *,
@@ -209,6 +214,9 @@ export async function getUserAssignments(userId: string, startStr: string, endSt
         .lte('fecha', endStr)
         .or(`id_usuario_intro.eq.${userId},id_usuario_ensenanza.eq.${userId},id_usuario_finalizacion.eq.${userId},id_usuario_testimonios.eq.${userId}`)
         .order('fecha', { ascending: true })
+    if (sedeId) query = query.eq('sede_id', sedeId)
+
+    const { data, error } = await query
 
     if (error) {
         console.error('Error fetching user assignments:', error)
@@ -223,9 +231,10 @@ export async function getUserAssignments(userId: string, startStr: string, endSt
  */
 export async function getCultosForRange(startDate: string, endDate: string) {
     const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
     try {
-        const { data, error } = await supabase
+        let query = supabase
             .from('cultos')
             .select(`
                 id,
@@ -240,6 +249,9 @@ export async function getCultosForRange(startDate: string, endDate: string) {
             `)
             .gte('fecha', startDate)
             .lte('fecha', endDate)
+        if (sedeId) query = query.eq('sede_id', sedeId)
+
+        const { data, error } = await query
 
         if (error) throw error
 
@@ -257,6 +269,7 @@ export async function getCultosForRange(startDate: string, endDate: string) {
  */
 export async function getCultoByDate(fecha: string, horaInicio?: string) {
     const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
     try {
         let query = supabase
@@ -278,6 +291,7 @@ export async function getCultoByDate(fecha: string, horaInicio?: string) {
             .eq('fecha', fecha)
             .order('hora_inicio', { ascending: true })
 
+        if (sedeId) query = query.eq('sede_id', sedeId)
         if (horaInicio) {
             query = query.eq('hora_inicio', horaInicio)
         }
@@ -298,9 +312,10 @@ export async function getCultoByDate(fecha: string, horaInicio?: string) {
  */
 export async function getCultosByDate(fecha: string) {
     const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
     try {
-        const { data, error } = await supabase
+        let query = supabase
             .from('cultos')
             .select(`
                 *,
@@ -318,6 +333,9 @@ export async function getCultosByDate(fecha: string) {
             `)
             .eq('fecha', fecha)
             .order('hora_inicio', { ascending: true })
+        if (sedeId) query = query.eq('sede_id', sedeId)
+
+        const { data, error } = await query
 
         if (error) throw error
 
@@ -334,9 +352,10 @@ export async function getCultosByDate(fecha: string) {
  */
 export async function getCultoIndicatorsForRange(startDate: string, endDate: string) {
     const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
     try {
-        const { data, error } = await supabase
+        let query = supabase
             .from('cultos')
             .select(`
                 fecha,
@@ -345,6 +364,9 @@ export async function getCultoIndicatorsForRange(startDate: string, endDate: str
             .gte('fecha', startDate)
             .lte('fecha', endDate)
             .order('fecha', { ascending: true })
+        if (sedeId) query = query.eq('sede_id', sedeId)
+
+        const { data, error } = await query
 
         if (error) throw error
 
