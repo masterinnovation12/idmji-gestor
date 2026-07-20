@@ -3,6 +3,7 @@ import {
     asignarPlanoServicio,
     construirHistorialParaServicio,
     crearHistorialVacio,
+    parKey,
     scorePersonaRol,
     sembrarUso,
     poolElegible,
@@ -163,6 +164,77 @@ describe('planoEngine', () => {
         h.roles.set('h2', { ofrendario: 0, apoyo: 0 })
         const res = asignarPlanoServicio('jueves', 1, personas, [], h)
         expect(res.find(r => r.rol === 'ofrendario')?.persona_id).toBe('h2')
+    })
+
+    it('la pareja gana en igualdad de rotación (preferencia suave)', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('m1', 'M1', { genero: 'mujer' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+            persona('h3', 'H3', { genero: 'hombre' }),
+        ]
+        const parejas: PlanoParejaEngine[] = [{ mujerId: 'm1', hombreId: 'h1' }]
+        const res = asignarPlanoServicio('jueves', 1, personas, parejas, crearHistorialVacio())
+        expect(res.map(r => r.persona_id).sort()).toEqual(['h1', 'm1'])
+    })
+
+    it('la pareja deja de monopolizar cuando acumula más salidas que el resto', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('m1', 'M1', { genero: 'mujer' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+            persona('h3', 'H3', { genero: 'hombre' }),
+        ]
+        const parejas: PlanoParejaEngine[] = [{ mujerId: 'm1', hombreId: 'h1' }]
+        const h = crearHistorialVacio()
+        // La pareja ya salió 2 veces en este turno; los solteros, ninguna.
+        h.roles.set('h1', { ofrendario: 2, apoyo: 0 })
+        h.roles.set('m1', { ofrendario: 0, apoyo: 2 })
+        const res = asignarPlanoServicio('jueves', 1, personas, parejas, h)
+        expect(res.map(r => r.persona_id).sort()).toEqual(['h2', 'h3'])
+    })
+
+    it('penaliza repetir el mismo par exacto de servicios vecinos', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+            persona('h3', 'H3', { genero: 'hombre' }),
+        ]
+        const h = crearHistorialVacio()
+        h.paresRecientes.set(parKey('h1', 'h2'), 1)
+        const res = asignarPlanoServicio('jueves', 1, personas, [], h)
+        expect(res.map(r => r.persona_id).sort()).not.toEqual(['h1', 'h2'])
+    })
+
+    it('penaliza salir dos veces la misma semana (otro turno)', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+            persona('h3', 'H3', { genero: 'hombre' }),
+            persona('h4', 'H4', { genero: 'hombre' }),
+        ]
+        const h = crearHistorialVacio()
+        // h1 y h2 ya salieron en otro turno de esta semana → tocan h3/h4.
+        h.mismaSemanaOtroTurno.set('h1', 1)
+        h.mismaSemanaOtroTurno.set('h2', 1)
+        const res = asignarPlanoServicio('jueves', 1, personas, [], h)
+        expect(res.map(r => r.persona_id).sort()).toEqual(['h3', 'h4'])
+    })
+
+    it('construirHistorialParaServicio reconstruye pares y misma semana', () => {
+        const h = construirHistorialParaServicio(
+            new Map(),
+            [
+                { persona_id: 'a', rol: 'ofrendario', servicio_id: 's1', bloque: 1 },
+                { persona_id: 'b', rol: 'apoyo', servicio_id: 's1', bloque: 1 },
+                { persona_id: 'c', rol: 'ofrendario', servicio_id: 's1', bloque: 2 },
+            ],
+            [{ persona_id: 'd', rol: 'apoyo' }],
+        )
+        expect(h.paresRecientes.get(parKey('a', 'b'))).toBe(1)
+        expect(h.paresRecientes.size).toBe(1)
+        expect(h.mismaSemanaOtroTurno.get('d')).toBe(1)
+        expect(h.conteo.get('d')).toBeUndefined()
     })
 
     it('varios sacos en el mismo culto actualizan roles en memoria para el siguiente saco', () => {

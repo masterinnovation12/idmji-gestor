@@ -12,24 +12,23 @@ export interface SquareHeaderBlockLayout {
     textMax: number
     logoOuter: number
     logoY: number
-    churchY: number
-    churchFontPx: number
     titleY: number
     titleFontPx: number
     subtitleY: number
     subtitleFontPx: number
 }
 
-/** Alturas de línea usadas para centrar el bloque (sin canvas). */
+/**
+ * Alturas de línea usadas para centrar el bloque (sin canvas).
+ * Sin línea de iglesia: el logo ya identifica a la congregación.
+ */
 export const SQUARE_HEADER_LINE = {
-    church: 14,
-    title: 38,
-    subtitle: 22,
+    title: 48,
+    subtitle: 32,
 } as const
 
 export const SQUARE_HEADER_GAP = {
-    logoToChurch: 10,
-    churchToTitle: 6,
+    logoToTitle: 14,
     titleToSubtitle: 8,
 } as const
 
@@ -38,9 +37,7 @@ export function squareHeaderContentHeight(logoOuter: number = SQUARE_HEADER_LOGO
     const l = SQUARE_HEADER_LINE
     return (
         logoOuter +
-        g.logoToChurch +
-        l.church +
-        g.churchToTitle +
+        g.logoToTitle +
         l.title +
         g.titleToSubtitle +
         l.subtitle
@@ -58,8 +55,7 @@ export function computeSquareHeaderBlockLayout(
     const g = SQUARE_HEADER_GAP
     const l = SQUARE_HEADER_LINE
 
-    const churchY = logoY + logoOuter + g.logoToChurch
-    const titleY = churchY + l.church + g.churchToTitle
+    const titleY = logoY + logoOuter + g.logoToTitle
     const subtitleY = titleY + l.title + g.titleToSubtitle
 
     return {
@@ -67,12 +63,10 @@ export function computeSquareHeaderBlockLayout(
         textMax: canvasWidth - SQUARE_HEADER_TEXT_PAD_X * 2,
         logoOuter,
         logoY,
-        churchY,
-        churchFontPx: 11,
         titleY,
-        titleFontPx: 30,
+        titleFontPx: 40,
         subtitleY,
-        subtitleFontPx: 17,
+        subtitleFontPx: 26,
     }
 }
 
@@ -83,7 +77,7 @@ export function squareHeaderBlockFits(layout: SquareHeaderBlockLayout): boolean 
     return (
         layout.logoY >= 10 &&
         bottom <= layout.height - 10 &&
-        layout.churchY > layout.logoY + layout.logoOuter
+        layout.titleY > layout.logoY + layout.logoOuter
     )
 }
 

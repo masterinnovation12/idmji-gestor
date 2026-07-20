@@ -51,8 +51,12 @@ export interface ListaCellTypography {
     puestoPadX: number
 }
 
-/** Encabezados PUESTO / RESPONSABLE / APOYO (+50 % sobre 13px base). */
-export const LISTA_COL_HEADER_PX = 20
+/**
+ * Encabezados PUESTO / RESPONSABLE / APOYO.
+ * 26px para que RESPONSABLE y APOYO se aprecien; a 1080px (ancho real de
+ * export) las 3 columnas siguen cabiendo en ES y CA (ver listaHeadersFitColumns).
+ */
+export const LISTA_COL_HEADER_PX = 26
 
 /**
  * Tipografía densa: nombres ~42 % de la altura de fila (un poco más que mockup base).

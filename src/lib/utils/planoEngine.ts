@@ -33,29 +33,67 @@ export interface PlanoHistorialUso {
     ultimaPorTurno: Partial<Record<DiaTipo, string>>
     /** Histórico O/A acumulado (misma fuente que «1O · 2A» en Personas). */
     roles: Map<string, PlanoRoleCounts>
+    /** Veces que un par exacto (clave {@link parKey}) salió junto en vecinos ±3. */
+    paresRecientes: Map<string, number>
+    /** Recencia en cultos de la misma semana en OTROS turnos (jue ↔ dom M ↔ dom T). */
+    mismaSemanaOtroTurno: Map<string, number>
 }
 
 export interface VecinoAsignacion {
     persona_id: string | null
     rol: string
+    /** servicio + bloque permiten reconstruir con quién compartió saco. */
+    servicio_id?: string
+    bloque?: number
 }
 
 export function crearHistorialVacio(): PlanoHistorialUso {
-    return { conteo: new Map(), ultimaPorTurno: {}, roles: new Map() }
+    return {
+        conteo: new Map(),
+        ultimaPorTurno: {},
+        roles: new Map(),
+        paresRecientes: new Map(),
+        mismaSemanaOtroTurno: new Map(),
+    }
+}
+
+/** Clave canónica de un par de personas (orden estable). */
+export function parKey(a: string, b: string): string {
+    return a < b ? `${a}|${b}` : `${b}|${a}`
 }
 
 /**
  * Combina el histórico global O/A con la recencia de vecinos ±3 antes de
- * asignar un culto. Los roles vienen de BD; los vecinos solo penalizan recencia.
+ * asignar un culto. Los roles vienen de BD; los vecinos penalizan recencia y,
+ * si traen servicio+bloque, también la repetición del mismo par. Los cultos de
+ * la misma semana en otros turnos penalizan salir dos veces la misma semana.
  */
 export function construirHistorialParaServicio(
     rolesAcumulado: ReadonlyMap<string, PlanoRoleCounts>,
     vecinos: readonly VecinoAsignacion[],
+    vecinosMismaSemana: readonly VecinoAsignacion[] = [],
 ): PlanoHistorialUso {
     const h = crearHistorialVacio()
     h.roles = clonarMapaRoleCounts(rolesAcumulado)
+    const porBloque = new Map<string, string[]>()
     for (const v of vecinos) {
-        if (v.persona_id) sembrarUso(h, v.persona_id)
+        if (!v.persona_id) continue
+        sembrarUso(h, v.persona_id)
+        if (v.servicio_id != null && v.bloque != null) {
+            const key = `${v.servicio_id}#${v.bloque}`
+            const arr = porBloque.get(key) ?? []
+            arr.push(v.persona_id)
+            porBloque.set(key, arr)
+        }
+    }
+    for (const ids of porBloque.values()) {
+        if (ids.length !== 2) continue
+        const key = parKey(ids[0], ids[1])
+        h.paresRecientes.set(key, (h.paresRecientes.get(key) ?? 0) + 1)
+    }
+    for (const v of vecinosMismaSemana) {
+        if (!v.persona_id) continue
+        h.mismaSemanaOtroTurno.set(v.persona_id, (h.mismaSemanaOtroTurno.get(v.persona_id) ?? 0) + 1)
     }
     return h
 }
@@ -83,7 +121,26 @@ function registrarUso(h: PlanoHistorialUso, id: string, diaTipo: DiaTipo, rol: P
     h.roles.set(id, cur)
 }
 
-/** Menor score = más prioritario. Pesa O/A del turno y recencia en vecinos ±3. */
+// ─── Pesos del score (menor = más prioritario) ────────────────────────────────
+/** Cada vez que ya hizo este rol en el turno (histórico O/A). */
+const PESO_ROL_TURNO = 100
+/** Cada aparición en los servicios vecinos ±3 del mismo turno. */
+const PESO_RECENCIA_TURNO = 50
+/** Fue la última persona registrada en este turno. */
+const PESO_ULTIMO_TURNO = 50
+/** Cada aparición en otro culto de la MISMA semana (otro turno). */
+const PESO_MISMA_SEMANA = 300
+/** Cada vez que este par exacto ya salió junto en vecinos ±3. */
+const PESO_PAR_REPETIDO = 150
+/**
+ * Ventaja de una pareja registrada sobre un par del mismo género.
+ * Es una preferencia suave: en igualdad de rotación la pareja gana, pero en
+ * cuanto acumula más salidas que el resto deja de monopolizar los sacos.
+ * (Antes era 1000 y funcionaba como un muro: las parejas salían siempre.)
+ */
+const PESO_TIER_NO_PAREJA = 120
+
+/** Menor score = más prioritario. Pesa O/A del turno, recencia ±3 y misma semana. */
 export function scorePersonaRol(
     p: PlanoPersonaEngine,
     h: PlanoHistorialUso,
@@ -92,9 +149,10 @@ export function scorePersonaRol(
 ): number {
     const rc = h.roles.get(p.id) ?? { ofrendario: 0, apoyo: 0 }
     const rolCount = rol === 'ofrendario' ? rc.ofrendario : rc.apoyo
-    let s = rolCount * 100
-    s += uso(h, p.id) * 50
-    if (h.ultimaPorTurno[diaTipo] === p.id) s += 50
+    let s = rolCount * PESO_ROL_TURNO
+    s += uso(h, p.id) * PESO_RECENCIA_TURNO
+    if (h.ultimaPorTurno[diaTipo] === p.id) s += PESO_ULTIMO_TURNO
+    s += (h.mismaSemanaOtroTurno.get(p.id) ?? 0) * PESO_MISMA_SEMANA
     return s
 }
 
@@ -227,8 +285,10 @@ export function asignarPlanoServicio(
             .map(([a, b, tier]) => {
                 const par = elegirOfrendarioApoyo(a, b, parejas, historial, diaTipo)
                 if (!par) return null
+                const repes = historial.paresRecientes.get(parKey(a.id, b.id)) ?? 0
                 const score =
-                    tier * 1000 +
+                    tier * PESO_TIER_NO_PAREJA +
+                    repes * PESO_PAR_REPETIDO +
                     scorePersonaRol(par.ofrendario, historial, diaTipo, 'ofrendario') +
                     scorePersonaRol(par.apoyo, historial, diaTipo, 'apoyo')
                 return { par, score }

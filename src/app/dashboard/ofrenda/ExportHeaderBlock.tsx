@@ -105,32 +105,17 @@ export function ExportHeaderBlock({
                 >
                     <div
                         style={{
-                            fontSize: 9,
-                            fontWeight: 600,
-                            letterSpacing: '0.2em',
-                            textTransform: 'uppercase',
-                            color: '#E8D9A8',
-                            marginBottom: 10,
-                            lineHeight: 1.35,
-                            maxWidth: 520,
-                        }}
-                    >
-                        {labels.churchName}
-                    </div>
-
-                    <div
-                        style={{
                             display: 'flex',
                             flexWrap: 'wrap',
                             alignItems: 'baseline',
                             justifyContent: 'center',
-                            gap: '6px 14px',
+                            gap: '6px 16px',
                         }}
                     >
                         <h1
                             style={{
                                 margin: 0,
-                                fontSize: 32,
+                                fontSize: 42,
                                 fontWeight: 800,
                                 letterSpacing: '-0.03em',
                                 color: IDMJI_BRAND.textOnNavy,
@@ -141,11 +126,11 @@ export function ExportHeaderBlock({
                         </h1>
                         <span
                             style={{
-                                fontSize: 22,
+                                fontSize: 27,
                                 fontWeight: 600,
                                 color: IDMJI_BRAND.goldLight,
                                 letterSpacing: '-0.01em',
-                                paddingLeft: 14,
+                                paddingLeft: 16,
                                 borderLeft: `2px solid rgba(212, 184, 106, 0.65)`,
                                 lineHeight: 1.2,
                             }}

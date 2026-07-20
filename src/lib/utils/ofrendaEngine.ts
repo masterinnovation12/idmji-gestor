@@ -425,6 +425,118 @@ function asignarTestimonios(
     return { punteroTestimonios: ptr, asignadosHoy: new Set(hoy) }
 }
 
+// ─── Continuidad de rotación entre meses ──────────────────────────────────────
+
+/**
+ * Estado de arranque de la rotación: permite que un plan continúe donde el mes
+ * anterior lo dejó (punteros + anti-repetición del último servicio) en vez de
+ * reiniciar siempre desde el primer miembro por `orden`.
+ */
+export interface ArranqueRotacion {
+    punterosG1?: Partial<Record<RolGrupo1, number>>
+    prevG1?: Partial<Record<RolGrupo1, string>>
+    punteroG2?: number
+    prevG2MismoTurno?: Partial<Record<DiaTipo, Set<string>>>
+    prevG2Inmediato?: Set<string>
+    punteroTestimonios?: number
+    prevTestimoniosInmediato?: Set<string>
+}
+
+/** Asignación persistida de un plan anterior (para derivar continuidad). */
+export interface AsignacionPrevia {
+    servicioFecha: string
+    servicioTipo: DiaTipo
+    rol: Rol
+    miembroId: string
+}
+
+const ORDEN_TIPO: Record<DiaTipo, number> = { jueves: 0, domingo: 1, domingo_tarde: 2 }
+
+function construirGruposRotacion(miembros: OfrendaMiembro[]) {
+    const participa = (m: OfrendaMiembro) =>
+        m.activo &&
+        (m.puede_jueves || m.puede_domingo_manana || m.puede_domingo_tarde)
+    const g1 = miembros.filter(m => m.grupo === 1 && participa(m)).sort((a, b) => a.orden - b.orden)
+    const g2 = miembros.filter(m => m.grupo === 2 && participa(m)).sort((a, b) => a.orden - b.orden)
+    const g3 = miembros.filter(m => m.grupo === 3 && participa(m)).sort((a, b) => a.orden - b.orden)
+    return { g1, g2, g3, poolTestimonios: [...g1, ...g2, ...g3] }
+}
+
+/**
+ * Deriva el estado de arranque a partir de las asignaciones del plan anterior
+ * y la lista de miembros ACTUAL (los punteros son índices en esa lista; si el
+ * miembro ya no está, ese puntero se queda en su valor por defecto).
+ */
+export function derivarArranqueRotacion(
+    previas: AsignacionPrevia[],
+    miembros: OfrendaMiembro[],
+): ArranqueRotacion {
+    if (previas.length === 0) return {}
+    const { g1, g2, poolTestimonios } = construirGruposRotacion(miembros)
+
+    const ordenadas = [...previas].sort((a, b) => {
+        const f = a.servicioFecha.localeCompare(b.servicioFecha)
+        if (f !== 0) return f
+        return ORDEN_TIPO[a.servicioTipo] - ORDEN_TIPO[b.servicioTipo]
+    })
+    const last = ordenadas[ordenadas.length - 1]
+    const keyServicio = (a: AsignacionPrevia) => `${a.servicioFecha}:${a.servicioTipo}`
+    const delUltimoServicio = ordenadas.filter(a => keyServicio(a) === keyServicio(last))
+
+    const idxEn = (lista: OfrendaMiembro[], id: string): number =>
+        lista.findIndex(m => m.id === id)
+
+    const arranque: ArranqueRotacion = {}
+
+    // G1: último titular de cada rol → prev + puntero tras él.
+    const punterosG1: Partial<Record<RolGrupo1, number>> = {}
+    const prevG1: Partial<Record<RolGrupo1, string>> = {}
+    for (const rol of ROLES_GRUPO1) {
+        const ultima = [...ordenadas].reverse().find(a => a.rol === rol)
+        if (!ultima) continue
+        prevG1[rol] = ultima.miembroId
+        const idx = idxEn(g1, ultima.miembroId)
+        if (idx >= 0) punterosG1[rol] = (idx + 1) % g1.length
+    }
+    if (Object.keys(prevG1).length > 0) {
+        arranque.punterosG1 = punterosG1
+        arranque.prevG1 = prevG1
+    }
+
+    // G2: puntero tras el último colaborador asignado + sets anti-repetición.
+    const esG2 = (a: AsignacionPrevia) => (ROLES_GRUPO2 as readonly string[]).includes(a.rol)
+    const ultimaG2 = [...ordenadas].reverse().find(esG2)
+    if (ultimaG2 && g2.length > 0) {
+        const idx = idxEn(g2, ultimaG2.miembroId)
+        if (idx >= 0) arranque.punteroG2 = (idx + 1) % g2.length
+    }
+    arranque.prevG2Inmediato = new Set(delUltimoServicio.filter(esG2).map(a => a.miembroId))
+    const prevG2MismoTurno: Partial<Record<DiaTipo, Set<string>>> = {}
+    for (const tipo of ['jueves', 'domingo', 'domingo_tarde'] as DiaTipo[]) {
+        const delTipo = ordenadas.filter(a => a.servicioTipo === tipo && esG2(a))
+        if (delTipo.length === 0) continue
+        const ultimo = delTipo[delTipo.length - 1]
+        prevG2MismoTurno[tipo] = new Set(
+            delTipo.filter(a => keyServicio(a) === keyServicio(ultimo)).map(a => a.miembroId),
+        )
+    }
+    arranque.prevG2MismoTurno = prevG2MismoTurno
+
+    // Testimonios: puntero tras la última persona + set del último servicio.
+    const esTestimonio = (a: AsignacionPrevia) =>
+        (ROLES_TESTIMONIOS as readonly string[]).includes(a.rol)
+    const ultimaT = [...ordenadas].reverse().find(esTestimonio)
+    if (ultimaT && poolTestimonios.length > 0) {
+        const idx = idxEn(poolTestimonios, ultimaT.miembroId)
+        if (idx >= 0) arranque.punteroTestimonios = (idx + 1) % poolTestimonios.length
+    }
+    arranque.prevTestimoniosInmediato = new Set(
+        delUltimoServicio.filter(esTestimonio).map(a => a.miembroId),
+    )
+
+    return arranque
+}
+
 // ─── Generación completa del plan ─────────────────────────────────────────────
 
 /**
@@ -439,6 +551,8 @@ function asignarTestimonios(
  * @param overrides        Mapa de asignaciones manuales: "YYYY-MM-DD:tipo:rol" → miembroId
  * @param regenerarGrupo   null = ambos grupos; 1 = solo Grupo 1; 2 = solo Grupo 2
  * @param sacosConfig      Sacos por tipo de servicio (defaults: 4/8/4)
+ * @param arranque         Continuidad de rotación desde el mes anterior
+ *                         (ver {@link derivarArranqueRotacion})
  */
 export function generarPlan(
     anio: number,
@@ -447,7 +561,8 @@ export function generarPlan(
     miembros: OfrendaMiembro[],
     overrides: Record<string, string> = {},
     regenerarGrupo: 1 | 2 | null = null,
-    sacosConfig: Partial<SacosConfig> = {}
+    sacosConfig: Partial<SacosConfig> = {},
+    arranque: ArranqueRotacion = {}
 ): PlanCalculado {
     const config: SacosConfig = {
         jueves:       sacosConfig.jueves       ?? SACOS_JUEVES,
@@ -488,14 +603,8 @@ export function generarPlan(
     const punteroFin = puntero
 
     // ── Asignaciones ──────────────────────────────────────────────────────────
-    const participa = (m: OfrendaMiembro) =>
-        m.activo &&
-        (m.puede_jueves || m.puede_domingo_manana || m.puede_domingo_tarde)
-
-    const g1 = miembros.filter(m => m.grupo === 1 && participa(m)).sort((a, b) => a.orden - b.orden)
-    const g2 = miembros.filter(m => m.grupo === 2 && participa(m)).sort((a, b) => a.orden - b.orden)
     // Grupo 3: solo testimonios (no entra en roles de G1 ni en colaboradores de G2).
-    const g3 = miembros.filter(m => m.grupo === 3 && participa(m)).sort((a, b) => a.orden - b.orden)
+    const { g1, g2, poolTestimonios } = construirGruposRotacion(miembros)
 
     // Puestos fijos (coordinador/apoyo siempre la misma persona ese día_tipo).
     // Clave `${diaTipo}:${rol}` → miembroId. Tienen precedencia sobre los overrides.
@@ -508,20 +617,28 @@ export function generarPlan(
 
     const asignaciones: AsignacionCalculada[] = []
 
-    // Punteros de rotación independientes por rol G1 (uno por cada rol existente)
-    const punterosG1 = Object.fromEntries(ROLES_GRUPO1.map(r => [r, 0])) as Record<RolGrupo1, number>
+    // Punteros de rotación independientes por rol G1 (uno por cada rol existente).
+    // Con `arranque`, la rotación continúa donde la dejó el mes anterior.
+    const punterosG1 = Object.fromEntries(
+        ROLES_GRUPO1.map(r => [r, arranque.punterosG1?.[r] ?? 0]),
+    ) as Record<RolGrupo1, number>
     // Quién hizo cada rol G1 en el servicio anterior (Jue → Dom M → Dom T → Jue)
-    const prevG1 = Object.fromEntries(ROLES_GRUPO1.map(r => [r, null])) as Record<RolGrupo1, string | null>
+    const prevG1 = Object.fromEntries(
+        ROLES_GRUPO1.map(r => [r, arranque.prevG1?.[r] ?? null]),
+    ) as Record<RolGrupo1, string | null>
 
     // Puntero de rotación G2 (todos comparten uno)
-    let punteroG2 = 0
+    let punteroG2 = arranque.punteroG2 ?? 0
     const prevG2MismoTurno = crearG2AntiRepeticionVacio()
-    let prevG2Inmediato: Set<string> = new Set()
+    for (const tipo of Object.keys(prevG2MismoTurno) as DiaTipo[]) {
+        const set = arranque.prevG2MismoTurno?.[tipo]
+        if (set) prevG2MismoTurno[tipo] = new Set(set)
+    }
+    let prevG2Inmediato: Set<string> = new Set(arranque.prevG2Inmediato ?? [])
 
     // Testimonios: pool combinado G1 + G2 + G3 (en orden de grupo y orden interno)
-    const poolTestimonios = [...g1, ...g2, ...g3]
-    let punteroTestimonios = 0
-    let prevTestimoniosInmediato: Set<string> = new Set()
+    let punteroTestimonios = arranque.punteroTestimonios ?? 0
+    let prevTestimoniosInmediato: Set<string> = new Set(arranque.prevTestimoniosInmediato ?? [])
 
     for (const srv of servicios) {
         // La clave del override incluye fecha + tipo para distinguir Dom M vs Dom T

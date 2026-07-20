@@ -92,24 +92,10 @@ function ExportHeader({ labels, periodLabel }: { labels: PulpitoExportLabels; pe
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                    <div
-                        style={{
-                            fontSize: 8.5,
-                            fontWeight: 600,
-                            letterSpacing: '0.18em',
-                            textTransform: 'uppercase',
-                            color: '#E8D9A8',
-                            marginBottom: 8,
-                            maxWidth: 420,
-                            lineHeight: 1.35,
-                        }}
-                    >
-                        {labels.churchName}
-                    </div>
                     <h1
                         style={{
                             margin: 0,
-                            fontSize: 27,
+                            fontSize: 34,
                             fontWeight: 800,
                             letterSpacing: '-0.02em',
                             color: IDMJI_BRAND.textOnNavy,
@@ -121,7 +107,7 @@ function ExportHeader({ labels, periodLabel }: { labels: PulpitoExportLabels; pe
                     <span
                         style={{
                             marginTop: 6,
-                            fontSize: 15,
+                            fontSize: 20,
                             fontWeight: 600,
                             color: IDMJI_BRAND.goldLight,
                         }}

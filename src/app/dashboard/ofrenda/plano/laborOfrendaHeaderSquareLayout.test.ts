@@ -19,7 +19,7 @@ describe('laborOfrendaHeaderSquareLayout — cabecera lista organizada', () => {
         expect(SQUARE_HEADER_LOGO).toBe(84)
     })
 
-    it('bloque logo + 3 líneas cabe en el canvas', () => {
+    it('bloque logo + 2 líneas cabe en el canvas', () => {
         const layout = computeSquareHeaderBlockLayout(width)
         expect(squareHeaderBlockFits(layout)).toBe(true)
         expect(layout.height).toBe(SQUARE_HEADER_HEIGHT)
@@ -30,18 +30,17 @@ describe('laborOfrendaHeaderSquareLayout — cabecera lista organizada', () => {
         expect(squareHeaderIsVerticallyCentered(layout)).toBe(true)
     })
 
-    it('orden jerárquico: logo → iglesia → título → fecha', () => {
+    it('orden jerárquico: logo → título → fecha (sin línea de iglesia)', () => {
         const l = computeSquareHeaderBlockLayout(width)
-        expect(l.churchY).toBeGreaterThan(l.logoY + l.logoOuter)
-        expect(l.titleY).toBeGreaterThan(l.churchY)
+        expect(l.titleY).toBeGreaterThan(l.logoY + l.logoOuter)
         expect(l.subtitleY).toBeGreaterThan(l.titleY)
     })
 
-    it('tipografía: iglesia pequeña, título dominante, fecha intermedia', () => {
+    it('tipografía: título dominante 40px, fecha intermedia 26px', () => {
         const l = computeSquareHeaderBlockLayout(width)
-        expect(l.churchFontPx).toBeLessThan(l.subtitleFontPx)
         expect(l.subtitleFontPx).toBeLessThan(l.titleFontPx)
-        expect(l.titleFontPx).toBeGreaterThanOrEqual(28)
+        expect(l.titleFontPx).toBe(40)
+        expect(l.subtitleFontPx).toBe(26)
     })
 
     it('textMax deja margen lateral 40px', () => {

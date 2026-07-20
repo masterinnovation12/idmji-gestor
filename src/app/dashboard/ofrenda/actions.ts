@@ -7,6 +7,9 @@ import type { PermissionKey } from '@/lib/auth/permissions'
 import {
     generarPlan,
     generarFechasDelPlan,
+    derivarArranqueRotacion,
+    mesAnterior,
+    type AsignacionPrevia,
     type OfrendaMiembro,
     type SacosConfig,
     type DiaTipo,
@@ -387,6 +390,50 @@ async function resolvePunteroInicio(
     return data?.secuencia_puntero_fin ?? 1
 }
 
+/**
+ * Carga las asignaciones del plan del MES ANTERIOR (misma sede) para que la
+ * rotación G1/G2/testimonios continúe donde se quedó en vez de reiniciarse.
+ */
+async function loadAsignacionesMesAnterior(
+    supabase: SupabaseClient,
+    anio: number,
+    mes: number,
+    sedeId: string | null,
+): Promise<AsignacionPrevia[]> {
+    const ant = mesAnterior(anio, mes)
+    let planQuery = supabase
+        .from('ofrenda_planes')
+        .select('id')
+        .eq('anio', ant.anio)
+        .eq('mes', ant.mes)
+    if (sedeId) planQuery = planQuery.eq('sede_id', sedeId)
+    const { data: plan } = await planQuery.maybeSingle()
+    if (!plan) return []
+
+    const { data: srvs } = await supabase
+        .from('ofrenda_servicios')
+        .select('id, fecha, dia_tipo')
+        .eq('plan_id', plan.id)
+    if (!srvs?.length) return []
+
+    const { data: asigs } = await supabase
+        .from('ofrenda_asignaciones')
+        .select('servicio_id, rol, miembro_id')
+        .in('servicio_id', srvs.map(s => s.id))
+
+    const byId = new Map(srvs.map(s => [s.id, s]))
+    return (asigs ?? []).flatMap(a => {
+        const srv = byId.get(a.servicio_id)
+        if (!srv || !a.miembro_id) return []
+        return [{
+            servicioFecha: srv.fecha as string,
+            servicioTipo: srv.dia_tipo as DiaTipo,
+            rol: a.rol as AsignacionPrevia['rol'],
+            miembroId: a.miembro_id as string,
+        }]
+    })
+}
+
 async function loadOverrides(
     supabase: SupabaseClient,
     planExistente: { id: string } | null,
@@ -538,7 +585,9 @@ export async function generarORegenerarPlan(
     }
 
     const overridesMap = await loadOverrides(supabase, planExistente, regenerarGrupo)
-    const planCalc = generarPlan(anio, mes, punteroInicio, miembros, overridesMap, regenerarGrupo ?? null, sacosConfig)
+    const previas = await loadAsignacionesMesAnterior(supabase, anio, mes, sedeId)
+    const arranque = derivarArranqueRotacion(previas, miembros)
+    const planCalc = generarPlan(anio, mes, punteroInicio, miembros, overridesMap, regenerarGrupo ?? null, sacosConfig, arranque)
 
     const secuenciaMax = sacosConfig.secuenciaMax ?? 20
 

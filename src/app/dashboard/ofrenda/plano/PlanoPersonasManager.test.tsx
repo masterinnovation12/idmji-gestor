@@ -28,6 +28,7 @@ vi.mock('./planoActions', () => ({
     setPlanoPersonaTurnos: vi.fn(),
     setPlanoPersonaPrioridad: vi.fn(),
     setPlanoPersonaActivo: vi.fn(),
+    setPlanoPersonaGenero: vi.fn(),
     setPlanoPareja: vi.fn(),
     removePlanoPareja: vi.fn(),
 }))
@@ -43,6 +44,7 @@ import {
     renamePlanoPersona,
     deletePlanoPersona,
     setPlanoPersonaCapacidad,
+    setPlanoPersonaGenero,
 } from './planoActions'
 
 const list = vi.mocked(listPlanoPersonas)
@@ -50,6 +52,7 @@ const create = vi.mocked(createPlanoPersona)
 const rename = vi.mocked(renamePlanoPersona)
 const del = vi.mocked(deletePlanoPersona)
 const setCap = vi.mocked(setPlanoPersonaCapacidad)
+const setGenero = vi.mocked(setPlanoPersonaGenero)
 
 const PERSONAS_BASE = {
     puede_jueves: true,
@@ -99,6 +102,7 @@ beforeEach(() => {
     exportPng.mockResolvedValue(undefined)
     list.mockResolvedValue({ data: PERSONAS })
     setCap.mockResolvedValue({})
+    setGenero.mockResolvedValue({})
     del.mockResolvedValue({})
     create.mockResolvedValue({ data: { id: 'p9', nombre: 'Nuevo', capacidad: 'ambos' }, alreadyExisted: false })
     rename.mockResolvedValue({})
@@ -171,7 +175,80 @@ describe('PlanoPersonasManager', () => {
             target: { value: 'Persona Nueva' },
         })
         fireEvent.click(screen.getByText('common.add').closest('button')!)
-        await waitFor(() => expect(create).toHaveBeenCalledWith('Persona Nueva'))
+        await waitFor(() => expect(create).toHaveBeenCalledWith('Persona Nueva', null))
+        await waitFor(() => expect(list).toHaveBeenCalledTimes(2))
+    })
+
+    it('añadir persona con género seleccionado lo envía a createPlanoPersona', async () => {
+        renderManager()
+        await screen.findByText('Maria Edilma Aricapa')
+        fireEvent.click(screen.getByTestId('plano-personas-add-genero-mujer'))
+        expect(screen.getByTestId('plano-personas-add-genero-mujer')).toHaveAttribute('aria-pressed', 'true')
+        fireEvent.change(screen.getByPlaceholderText('ofrenda.plano.personas.addPlaceholder'), {
+            target: { value: 'Persona Nueva' },
+        })
+        fireEvent.click(screen.getByText('common.add').closest('button')!)
+        await waitFor(() => expect(create).toHaveBeenCalledWith('Persona Nueva', 'mujer'))
+        // Tras crear, el selector de género se resetea
+        await waitFor(() =>
+            expect(screen.getByTestId('plano-personas-add-genero-mujer')).toHaveAttribute('aria-pressed', 'false'),
+        )
+    })
+
+    it('el chip de género del alta se des-selecciona al pulsarlo de nuevo', async () => {
+        renderManager()
+        await screen.findByText('Maria Edilma Aricapa')
+        const chip = screen.getByTestId('plano-personas-add-genero-hombre')
+        fireEvent.click(chip)
+        expect(chip).toHaveAttribute('aria-pressed', 'true')
+        fireEvent.click(chip)
+        expect(chip).toHaveAttribute('aria-pressed', 'false')
+    })
+
+    it('cambiar género en la fila expandida llama a setPlanoPersonaGenero', async () => {
+        renderManager()
+        await screen.findByText('Maria Edilma Aricapa')
+        await expandRow('p1')
+        // p1 es mujer → su chip mujer está activo y el de hombre no
+        expect(screen.getByTestId('plano-persona-genero-p1-mujer')).toHaveAttribute('aria-pressed', 'true')
+        fireEvent.click(screen.getByTestId('plano-persona-genero-p1-hombre'))
+        await waitFor(() => expect(setGenero).toHaveBeenCalledWith('p1', 'hombre'))
+    })
+
+    it('persona sin género muestra el aviso y permite asignarlo desde la fila', async () => {
+        list.mockResolvedValue({
+            data: [{ ...PERSONAS[0], id: 'p3', nombre: 'Sin Genero Test', genero: null }],
+        })
+        renderManager()
+        await screen.findByText('Sin Genero Test')
+        expect(screen.getByTestId('plano-persona-genero-missing-p3')).toHaveTextContent('ofrenda.plano.genero.missing')
+        await expandRow('p3')
+        expect(screen.getByTestId('plano-persona-genero-p3-mujer')).toHaveAttribute('aria-pressed', 'false')
+        expect(screen.getByTestId('plano-persona-genero-p3-hombre')).toHaveAttribute('aria-pressed', 'false')
+        fireEvent.click(screen.getByTestId('plano-persona-genero-p3-mujer'))
+        await waitFor(() => expect(setGenero).toHaveBeenCalledWith('p3', 'mujer'))
+        // El aviso desaparece con la actualización optimista
+        await waitFor(() => expect(screen.queryByTestId('plano-persona-genero-missing-p3')).toBeNull())
+    })
+
+    it('con pareja registrada el género queda bloqueado', async () => {
+        list.mockResolvedValue({
+            data: [{ ...PERSONAS[0], id: 'p4', nombre: 'Con Pareja Test', parejaId: 'p9', parejaNombre: 'Otro' }],
+        })
+        renderManager()
+        await screen.findByText('Con Pareja Test')
+        await expandRow('p4')
+        expect(screen.getByTestId('plano-persona-genero-p4-hombre')).toBeDisabled()
+        expect(screen.getByTestId('plano-persona-genero-p4-mujer')).toBeDisabled()
+    })
+
+    it('si el servidor rechaza el cambio de género se recarga y avisa', async () => {
+        setGenero.mockResolvedValue({ error: 'has_pareja' })
+        renderManager()
+        await screen.findByText('Maria Edilma Aricapa')
+        await expandRow('p1')
+        fireEvent.click(screen.getByTestId('plano-persona-genero-p1-hombre'))
+        await waitFor(() => expect(setGenero).toHaveBeenCalled())
         await waitFor(() => expect(list).toHaveBeenCalledTimes(2))
     })
 

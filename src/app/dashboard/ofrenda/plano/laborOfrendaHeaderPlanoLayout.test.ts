@@ -30,18 +30,15 @@ describe('laborOfrendaHeaderPlanoLayout — cabecera export plano', () => {
         expect(planoHeaderTextRightOfLogo(l)).toBe(true)
     })
 
-    it('jerarquía vertical: iglesia → título → fecha/turno', () => {
+    it('jerarquía vertical: título → fecha/turno (sin línea de iglesia)', () => {
         const l = computePlanoHeaderBlockLayout(1200)
-        expect(l.titleY).toBeGreaterThan(l.churchY)
         expect(l.subtitleY).toBeGreaterThan(l.titleY)
         expect(l.titleFontPx).toBeGreaterThan(l.subtitleFontPx)
-        expect(l.titleFontPx).toBeGreaterThan(l.churchFontPx)
     })
 
-    it('tipografía título 30px, subtítulo 17px', () => {
+    it('tipografía título 40px, subtítulo (día) 26px', () => {
         const l = computePlanoHeaderBlockLayout(1080)
-        expect(l.titleFontPx).toBe(30)
-        expect(l.subtitleFontPx).toBe(17)
-        expect(l.churchFontPx).toBe(11)
+        expect(l.titleFontPx).toBe(40)
+        expect(l.subtitleFontPx).toBe(26)
     })
 })

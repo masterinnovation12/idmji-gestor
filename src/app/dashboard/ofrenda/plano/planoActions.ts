@@ -18,6 +18,7 @@ import type {
     PlanoVistaResuelta,
 } from './planoTypes'
 import { requireEditor, type PlanoAuthError } from './planoAuth'
+import type { PlanoGenero } from './planoPersonaTurnos'
 import { requireUser } from '@/lib/auth/guards'
 import { resolveActiveSedeId } from '@/lib/sede/activeSede'
 import {
@@ -225,7 +226,10 @@ export async function searchPlanoPersonas(
     return { data: (data ?? []).map(toPlanoPersona) }
 }
 
-export async function createPlanoPersona(nombre: string): Promise<PlanoCreatePersonaResult> {
+export async function createPlanoPersona(
+    nombre: string,
+    genero: PlanoGenero | null = null,
+): Promise<PlanoCreatePersonaResult> {
     const { error: authError, supabase, userId, sedeId } = await requireEditor()
     if (authError || !supabase) return { errorCode: 'no_permission' }
 
@@ -255,6 +259,7 @@ export async function createPlanoPersona(nombre: string): Promise<PlanoCreatePer
             nombre: trimmed,
             nombre_normalizado,
             created_by: userId,
+            ...(genero ? { genero } : {}),
             ...(sedeId ? { sede_id: sedeId } : {}),
         })
         .select('*')
@@ -487,6 +492,35 @@ export async function setPlanoPersonaTurnos(
             puede_domingo_manana: turnos.puede_domingo_manana,
             puede_domingo_tarde: turnos.puede_domingo_tarde,
         })
+        .eq('id', personaId)
+
+    if (error) return { error: error.message }
+    revalidatePath('/dashboard/ofrenda')
+    return {}
+}
+
+/**
+ * Cambia el género de una persona. Si está en una pareja registrada se
+ * rechaza ('has_pareja'): hay que quitar la pareja antes, porque la pareja
+ * fija quién es mujer y quién es hombre.
+ */
+export async function setPlanoPersonaGenero(
+    personaId: string,
+    genero: PlanoGenero,
+): Promise<{ error?: string }> {
+    const { error: authError, supabase } = await requireEditor()
+    if (authError || !supabase) return { error: authError ?? 'Error' }
+
+    const { data: pareja } = await supabase
+        .from('ofrenda_plano_parejas')
+        .select('id')
+        .or(`mujer_persona_id.eq.${personaId},hombre_persona_id.eq.${personaId}`)
+        .maybeSingle()
+    if (pareja) return { error: 'has_pareja' }
+
+    const { error } = await supabase
+        .from('ofrenda_plano_personas')
+        .update({ genero })
         .eq('id', personaId)
 
     if (error) return { error: error.message }

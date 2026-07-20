@@ -67,10 +67,10 @@ describe('planoExportListaLayout — mockup WhatsApp lista', () => {
         const high = listaCellTypography(110)
         expect(high.namePx).toBeGreaterThanOrEqual(low.namePx)
         expect(low.namePx).toBeGreaterThanOrEqual(22)
-        expect(low.colHeaderPx).toBe(20)
+        expect(low.colHeaderPx).toBe(26)
     })
 
-    it('columna PUESTO cabe «PUESTO» @ 20px (regresión recorte)', () => {
+    it('columna PUESTO cabe «PUESTO» @ 26px (regresión recorte)', () => {
         const tableWidth = LISTA_EXPORT_SQUARE_PX - 16 * 2
         const headers: [string, string, string] = ['Puesto', 'Responsable', 'Apoyo']
         const colW = listaColumnWidths(tableWidth, headers, LISTA_COL_HEADER_PX)
@@ -90,10 +90,10 @@ describe('planoExportListaLayout — mockup WhatsApp lista', () => {
         expect(listaHeadersFitColumns(ca, listaColumnWidths(tableWidth, ca))).toBe(true)
     })
 
-    it('RESPONSABLE (la más ancha) cabe en columna central', () => {
-        const tableWidth = 1048
-        const colW = listaColumnWidths(tableWidth, ['Puesto', 'Responsable', 'Apoyo'], 20)
-        const textW = estimateListaHeaderTextWidth('RESPONSABLE', 20)
+    it('RESPONSABLE (la más ancha) cabe en columna central a 26px (ancho real 1080)', () => {
+        const tableWidth = LISTA_EXPORT_SQUARE_PX - 16 * 2
+        const colW = listaColumnWidths(tableWidth, ['Puesto', 'Responsable', 'Apoyo'], LISTA_COL_HEADER_PX)
+        const textW = estimateListaHeaderTextWidth('RESPONSABLE', LISTA_COL_HEADER_PX)
         expect(colW[1] - LISTA_COL_HEADER_PAD_X * 2).toBeGreaterThanOrEqual(textW)
     })
 

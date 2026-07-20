@@ -14,6 +14,7 @@ export const PLANO_GENERATE_RULE_IDS = [
     'rotation',
     'couplePriority',
     'antiRepeat',
+    'pairVariety',
 ] as const
 
 export type PlanoGenerateRuleId = (typeof PLANO_GENERATE_RULE_IDS)[number]
@@ -31,6 +32,7 @@ const RULE_I18N: Record<PlanoGenerateRuleId, TranslationKey> = {
     rotation: 'ofrenda.planoGenerate.rules.rotation',
     couplePriority: 'ofrenda.planoGenerate.rules.couplePriority',
     antiRepeat: 'ofrenda.planoGenerate.rules.antiRepeat',
+    pairVariety: 'ofrenda.planoGenerate.rules.pairVariety',
 }
 
 export function planoGenerateRuleKeys(): TranslationKey[] {
