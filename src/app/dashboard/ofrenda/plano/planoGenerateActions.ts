@@ -35,8 +35,13 @@ export interface PlanoGenerateOptions {
     modo: PlanoGenerateMode
 }
 
-async function loadPersonasEngine(supabase: Awaited<ReturnType<typeof createClient>>): Promise<PlanoPersonaEngine[]> {
-    const { data } = await supabase.from('ofrenda_plano_personas').select('*')
+async function loadPersonasEngine(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    sedeId: string | null,
+): Promise<PlanoPersonaEngine[]> {
+    let query = supabase.from('ofrenda_plano_personas').select('*')
+    if (sedeId) query = query.eq('sede_id', sedeId)
+    const { data } = await query
     return (data ?? []).map(row => {
         const p = readPlanoPersonaRow(row)
         return {
@@ -53,8 +58,13 @@ async function loadPersonasEngine(supabase: Awaited<ReturnType<typeof createClie
     })
 }
 
-async function loadParejasEngine(supabase: Awaited<ReturnType<typeof createClient>>): Promise<PlanoParejaEngine[]> {
-    const { data } = await supabase.from('ofrenda_plano_parejas').select('mujer_persona_id, hombre_persona_id')
+async function loadParejasEngine(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    sedeId: string | null,
+): Promise<PlanoParejaEngine[]> {
+    let query = supabase.from('ofrenda_plano_parejas').select('mujer_persona_id, hombre_persona_id')
+    if (sedeId) query = query.eq('sede_id', sedeId)
+    const { data } = await query
     return (data ?? []).map(r => ({
         mujerId: r.mujer_persona_id as string,
         hombreId: r.hombre_persona_id as string,
@@ -76,52 +86,90 @@ function sacosForDia(
  */
 async function cargarRolesHistoricoPorTurno(
     supabase: Awaited<ReturnType<typeof createClient>>,
+    sedeId: string | null,
 ): Promise<Map<PlanoTurnoHistorial, Map<string, PlanoRoleCounts>>> {
+    let svcQuery = supabase
+        .from('ofrenda_servicios')
+        .select('id, dia_tipo, plan:ofrenda_planes!inner(sede_id)')
+        .gte('fecha', PLANO_HISTORIAL_DESDE)
+    if (sedeId) svcQuery = svcQuery.eq('plan.sede_id', sedeId)
     const [{ data: svcRows }, { data: asig }] = await Promise.all([
-        supabase.from('ofrenda_servicios').select('id, dia_tipo').gte('fecha', PLANO_HISTORIAL_DESDE),
+        svcQuery,
         supabase.from('ofrenda_plano_asignaciones').select('persona_id, rol, servicio_id'),
     ])
     return construirRolesPorTurno(asig ?? [], svcRows ?? [])
 }
 
+/** Desplaza una fecha 'YYYY-MM-DD' en días (UTC). */
+function fechaMasDias(fecha: string, dias: number): string {
+    const d = new Date(`${fecha}T00:00:00Z`)
+    d.setUTCDate(d.getUTCDate() + dias)
+    return d.toISOString().slice(0, 10)
+}
+
 /**
  * Construye la memoria de rotación de un servicio: histórico O/A del **mismo
- * turno** + hasta 3 servicios vecinos ±3 (mismo dia_tipo). Los vecinos aportan
- * recencia; los roles O/A equilibran solo dentro del turno.
+ * turno** + hasta 3 servicios vecinos ±3 (mismo dia_tipo) + cultos de la misma
+ * semana en otros turnos (±3 días). Los vecinos del turno aportan recencia y
+ * repetición de pares; los de la misma semana penalizan salir dos veces en la
+ * misma semana; los roles O/A equilibran solo dentro del turno.
  */
 async function historialDesdeVecinos(
     supabase: Awaited<ReturnType<typeof createClient>>,
     servicio: { fecha: string; dia_tipo: string },
     rolesAcumulado: ReadonlyMap<string, PlanoRoleCounts>,
+    sedeId: string | null,
 ): Promise<PlanoHistorialUso> {
-    const [prev, next] = await Promise.all([
-        supabase
-            .from('ofrenda_servicios')
-            .select('id')
-            .eq('dia_tipo', servicio.dia_tipo)
-            .lt('fecha', servicio.fecha)
-            .gte('fecha', PLANO_HISTORIAL_DESDE)
-            .order('fecha', { ascending: false })
-            .limit(3),
-        supabase
-            .from('ofrenda_servicios')
-            .select('id')
-            .eq('dia_tipo', servicio.dia_tipo)
-            .gt('fecha', servicio.fecha)
-            .gte('fecha', PLANO_HISTORIAL_DESDE)
-            .order('fecha', { ascending: true })
-            .limit(3),
-    ])
+    const desdeSemana = fechaMasDias(servicio.fecha, -3)
+    const hastaSemana = fechaMasDias(servicio.fecha, 3)
 
-    const ids = [...(prev.data ?? []), ...(next.data ?? [])].map(s => s.id as string)
-    if (ids.length === 0) return construirHistorialParaServicio(rolesAcumulado, [])
+    let prevQ = supabase
+        .from('ofrenda_servicios')
+        .select('id, plan:ofrenda_planes!inner(sede_id)')
+        .eq('dia_tipo', servicio.dia_tipo)
+        .lt('fecha', servicio.fecha)
+        .gte('fecha', PLANO_HISTORIAL_DESDE)
+        .order('fecha', { ascending: false })
+        .limit(3)
+    let nextQ = supabase
+        .from('ofrenda_servicios')
+        .select('id, plan:ofrenda_planes!inner(sede_id)')
+        .eq('dia_tipo', servicio.dia_tipo)
+        .gt('fecha', servicio.fecha)
+        .gte('fecha', PLANO_HISTORIAL_DESDE)
+        .order('fecha', { ascending: true })
+        .limit(3)
+    let semanaQ = supabase
+        .from('ofrenda_servicios')
+        .select('id, plan:ofrenda_planes!inner(sede_id)')
+        .neq('dia_tipo', servicio.dia_tipo)
+        .gte('fecha', desdeSemana < PLANO_HISTORIAL_DESDE ? PLANO_HISTORIAL_DESDE : desdeSemana)
+        .lte('fecha', hastaSemana)
+    if (sedeId) {
+        prevQ = prevQ.eq('plan.sede_id', sedeId)
+        nextQ = nextQ.eq('plan.sede_id', sedeId)
+        semanaQ = semanaQ.eq('plan.sede_id', sedeId)
+    }
 
-    const { data: asig } = await supabase
-        .from('ofrenda_plano_asignaciones')
-        .select('persona_id, rol')
-        .in('servicio_id', ids)
+    const [prev, next, semana] = await Promise.all([prevQ, nextQ, semanaQ])
 
-    return construirHistorialParaServicio(rolesAcumulado, asig ?? [])
+    const idsTurno = [...(prev.data ?? []), ...(next.data ?? [])].map(s => s.id as string)
+    const idsSemana = (semana.data ?? []).map(s => s.id as string)
+    if (idsTurno.length === 0 && idsSemana.length === 0) {
+        return construirHistorialParaServicio(rolesAcumulado, [])
+    }
+
+    const cargarAsig = async (ids: string[]) => {
+        if (ids.length === 0) return []
+        const { data } = await supabase
+            .from('ofrenda_plano_asignaciones')
+            .select('persona_id, rol, servicio_id, bloque')
+            .in('servicio_id', ids)
+        return data ?? []
+    }
+    const [asigTurno, asigSemana] = await Promise.all([cargarAsig(idsTurno), cargarAsig(idsSemana)])
+
+    return construirHistorialParaServicio(rolesAcumulado, asigTurno, asigSemana)
 }
 
 /** Resuelve los servicios objetivo según el alcance (día / semana / mes). */
@@ -147,15 +195,16 @@ function resolverServiciosObjetivo<T extends { id: string; semana_iso: number }>
 export async function eliminarPlanoAsignaciones(
     opts: Omit<PlanoGenerateOptions, 'modo'>,
 ): Promise<{ ok: true; eliminados: number } | { ok: false; error: string }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase, sedeId } = await requireEditor()
     if (authError || !supabase) return { ok: false, error: authError ?? 'no_permission' }
 
-    const { data: planRow } = await supabase
+    let planQuery = supabase
         .from('ofrenda_planes')
         .select('id')
         .eq('anio', opts.anio)
         .eq('mes', opts.mes)
-        .maybeSingle()
+    if (sedeId) planQuery = planQuery.eq('sede_id', sedeId)
+    const { data: planRow } = await planQuery.maybeSingle()
     if (!planRow) return { ok: false, error: 'NO_PLAN' }
 
     const { data: servicios } = await supabase
@@ -181,15 +230,16 @@ export async function eliminarPlanoAsignaciones(
 export async function generarPlanoLabor(
     opts: PlanoGenerateOptions,
 ): Promise<{ ok: true; asignados: number } | { ok: false; error: string }> {
-    const { error: authError, supabase } = await requireEditor()
+    const { error: authError, supabase, sedeId } = await requireEditor()
     if (authError || !supabase) return { ok: false, error: authError ?? 'no_permission' }
 
-    const { data: planRow } = await supabase
+    let planQuery = supabase
         .from('ofrenda_planes')
         .select('id, sacos_jueves, sacos_domingo, sacos_domingo_tarde')
         .eq('anio', opts.anio)
         .eq('mes', opts.mes)
-        .maybeSingle()
+    if (sedeId) planQuery = planQuery.eq('sede_id', sedeId)
+    const { data: planRow } = await planQuery.maybeSingle()
 
     if (!planRow) return { ok: false, error: 'NO_PLAN' }
 
@@ -204,8 +254,8 @@ export async function generarPlanoLabor(
     const target = resolverServiciosObjetivo(servicios, opts)
     if (!target) return { ok: false, error: 'NO_SERVICIO' }
 
-    const personas = await loadPersonasEngine(supabase)
-    const parejas = await loadParejasEngine(supabase)
+    const personas = await loadPersonasEngine(supabase, sedeId)
+    const parejas = await loadParejasEngine(supabase, sedeId)
 
     for (const s of target) {
         const dia = s.dia_tipo as DiaTipo
@@ -217,7 +267,7 @@ export async function generarPlanoLabor(
 
     let total = 0
 
-    const rolesSesionPorTurno = clonarRolesPorTurno(await cargarRolesHistoricoPorTurno(supabase))
+    const rolesSesionPorTurno = clonarRolesPorTurno(await cargarRolesHistoricoPorTurno(supabase, sedeId))
 
     for (const srv of target) {
         const dia = srv.dia_tipo as DiaTipo
@@ -235,7 +285,7 @@ export async function generarPlanoLabor(
         }
 
         const rolesTurno = rolesSesionPorTurno.get(turno) ?? new Map<string, PlanoRoleCounts>()
-        const historial = await historialDesdeVecinos(supabase, srv, rolesTurno)
+        const historial = await historialDesdeVecinos(supabase, srv, rolesTurno, sedeId)
         const borradores = asignarPlanoServicio(dia, sacos, personas, parejas, historial)
         if (!borradores.length) continue
 

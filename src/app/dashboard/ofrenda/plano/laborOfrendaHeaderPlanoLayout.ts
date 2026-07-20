@@ -15,34 +15,32 @@ export interface PlanoHeaderBlockLayout {
     logoOuter: number
     textX: number
     textW: number
-    churchY: number
-    churchFontPx: number
     titleY: number
     titleFontPx: number
     subtitleY: number
     subtitleFontPx: number
 }
 
+// Sin línea de iglesia (el logo ya identifica a la congregación): solo título y
+// día (jueves / domingo mañana / domingo tarde), más grandes para leerse bien.
 const LINE = {
-    church: 14,
-    title: 36,
-    subtitle: 22,
+    title: 46,
+    subtitle: 32,
 } as const
 
 const GAP = {
-    churchTitle: 4,
-    titleSubtitle: 6,
+    titleSubtitle: 8,
 } as const
 
 function textBlockHeight(): number {
-    return LINE.church + GAP.churchTitle + LINE.title + GAP.titleSubtitle + LINE.subtitle
+    return LINE.title + GAP.titleSubtitle + LINE.subtitle
 }
 
 /** Cluster logo + textos centrado horizontalmente en el lienzo. */
 export function computePlanoHeaderBlockLayout(canvasWidth: number): PlanoHeaderBlockLayout {
     const height = PLANO_HEADER_HEIGHT
     const logoOuter = PLANO_HEADER_LOGO
-    const textW = Math.min(520, canvasWidth - PLANO_HEADER_SIDE_PAD * 2 - logoOuter - PLANO_HEADER_LOGO_GAP)
+    const textW = Math.min(620, canvasWidth - PLANO_HEADER_SIDE_PAD * 2 - logoOuter - PLANO_HEADER_LOGO_GAP)
     const clusterW = logoOuter + PLANO_HEADER_LOGO_GAP + textW
     const startX = Math.max(PLANO_HEADER_SIDE_PAD, Math.floor((canvasWidth - clusterW) / 2))
     const logoX = startX
@@ -51,8 +49,7 @@ export function computePlanoHeaderBlockLayout(canvasWidth: number): PlanoHeaderB
 
     const blockH = textBlockHeight()
     const blockY = (height - blockH) / 2
-    const churchY = blockY
-    const titleY = churchY + LINE.church + GAP.churchTitle
+    const titleY = blockY
     const subtitleY = titleY + LINE.title + GAP.titleSubtitle
 
     return {
@@ -62,12 +59,10 @@ export function computePlanoHeaderBlockLayout(canvasWidth: number): PlanoHeaderB
         logoOuter,
         textX,
         textW,
-        churchY,
-        churchFontPx: 11,
         titleY,
-        titleFontPx: 30,
+        titleFontPx: 40,
         subtitleY,
-        subtitleFontPx: 17,
+        subtitleFontPx: 26,
     }
 }
 

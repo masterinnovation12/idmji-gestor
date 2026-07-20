@@ -14,6 +14,7 @@ import {
     formatSecuencia,
     generarFechasDelPlan,
     generarPlan,
+    derivarArranqueRotacion,
     calcPunteroSiguienteMes,
     mesAnterior,
     mesSiguiente,
@@ -916,5 +917,96 @@ describe('generarPlan — Grupo 3 (solo testimonios)', () => {
             a => a.rol.startsWith('testimonio') && a.servicioTipo !== 'jueves' && a.miembroId === 'm3-solo-jueves',
         )
         expect(enDomingo).toHaveLength(0)
+    })
+})
+
+// ─── Continuidad de rotación entre meses ──────────────────────────────────────
+
+describe('derivarArranqueRotacion + generarPlan con arranque', () => {
+    const miembros = [...makeMiembros(8, 1), ...makeMiembros(6, 2), ...makeMiembros(3, 3)]
+
+    function previasDe(plan: ReturnType<typeof generarPlan>) {
+        return plan.asignaciones.map(a => ({
+            servicioFecha: a.servicioFecha,
+            servicioTipo: a.servicioTipo,
+            rol: a.rol,
+            miembroId: a.miembroId,
+        }))
+    }
+
+    it('sin previas devuelve arranque vacío (comportamiento actual intacto)', () => {
+        expect(derivarArranqueRotacion([], miembros)).toEqual({})
+    })
+
+    it('deriva prev y puntero del último titular de cada rol G1', () => {
+        const enero = generarPlan(2026, 1, 1, miembros)
+        const arr = derivarArranqueRotacion(previasDe(enero), miembros)
+        const ultimas = [...enero.asignaciones].reverse()
+        const ultimaRealiza = ultimas.find(a => a.rol === 'realiza')!
+        expect(arr.prevG1?.realiza).toBe(ultimaRealiza.miembroId)
+        const g1Ids = makeMiembros(8, 1).map(m => m.id)
+        const idx = g1Ids.indexOf(ultimaRealiza.miembroId)
+        expect(arr.punterosG1?.realiza).toBe((idx + 1) % g1Ids.length)
+    })
+
+    it('el mes siguiente NO reinicia la rotación: el primer servicio difiere del arranque en frío', () => {
+        const enero = generarPlan(2026, 1, 1, miembros)
+        const arranque = derivarArranqueRotacion(previasDe(enero), miembros)
+        const febrero = generarPlan(2026, 2, 1, miembros, {}, null, {}, arranque)
+        const frio = generarPlan(2026, 2, 1, miembros)
+
+        const primeraFecha = febrero.servicios[0].fecha
+        const primeroCon = febrero.asignaciones
+            .filter(a => a.servicioFecha === primeraFecha && a.rol === 'realiza')
+            .map(a => a.miembroId)
+        const primeroFrio = frio.asignaciones
+            .filter(a => a.servicioFecha === primeraFecha && a.rol === 'realiza')
+            .map(a => a.miembroId)
+        expect(primeroCon).not.toEqual(primeroFrio)
+    })
+
+    it('anti-repetición cruza el límite de mes: nadie repite rol G1 entre el último servicio de enero y el primero de febrero', () => {
+        const enero = generarPlan(2026, 1, 1, miembros)
+        const arranque = derivarArranqueRotacion(previasDe(enero), miembros)
+        const febrero = generarPlan(2026, 2, 1, miembros, {}, null, {}, arranque)
+
+        const ultimaFechaEnero = enero.servicios[enero.servicios.length - 1].fecha
+        const primeraFechaFeb = febrero.servicios[0].fecha
+        for (const rol of ROLES_GRUPO1) {
+            const antes = enero.asignaciones.find(
+                a => a.servicioFecha === ultimaFechaEnero && a.rol === rol,
+            )
+            const despues = febrero.asignaciones.find(
+                a => a.servicioFecha === primeraFechaFeb && a.rol === rol,
+            )
+            if (antes && despues) expect(despues.miembroId).not.toBe(antes.miembroId)
+        }
+    })
+
+    it('G2 continúa el puntero tras el último colaborador del mes anterior', () => {
+        const previas = [
+            { servicioFecha: '2026-01-25', servicioTipo: 'domingo_tarde' as const, rol: 'colaborador_1' as const, miembroId: 'm2-3' },
+            { servicioFecha: '2026-01-25', servicioTipo: 'domingo_tarde' as const, rol: 'colaborador_2' as const, miembroId: 'm2-4' },
+        ]
+        const arranque = derivarArranqueRotacion(previas, miembros)
+        // Último colaborador fue m2-4 (índice 3) → el puntero arranca en m2-5.
+        expect(arranque.punteroG2).toBe(4)
+        expect([...(arranque.prevG2Inmediato ?? [])].sort()).toEqual(['m2-3', 'm2-4'])
+
+        const febrero = generarPlan(2026, 2, 1, miembros, {}, null, {}, arranque)
+        const primeraFecha = febrero.servicios[0].fecha
+        const colab = febrero.asignaciones
+            .filter(a => a.servicioFecha === primeraFecha && a.rol.startsWith('colaborador'))
+            .map(a => a.miembroId)
+        expect(colab).toEqual(['m2-5', 'm2-6'])
+    })
+
+    it('miembros que ya no están se ignoran sin romper (puntero por defecto)', () => {
+        const enero = generarPlan(2026, 1, 1, miembros)
+        const menosMiembros = miembros.filter(m => !['m1-1', 'm2-1'].includes(m.id))
+        const arr = derivarArranqueRotacion(previasDe(enero), menosMiembros)
+        const febrero = generarPlan(2026, 2, 1, menosMiembros, {}, null, {}, arr)
+        expect(febrero.asignaciones.length).toBeGreaterThan(0)
+        expect(febrero.asignaciones.every(a => a.miembroId !== 'm1-1' && a.miembroId !== 'm2-1')).toBe(true)
     })
 })

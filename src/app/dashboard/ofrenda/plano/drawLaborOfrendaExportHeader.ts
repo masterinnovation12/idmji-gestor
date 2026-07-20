@@ -108,10 +108,6 @@ export async function drawLaborOfrendaExportHeaderSquare(
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
 
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)'
-    ctx.font = `600 ${layout.churchFontPx}px Montserrat, Inter, Arial, sans-serif`
-    ctx.fillText(labels.churchName.toUpperCase(), width / 2, layout.churchY, layout.textMax)
-
     ctx.fillStyle = '#ffffff'
     ctx.font = `800 ${layout.titleFontPx}px Montserrat, Inter, Arial, sans-serif`
     ctx.fillText(labels.title, width / 2, layout.titleY, layout.textMax)
@@ -122,8 +118,8 @@ export async function drawLaborOfrendaExportHeaderSquare(
 
     if (labels.detail) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.88)'
-        ctx.font = `600 ${Math.max(13, layout.subtitleFontPx - 2)}px Montserrat, Inter, Arial, sans-serif`
-        ctx.fillText(labels.detail, width / 2, layout.subtitleY + 24, layout.textMax)
+        ctx.font = `600 ${Math.max(13, layout.subtitleFontPx - 4)}px Montserrat, Inter, Arial, sans-serif`
+        ctx.fillText(labels.detail, width / 2, layout.subtitleY + layout.subtitleFontPx + 6, layout.textMax)
     }
 }
 
@@ -163,10 +159,6 @@ export async function drawLaborOfrendaExportHeader(
 
     ctx.textAlign = 'left'
     ctx.textBaseline = 'top'
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)'
-    ctx.font = `600 ${layout.churchFontPx}px Montserrat, Inter, Arial, sans-serif`
-    ctx.fillText(labels.churchName.toUpperCase(), layout.textX, layout.churchY, layout.textW)
 
     ctx.fillStyle = '#ffffff'
     ctx.font = `800 ${layout.titleFontPx}px Montserrat, Inter, Arial, sans-serif`

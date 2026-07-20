@@ -47,15 +47,18 @@ import {
     setPlanoPersonaTurnos,
     setPlanoPersonaPrioridad,
     setPlanoPersonaActivo,
+    setPlanoPersonaGenero,
     setPlanoPareja,
     removePlanoPareja,
     type PlanoPersonaFull,
 } from './planoActions'
 import { MemberTurnAvailability, TurnAvailabilityDots } from '../MemberTurnAvailability'
-import { clasificarSeccionTurno, type PlanoTurnoSection } from './planoPersonaTurnos'
+import { clasificarSeccionTurno, type PlanoGenero, type PlanoTurnoSection } from './planoPersonaTurnos'
 import type { PlanoCapacidad } from './planoTypes'
 
 const CAPS: PlanoCapacidad[] = ['ofrendario', 'apoyo', 'ambos']
+
+const GENEROS: PlanoGenero[] = ['hombre', 'mujer']
 
 const CAP_ICON: Record<PlanoCapacidad, typeof Star> = {
     ofrendario: Star,
@@ -95,6 +98,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
     const [loading, setLoading] = useState(true)
     const [query, setQuery] = useState('')
     const [adding, setAdding] = useState('')
+    const [addingGenero, setAddingGenero] = useState<PlanoGenero | null>(null)
     const [busy, setBusy] = useState(false)
     const [editing, setEditing] = useState<PlanoPersonaFull | null>(null)
     const [deleting, setDeleting] = useState<PlanoPersonaFull | null>(null)
@@ -226,7 +230,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
         const nombre = adding.trim()
         if (!nombre || busy) return
         setBusy(true)
-        const res = await invokePlanoAction(() => createPlanoPersona(nombre))
+        const res = await invokePlanoAction(() => createPlanoPersona(nombre, addingGenero))
         setBusy(false)
         if (res.errorCode) {
             planError(
@@ -241,8 +245,25 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
             return
         }
         setAdding('')
+        setAddingGenero(null)
         quickSuccess(res.alreadyExisted ? t('ofrenda.plano.combobox.reused') : t('ofrenda.plano.personas.added'))
         void load()
+    }
+
+    const changeGenero = async (p: PlanoPersonaFull, genero: PlanoGenero) => {
+        if (p.genero === genero) return
+        setPersonas(prev => prev.map(x => (x.id === p.id ? { ...x, genero } : x)))
+        const res = await invokePlanoAction(() => setPlanoPersonaGenero(p.id, genero))
+        if (res.error) {
+            planError(
+                res.error === 'has_pareja'
+                    ? t('ofrenda.plano.genero.parejaLock')
+                    : errLabel(res.error),
+            )
+            void load()
+            return
+        }
+        quickSuccess(t('ofrenda.plano.genero.updated'))
     }
 
     const changeCapacidad = async (p: PlanoPersonaFull, capacidad: PlanoCapacidad) => {
@@ -368,25 +389,44 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
             </div>
 
             {canEdit && (
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        value={adding}
-                        onChange={e => setAdding(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') void handleAdd() }}
-                        placeholder={t('ofrenda.plano.personas.addPlaceholder')}
-                        autoCapitalize="words"
-                        className="ofrenda-liquid-search flex-1 min-w-0 px-4 py-2.5 min-h-[44px] rounded-xl text-sm"
-                    />
-                    <button
-                        type="button"
-                        onClick={() => void handleAdd()}
-                        disabled={busy || adding.trim().length < 2}
-                        className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white text-sm font-bold shadow-[0_3px_12px_rgba(31,46,133,0.3)] hover:shadow-[0_5px_18px_rgba(31,46,133,0.42)] transition-shadow disabled:opacity-50 touch-manipulation shrink-0"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span className="hidden sm:inline">{t('common.add')}</span>
-                    </button>
+                <div className="space-y-2">
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={adding}
+                            onChange={e => setAdding(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') void handleAdd() }}
+                            placeholder={t('ofrenda.plano.personas.addPlaceholder')}
+                            autoCapitalize="words"
+                            data-testid="plano-personas-add-input"
+                            className="ofrenda-liquid-search flex-1 min-w-0 px-4 py-2.5 min-h-[44px] rounded-xl text-sm"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => void handleAdd()}
+                            disabled={busy || adding.trim().length < 2}
+                            data-testid="plano-personas-add-btn"
+                            className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl border-2 border-[#b8964a] bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white text-sm font-bold shadow-[0_3px_12px_rgba(31,46,133,0.3)] hover:shadow-[0_5px_18px_rgba(31,46,133,0.42)] transition-shadow disabled:opacity-50 touch-manipulation shrink-0"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span className="hidden sm:inline">{t('common.add')}</span>
+                        </button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-wide text-slate-500">
+                            {t('ofrenda.plano.genero.label')}
+                        </span>
+                        {GENEROS.map(g => (
+                            <FilterChip
+                                key={g}
+                                active={addingGenero === g}
+                                onClick={() => setAddingGenero(prev => (prev === g ? null : g))}
+                                testId={`plano-personas-add-genero-${g}`}
+                            >
+                                {t(`ofrenda.plano.genero.${g}` as const)}
+                            </FilterChip>
+                        ))}
+                    </div>
                 </div>
             )}
 
@@ -571,6 +611,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                                                 setExpandedId(prev => (prev === p.id ? null : p.id))
                                             }
                                             onCapacidad={changeCapacidad}
+                                            onGenero={changeGenero}
                                             onTurnos={changeTurnos}
                                             onStar={() => void toggleStar(p)}
                                             onActivo={() => void toggleActivo(p)}
@@ -655,6 +696,7 @@ export function PlanoPersonasManager({ canEdit }: Readonly<{ canEdit: boolean }>
                             <button
                                 type="button"
                                 onClick={() => void confirmDelete()}
+                                data-testid="plano-personas-delete-confirm"
                                 className="flex-1 py-3 min-h-[48px] rounded-xl bg-red-600 text-white font-bold touch-manipulation"
                             >
                                 {t('common.delete')}
@@ -712,6 +754,7 @@ function PersonaRow({
     expanded,
     onToggleExpand,
     onCapacidad,
+    onGenero,
     onTurnos,
     onStar,
     onActivo,
@@ -727,6 +770,7 @@ function PersonaRow({
     expanded: boolean
     onToggleExpand: () => void
     onCapacidad: (p: PlanoPersonaFull, cap: PlanoCapacidad) => void
+    onGenero: (p: PlanoPersonaFull, genero: PlanoGenero) => void
     onTurnos: (p: PlanoPersonaFull, turnos: PlanoPersonaFull) => void
     onStar: () => void
     onActivo: () => void
@@ -772,6 +816,15 @@ function PersonaRow({
 
                 {p.parejaNombre && (
                     <Heart className="w-3.5 h-3.5 shrink-0 text-red-500" aria-label={t('ofrenda.plano.personas.pareja')} />
+                )}
+
+                {!p.genero && (
+                    <span
+                        className="hidden min-[400px]:inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold whitespace-nowrap bg-amber-500/15 text-amber-700"
+                        data-testid={`plano-persona-genero-missing-${p.id}`}
+                    >
+                        {t('ofrenda.plano.genero.missing')}
+                    </span>
                 )}
 
                 <span
@@ -856,6 +909,7 @@ function PersonaRow({
                             type="button"
                             onClick={onDelete}
                             aria-label={t('common.delete')}
+                            data-testid={`plano-persona-delete-${p.id}`}
                             className="p-1 rounded-md hover:bg-red-500/10 text-slate-500 hover:text-red-500 touch-manipulation min-w-[30px] min-h-[30px] flex items-center justify-center"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -907,6 +961,34 @@ function PersonaRow({
                                         >
                                             <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />
                                             {t(`ofrenda.plano.cap.${cap}` as const)}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+
+                            <div
+                                className="inline-flex rounded-xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] p-0.5"
+                                role="group"
+                                aria-label={t('ofrenda.plano.genero.label')}
+                            >
+                                {GENEROS.map(g => {
+                                    const active = p.genero === g
+                                    return (
+                                        <button
+                                            key={g}
+                                            type="button"
+                                            disabled={!canEdit || !!p.parejaId}
+                                            aria-pressed={active}
+                                            onClick={() => onGenero(p, g)}
+                                            title={p.parejaId ? t('ofrenda.plano.genero.parejaLock') : undefined}
+                                            data-testid={`plano-persona-genero-${p.id}-${g}`}
+                                            className={`inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[36px] rounded-[10px] text-xs font-bold touch-manipulation transition-colors disabled:opacity-60 ${
+                                                active
+                                                    ? 'bg-gradient-to-br from-[#1f2e85] to-[#283593] text-white border border-[#b8964a] shadow'
+                                                    : 'text-slate-500 hover:text-[#1f2e85]'
+                                            }`}
+                                        >
+                                            {t(`ofrenda.plano.genero.${g}` as const)}
                                         </button>
                                     )
                                 })}
