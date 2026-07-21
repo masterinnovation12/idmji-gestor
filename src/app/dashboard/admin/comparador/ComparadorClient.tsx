@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { GitCompareArrows, ChevronLeft, ChevronRight, RefreshCw, Trophy, ShieldCheck, ShieldAlert } from 'lucide-react'
 import {
-    BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts'
 import { toast } from 'sonner'
 import PageHero from '@/components/PageHero'
+import { ChartAutoWidth } from '@/components/ui/ChartAutoWidth'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import type { Sede } from '@/types/database'
 import { getControlData, type ControlData } from '../control/actions'
@@ -228,19 +229,21 @@ export default function ComparadorClient({ sedes, initialData, initialYear, init
                 {chartData.length === 0 ? (
                     <p className="text-sm text-slate-400 italic" suppressHydrationWarning>{t('admin.control.sinDatos')}</p>
                 ) : (
-                    <ResponsiveContainer width="100%" height={320}>
-                        <ReBarChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                            <XAxis dataKey="nombre" tick={{ fontSize: 12 }} />
-                            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey={t('admin.stats.introShort')} stackId="a" fill="#1f2e85" />
-                            <Bar dataKey={t('admin.stats.teachingShort')} stackId="a" fill="#8b5cf6" />
-                            <Bar dataKey={t('admin.stats.testimoniesShort')} stackId="a" fill="#f59e0b" />
-                            <Bar dataKey={t('admin.stats.finalShort')} stackId="a" fill="#10b981" radius={[6, 6, 0, 0]} />
-                        </ReBarChart>
-                    </ResponsiveContainer>
+                    <ChartAutoWidth height={320}>
+                        {({ width, height }) => (
+                            <ReBarChart width={width} height={height} data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                <XAxis dataKey="nombre" tick={{ fontSize: 12 }} />
+                                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                                <Tooltip />
+                                <Legend />
+                                <Bar dataKey={t('admin.stats.introShort')} stackId="a" fill="#1f2e85" />
+                                <Bar dataKey={t('admin.stats.teachingShort')} stackId="a" fill="#8b5cf6" />
+                                <Bar dataKey={t('admin.stats.testimoniesShort')} stackId="a" fill="#f59e0b" />
+                                <Bar dataKey={t('admin.stats.finalShort')} stackId="a" fill="#10b981" radius={[6, 6, 0, 0]} />
+                            </ReBarChart>
+                        )}
+                    </ChartAutoWidth>
                 )}
             </div>
 

@@ -108,7 +108,21 @@ export async function exportPlanoPng(
     shareTitle = 'Labor Ofrenda',
 ): Promise<void> {
     const bg = await loadBackground(data)
-    const tarjetas = data.layout.tarjetas
+    // Export-only: rótulo de rol y nombre un poco más grandes que en pantalla
+    // (más legibles al compartir la foto). NO se toca el ancho de la tarjeta:
+    // en el diseño calibrado las tarjetas contiguas ya se tocan borde con borde,
+    // así que ensancharlas provocaría solape. Como el ancho es fijo, la fuente
+    // mayor solo crece en alto y parte el nombre en más líneas si hace falta; el
+    // rótulo "N- Ofrendario" sigue cabiendo dentro del ancho con este factor.
+    // La pantalla (PlanoCanvas) mantiene su tamaño calibrado (no es WYSIWYG aquí
+    // de forma intencionada).
+    const CARD_FONT_SCALE = 1.18
+    const baseTarjetas = data.layout.tarjetas
+    const tarjetas = {
+        ...baseTarjetas,
+        roleFont: Math.round(baseTarjetas.roleFont * CARD_FONT_SCALE),
+        nameFont: Math.round(baseTarjetas.nameFont * CARD_FONT_SCALE),
+    }
     const figS = data.layout.figuraScale
     const W = data.lienzo.w
     const H = data.lienzo.h
