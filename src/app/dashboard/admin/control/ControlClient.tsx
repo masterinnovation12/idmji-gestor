@@ -11,9 +11,10 @@ import {
 import { toast } from 'sonner'
 import {
     BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend,
+    PieChart, Pie, Cell, LineChart, Line, Legend,
 } from 'recharts'
 import PageHero from '@/components/PageHero'
+import { ChartAutoWidth } from '@/components/ui/ChartAutoWidth'
 import { Button } from '@/components/ui/Button'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import type { Sede } from '@/types/database'
@@ -535,15 +536,17 @@ export default function ControlClient({ sedes, initialData, initialAlerts, initi
                     {topHermanos.length === 0 ? (
                         <p className="text-sm text-slate-400 italic" suppressHydrationWarning>{t('admin.control.sinDatos')}</p>
                     ) : (
-                        <ResponsiveContainer width="100%" height={280}>
-                            <ReBarChart data={topHermanos} margin={{ top: 4, right: 8, left: -24, bottom: 4 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                <XAxis dataKey="nombre" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={56} />
-                                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                                <Tooltip />
-                                <Bar dataKey="total" fill="#1f2e85" radius={[6, 6, 0, 0]} />
-                            </ReBarChart>
-                        </ResponsiveContainer>
+                        <ChartAutoWidth height={280}>
+                            {({ width, height }) => (
+                                <ReBarChart width={width} height={height} data={topHermanos} margin={{ top: 4, right: 8, left: -24, bottom: 4 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                    <XAxis dataKey="nombre" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={56} />
+                                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                                    <Tooltip />
+                                    <Bar dataKey="total" fill="#1f2e85" radius={[6, 6, 0, 0]} />
+                                </ReBarChart>
+                            )}
+                        </ChartAutoWidth>
                     )}
                 </div>
 
@@ -552,24 +555,36 @@ export default function ControlClient({ sedes, initialData, initialAlerts, initi
                     {data.tipos.length === 0 ? (
                         <p className="text-sm text-slate-400 italic" suppressHydrationWarning>{t('admin.control.sinDatos')}</p>
                     ) : (
-                        <ResponsiveContainer width="100%" height={280}>
-                            <PieChart>
-                                <Pie
-                                    data={tiposChart}
-                                    dataKey="count"
-                                    nameKey="nombre"
-                                    innerRadius={60}
-                                    outerRadius={100}
-                                    paddingAngle={3}
-                                    label={({ name, value }) => `${name} (${value})`}
-                                >
-                                    {data.tipos.map(tipo => (
-                                        <Cell key={tipo.nombre} fill={tipo.color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        <ChartAutoWidth height={280}>
+                            {({ width, height }) => {
+                                // En pantallas estrechas las etiquetas largas "Nombre (n)"
+                                // se salen del lienzo: usamos radio menor, etiqueta solo con
+                                // el número y una leyenda con los nombres.
+                                const compact = width < 420
+                                return (
+                                    <PieChart width={width} height={height}>
+                                        <Pie
+                                            data={tiposChart}
+                                            dataKey="count"
+                                            nameKey="nombre"
+                                            innerRadius={compact ? 46 : 60}
+                                            outerRadius={compact ? 76 : 100}
+                                            paddingAngle={3}
+                                            labelLine={!compact}
+                                            label={compact
+                                                ? ({ value }) => `${value}`
+                                                : ({ name, value }) => `${name} (${value})`}
+                                        >
+                                            {data.tipos.map(tipo => (
+                                                <Cell key={tipo.nombre} fill={tipo.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip />
+                                        {compact && <Legend verticalAlign="bottom" height={32} iconType="circle" wrapperStyle={{ fontSize: 12 }} />}
+                                    </PieChart>
+                                )
+                            }}
+                        </ChartAutoWidth>
                     )}
                 </div>
             </div>
@@ -599,26 +614,28 @@ export default function ControlClient({ sedes, initialData, initialAlerts, initi
                 {!tendencias || tendenciasChart.length === 0 ? (
                     <p className="text-sm text-slate-400 italic" suppressHydrationWarning>{t('admin.control.sinDatos')}</p>
                 ) : (
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={tendenciasChart} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                            <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                            <Tooltip />
-                            <Legend />
-                            {tendencias.sedes.map((sede, i) => (
-                                <Line
-                                    key={sede}
-                                    type="monotone"
-                                    dataKey={sede}
-                                    stroke={TREND_COLORS[i % TREND_COLORS.length]}
-                                    strokeWidth={2.5}
-                                    dot={{ r: 3 }}
-                                    activeDot={{ r: 5 }}
-                                />
-                            ))}
-                        </LineChart>
-                    </ResponsiveContainer>
+                    <ChartAutoWidth height={300}>
+                        {({ width, height }) => (
+                            <LineChart width={width} height={height} data={tendenciasChart} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                                <Tooltip />
+                                <Legend />
+                                {tendencias.sedes.map((sede, i) => (
+                                    <Line
+                                        key={sede}
+                                        type="monotone"
+                                        dataKey={sede}
+                                        stroke={TREND_COLORS[i % TREND_COLORS.length]}
+                                        strokeWidth={2.5}
+                                        dot={{ r: 3 }}
+                                        activeDot={{ r: 5 }}
+                                    />
+                                ))}
+                            </LineChart>
+                        )}
+                    </ChartAutoWidth>
                 )}
                 <p className="mt-2 text-xs text-slate-400" suppressHydrationWarning>{t('admin.control.tendenciasNota')}</p>
             </div>

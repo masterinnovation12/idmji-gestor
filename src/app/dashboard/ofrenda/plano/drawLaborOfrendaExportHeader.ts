@@ -130,7 +130,15 @@ export async function drawLaborOfrendaExportHeader(
     labels: LaborOfrendaHeaderLabels,
 ): Promise<void> {
     const h = LABOR_OFRENDA_HEADER_H
-    const layout = computePlanoHeaderBlockLayout(width)
+    const base = computePlanoHeaderBlockLayout(width)
+
+    // Medir el texto real (título/subtítulo) para centrar el cluster sobre la
+    // tinta y no sobre el hueco máximo reservado.
+    ctx.font = `800 ${base.titleFontPx}px Montserrat, Inter, Arial, sans-serif`
+    const titleW = ctx.measureText(labels.title).width
+    ctx.font = `700 ${base.subtitleFontPx}px Montserrat, Inter, Arial, sans-serif`
+    const subtitleW = ctx.measureText(labels.subtitle).width
+    const layout = computePlanoHeaderBlockLayout(width, Math.max(titleW, subtitleW))
 
     const grad = ctx.createLinearGradient(0, 0, width, h)
     grad.addColorStop(0, IDMJI_BRAND.navy)

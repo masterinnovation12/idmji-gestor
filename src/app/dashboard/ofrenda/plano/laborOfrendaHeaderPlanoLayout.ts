@@ -36,11 +36,25 @@ function textBlockHeight(): number {
     return LINE.title + GAP.titleSubtitle + LINE.subtitle
 }
 
-/** Cluster logo + textos centrado horizontalmente en el lienzo. */
-export function computePlanoHeaderBlockLayout(canvasWidth: number): PlanoHeaderBlockLayout {
+/**
+ * Cluster logo + textos centrado horizontalmente en el lienzo.
+ *
+ * `measuredTextW` (opcional) = ancho real del texto más largo (título/subtítulo)
+ * medido con canvas. Si se pasa, el cluster se centra sobre la tinta real y no
+ * sobre el hueco máximo reservado; así el logo + "Labor Ofrenda" queda centrado
+ * de verdad en vez de desplazado a la izquierda.
+ */
+export function computePlanoHeaderBlockLayout(
+    canvasWidth: number,
+    measuredTextW?: number,
+): PlanoHeaderBlockLayout {
     const height = PLANO_HEADER_HEIGHT
     const logoOuter = PLANO_HEADER_LOGO
-    const textW = Math.min(620, canvasWidth - PLANO_HEADER_SIDE_PAD * 2 - logoOuter - PLANO_HEADER_LOGO_GAP)
+    const maxTextW = Math.min(620, canvasWidth - PLANO_HEADER_SIDE_PAD * 2 - logoOuter - PLANO_HEADER_LOGO_GAP)
+    const textW =
+        measuredTextW != null
+            ? Math.min(maxTextW, Math.max(0, Math.ceil(measuredTextW)))
+            : maxTextW
     const clusterW = logoOuter + PLANO_HEADER_LOGO_GAP + textW
     const startX = Math.max(PLANO_HEADER_SIDE_PAD, Math.floor((canvasWidth - clusterW) / 2))
     const logoX = startX

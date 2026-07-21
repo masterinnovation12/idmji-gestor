@@ -5,6 +5,7 @@ import { resolveLecturaLectorFromCulto } from '@/lib/utils/resolveLecturaLectorF
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/auth/guards'
 import { can } from '@/lib/auth/permissions'
+import { getActiveSedeIdForCurrentUser } from '@/lib/sede/activeSede'
 import { diffAsignacionesNuevas, notifyAsignacionesCulto } from '@/lib/notifications/asignacionPush'
 
 /**
@@ -154,11 +155,17 @@ export async function toggleFestivo(cultoId: string, currentStatus: boolean, cur
 export async function searchProfiles(query: string = '') {
     const supabase = await createClient()
 
+    // El ADMIN ve todas las sedes por RLS: acotar SIEMPRE a la sede activa para
+    // que el selector de hermanos (púlpito, cultos) muestre solo la sede elegida.
+    const sedeId = await getActiveSedeIdForCurrentUser()
+
     let dbQuery = supabase
         .from('profiles')
         .select('id, nombre, apellidos, avatar_url, pulpito')
         .eq('pulpito', true)
         .order('nombre', { ascending: true })
+
+    if (sedeId) dbQuery = dbQuery.eq('sede_id', sedeId)
 
     if (query) {
         dbQuery = dbQuery.or(`nombre.ilike.%${query}%,apellidos.ilike.%${query}%`)
