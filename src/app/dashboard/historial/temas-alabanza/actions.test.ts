@@ -54,6 +54,12 @@ vi.mock('@/lib/supabase/server', () => ({
     createClient: vi.fn()
 }))
 
+// La resolución de sede activa se prueba aparte; aquí se neutraliza para
+// centrar el test en la agregación (sin sede → sin filtro extra).
+vi.mock('@/lib/sede/activeSede', () => ({
+    getActiveSedeIdForCurrentUser: vi.fn().mockResolvedValue(null)
+}))
+
 vi.mock('next/cache', () => ({
     unstable_noStore: vi.fn()
 }))

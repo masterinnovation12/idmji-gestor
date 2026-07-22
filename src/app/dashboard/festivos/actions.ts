@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/auth/guards'
-import { resolveActiveSedeId } from '@/lib/sede/activeSede'
+import { getActiveSedeIdForCurrentUser, resolveActiveSedeId } from '@/lib/sede/activeSede'
 
 export async function createFestivo(formData: FormData) {
     const { ctx, error: authError } = await requirePermission('cultos.gestionar')
@@ -27,12 +27,15 @@ export async function createFestivo(formData: FormData) {
         return { error: festivoError.message }
     }
 
-    // 2. Sincronizar con cultos: Buscar cultos en esa fecha que NO sean festivos ya
-    const { data: cultosToUpdate } = await supabase
+    // 2. Sincronizar con cultos de LA MISMA SEDE: buscar cultos en esa fecha que
+    //    NO sean festivos ya (no tocar cultos de otras sedes).
+    let cultosToUpdateQuery = supabase
         .from('cultos')
         .select('id, hora_inicio')
         .eq('fecha', fecha)
         .eq('es_laborable_festivo', false)
+    if (sedeId) cultosToUpdateQuery = cultosToUpdateQuery.eq('sede_id', sedeId)
+    const { data: cultosToUpdate } = await cultosToUpdateQuery
 
     if (cultosToUpdate && cultosToUpdate.length > 0) {
         for (const culto of cultosToUpdate) {
@@ -61,10 +64,10 @@ export async function deleteFestivo(id: number) {
     if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
     const supabase = ctx.supabase
 
-    // 1. Obtener la fecha del festivo antes de borrarlo
+    // 1. Obtener la fecha y la sede del festivo antes de borrarlo
     const { data: festivo } = await supabase
         .from('festivos')
-        .select('fecha')
+        .select('fecha, sede_id')
         .eq('id', id)
         .single()
 
@@ -80,19 +83,23 @@ export async function deleteFestivo(id: number) {
         return { error: deleteError.message }
     }
 
-    // 3. Sincronizar con cultos: Buscar cultos en esa fecha que SEAN festivos
-    // Nota: Solo revertimos si ya no quedan otros festivos en ese día (aunque la UI probablemente solo permita uno)
-    const { count } = await supabase
+    // 3. Sincronizar con cultos de LA MISMA SEDE del festivo: revertir solo si ya
+    //    no quedan otros festivos en ese día para esa sede.
+    let countQuery = supabase
         .from('festivos')
         .select('*', { count: 'exact', head: true })
         .eq('fecha', festivo.fecha)
+    if (festivo.sede_id) countQuery = countQuery.eq('sede_id', festivo.sede_id)
+    const { count } = await countQuery
 
     if (count === 0) {
-        const { data: cultosToUpdate } = await supabase
+        let cultosToUpdateQuery = supabase
             .from('cultos')
             .select('id, hora_inicio')
             .eq('fecha', festivo.fecha)
             .eq('es_laborable_festivo', true)
+        if (festivo.sede_id) cultosToUpdateQuery = cultosToUpdateQuery.eq('sede_id', festivo.sede_id)
+        const { data: cultosToUpdate } = await cultosToUpdateQuery
 
         if (cultosToUpdate && cultosToUpdate.length > 0) {
             for (const culto of cultosToUpdate) {
@@ -119,11 +126,14 @@ export async function deleteFestivo(id: number) {
 
 export async function getFestivos(year?: number) {
     const supabase = await createClient()
+    // El ADMIN ve todas las sedes por RLS: acotar a la sede activa del sidebar.
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
     let query = supabase
         .from('festivos')
         .select('*')
         .order('fecha', { ascending: true })
+    if (sedeId) query = query.eq('sede_id', sedeId)
 
     if (year) {
         query = query
@@ -143,7 +153,7 @@ export async function getFestivos(year?: number) {
     const cultosMap: Record<string, { id: string; fecha: string; hora_inicio: string; tipo_culto: { nombre: string } }> = {}
 
     if (fechas.length > 0) {
-        const { data: cultosData } = await supabase
+        let cultosLookupQuery = supabase
             .from('cultos')
             .select(`
 id,
@@ -152,6 +162,8 @@ id,
     tipo_culto: culto_types(nombre)
             `)
             .in('fecha', fechas)
+        if (sedeId) cultosLookupQuery = cultosLookupQuery.eq('sede_id', sedeId)
+        const { data: cultosData } = await cultosLookupQuery
 
         if (cultosData) {
             (cultosData as unknown as { id: string; fecha: string; hora_inicio: string; tipo_culto: { nombre: string } }[]).forEach((c) => {

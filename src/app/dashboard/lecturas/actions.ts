@@ -8,6 +8,7 @@ import {
 } from '@/lib/lecturas/capituloHistorial'
 import { resolveHistorialLectorDisplay } from '@/lib/utils/lecturasHistorialLector'
 import { resolveLecturaLectorFromCulto } from '@/lib/utils/resolveLecturaLectorFromCulto'
+import { getActiveSedeIdForCurrentUser } from '@/lib/sede/activeSede'
 import { revalidatePath, unstable_noStore as noStore } from 'next/cache'
 
 export type { CapituloHistorialHit }
@@ -15,16 +16,17 @@ export type { CapituloHistorialHit }
 async function fetchCultoLectorAssignments(
     supabase: Awaited<ReturnType<typeof createClient>>,
     cultoId: string
-): Promise<{ idUsuarioIntro: string | null; idUsuarioFinalizacion: string | null } | null> {
+): Promise<{ idUsuarioIntro: string | null; idUsuarioFinalizacion: string | null; sedeId: string | null } | null> {
     const { data } = await supabase
         .from('cultos')
-        .select('id_usuario_intro, id_usuario_finalizacion')
+        .select('id_usuario_intro, id_usuario_finalizacion, sede_id')
         .eq('id', cultoId)
         .maybeSingle()
     if (!data) return null
     return {
         idUsuarioIntro: data.id_usuario_intro,
         idUsuarioFinalizacion: data.id_usuario_finalizacion,
+        sedeId: data.sede_id,
     }
 }
 
@@ -60,10 +62,15 @@ export async function saveLectura(
     noStore()
     const supabase = await createClient()
 
-    // 2. Buscar si esta CITAS ya existe en otro culto (detección de repetida)
+    // Sede del culto: la detección de repetidas debe ser LOCAL a la sede (una
+    // cita idéntica en otra sede no convierte esta lectura en "repetida").
+    const cultoRow = await fetchCultoLectorAssignments(supabase, cultoId)
+    const cultoSedeId = cultoRow?.sedeId ?? null
+
+    // 2. Buscar si esta CITA ya existe en otro culto de LA MISMA SEDE (repetida)
     let existenteCitaQuery = supabase
         .from('lecturas_biblicas')
-        .select('id, created_at, culto_id, id_usuario_lector, cultos!inner(fecha)')
+        .select('id, created_at, culto_id, id_usuario_lector, cultos!inner(fecha, sede_id)')
         .eq('libro', libro)
         .eq('capitulo_inicio', capituloInicio)
         .eq('versiculo_inicio', versiculoInicio)
@@ -71,6 +78,10 @@ export async function saveLectura(
         .eq('versiculo_fin', versiculoFin || versiculoInicio)
         .eq('es_repetida', false)
         .limit(1)
+
+    if (cultoSedeId) {
+        existenteCitaQuery = existenteCitaQuery.eq('cultos.sede_id', cultoSedeId)
+    }
 
     if (lecturaId) {
         existenteCitaQuery = existenteCitaQuery.neq('id', lecturaId)
@@ -94,7 +105,6 @@ export async function saveLectura(
         }
     }
 
-    const cultoRow = await fetchCultoLectorAssignments(supabase, cultoId)
     const idLector = resolveLectorForSave(cultoRow, tipoLectura, userId)
 
     const lecturaData = {
@@ -276,6 +286,7 @@ export async function checkCapituloEnHistorial(
     }
 
     const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
     let query = supabase
         .from('lecturas_biblicas')
         .select(`
@@ -288,12 +299,17 @@ export async function checkCapituloEnHistorial(
             versiculo_inicio,
             versiculo_fin,
             created_at,
-            cultos!inner(fecha, hora_inicio, tipo_culto:culto_types(nombre)),
+            cultos!inner(fecha, hora_inicio, sede_id, tipo_culto:culto_types(nombre)),
             lector:profiles!id_usuario_lector(nombre, apellidos)
         `)
         .eq('libro', libro)
         .lte('capitulo_inicio', capitulo)
         .gte('capitulo_fin', capitulo)
+
+    // Aislar el aviso de "capítulo ya leído" a la sede activa.
+    if (sedeId) {
+        query = query.eq('cultos.sede_id', sedeId)
+    }
 
     if (options?.lecturaId) {
         query = query.neq('id', options.lecturaId)
@@ -396,15 +412,16 @@ export async function getAllLecturas(
     }
 ) {
     const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
     // Si hay filtros de fecha o tipo de culto, primero obtener IDs de cultos que los cumplan
     let cultosIds: string[] | null = null
-    
+
     if (filters?.startDate || filters?.endDate || filters?.tipoCulto) {
         let cultosQuery = supabase
             .from('cultos')
             .select('id')
-        
+
         if (filters?.startDate) {
             cultosQuery = cultosQuery.gte('fecha', filters.startDate)
         }
@@ -413,6 +430,9 @@ export async function getAllLecturas(
         }
         if (filters?.tipoCulto) {
             cultosQuery = cultosQuery.eq('tipo_culto_id', filters.tipoCulto)
+        }
+        if (sedeId) {
+            cultosQuery = cultosQuery.eq('sede_id', sedeId)
         }
 
         const { data: cultosFiltrados } = await cultosQuery
@@ -435,6 +455,7 @@ export async function getAllLecturas(
       culto:cultos!inner(
         fecha,
         hora_inicio,
+        sede_id,
         tipo_culto:culto_types(nombre, id),
         usuario_intro:profiles!id_usuario_intro(id, nombre, apellidos),
         usuario_finalizacion:profiles!id_usuario_finalizacion(id, nombre, apellidos)
@@ -442,6 +463,12 @@ export async function getAllLecturas(
       lector:profiles!id_usuario_lector(id, nombre, apellidos)
     `, { count: 'exact' })
         .order('created_at', { ascending: false })
+
+    // Aislar el historial a la sede activa (el ADMIN ve todas las sedes por RLS,
+    // así que hay que acotar por la sede elegida en el sidebar).
+    if (sedeId) {
+        query = query.eq('culto.sede_id', sedeId)
+    }
 
     // Aplicar filtro de cultos si hay filtros de fecha/tipo
     if (cultosIds && cultosIds.length > 0) {
@@ -657,10 +684,15 @@ export async function getCultoTypes() {
  */
 export async function getLectores() {
     const supabase = await createClient()
-    const { data, error } = await supabase
+    const sedeId = await getActiveSedeIdForCurrentUser()
+    let query = supabase
         .from('lecturas_biblicas')
-        .select('id_usuario_lector, lector:profiles!id_usuario_lector(id, nombre, apellidos)')
+        .select('id_usuario_lector, lector:profiles!id_usuario_lector(id, nombre, apellidos), cultos!inner(sede_id)')
         .order('created_at', { ascending: false })
+    if (sedeId) {
+        query = query.eq('cultos.sede_id', sedeId)
+    }
+    const { data, error } = await query
 
     if (error) {
         return { error: error.message }
@@ -700,15 +732,16 @@ export async function getLecturasStats(filters?: {
     capitulo?: number
 }) {
     const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
     // Si hay filtros de fecha o tipo de culto, primero obtener IDs de cultos que los cumplan
     let cultosIds: string[] | null = null
-    
+
     if (filters?.startDate || filters?.endDate || filters?.tipoCulto) {
         let cultosQuery = supabase
             .from('cultos')
             .select('id')
-        
+
         if (filters?.startDate) {
             cultosQuery = cultosQuery.gte('fecha', filters.startDate)
         }
@@ -717,6 +750,9 @@ export async function getLecturasStats(filters?: {
         }
         if (filters?.tipoCulto) {
             cultosQuery = cultosQuery.eq('tipo_culto_id', filters.tipoCulto)
+        }
+        if (sedeId) {
+            cultosQuery = cultosQuery.eq('sede_id', sedeId)
         }
 
         const { data: cultosFiltrados } = await cultosQuery
@@ -732,19 +768,28 @@ export async function getLecturasStats(filters?: {
         }
     }
 
-    // Construir query base para estadísticas
+    // Construir query base para estadísticas.
+    // Se acota por sede activa mediante join interno con cultos (lecturas_biblicas
+    // no tiene sede_id propio; hereda la sede del culto). El join no altera el
+    // conteo (toda lectura tiene un culto), solo habilita el filtro por sede.
     let queryTotal = supabase
         .from('lecturas_biblicas')
-        .select('*', { count: 'exact', head: true })
+        .select('*, cultos!inner(sede_id)', { count: 'exact', head: true })
 
     let queryLibros = supabase
         .from('lecturas_biblicas')
-        .select('libro')
+        .select('libro, cultos!inner(sede_id)')
 
     let queryRepetidas = supabase
         .from('lecturas_biblicas')
-        .select('*', { count: 'exact', head: true })
+        .select('*, cultos!inner(sede_id)', { count: 'exact', head: true })
         .eq('es_repetida', true)
+
+    if (sedeId) {
+        queryTotal = queryTotal.eq('cultos.sede_id', sedeId)
+        queryLibros = queryLibros.eq('cultos.sede_id', sedeId)
+        queryRepetidas = queryRepetidas.eq('cultos.sede_id', sedeId)
+    }
 
     // Aplicar filtro de cultos si hay filtros de fecha/tipo
     if (cultosIds && cultosIds.length > 0) {
