@@ -86,8 +86,8 @@ export async function toggleFestivo(cultoId: string, currentStatus: boolean, cur
     if (authError || !ctx) return { error: authError ?? 'Sin permisos' }
     const supabase = ctx.supabase
 
-    // 1. Obtener la fecha del culto
-    const { data: culto } = await supabase.from('cultos').select('fecha').eq('id', cultoId).single()
+    // 1. Obtener la fecha y la sede del culto
+    const { data: culto } = await supabase.from('cultos').select('fecha, sede_id').eq('id', cultoId).single()
     if (!culto) return { error: 'Culto no encontrado' }
 
     // Calcular nueva hora: -1h si pasa a festivo, +1h si vuelve a normal
@@ -108,28 +108,33 @@ export async function toggleFestivo(cultoId: string, currentStatus: boolean, cur
         return { error: error.message }
     }
 
-    // 3. Sincronizar con tabla 'festivos'
+    // 3. Sincronizar con tabla 'festivos' SOLO para la sede del culto
+    //    (la tabla tiene constraint único por (sede_id, fecha)).
     if (!currentStatus) {
         // Se está MARCANDO como festivo -> Crear entrada en festivos si no existe
-        const { count } = await supabase
+        let countQuery = supabase
             .from('festivos')
             .select('*', { count: 'exact', head: true })
             .eq('fecha', culto.fecha)
+        if (culto.sede_id) countQuery = countQuery.eq('sede_id', culto.sede_id)
+        const { count } = await countQuery
 
         if (count === 0) {
             await supabase.from('festivos').insert({
                 fecha: culto.fecha,
                 tipo: 'laborable_festivo',
                 descripcion: 'Festivo Laborable (Manual desde Culto)',
+                ...(culto.sede_id ? { sede_id: culto.sede_id } : {}),
             })
         }
     } else {
-        // Se está DESMARCANDO -> Borrar entrada en festivos (solo si es del tipo manual o general)
-        // Eliminamos cualquiera que coincida con la fecha para mantener consistencia simple
-        await supabase
+        // Se está DESMARCANDO -> Borrar entrada en festivos de esa sede/fecha
+        let deleteQuery = supabase
             .from('festivos')
             .delete()
             .eq('fecha', culto.fecha)
+        if (culto.sede_id) deleteQuery = deleteQuery.eq('sede_id', culto.sede_id)
+        await deleteQuery
     }
 
     // Registrar en movimientos

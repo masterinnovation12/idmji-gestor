@@ -17,6 +17,12 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: createClientMock,
 }))
 
+// La resolución de sede activa se prueba aparte; aquí se neutraliza para
+// centrar el test en la lógica de lecturas (sin sede → sin filtro extra).
+vi.mock('@/lib/sede/activeSede', () => ({
+  getActiveSedeIdForCurrentUser: vi.fn().mockResolvedValue(null),
+}))
+
 function buildEqChain() {
   const filters: Record<string, unknown> = {}
   const chain: Record<string, unknown> = {}

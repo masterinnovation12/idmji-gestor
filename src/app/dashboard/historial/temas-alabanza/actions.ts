@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getActiveSedeIdForCurrentUser } from '@/lib/sede/activeSede'
 import { unstable_noStore as noStore } from 'next/cache'
 import { TEMAS_ALABANZA_KEYS, type TemaAlabanzaKey } from '@/lib/constants/temasAlabanza'
 
@@ -66,6 +67,7 @@ export async function getAllTemasAlabanza(
 ) {
     noStore()
     const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
     const alabanzaId = await getAlabanzaTipoId(supabase)
     if (!alabanzaId) {
@@ -89,6 +91,9 @@ export async function getAllTemasAlabanza(
         .not('meta_data->tema_introduccion_alabanza', 'is', null)
         .order('fecha', { ascending: false })
         .order('hora_inicio', { ascending: false })
+
+    // Aislar el historial de temas a la sede activa (el ADMIN ve todas por RLS).
+    if (sedeId) query = query.eq('sede_id', sedeId)
 
     if (filters?.startDate) {
         query = query.gte('fecha', filters.startDate)
@@ -173,6 +178,7 @@ export async function getTemasAlabanzaStats(filters?: {
 }): Promise<TemaAlabanzaStats> {
     noStore()
     const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
     const alabanzaId = await getAlabanzaTipoId(supabase)
     if (!alabanzaId) {
@@ -191,6 +197,7 @@ export async function getTemasAlabanzaStats(filters?: {
         .eq('tipo_culto_id', alabanzaId)
         .not('meta_data->tema_introduccion_alabanza', 'is', null)
 
+    if (sedeId) query = query.eq('sede_id', sedeId)
     if (filters?.startDate) query = query.gte('fecha', filters.startDate)
     if (filters?.endDate) query = query.lte('fecha', filters.endDate)
     if (filters?.hermanoId) query = query.eq('id_usuario_intro', filters.hermanoId)
@@ -286,18 +293,22 @@ export async function getTemasAlabanzaStats(filters?: {
 export async function getHermanosConTemas(): Promise<{ data: HermanosConTemas[] }> {
     noStore()
     const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
 
     const alabanzaId = await getAlabanzaTipoId(supabase)
     if (!alabanzaId) {
         return { data: [] }
     }
 
-    const { data, error } = await supabase
+    let query = supabase
         .from('cultos')
         .select('id_usuario_intro, usuario_intro:profiles!id_usuario_intro(id, nombre, apellidos)')
         .eq('tipo_culto_id', alabanzaId)
         .not('meta_data->tema_introduccion_alabanza', 'is', null)
         .not('id_usuario_intro', 'is', null)
+    if (sedeId) query = query.eq('sede_id', sedeId)
+
+    const { data, error } = await query
 
     if (error) {
         return { data: [] }

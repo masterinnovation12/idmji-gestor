@@ -1089,12 +1089,12 @@ export default function LecturasPageClient({
                                                     <span suppressHydrationWarning className="text-xs font-black uppercase tracking-widest opacity-80">
                                                         {t('lecturas.statsTotal')}
                                                     </span>
-                                                    <p className="text-4xl font-black mt-1">
+                                                    <p className="text-4xl font-black mt-1" data-testid="lecturas-stats-total">
                                                         {stats.totalLecturas}
                                                     </p>
-                                                    <div className="mt-4 flex items-center gap-2 text-[10px] font-bold bg-white/20 w-fit px-2 py-1 rounded-full">
+                                                    <div className="mt-4 flex items-center gap-2 text-[10px] font-bold uppercase bg-white/20 w-fit px-2 py-1 rounded-full">
                                                         <TrendingUp size={12} />
-                                                        REGISTROS TOTALES
+                                                        <span suppressHydrationWarning>{t('lecturas.statsTotalBadge')}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1111,9 +1111,9 @@ export default function LecturasPageClient({
                                                     <p className="text-4xl font-black mt-1">
                                                         {stats.repetidasCount}
                                                     </p>
-                                                    <div className="mt-4 flex items-center gap-2 text-[10px] font-bold bg-white/20 w-fit px-2 py-1 rounded-full">
+                                                    <div className="mt-4 flex items-center gap-2 text-[10px] font-bold uppercase bg-white/20 w-fit px-2 py-1 rounded-full">
                                                         <History size={12} />
-                                                        CONTROL DE DUPLICADOS
+                                                        <span suppressHydrationWarning>{t('lecturas.statsRepetidasBadge')}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1124,15 +1124,15 @@ export default function LecturasPageClient({
                                                     <Sparkles size={80} />
                                                 </div>
                                                 <div className="relative z-10">
-                                                    <span className="text-xs font-black uppercase tracking-widest opacity-80">
-                                                        TOP LIBRO
+                                                    <span suppressHydrationWarning className="text-xs font-black uppercase tracking-widest opacity-80">
+                                                        {t('lecturas.statsTopLibro')}
                                                     </span>
                                                     <p className="text-2xl font-black mt-1 truncate pr-12">
                                                         {stats.librosMasLeidos[0]?.libro || '---'}
                                                     </p>
-                                                    <div className="mt-4 flex items-center gap-2 text-[10px] font-bold bg-white/20 w-fit px-2 py-1 rounded-full">
+                                                    <div className="mt-4 flex items-center gap-2 text-[10px] font-bold uppercase bg-white/20 w-fit px-2 py-1 rounded-full">
                                                         <Star size={12} fill="currentColor" />
-                                                        {stats.librosMasLeidos[0]?.count || 0} LECTURAS
+                                                        <span suppressHydrationWarning>{t('lecturas.statsLecturasCount').replace('{n}', String(stats.librosMasLeidos[0]?.count || 0))}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1459,7 +1459,7 @@ export default function LecturasPageClient({
                         {/* Paginación Mejorada - Responsive */}
                         {totalPages > 1 && (
                             <div className="p-4 sm:p-6 md:p-8 bg-muted/10 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
-                                <p suppressHydrationWarning className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-widest text-center sm:text-left">
+                                <p suppressHydrationWarning data-testid="lecturas-pagination-info" className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-widest text-center sm:text-left">
                                     {t('lecturas.pageOf')
                                         .replace('{current}', currentPage.toString())
                                         .replace('{total}', totalPages.toString())}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ShieldCheck, UserCog, Building2, BarChart, FileText, ChevronRight, KeyRound, Music, LayoutDashboard, CalendarClock, MapPin, UsersRound, GitCompareArrows } from 'lucide-react'
+import { ShieldCheck, UserCog, Building2, BarChart, FileText, ChevronRight, KeyRound, Music, LayoutDashboard, CalendarClock, MapPin, UsersRound, GitCompareArrows, BookOpenText } from 'lucide-react'
 import PageHero from '@/components/PageHero'
 import { useI18n } from '@/lib/i18n/I18nProvider'
 import type { TranslationKey } from '@/lib/i18n/types'
@@ -71,6 +71,13 @@ const MODULES: AdminModule[] = [
         titleKey: 'admin.hub.himnarioTitulo',
         descKey: 'admin.hub.himnarioDesc',
         testId: 'admin-mod-himnario',
+    },
+    {
+        href: '/dashboard/admin/lecturas',
+        icon: BookOpenText,
+        titleKey: 'admin.hub.lecturasTitulo',
+        descKey: 'admin.hub.lecturasDesc',
+        testId: 'admin-mod-lecturas',
     },
     {
         href: '/dashboard/admin/stats',
