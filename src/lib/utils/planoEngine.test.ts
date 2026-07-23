@@ -134,8 +134,8 @@ describe('planoEngine', () => {
             [{ persona_id: 'h1', rol: 'ofrendario' }],
         )
         // h1 tiene +50 recencia pero h2 tiene +400 por 4O → h1 debe ser ofrendario
-        expect(scorePersonaRol(personas[0], h, 'jueves', 'ofrendario')).toBeLessThan(
-            scorePersonaRol(personas[1], h, 'jueves', 'ofrendario'),
+        expect(scorePersonaRol(personas[0], h, 'ofrendario')).toBeLessThan(
+            scorePersonaRol(personas[1], h, 'ofrendario'),
         )
         const res = asignarPlanoServicio('jueves', 1, personas, [], h)
         expect(res.find(r => r.rol === 'ofrendario')?.persona_id).toBe('h1')
@@ -235,6 +235,110 @@ describe('planoEngine', () => {
         expect(h.paresRecientes.size).toBe(1)
         expect(h.mismaSemanaOtroTurno.get('d')).toBe(1)
         expect(h.conteo.get('d')).toBeUndefined()
+    })
+
+    it('capa 1: veta a quien estuvo en el servicio anterior del mismo turno', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+            persona('h3', 'H3', { genero: 'hombre' }),
+            persona('h4', 'H4', { genero: 'hombre' }),
+        ]
+        const h = crearHistorialVacio()
+        // h3/h4 llevan 3 salidas cada uno; h1/h2 ninguna pero estuvieron el domingo pasado.
+        h.roles.set('h3', { ofrendario: 3, apoyo: 3 })
+        h.roles.set('h4', { ofrendario: 3, apoyo: 3 })
+        h.servicioAnterior = new Set(['h1', 'h2'])
+        const res = asignarPlanoServicio('jueves', 1, personas, [], h)
+        // Sin la capa 1, la equidad acumulada (300) ganaba y h1/h2 repetían.
+        expect(res.map(r => r.persona_id).sort()).toEqual(['h3', 'h4'])
+    })
+
+    it('relaja el veto del servicio anterior antes que dejar un saco vacío', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+            persona('h3', 'H3', { genero: 'hombre' }),
+            persona('h4', 'H4', { genero: 'hombre' }),
+        ]
+        const h = crearHistorialVacio()
+        // Solo quedan 2 libres pero hacen falta 4 → capa 1 no llena, capa 2 sí.
+        h.servicioAnterior = new Set(['h1', 'h2'])
+        const res = asignarPlanoServicio('jueves', 2, personas, [], h)
+        expect(res).toHaveLength(4)
+        expect(new Set(res.map(r => r.persona_id)).size).toBe(4)
+    })
+
+    it('no repite el par exacto del servicio anterior aunque las personas sí puedan repetir', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+            persona('h3', 'H3', { genero: 'hombre' }),
+            persona('h4', 'H4', { genero: 'hombre' }),
+        ]
+        const h = crearHistorialVacio()
+        h.servicioAnterior = new Set(['h1', 'h2', 'h3', 'h4'])
+        h.paresServicioAnterior = new Set([parKey('h1', 'h2'), parKey('h3', 'h4')])
+        const res = asignarPlanoServicio('jueves', 2, personas, [], h)
+        expect(res).toHaveLength(4)
+        const pares = [1, 2].map(b => {
+            const [x, y] = res.filter(r => r.bloque === b).map(r => r.persona_id)
+            return parKey(x, y)
+        })
+        expect(pares).not.toContain(parKey('h1', 'h2'))
+        expect(pares).not.toContain(parKey('h3', 'h4'))
+    })
+
+    it('separa a un matrimonio que acaba de salir junto, sin cruzar géneros', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('m1', 'M1', { genero: 'mujer' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+            persona('m2', 'M2', { genero: 'mujer' }),
+        ]
+        const parejas: PlanoParejaEngine[] = [{ mujerId: 'm1', hombreId: 'h1' }]
+        const h = crearHistorialVacio()
+        h.paresRecientes.set(parKey('h1', 'm1'), 1)
+        const res = asignarPlanoServicio('jueves', 2, personas, parejas, h)
+        expect(res).toHaveLength(4)
+        for (const bloque of [1, 2]) {
+            const ids = res.filter(r => r.bloque === bloque).map(r => r.persona_id)
+            const generos = ids.map(id => personas.find(p => p.id === id)!.genero)
+            // Al separarse, cada uno va con alguien de su mismo género.
+            expect(new Set(generos).size).toBe(1)
+        }
+    })
+
+    it('construirHistorialParaServicio marca personas y pares del servicio anterior', () => {
+        const h = construirHistorialParaServicio(
+            new Map(),
+            [
+                { persona_id: 'a', rol: 'ofrendario', servicio_id: 'prev', bloque: 1 },
+                { persona_id: 'b', rol: 'apoyo', servicio_id: 'prev', bloque: 1 },
+                { persona_id: 'c', rol: 'ofrendario', servicio_id: 'viejo', bloque: 1 },
+                { persona_id: 'd', rol: 'apoyo', servicio_id: 'viejo', bloque: 1 },
+            ],
+            [],
+            'prev',
+        )
+        expect([...h.servicioAnterior].sort()).toEqual(['a', 'b'])
+        expect([...h.paresServicioAnterior]).toEqual([parKey('a', 'b')])
+        expect(h.paresRecientes.size).toBe(2)
+    })
+
+    it('modo rellenar: solo completa bloques vacíos y no repite a los ya asignados', () => {
+        const personas: PlanoPersonaEngine[] = [
+            persona('h1', 'H1', { genero: 'hombre' }),
+            persona('h2', 'H2', { genero: 'hombre' }),
+            persona('h3', 'H3', { genero: 'hombre' }),
+            persona('h4', 'H4', { genero: 'hombre' }),
+        ]
+        const res = asignarPlanoServicio('jueves', 2, personas, [], crearHistorialVacio(), {
+            bloquesOcupados: [1],
+            yaAsignados: ['h1', 'h2'],
+        })
+        expect(res.map(r => r.bloque)).toEqual([2, 2])
+        expect(res.map(r => r.persona_id).sort()).toEqual(['h3', 'h4'])
     })
 
     it('varios sacos en el mismo culto actualizan roles en memoria para el siguiente saco', () => {
