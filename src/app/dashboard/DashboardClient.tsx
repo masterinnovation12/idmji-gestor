@@ -15,6 +15,8 @@ interface DashboardClientProps {
     esHoy: boolean
     initialAssignments: Culto[]
     initialDate: string
+    initialDayCultos?: (Culto & { lecturas?: LecturaBiblica[] })[]
+    initialRangeCultos?: (Culto & { lecturas?: LecturaBiblica[] })[]
 }
 
 export default function DashboardClient({ 
@@ -22,12 +24,14 @@ export default function DashboardClient({
     culto, 
     esHoy, 
     initialAssignments, 
-    initialDate 
+    initialDate,
+    initialDayCultos,
+    initialRangeCultos,
 }: DashboardClientProps) {
     const { t } = useI18n()
 
     return (
-        <div className="ofrenda-liquid-scope space-y-4 md:space-y-8 animate-fade-in-up pb-16 md:pb-20">
+        <div className="ofrenda-liquid-scope space-y-4 md:space-y-8 pb-16 md:pb-20">
             {/* 1. Header Premium */}
             <DashboardHeader user={user} />
 
@@ -40,6 +44,8 @@ export default function DashboardClient({
                         initialCulto={culto}
                         initialDate={initialDate}
                         esHoy={esHoy}
+                        initialDayCultos={initialDayCultos}
+                        initialRangeCultos={initialRangeCultos}
                     >
                         {(navCulto, isNavLoading, navEsHoy) => (
                             <>

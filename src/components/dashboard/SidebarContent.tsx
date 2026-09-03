@@ -151,19 +151,18 @@ export function SidebarContent({
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 py-3 px-2.5 space-y-1.5 overflow-y-auto no-scrollbar">
-                {sidebarItems.map((item: NavItem, index: number) => {
+            <nav
+                className="flex-1 py-3 px-2.5 space-y-1.5 overflow-y-auto no-scrollbar"
+                data-testid={isMobile ? 'sidebar-mobile' : 'sidebar-desktop'}
+            >
+                {sidebarItems.map((item: NavItem) => {
                     const isActive = pathname === item.href
                     return (
-                        <motion.div
-                            key={item.href}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                        >
+                        <div key={item.href}>
                             <Link
                                 href={item.href}
                                 onClick={onMobileNav}
+                                data-nav-href={item.href}
                                 className={`flex items-center gap-3.5 px-3.5 ${isMobile ? 'min-h-12 py-2.5' : 'py-2'} rounded-2xl transition-all duration-300 group relative ${isActive
                                     ? 'text-[#1f2e85] shadow-lg shadow-black/20'
                                     : 'text-white/60 hover:text-white'
@@ -207,7 +206,7 @@ export function SidebarContent({
                                     </motion.div>
                                 )}
                             </Link>
-                        </motion.div>
+                        </div>
                     )
                 })}
             </nav>

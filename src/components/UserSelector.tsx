@@ -11,11 +11,11 @@
 
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, X, User, Check, Loader2, ChevronDown } from 'lucide-react'
-import { useDebounce } from '@/hooks/use-debounce'
-import { searchProfiles } from '@/app/dashboard/cultos/[id]/actions'
+import { usePulpitoCatalog } from '@/lib/hermanos/pulpitoCatalog'
+import { filterPulpitoProfiles } from '@/lib/utils/filterPulpitoProfiles'
 import { Profile } from '@/types/database'
 import Image from 'next/image'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -47,8 +47,7 @@ export default function UserSelector({
     const { t } = useI18n()
     const [id] = useState(() => Math.random().toString(36).substring(2, 9))
     const [query, setQuery] = useState('')
-    const [results, setResults] = useState<Profile[]>([])
-    const [isSearching, setIsSearching] = useState(false)
+    const { profiles: catalog, isLoading: isCatalogLoading } = usePulpitoCatalog()
     const [showResults, setShowResults] = useState(false)
     const [internalIsEditing, setInternalIsEditing] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -73,8 +72,6 @@ export default function UserSelector({
         if (onEditChange) onEditChange(val)
         else setInternalIsEditing(val)
     }, [onEditChange])
-
-    const debouncedQuery = useDebounce(query, 300)
 
     // Reset editing state when selectedUserId changes to null
     useEffect(() => {
@@ -109,23 +106,13 @@ export default function UserSelector({
     }, [showResults])
 
     useEffect(() => {
-        async function search() {
-            setIsSearching(true)
-            try {
-                const { data } = await searchProfiles(debouncedQuery)
-                setResults(data as Profile[] || [])
-                if (showResults || debouncedQuery.length > 0) {
-                    setShowResults(true)
-                }
-            } catch (error) {
-                console.error('Error searching profiles:', error)
-            } finally {
-                setIsSearching(false)
-            }
+        if (!showResults) return
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setShowResults(false)
         }
-
-        search()
-    }, [debouncedQuery, showResults])
+        document.addEventListener('keydown', onKeyDown)
+        return () => document.removeEventListener('keydown', onKeyDown)
+    }, [showResults])
 
     // Posicionamiento dinámico para el dropdown fixed
     const updatePosition = () => {
@@ -164,61 +151,49 @@ export default function UserSelector({
     }, [showResults])
 
     // Helper to check availability
-    const isUserAvailable = (user: Profile) => {
-        if (!cultoDate || !assignmentType) return true // If no context, assume available
+    const isUserAvailable = useCallback((user: Profile) => {
+        if (!cultoDate || !assignmentType) return true
 
-        // Handle legacy availability (simple array/object) vs new structure (template/exceptions)
         const availabilityData = user.availability as Record<string, unknown> | null
+        if (!availabilityData) return true
 
-        if (!availabilityData) return true // Default available if no constraints set
+        const dateStr = cultoDate.slice(0, 10)
+        const dayOfWeek = new Date(`${dateStr}T12:00:00`).getDay()
 
-        const date = new Date(cultoDate)
-        const dateStr = date.toISOString().split('T')[0] // YYYY-MM-DD
-        const dayOfWeek = date.getDay() // 0-6
-
-        // 1. Check Exceptions (Highest Priority)
-        // New structure: availability.exceptions['YYYY-MM-DD']
         const exceptions = availabilityData.exceptions as Record<string, Record<string, boolean>> | undefined
         if (exceptions && exceptions[dateStr]) {
-            const exception = exceptions[dateStr]
-            // If exception exists for this date, IT RULES.
-            return exception[assignmentType] === true // Must be explicitly true
+            return exceptions[dateStr][assignmentType] === true
         }
 
-        // 2. Check Template (Standard Priority)
-        // New structure: availability.template['0'...'6']
         const template = availabilityData.template as Record<string, Record<string, boolean>> | undefined
         if (template) {
             const dayTemplate = template[dayOfWeek.toString()]
-            if (dayTemplate) {
-                return dayTemplate[assignmentType] === true
-            }
-            // If no template for this day, assume unavailable? 
-            // Or available? Usually 'template' defines availability. Defaults to false.
+            if (dayTemplate) return dayTemplate[assignmentType] === true
             return false
         }
 
-        // 3. Fallback to Legacy/Old Structure (if exists)
-        // old: availability[dayOfWeek] = { assignments... }
         const legacyDay = availabilityData[dayOfWeek] as Record<string, boolean> | undefined
-        if (legacyDay) {
-            return legacyDay[assignmentType] !== false
-        }
+        if (legacyDay) return legacyDay[assignmentType] !== false
 
-        // If structure exists but no matching rule found, assume unavailable to be safe? 
-        // Or if 'availability' is empty object?
-        // Let's assume unavailable if they have availability set up but no match.
-        // But if availability is completely null (handled at top), they are available.
         return false
-    }
+    }, [cultoDate, assignmentType])
+
+    const filteredResults = useMemo(
+        () => filterPulpitoProfiles(catalog, query),
+        [catalog, query],
+    )
 
     // Sort results: Available first
-    const sortedResults = [...results].sort((a, b) => {
-        const aAvailable = isUserAvailable(a)
-        const bAvailable = isUserAvailable(b)
-        if (aAvailable === bAvailable) return 0
-        return aAvailable ? -1 : 1
-    })
+    const sortedResults = useMemo(() => {
+        return [...filteredResults].sort((a, b) => {
+            const aAvailable = isUserAvailable(a)
+            const bAvailable = isUserAvailable(b)
+            if (aAvailable === bAvailable) return 0
+            return aAvailable ? -1 : 1
+        })
+    }, [filteredResults, isUserAvailable])
+
+    const isSearching = isCatalogLoading && catalog.length === 0
 
     const handleSelect = (user: Profile, confirmed: boolean = true) => {
         // If not confirmed (unavailable), we pass false to let parent handle the warning
@@ -256,23 +231,29 @@ export default function UserSelector({
                 <input
                     type="text"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => {
+                        setQuery(e.target.value)
+                        setShowResults(true)
+                    }}
                     onFocus={() => {
                         setShowResults(true)
                         updatePosition()
-                        // Trigger immediate search if results are empty
-                        if (results.length === 0) {
-                            searchProfiles('').then(({ data }) => setResults(data as Profile[] || []))
-                        }
                     }}
                     placeholder={t('hermanos.searchPlaceholder')}
                     disabled={disabled}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     data-testid="user-selector-input"
                     className="w-full bg-white/70 border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-2xl pl-12 pr-12 py-3.5 outline-none focus:ring-4 focus:ring-[rgba(184,150,74,0.15)] focus:border-[#b8964a] transition-all disabled:opacity-50 font-medium text-sm text-slate-800 placeholder:text-slate-400 shadow-inner"
                 />
                 {query && (
                     <button
-                        onClick={() => setQuery('')}
+                        type="button"
+                        onClick={() => {
+                            setQuery('')
+                            setShowResults(true)
+                        }}
                         data-testid="user-selector-clear"
                         className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 hover:bg-[#f8f3e8] rounded-xl transition-colors text-slate-400 hover:text-[#1f2e85]"
                     >

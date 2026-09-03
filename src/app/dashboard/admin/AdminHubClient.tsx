@@ -99,7 +99,7 @@ export default function AdminHubClient() {
     const { t } = useI18n()
 
     return (
-        <div className="ofrenda-liquid-scope space-y-8 animate-in fade-in duration-500" data-page="admin-hub">
+        <div className="ofrenda-liquid-scope space-y-8 animate-in fade-in duration-150" data-page="admin-hub">
             <PageHero
                 title={t('admin.hub.title')}
                 subtitle={t('admin.hub.desc')}
@@ -109,14 +109,14 @@ export default function AdminHubClient() {
             />
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {MODULES.map((mod, index) => {
+                {MODULES.map((mod) => {
                     const Icon = mod.icon
                     return (
                         <motion.div
                             key={mod.href}
-                            initial={{ opacity: 0, y: 14 }}
+                            initial={false}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.06 }}
+                            transition={{ duration: 0.12 }}
                         >
                             <Link
                                 href={mod.href}

@@ -422,6 +422,9 @@ export default function BibleSelector({
         return (
             <button
                 key={libro.id}
+                type="button"
+                data-testid="bible-book-option"
+                data-book={libro.nombre}
                 onClick={() => handleSelectLibro(libro)}
                 onMouseEnter={() => setSelectedIndex(globalIdx)}
                 className={cn(
@@ -502,6 +505,9 @@ export default function BibleSelector({
                             placeholder={t('bible.searchBook')}
                             disabled={disabled}
                             autoComplete="off"
+                            autoFocus
+                            data-modal-autofocus
+                            data-testid="bible-search-input"
                             className="w-full bg-white/70 border-[1.5px] border-[rgba(184,150,74,0.32)] rounded-2xl pl-12 pr-10 py-4 outline-none focus:ring-4 focus:ring-[rgba(184,150,74,0.15)] focus:border-[#b8964a] transition-all text-sm md:text-base font-bold text-slate-800 placeholder:text-slate-400 shadow-sm md:cursor-text"
                         />
                         {/* Command Icon hint */}

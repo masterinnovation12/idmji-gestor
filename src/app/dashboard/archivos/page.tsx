@@ -1,58 +1,60 @@
 /**
- * Página Archivos: visible para cualquier usuario autenticado (cualquier rol).
- * No se comprueba rol: ADMIN, EDITOR, VIEWER, etc. pueden acceder.
+ * Página Archivos: visible para cualquier usuario autenticado.
+ * El CSV de Google no puede bloquear el TTFB (timeout interno ~35s).
+ * Si hay caché o Google responde en <2s, pintamos datos; si no, el cliente
+ * pide /api/archivos mientras el fetch de servidor sigue calentando caché.
  */
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { unstable_noStore } from 'next/cache'
 import ArchivosClient from './ArchivosClient'
 import {
-  getSheetCSVUrl,
-  fetchAndParseSheetCSV,
-  type SheetSourceId,
-  type SheetFetchMeta,
+    getSheetCSVUrl,
+    fetchAndParseSheetCSV,
+    type SheetSourceId,
+    type SheetFetchMeta,
 } from '@/lib/csv-sheets'
 
 export const dynamic = 'force-dynamic'
 
-export const revalidate = 0
+const SSR_BUDGET_MS = 2_000
 
+function withBudget<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+    return new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(null), ms)
+        promise.then(
+            (value) => {
+                clearTimeout(timer)
+                resolve(value)
+            },
+            () => {
+                clearTimeout(timer)
+                resolve(null)
+            },
+        )
+    })
+}
 
 export default async function ArchivosPage() {
-  unstable_noStore()
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
 
-  if (!user) {
-    redirect('/login')
-  }
-  // Sin comprobación de rol: cualquier usuario autenticado puede ver Archivos
+    const initialData: Partial<Record<SheetSourceId, Record<string, string>[]>> = {}
+    const initialMeta: Partial<Record<SheetSourceId, SheetFetchMeta>> = {}
 
-  // SSR: Solamente cargamos la pestaña inicial (ensenanzas) para mejorar el TTFB.
-  // El resto de pestañas se cargarán bajo demanda en el cliente.
-  const initialData: Partial<Record<SheetSourceId, Record<string, string>[]>> = {}
-  const initialMeta: Partial<Record<SheetSourceId, SheetFetchMeta>> = {}
-  const initialErrors: Partial<Record<SheetSourceId, string>> = {}
-
-  const primarySource: SheetSourceId = 'ensenanzas'
-  try {
-    const url = getSheetCSVUrl(primarySource)
+    const url = getSheetCSVUrl('ensenanzas')
     if (url) {
-      const { data, meta } = await fetchAndParseSheetCSV(url)
-      initialData[primarySource] = data
-      initialMeta[primarySource] = meta
-    } else {
-      initialErrors[primarySource] = 'URL no configurada'
+        const raced = await withBudget(fetchAndParseSheetCSV(url), SSR_BUDGET_MS)
+        if (raced) {
+            initialData.ensenanzas = raced.data
+            initialMeta.ensenanzas = raced.meta
+        }
     }
-  } catch (e) {
-    initialErrors[primarySource] = e instanceof Error ? e.message : 'Error al cargar'
-  }
 
-  return (
-    <ArchivosClient
-      initialData={initialData}
-      initialMeta={Object.keys(initialMeta).length > 0 ? initialMeta : undefined}
-      initialErrors={Object.keys(initialErrors).length > 0 ? initialErrors : undefined}
-    />
-  )
+    return (
+        <ArchivosClient
+            initialData={initialData}
+            initialMeta={Object.keys(initialMeta).length > 0 ? initialMeta : undefined}
+        />
+    )
 }

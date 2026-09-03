@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Building2, Check, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { getSedeSwitcherData, setActiveSede } from '@/app/dashboard/admin/sedes/actions'
+import { resetPulpitoCatalog } from '@/lib/hermanos/pulpitoCatalog'
 import type { TranslationKey } from '@/lib/i18n/types'
 
 interface SedeSwitcherProps {
@@ -54,6 +55,7 @@ export function SedeSwitcher({ t, collapsed = false, onSedeChanged }: Readonly<S
             const res = await setActiveSede(sede.id)
             if (res.success) {
                 setActiveId(sede.id)
+                resetPulpitoCatalog()
                 toast.success(`${t('sede.cambiada')}: ${sede.nombre}`)
                 // Cerrar el drawer móvil y llevar al dashboard con los datos
                 // de la sede recién elegida (el push + refresh remonta las

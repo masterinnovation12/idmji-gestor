@@ -1,26 +1,30 @@
 /**
  * CultoNavigator - IDMJI Gestor de Púlpito
- * 
- * Componente de navegación para el bloque de culto del Dashboard.
- * Permite navegar entre cultos de diferentes días con flechas y mini-calendario.
- * 
- * Rango: ±1 semana desde hoy (21 días totales)
- * 
- * @author Antigravity AI
- * @date 2026-01-25
+ *
+ * Navegación del culto en el dashboard (±1 semana).
+ * El día cambia al instante; los datos se leen de caché (rango precargado)
+ * para que prev/siguiente en móvil no esperen a la red.
  */
 
 'use client'
 
-import { useState, useEffect, useCallback, ReactNode } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { format, addDays, subDays, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, eachDayOfInterval, isWithinInterval } from 'date-fns'
+import { motion } from 'framer-motion'
+import { format, addDays, subDays, startOfWeek, endOfWeek, isSameDay, eachDayOfInterval, isWithinInterval } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
 import { useI18n } from '@/lib/i18n/I18nProvider'
-import { getCultosByDate, getCultoIndicatorsForRange } from '@/app/dashboard/cultos/actions'
+import { getCultosByDate, getCultosByDateRange, getCultoIndicatorsForRange } from '@/app/dashboard/cultos/actions'
 import { Culto, LecturaBiblica } from '@/types/database'
 import { cn } from '@/lib/utils'
+import {
+    dashboardNavigatorBounds,
+    applyAuthoritativeRange,
+    navigatorRangeFingerprint,
+    pickDefaultCultoForDay,
+    seedNavigatorCache,
+} from '@/lib/utils/pickDashboardCulto'
+import { hasOpenAppModal } from '@/lib/utils/hasOpenAppModal'
 
 type CultoWithLecturas = Culto & { lecturas?: LecturaBiblica[] }
 
@@ -28,6 +32,11 @@ interface CultoNavigatorProps {
     initialCulto: CultoWithLecturas | null
     initialDate: string // YYYY-MM-DD
     esHoy: boolean
+    initialDayCultos?: CultoWithLecturas[]
+    /** Cultos del rango ±1 semana (SSR): navegar no espera a la red. */
+    initialRangeCultos?: CultoWithLecturas[]
+    /** Solo tests: fija "hoy" para límites y dual 10h/17h. */
+    now?: Date
     children: (culto: CultoWithLecturas | null, isLoading: boolean, esHoy: boolean) => ReactNode
 }
 
@@ -36,9 +45,39 @@ interface CultoIndicator {
     tipo_culto: { color: string } | null
 }
 
-export default function CultoNavigator({ initialCulto, initialDate, children }: CultoNavigatorProps) {
+function seedCache(
+    initialDate: string,
+    initialDayCultos: CultoWithLecturas[] | undefined,
+    initialCulto: CultoWithLecturas | null,
+    minDate: Date,
+    maxDate: Date,
+    initialRangeCultos?: CultoWithLecturas[],
+): Record<string, CultoWithLecturas[]> {
+    const fromRange = initialRangeCultos
+        ? seedNavigatorCache(minDate, maxDate, initialRangeCultos)
+        : {}
+    const list = initialDayCultos?.length
+        ? initialDayCultos
+        : initialCulto
+            ? [initialCulto]
+            : []
+    return list.length > 0 ? { ...fromRange, [initialDate]: list } : fromRange
+}
+
+export default function CultoNavigator({
+    initialCulto,
+    initialDate,
+    initialDayCultos,
+    initialRangeCultos,
+    now,
+    children,
+}: CultoNavigatorProps) {
     const { language, t } = useI18n()
     const locale = language === 'ca-ES' ? ca : es
+    const [today] = useState(() => now ?? new Date())
+    const { minDate, maxDate } = useMemo(() => dashboardNavigatorBounds(today), [today])
+    const rangeStart = format(minDate, 'yyyy-MM-dd')
+    const rangeEnd = format(maxDate, 'yyyy-MM-dd')
 
     const getTranslatedCultoName = (name: string | undefined) => {
         if (!name) return ''
@@ -50,132 +89,186 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
         return name
     }
 
-    // State
     const [selectedDate, setSelectedDate] = useState<Date>(new Date(initialDate + 'T12:00:00'))
-    const [currentCulto, setCurrentCulto] = useState<CultoWithLecturas | null>(initialCulto)
-    const [dayCultos, setDayCultos] = useState<CultoWithLecturas[]>([])
+    const seeded = seedCache(initialDate, initialDayCultos, initialCulto, minDate, maxDate, initialRangeCultos)
+    const cacheRef = useRef(seeded)
+
+    const seededList = seeded[initialDate] ?? []
+    const [currentCulto, setCurrentCulto] = useState<CultoWithLecturas | null>(
+        pickDefaultCultoForDay(seededList, new Date(initialDate + 'T12:00:00'), today) ?? initialCulto,
+    )
+    const [dayCultos, setDayCultos] = useState<CultoWithLecturas[]>(seededList)
     const [isLoading, setIsLoading] = useState(false)
     const [mounted, setMounted] = useState(false)
     const [indicators, setIndicators] = useState<CultoIndicator[]>([])
-    const [direction, setDirection] = useState<'left' | 'right'>('right')
+    const fetchGenRef = useRef(0)
+    const selectedKeyRef = useRef(initialDate)
+    const hourLockedRef = useRef(false)
+    const currentIdRef = useRef<string | null>(
+        pickDefaultCultoForDay(seededList, new Date(initialDate + 'T12:00:00'), today)?.id ?? initialCulto?.id ?? null,
+    )
+    const appliedFpRef = useRef(navigatorRangeFingerprint(initialRangeCultos))
+    const rangeGenRef = useRef(0)
 
-    // Calculate limits (±1 week from today)
-    const today = new Date()
-    const minDate = startOfWeek(subWeeks(today, 1), { weekStartsOn: 1 })
-    const maxDate = endOfWeek(addWeeks(today, 1), { weekStartsOn: 1 })
-
-    // Week days for mini-calendar
     const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
     const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
     const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
-
-    // Check if selected date is today
     const isSelectedToday = isSameDay(selectedDate, today)
-
-    // Nav limits check
     const canGoPrev = isWithinInterval(subDays(selectedDate, 1), { start: minDate, end: maxDate })
     const canGoNext = isWithinInterval(addDays(selectedDate, 1), { start: minDate, end: maxDate })
 
-    // Hydration fix
+    const applyDay = useCallback((date: Date, list: CultoWithLecturas[]) => {
+        setDayCultos(list)
+        const picked = pickDefaultCultoForDay(list, date, today)
+        setCurrentCulto(picked)
+        currentIdRef.current = picked?.id ?? null
+    }, [today])
+
+    const applyKeepingSelection = useCallback((date: Date, list: CultoWithLecturas[]) => {
+        setDayCultos(list)
+        if (hourLockedRef.current && currentIdRef.current) {
+            const match = list.find((c) => c.id === currentIdRef.current) ?? pickDefaultCultoForDay(list, date, today)
+            setCurrentCulto(match)
+            currentIdRef.current = match?.id ?? null
+            return
+        }
+        const picked = pickDefaultCultoForDay(list, date, today)
+        setCurrentCulto(picked)
+        currentIdRef.current = picked?.id ?? null
+    }, [today])
+
+    const writeCache = useCallback((updater: (prev: Record<string, CultoWithLecturas[]>) => Record<string, CultoWithLecturas[]>) => {
+        cacheRef.current = updater(cacheRef.current)
+    }, [])
+
+    const remember = useCallback((fecha: string, list: CultoWithLecturas[]) => {
+        writeCache((prev) => {
+            const existing = prev[fecha]
+            if (existing && existing.length > 0) return prev
+            return { ...prev, [fecha]: list }
+        })
+    }, [writeCache])
+
+    const ingestRange = useCallback((cultos: CultoWithLecturas[]) => {
+        writeCache((prev) => applyAuthoritativeRange(prev, minDate, maxDate, cultos))
+        const key = selectedKeyRef.current
+        applyKeepingSelection(new Date(`${key}T12:00:00`), cacheRef.current[key] ?? [])
+        setIsLoading(false)
+    }, [applyKeepingSelection, maxDate, minDate, writeCache])
+
+    const refetchRange = useCallback(async () => {
+        const gen = ++rangeGenRef.current
+        const [rangeResult, indicatorResult] = await Promise.all([
+            getCultosByDateRange(rangeStart, rangeEnd),
+            getCultoIndicatorsForRange(rangeStart, rangeEnd),
+        ])
+        if (gen !== rangeGenRef.current) return
+        if (indicatorResult.success && indicatorResult.data) {
+            setIndicators(indicatorResult.data as unknown as CultoIndicator[])
+        }
+        if (!rangeResult.success || !rangeResult.data) return
+        ingestRange(rangeResult.data as CultoWithLecturas[])
+    }, [ingestRange, rangeEnd, rangeStart])
+
     useEffect(() => {
         setMounted(true)
     }, [])
 
-    // Fetch indicators for the visible range
-    const fetchIndicators = useCallback(async () => {
-        const start = format(minDate, 'yyyy-MM-dd')
-        const end = format(maxDate, 'yyyy-MM-dd')
-        const result = await getCultoIndicatorsForRange(start, end)
-        if (result.success && result.data) {
-            setIndicators(result.data as unknown as CultoIndicator[])
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    useEffect(() => {
+        void refetchRange()
+    }, [refetchRange])
+
+    const ssrFingerprint = navigatorRangeFingerprint(initialRangeCultos)
+    useEffect(() => {
+        if (!initialRangeCultos) return
+        if (appliedFpRef.current === ssrFingerprint) return
+        appliedFpRef.current = ssrFingerprint
+        rangeGenRef.current += 1
+        const next = seedCache(initialDate, initialDayCultos, initialCulto, minDate, maxDate, initialRangeCultos)
+        cacheRef.current = next
+        const key = selectedKeyRef.current
+        applyKeepingSelection(new Date(`${key}T12:00:00`), next[key] ?? [])
+        setIsLoading(false)
+    }, [applyKeepingSelection, initialCulto, initialDate, initialDayCultos, initialRangeCultos, maxDate, minDate, ssrFingerprint])
 
     useEffect(() => {
-        fetchIndicators()
-    }, [fetchIndicators])
+        let timer: ReturnType<typeof setTimeout> | undefined
+        const onShow = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+            if (timer) clearTimeout(timer)
+            timer = setTimeout(() => {
+                if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+                if (hasOpenAppModal()) return
+                void refetchRange()
+            }, 150)
+        }
+        document.addEventListener('visibilitychange', onShow)
+        window.addEventListener('focus', onShow)
+        window.addEventListener('pageshow', onShow)
+        return () => {
+            if (timer) clearTimeout(timer)
+            document.removeEventListener('visibilitychange', onShow)
+            window.removeEventListener('focus', onShow)
+            window.removeEventListener('pageshow', onShow)
+        }
+    }, [refetchRange])
 
-    // Fetch cultos when date changes
-    const fetchCulto = useCallback(async (date: Date) => {
-        const dateStr = format(date, 'yyyy-MM-dd')
-
-        setIsLoading(true)
-        try {
-            const result = await getCultosByDate(dateStr)
-            if (result.success && result.data) {
-                const list = result.data as CultoWithLecturas[]
-                setDayCultos(list)
-                
-                if (list.length > 0) {
-                    // Seleccionar por defecto el de la mañana o tarde en base a la hora
-                    let defaultCulto = list[0]
-                    if (isSameDay(date, new Date()) && list.length > 1) {
-                        const currentHour = new Date().getHours()
-                        if (currentHour < 10) {
-                            defaultCulto = list.find(c => c.hora_inicio.startsWith('10')) || list[0]
-                        } else if (currentHour >= 10 && currentHour < 17) {
-                            const c10 = list.find(c => c.hora_inicio.startsWith('10'))
-                            if (c10?.estado === 'realizado') {
-                                defaultCulto = list.find(c => c.hora_inicio.startsWith('17')) || c10
-                            } else {
-                                defaultCulto = c10 || list[0]
-                            }
-                        } else {
-                            defaultCulto = list.find(c => c.hora_inicio.startsWith('17')) || list[1]
-                        }
-                    } else if (list.length > 1) {
-                        // Para días futuros/pasados, por defecto el de las 10h
-                        defaultCulto = list.find(c => c.hora_inicio.startsWith('10')) || list[0]
-                    }
-                    setCurrentCulto(defaultCulto)
-                } else {
-                    setCurrentCulto(null)
-                }
-            } else {
-                setDayCultos([])
-                setCurrentCulto(null)
-            }
-        } catch (error) {
-            console.error('Error fetching cultos for date:', error)
+    useEffect(() => {
+        const key = format(selectedDate, 'yyyy-MM-dd')
+        selectedKeyRef.current = key
+        hourLockedRef.current = false
+        if (key in cacheRef.current) {
+            applyDay(selectedDate, cacheRef.current[key] ?? [])
+            setIsLoading(false)
+        } else {
+            setIsLoading(true)
             setDayCultos([])
             setCurrentCulto(null)
-        } finally {
-            setIsLoading(false)
+            const gen = ++fetchGenRef.current
+            void getCultosByDate(key).then((result) => {
+                const list = (result.success && result.data ? result.data : []) as CultoWithLecturas[]
+                remember(key, list)
+                if (gen !== fetchGenRef.current || selectedKeyRef.current !== key) return
+                applyDay(selectedDate, list)
+                setIsLoading(false)
+            })
         }
-    }, [])
 
-    // Carga inicial de cultos del día en base a selectedDate
-    useEffect(() => {
-        fetchCulto(selectedDate)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDate])
+        const prefetch = (date: Date) => {
+            if (!isWithinInterval(date, { start: minDate, end: maxDate })) return
+            const neighbor = format(date, 'yyyy-MM-dd')
+            if (neighbor in cacheRef.current) return
+            void getCultosByDate(neighbor).then((result) => {
+                const list = (result.success && result.data ? result.data : []) as CultoWithLecturas[]
+                remember(neighbor, list)
+            })
+        }
+        prefetch(subDays(selectedDate, 1))
+        prefetch(addDays(selectedDate, 1))
+    }, [selectedDate, applyDay, remember, minDate, maxDate])
 
-    // Navigate functions
     const goToPrev = () => {
-        if (!canGoPrev) return
-        setDirection('left')
-        const newDate = subDays(selectedDate, 1)
-        setSelectedDate(newDate)
+        setSelectedDate((current) => {
+            const next = subDays(current, 1)
+            return isWithinInterval(next, { start: minDate, end: maxDate }) ? next : current
+        })
     }
 
     const goToNext = () => {
-        if (!canGoNext) return
-        setDirection('right')
-        const newDate = addDays(selectedDate, 1)
-        setSelectedDate(newDate)
+        setSelectedDate((current) => {
+            const next = addDays(current, 1)
+            return isWithinInterval(next, { start: minDate, end: maxDate }) ? next : current
+        })
     }
 
     const goToDay = (date: Date) => {
         if (!isWithinInterval(date, { start: minDate, end: maxDate })) return
-        setDirection(date > selectedDate ? 'right' : 'left')
         setSelectedDate(date)
     }
 
-    // Get indicator for a specific date
     const getIndicatorForDate = (date: Date): string | null => {
         const dateStr = format(date, 'yyyy-MM-dd')
-        const indicator = indicators.find(i => i.fecha === dateStr)
+        const indicator = indicators.find((i) => i.fecha === dateStr)
         return indicator?.tipo_culto?.color || null
     }
 
@@ -187,20 +280,22 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
         )
     }
 
+    const selectedKey = format(selectedDate, 'yyyy-MM-dd')
+
     return (
-        <div className="space-y-4">
-            {/* Navigation Header */}
+        <div className="space-y-4" data-testid="dashboard-culto-navigator">
             <div className="flex flex-col gap-4">
-                {/* Date Navigation Bar */}
                 <div className="ofrenda-liquid-nav flex items-center justify-between gap-2 rounded-2xl sm:rounded-full p-2 shadow-lg">
-                    {/* Prev Button */}
                     <motion.button
+                        type="button"
                         whileTap={{ scale: 0.9 }}
                         onClick={goToPrev}
-                        disabled={!canGoPrev || isLoading}
+                        disabled={!canGoPrev}
+                        aria-label={t('calendar.prevDay')}
+                        data-testid="dashboard-nav-prev"
                         className={cn(
-                            "w-12 h-12 sm:w-10 sm:h-10 rounded-xl sm:rounded-full flex items-center justify-center transition-all shrink-0",
-                            canGoPrev && !isLoading
+                            "w-12 h-12 sm:w-10 sm:h-10 rounded-xl sm:rounded-full flex items-center justify-center transition-all shrink-0 touch-manipulation",
+                            canGoPrev
                                 ? "bg-[#f8f3e8] hover:bg-[#f3ead4] border border-[rgba(184,150,74,0.3)] text-[#1f2e85]"
                                 : "bg-white/50 text-slate-300 cursor-not-allowed"
                         )}
@@ -208,13 +303,16 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                         <ChevronLeft className="w-5 h-5" />
                     </motion.button>
 
-                    {/* Current Date Display — dentro del marco liquid (crema): colores fijos, sin dark:* */}
-                    <div className="flex-1 text-center min-w-0 px-2">
+                    <div
+                        className="flex-1 text-center min-w-0 px-2"
+                        data-testid="dashboard-nav-date"
+                        data-date={selectedKey}
+                    >
                         <div className="flex flex-col items-center gap-1">
-                            <span className="text-sm sm:text-base font-black text-slate-800 capitalize truncate">
+                            <span className="text-sm sm:text-base font-black text-slate-800 capitalize truncate" suppressHydrationWarning>
                                 {format(selectedDate, 'EEEE', { locale })}
                             </span>
-                            <span className="text-xs sm:text-sm font-bold text-slate-500">
+                            <span className="text-xs sm:text-sm font-bold text-slate-500" suppressHydrationWarning>
                                 {format(selectedDate, 'd MMMM', { locale })}
                             </span>
                         </div>
@@ -229,14 +327,16 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                         )}
                     </div>
 
-                    {/* Next Button */}
                     <motion.button
+                        type="button"
                         whileTap={{ scale: 0.9 }}
                         onClick={goToNext}
-                        disabled={!canGoNext || isLoading}
+                        disabled={!canGoNext}
+                        aria-label={t('calendar.nextDay')}
+                        data-testid="dashboard-nav-next"
                         className={cn(
-                            "w-12 h-12 sm:w-10 sm:h-10 rounded-xl sm:rounded-full flex items-center justify-center transition-all shrink-0",
-                            canGoNext && !isLoading
+                            "w-12 h-12 sm:w-10 sm:h-10 rounded-xl sm:rounded-full flex items-center justify-center transition-all shrink-0 touch-manipulation",
+                            canGoNext
                                 ? "bg-[#f8f3e8] hover:bg-[#f3ead4] border border-[rgba(184,150,74,0.3)] text-[#1f2e85]"
                                 : "bg-white/50 text-slate-300 cursor-not-allowed"
                         )}
@@ -245,16 +345,20 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                     </motion.button>
                 </div>
 
-                {/* Selector de Horario si hay múltiples cultos en el mismo día */}
                 {dayCultos.length > 1 && (
-                    <div className="flex justify-center gap-1 p-1 rounded-2xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] shadow-sm">
+                    <div className="flex justify-center gap-1 p-1 rounded-2xl border-[1.5px] border-[rgba(184,150,74,0.32)] bg-gradient-to-br from-[#eef1fb] to-[#f8f3e8] shadow-sm" data-testid="dashboard-nav-hours">
                         {dayCultos.map((culto) => {
                             const isSelected = currentCulto?.id === culto.id
                             const horaLabel = `${getTranslatedCultoName(culto.tipo_culto?.nombre)} (${culto.hora_inicio.slice(0, 5)})`
                             return (
                                 <button
+                                    type="button"
                                     key={culto.id}
-                                    onClick={() => setCurrentCulto(culto)}
+                                    onClick={() => {
+                                        hourLockedRef.current = true
+                                        currentIdRef.current = culto.id
+                                        setCurrentCulto(culto)
+                                    }}
                                     className={cn(
                                         "flex-1 min-h-[44px] px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all touch-manipulation",
                                         isSelected
@@ -269,30 +373,31 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                     </div>
                 )}
 
-                {/* Mini Week Calendar - Hidden on very small screens */}
                 <div className="hidden xs:grid grid-cols-7 gap-1 sm:gap-2 px-1">
                     {weekDays.map((day) => {
                         const isSelected = isSameDay(day, selectedDate)
                         const isToday = isSameDay(day, today)
                         const indicatorColor = getIndicatorForDate(day)
                         const isInRange = isWithinInterval(day, { start: minDate, end: maxDate })
+                        const dayKey = format(day, 'yyyy-MM-dd')
 
                         return (
                             <motion.button
+                                type="button"
                                 key={day.toISOString()}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => goToDay(day)}
-                                disabled={!isInRange || isLoading}
+                                disabled={!isInRange}
+                                data-testid={`dashboard-nav-day-${dayKey}`}
                                 className={cn(
-                                    "flex flex-col items-center gap-1 py-2 sm:py-3 rounded-xl sm:rounded-2xl transition-all border",
+                                    "flex flex-col items-center gap-1 py-2 sm:py-3 rounded-xl sm:rounded-2xl transition-all border touch-manipulation",
                                     isSelected
                                         ? "bg-gradient-to-br from-[#1f2e85] to-[#283593] border-[#b8964a] shadow-[0_4px_14px_rgba(31,46,133,0.35)]"
-                                        : isInRange && !isLoading
+                                        : isInRange
                                             ? "border-transparent bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-700"
                                             : "border-transparent bg-slate-50 dark:bg-slate-900 opacity-40 cursor-not-allowed"
                                 )}
                             >
-                                {/* Day Name */}
                                 <span className={cn(
                                     "text-[9px] sm:text-[10px] font-black uppercase tracking-tight",
                                     isSelected
@@ -301,8 +406,6 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                                 )}>
                                     {format(day, 'EEE', { locale }).slice(0, 2)}
                                 </span>
-
-                                {/* Day Number */}
                                 <span className={cn(
                                     "text-sm sm:text-base font-black",
                                     isSelected
@@ -313,8 +416,6 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                                 )}>
                                     {format(day, 'd')}
                                 </span>
-
-                                {/* Culto Indicator Dot */}
                                 <div
                                     className={cn(
                                         "w-2 h-2 rounded-full transition-all",
@@ -330,18 +431,12 @@ export default function CultoNavigator({ initialCulto, initialDate, children }: 
                 </div>
             </div>
 
-            {/* Content Area with Animation */}
-            <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                    key={format(selectedDate, 'yyyy-MM-dd')}
-                    initial={{ opacity: 0, x: direction === 'right' ? 50 : -50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: direction === 'right' ? -50 : 50 }}
-                    transition={{ duration: 0.2, ease: 'easeInOut' }}
-                >
-                    {children(currentCulto, isLoading, isSelectedToday)}
-                </motion.div>
-            </AnimatePresence>
+            <div
+                data-testid="dashboard-nav-content"
+                aria-busy={isLoading}
+            >
+                {children(currentCulto, isLoading && !currentCulto, isSelectedToday)}
+            </div>
         </div>
     )
 }

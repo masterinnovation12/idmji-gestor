@@ -263,7 +263,7 @@ export default function AddLecturaModal({
           )}
         </div>
       ) : (
-        <div className="space-y-6 animate-in fade-in zoom-in duration-300 p-2">
+        <div className="space-y-6 animate-in fade-in zoom-in duration-150 p-2">
           <div className="flex flex-col items-center text-center space-y-4">
             <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-600 shadow-inner">
               <AlertCircle className="w-10 h-10" />

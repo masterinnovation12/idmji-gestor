@@ -111,7 +111,7 @@ export default function SedesClient({ initialSedes }: Readonly<{ initialSedes: S
     }
 
     return (
-        <div className="ofrenda-liquid-scope space-y-8 animate-in fade-in duration-500" data-page="admin-sedes">
+        <div className="ofrenda-liquid-scope space-y-8 animate-in fade-in duration-150" data-page="admin-sedes">
             <PageHero
                 title={t('admin.sedes.title')}
                 subtitle={t('admin.sedes.desc')}

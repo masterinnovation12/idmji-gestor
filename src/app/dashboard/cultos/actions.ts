@@ -307,17 +307,7 @@ export async function getCultoByDate(fecha: string, horaInicio?: string) {
     }
 }
 
-/**
- * Obtiene todos los cultos de una fecha específica con todas sus relaciones.
- */
-export async function getCultosByDate(fecha: string) {
-    const supabase = await createClient()
-    const sedeId = await getActiveSedeIdForCurrentUser()
-
-    try {
-        let query = supabase
-            .from('cultos')
-            .select(`
+const CULTO_NAVIGATOR_SELECT = `
                 *,
                 lecturas:lecturas_biblicas(*),
                 plan_himnos_coros(
@@ -330,20 +320,41 @@ export async function getCultosByDate(fecha: string) {
                 usuario_finalizacion:profiles!id_usuario_finalizacion(nombre, apellidos, avatar_url),
                 usuario_ensenanza:profiles!id_usuario_ensenanza(nombre, apellidos, avatar_url),
                 usuario_testimonios:profiles!id_usuario_testimonios(nombre, apellidos, avatar_url)
-            `)
-            .eq('fecha', fecha)
+            `
+
+/**
+ * Cultos completos de un rango (navegador del dashboard: una sola ida a red).
+ */
+export async function getCultosByDateRange(startDate: string, endDate: string) {
+    const supabase = await createClient()
+    const sedeId = await getActiveSedeIdForCurrentUser()
+
+    try {
+        let query = supabase
+            .from('cultos')
+            .select(CULTO_NAVIGATOR_SELECT)
+            .gte('fecha', startDate)
+            .lte('fecha', endDate)
+            .order('fecha', { ascending: true })
             .order('hora_inicio', { ascending: true })
         if (sedeId) query = query.eq('sede_id', sedeId)
 
         const { data, error } = await query
-
         if (error) throw error
-
         return { success: true, data }
     } catch (error) {
-        console.error('Error fetching cultos by date:', error)
+        console.error('Error fetching cultos by date range:', error)
         return { success: false, error: 'Error al cargar los cultos' }
     }
+}
+
+/**
+ * Obtiene todos los cultos de una fecha específica con todas sus relaciones.
+ */
+export async function getCultosByDate(fecha: string) {
+    const result = await getCultosByDateRange(fecha, fecha)
+    if (!result.success) return { success: false, error: result.error ?? 'Error al cargar los cultos' }
+    return { success: true, data: result.data }
 }
 
 /**

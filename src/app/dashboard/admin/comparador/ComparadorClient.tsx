@@ -138,7 +138,7 @@ export default function ComparadorClient({ sedes, initialData, initialYear, init
     }
 
     return (
-        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-500" data-page="admin-comparador">
+        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-150" data-page="admin-comparador">
             <PageHero
                 title={t('admin.comparador.title')}
                 subtitle={t('admin.comparador.desc')}
@@ -183,12 +183,12 @@ export default function ComparadorClient({ sedes, initialData, initialYear, init
 
             {/* Tarjetas comparativas */}
             <div className={`grid gap-4 md:grid-cols-2 xl:grid-cols-4 ${isLoading ? 'opacity-60' : ''}`} data-testid="comparador-cards">
-                {metricas.map((m, index) => (
+                {metricas.map((m) => (
                     <motion.div
                         key={m.sedeId}
-                        initial={{ opacity: 0, y: 14 }}
+                        initial={false}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
+                        transition={{ duration: 0.12 }}
                         data-testid={`comparador-card-${m.slug}`}
                         className="ofrenda-liquid-card rounded-3xl p-5 space-y-3"
                     >

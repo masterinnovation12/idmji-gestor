@@ -235,9 +235,9 @@ export default function DashboardLayout({
     // Sincronizar estado visual con reactivo
     useEffect(() => {
         if (isMobileMenuOpen) {
-            animate(x, 0, { type: 'spring', damping: 25, stiffness: 200 })
+            animate(x, 0, { type: 'spring', damping: 32, stiffness: 420 })
         } else {
-            animate(x, -280, { type: 'spring', damping: 25, stiffness: 200 })
+            animate(x, -280, { type: 'spring', damping: 32, stiffness: 420 })
         }
     }, [isMobileMenuOpen, x])
 
@@ -317,6 +317,7 @@ export default function DashboardLayout({
                         exit={{ opacity: 0 }}
                         style={{ opacity }}
                         className="fixed inset-0 bg-black/55 backdrop-blur-sm z-100 md:hidden touch-none"
+                        data-testid="mobile-menu-overlay"
                         onClick={() => setIsMobileMenuOpen(false)}
                         // Bloquear scroll de fondo agresivamente
                         onTouchMove={(e) => {
@@ -383,7 +384,7 @@ export default function DashboardLayout({
 
             {/* Main Area */}
             <main
-                className={`min-h-screen transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'md:ml-24' : 'md:ml-[280px]'
+                className={`min-h-screen transition-all duration-200 ease-out ${isSidebarCollapsed ? 'md:ml-24' : 'md:ml-[280px]'
                     } ${pathname?.includes('/admin/users') || pathname?.includes('/hermanos') || pathname?.includes('/profile') ? 'no-scrollbar' : ''}`}
             >
                 {/* Mobile Floating Header (Glassmorphism) */}
@@ -391,6 +392,7 @@ export default function DashboardLayout({
                     <div className="glass rounded-[2.5rem] border-[1.5px] border-[rgba(184,150,74,0.35)] p-2 flex items-center justify-between shadow-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
                         <button
                             onClick={() => setIsMobileMenuOpen(true)}
+                            aria-expanded={isMobileMenuOpen}
                             aria-label={t('common.openMenu')}
                             data-testid="mobile-menu-abrir"
                             className="w-12 h-12 flex items-center justify-center bg-[#1f2e85]/10 border border-[rgba(184,150,74,0.35)] rounded-2xl text-[#1f2e85] dark:text-[#e8d9a8] shrink-0 transition-transform active:scale-90"

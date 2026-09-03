@@ -216,7 +216,7 @@ export default function UsersClient({ initialUsers, availableRoles, sedes }: Use
     }
 
     return (
-        <div className="ofrenda-liquid-scope space-y-8 animate-in fade-in duration-500 no-scrollbar" data-page="users">
+        <div className="ofrenda-liquid-scope space-y-8 animate-in fade-in duration-150 no-scrollbar" data-page="users">
             {/* Header hero liquid (marino + dorado) */}
             <PageHero
                 title={t('users.title')}

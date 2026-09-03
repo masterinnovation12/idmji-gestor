@@ -54,7 +54,7 @@ export default function LecturasAdminClient({ sedes, initialData }: Props) {
     const years = useMemo(() => data.years, [data.years])
 
     return (
-        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-500" data-page="admin-lecturas-sede">
+        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-150" data-page="admin-lecturas-sede">
             <PageHero
                 title={t('admin.lecturasSede.title')}
                 subtitle={t('admin.lecturasSede.desc')}
@@ -155,14 +155,14 @@ export default function LecturasAdminClient({ sedes, initialData }: Props) {
             {/* Desglose por sede (solo cuando el ámbito es "todas") */}
             {verTodas && (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" data-testid="lecturas-sede-cards">
-                    {data.porSede.map((s, index) => {
+                    {data.porSede.map((s) => {
                         const max = s.topLibros[0]?.count ?? 0
                         return (
                             <motion.div
                                 key={s.sedeId}
-                                initial={{ opacity: 0, y: 14 }}
+                                initial={false}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
+                                transition={{ duration: 0.12 }}
                                 data-testid={`lecturas-sede-card-${s.slug}`}
                                 className="ofrenda-liquid-card rounded-3xl p-5 space-y-3"
                             >

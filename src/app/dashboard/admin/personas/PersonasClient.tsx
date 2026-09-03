@@ -152,7 +152,7 @@ export default function PersonasClient({ sedes, initialSedeId, initialPersonas }
     const rowClass = 'flex items-center gap-3 rounded-2xl bg-[#f8f3e8]/70 border border-[rgba(184,150,74,0.25)] p-3'
 
     return (
-        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-500" data-page="admin-personas">
+        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-150" data-page="admin-personas">
             <PageHero
                 title={t('admin.personas.title')}
                 subtitle={t('admin.personas.desc')}
