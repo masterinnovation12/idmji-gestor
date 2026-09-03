@@ -260,12 +260,12 @@ export default function HimnarioClient({ initialHimnos, initialCoros, counts }: 
                                                     </td>
                                                 </motion.tr>
                                             ) : (
-                                                currentData.map((item, index) => (
+                                                currentData.map((item) => (
                                                     <motion.tr
                                                         key={item.id}
-                                                        initial={{ opacity: 0, y: 10 }}
+                                                        initial={false}
                                                         animate={{ opacity: 1, y: 0 }}
-                                                        transition={{ delay: index * 0.02 }}
+                                                        transition={{ duration: 0.12 }}
                                                         className="group hover:bg-muted/20 transition-all cursor-pointer border-b border-border/10 last:border-0"
                                                     >
                                                         <td className="hidden sm:table-cell px-8 py-6">

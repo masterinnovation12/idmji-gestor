@@ -2,8 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { Suspense } from 'react'
 import { redirect, unstable_rethrow } from 'next/navigation'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
-import { getUserAssignments } from './cultos/actions'
+import { getCultosByDateRange, getUserAssignments } from './cultos/actions'
 import { getActiveSedeIdForCurrentUser } from '@/lib/sede/activeSede'
+import { dashboardNavigatorBounds, groupCultosByFecha, pickDefaultCultoForDay } from '@/lib/utils/pickDashboardCulto'
 import DashboardClient from './DashboardClient'
 
 // Revalidation trigger
@@ -18,79 +19,46 @@ export default async function DashboardPage() {
             redirect('/login')
         }
 
-        const today = format(new Date(), 'yyyy-MM-dd')
+        const now = new Date()
+        const today = format(now, 'yyyy-MM-dd')
+        const { minDate, maxDate } = dashboardNavigatorBounds(now)
 
-        const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }) // Monday start
-        const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
+        const weekStart = startOfWeek(now, { weekStartsOn: 1 }) // Monday start
+        const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
 
         // Sede activa: el ADMIN ve todas las sedes por RLS, así que el
         // dashboard debe acotar a la sede elegida en el sidebar.
         const sedeId = await getActiveSedeIdForCurrentUser()
 
-        const cultosHoyQuery = supabase.from('cultos').select(`
-                *,
-                lecturas:lecturas_biblicas(*),
-                plan_himnos_coros(
-                    *,
-                    himno:himnos(numero, titulo, duracion_segundos),
-                    coro:coros(numero, titulo, duracion_segundos)
-                ),
-                tipo_culto:culto_types(nombre, color, tiene_ensenanza, tiene_testimonios, tiene_lectura_introduccion, tiene_lectura_finalizacion, tiene_himnos_y_coros),
-                usuario_intro:profiles!id_usuario_intro(nombre, apellidos, avatar_url),
-                usuario_finalizacion:profiles!id_usuario_finalizacion(nombre, apellidos, avatar_url),
-                usuario_ensenanza:profiles!id_usuario_ensenanza(nombre, apellidos, avatar_url),
-                usuario_testimonios:profiles!id_usuario_testimonios(nombre, apellidos, avatar_url)
-            `).eq('fecha', today).order('hora_inicio', { ascending: true })
-
         // 1. DISPATCH CONCURRENT REQUESTS (Paralelización de llamadas para reducir TTFB)
         const [
             profileRes,
-            cultosDataRes,
+            rangeRes,
             initialAssignmentsRes
         ] = await Promise.all([
-            // Get user profile
             supabase.from('profiles').select('*').eq('id', user.id).single(),
-
-            // Get today's cultos (solo de la sede activa)
-            sedeId ? cultosHoyQuery.eq('sede_id', sedeId) : cultosHoyQuery,
-
-            // Get user assignments for current week
+            getCultosByDateRange(format(minDate, 'yyyy-MM-dd'), format(maxDate, 'yyyy-MM-dd')),
             getUserAssignments(user.id, format(weekStart, 'yyyy-MM-dd'), format(weekEnd, 'yyyy-MM-dd')),
-
         ])
 
         const profile = profileRes.data
-        const cultosData = cultosDataRes.data || []
+        const rangeCultos = (rangeRes.success && rangeRes.data) ? rangeRes.data : []
+        const cultosData = groupCultosByFecha(rangeCultos)[today] ?? []
         const initialAssignments = initialAssignmentsRes.data
-        let cultoMostrado = null
-        let esCultoHoy = true
+        let cultoMostrado = cultosData.length > 0
+            ? pickDefaultCultoForDay(cultosData, new Date(), new Date())
+            : null
+        let esCultoHoy = cultosData.length > 0
 
-        if (cultosData.length > 0) {
-            if (cultosData.length === 1) {
-                cultoMostrado = cultosData[0]
-            } else {
-                const currentHour = new Date().getHours()
-                if (currentHour < 10) {
-                    // Antes de las 10:00 -> Mostramos el de las 10h
-                    cultoMostrado = cultosData.find(c => c.hora_inicio.startsWith('10')) || cultosData[0]
-                } else if (currentHour >= 10 && currentHour < 17) {
-                    // Entre las 10:00 y las 17:00 -> Si el de las 10h ya se completó (realizado), mostramos el de las 17h
-                    const c10 = cultosData.find(c => c.hora_inicio.startsWith('10'))
-                    if (c10?.estado === 'realizado') {
-                        cultoMostrado = cultosData.find(c => c.hora_inicio.startsWith('17')) || c10
-                    } else {
-                        cultoMostrado = c10 || cultosData[0]
-                    }
-                } else {
-                    // Después de las 17:00 -> Mostramos el de las 17h
-                    cultoMostrado = cultosData.find(c => c.hora_inicio.startsWith('17')) || cultosData[1]
-                }
-            }
-        }
-
-        // Si no hay culto hoy, buscar el PRÓXIMO disponible (de la sede activa)
+        // Si no hay culto hoy, el siguiente del rango ±1 semana (misma query);
+        // si tampoco, buscar más allá del rango.
         if (!cultoMostrado) {
-            let nextQuery = supabase
+            const upcoming = rangeCultos.find((c) => c.fecha > today)
+            if (upcoming) {
+                cultoMostrado = upcoming
+                esCultoHoy = false
+            } else {
+                let nextQuery = supabase
                 .from('cultos')
                 .select(`
                 *,
@@ -109,9 +77,10 @@ export default async function DashboardPage() {
 
             const { data: nextCultos } = await nextQuery
 
-            if (nextCultos && nextCultos.length > 0) {
-                cultoMostrado = nextCultos[0]
-                esCultoHoy = false
+                if (nextCultos && nextCultos.length > 0) {
+                    cultoMostrado = nextCultos[0]
+                    esCultoHoy = false
+                }
             }
         }
 
@@ -127,6 +96,8 @@ export default async function DashboardPage() {
                     esHoy={esCultoHoy}
                     initialAssignments={initialAssignments || []}
                     initialDate={cultoMostrado?.fecha || today}
+                    initialDayCultos={cultosData.length > 0 ? cultosData : (cultoMostrado ? [cultoMostrado] : [])}
+                    initialRangeCultos={rangeCultos}
                 />
             </Suspense>
         )

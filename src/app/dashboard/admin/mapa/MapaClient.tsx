@@ -46,7 +46,7 @@ export default function MapaClient({ initialSedes }: Readonly<{ initialSedes: Se
     }, [selected])
 
     return (
-        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-500" data-page="admin-mapa">
+        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-150" data-page="admin-mapa">
             <PageHero
                 title={t('admin.mapa.title')}
                 subtitle={t('admin.mapa.desc')}

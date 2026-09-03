@@ -133,7 +133,7 @@ export default function HimnarioAdminClient({ initialHimnos, initialCoros }: Rea
     }
 
     return (
-        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-500" data-page="admin-himnario">
+        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-150" data-page="admin-himnario">
             <PageHero
                 title={t('admin.himnario.title')}
                 subtitle={t('admin.himnario.desc')}

@@ -45,7 +45,7 @@ export default function Hermano360Client({ hermano }: Readonly<{ hermano: Herman
     ]
 
     return (
-        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-500" data-page="admin-hermano-360">
+        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-150" data-page="admin-hermano-360">
             <PageHero
                 title={`${hermano.nombre} ${hermano.apellidos}`.trim()}
                 subtitle={t('admin.hermano.subtitle')}

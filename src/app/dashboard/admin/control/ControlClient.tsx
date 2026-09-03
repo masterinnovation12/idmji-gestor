@@ -293,7 +293,7 @@ export default function ControlClient({ sedes, initialData, initialAlerts, initi
     }, [tendencias, metricaTendencia])
 
     return (
-        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-500" data-page="admin-control">
+        <div className="ofrenda-liquid-scope space-y-6 animate-in fade-in duration-150" data-page="admin-control">
             <PageHero
                 title={t('admin.control.title')}
                 subtitle={t('admin.control.desc')}
@@ -392,14 +392,14 @@ export default function ControlClient({ sedes, initialData, initialAlerts, initi
 
             {/* KPIs */}
             <div className={`grid gap-4 sm:grid-cols-2 xl:grid-cols-5 ${isLoading ? 'opacity-60' : ''}`}>
-                {kpiCards.map((kpi, index) => {
+                {kpiCards.map((kpi) => {
                     const Icon = kpi.icon
                     return (
                         <motion.div
                             key={kpi.key}
-                            initial={{ opacity: 0, y: 14 }}
+                            initial={false}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
+                            transition={{ duration: 0.12 }}
                             data-testid={`control-kpi-${kpi.key}`}
                             className="ofrenda-liquid-card rounded-3xl p-5"
                         >

@@ -256,14 +256,14 @@ export default function HermanosClient({ initialHermanos, stats }: HermanosClien
                         </motion.div>
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
-                            {filteredHermanos.map((hermano, index) => (
+                            {filteredHermanos.map((hermano) => (
                                 <motion.div
                                     layout
                                     key={hermano.id}
-                                    initial={{ opacity: 0, y: 20 }}
+                                    initial={false}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.9 }}
-                                    transition={{ delay: index * 0.03, duration: 0.4 }}
+                                    transition={{ duration: 0.12 }}
                                     className="group relative cursor-pointer"
                                     onClick={() => openDetails(hermano)}
                                 >

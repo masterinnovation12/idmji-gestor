@@ -155,9 +155,11 @@ export async function toggleFestivo(cultoId: string, currentStatus: boolean, cur
 }
 
 /**
- * Buscar hermanos con pulpito = true para asignaciones
+ * Catálogo de hermanos con pulpito = true para asignaciones.
+ * Devuelve la lista completa de la sede activa: el UserSelector filtra en cliente
+ * al escribir (sin debounce ni round-trip por tecla). `query` se ignora a propósito.
  */
-export async function searchProfiles(query: string = '') {
+export async function searchProfiles(_query: string = '') {
     const supabase = await createClient()
 
     // El ADMIN ve todas las sedes por RLS: acotar SIEMPRE a la sede activa para
@@ -172,17 +174,13 @@ export async function searchProfiles(query: string = '') {
 
     if (sedeId) dbQuery = dbQuery.eq('sede_id', sedeId)
 
-    if (query) {
-        dbQuery = dbQuery.or(`nombre.ilike.%${query}%,apellidos.ilike.%${query}%`)
-    }
-
-    const { data, error } = await dbQuery.limit(20)
+    const { data, error } = await dbQuery.limit(500)
 
     if (error) {
         return { error: error.message }
     }
 
-    return { data }
+    return { data, sedeId }
 }
 
 /**

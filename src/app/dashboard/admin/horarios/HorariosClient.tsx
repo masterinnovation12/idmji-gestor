@@ -171,7 +171,7 @@ export default function HorariosClient({ sedes, tipos, initialSedeId, initialHor
     const tipoSeleccionado = form.tipoCultoId != null ? tiposById.get(form.tipoCultoId) : undefined
 
     return (
-        <div className="ofrenda-liquid-scope space-y-8 animate-in fade-in duration-500" data-page="admin-horarios">
+        <div className="ofrenda-liquid-scope space-y-8 animate-in fade-in duration-150" data-page="admin-horarios">
             <PageHero
                 title={t('admin.horarios.title')}
                 subtitle={t('admin.horarios.desc')}
@@ -198,14 +198,14 @@ export default function HorariosClient({ sedes, tipos, initialSedeId, initialHor
             </div>
 
             <div className={`grid gap-4 md:grid-cols-2 xl:grid-cols-4 ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
-                {DIAS_ORDEN.map((day, index) => {
+                {DIAS_ORDEN.map((day) => {
                     const items = porDia.get(day) ?? []
                     return (
                         <motion.div
                             key={`${sedeId}-${day}`}
-                            initial={{ opacity: 0, y: 14 }}
+                            initial={false}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.04 }}
+                            transition={{ duration: 0.12 }}
                             data-testid={`horarios-dia-${day}`}
                             className="ofrenda-liquid-card rounded-3xl p-5 flex flex-col gap-3"
                         >

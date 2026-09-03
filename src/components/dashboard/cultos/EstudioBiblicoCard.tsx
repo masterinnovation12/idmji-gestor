@@ -198,6 +198,8 @@ export function EstudioBiblicoCard({ culto, esHoy, currentUserId }: Readonly<{ c
                                     footerAction={canAddReading ? (
                                         <button
                                             type="button"
+                                            data-testid="dashboard-add-lectura"
+                                            onMouseDown={(e) => e.preventDefault()}
                                             onClick={() => setAddLecturaModalOpen(true)}
                                             className="w-full py-2.5 sm:py-3 px-4 sm:px-5 border-[1.5px] border-dashed border-[rgba(184,150,74,0.5)] rounded-2xl flex items-center justify-center gap-2 sm:gap-2.5 bg-[#f8f3e8]/50 hover:bg-[#f8f3e8] hover:border-[#b8964a] active:scale-[0.98] transition-all cursor-pointer touch-manipulation text-[#1f2e85]"
                                         >
